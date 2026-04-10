@@ -1,0 +1,42 @@
+{
+  "name": "nina-aes-platform",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:citizen": "turbo run dev --filter=@nina-aes/citizen",
+    "dev:admin": "turbo run dev --filter=@nina-aes/admin",
+    "dev:governance": "turbo run dev --filter=@nina-aes/governance",
+    "dev:identity": "turbo run dev --filter=@nina-aes/identity-service",
+    "dev:auth": "turbo run dev --filter=@nina-aes/auth-service",
+    "dev:ai": "cd services/ai-service && uvicorn app.main:app --reload --port 3003",
+    "dev:sigac": "cd services/anticorruption-service && uvicorn app.main:app --reload --port 3009",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:cov": "turbo run test:cov",
+    "check-types": "turbo run check-types",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "db:generate": "turbo run db:generate --filter=@nina-aes/database",
+    "db:migrate": "turbo run db:migrate --filter=@nina-aes/database",
+    "db:seed": "turbo run db:seed --filter=@nina-aes/database",
+    "db:studio": "turbo run db:studio --filter=@nina-aes/database",
+    "docker:up": "docker compose -f docker-compose.dev.yml up -d",
+    "docker:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:logs": "docker compose -f docker-compose.dev.yml logs -f",
+    "prepare": "cd .. && husky nina-aes-platform/.husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.8.1",
+    "turbo": "^2.9.5",
+    "typescript": "6.0.2"
+  },
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

@@ -1,0 +1,34 @@
+// ═════════════════════════════════════════════════════════════
+// Schéma Prisma — NINA-AES Platform
+// Ce fichier sera enrichi dans le document 06-DATABASE-SCHEMA-PRISMA.md
+// Pour l'instant, structure minimale pour valider le setup
+// ═══════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Enregistrement NINA — Table principale du système d'identité
+model NinaRecord {
+  id            String   @id @default(uuid())
+  /// Numéro NINA — 15 caractères (14 chiffres + 1 lettre de contrôle)
+  nina          String   @unique @db.VarChar(15)
+  nom           String   @db.VarChar(100)
+  prenoms       String   @db.VarChar(200)
+  dateNaissance DateTime @map("date_naissance")
+  lieuNaissance String   @map("lieu_naissance") @db.VarChar(200)
+  sexe          Int      @db.SmallInt
+  codeRegion    String   @map("code_region") @db.VarChar(2)
+  codeCercle    String   @map("code_cercle") @db.VarChar(4)
+  codeCommune   String   @map("code_commune") @db.VarChar(7)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("nina_records")
+  @@index([nom, prenoms])
+  @@index([codeRegion, codeCercle, codeCommune])
+}

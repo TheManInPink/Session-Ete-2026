@@ -1,0 +1,26 @@
+{
+  "name": "@nina-aes/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types TypeScript, énumérations et schémas Zod partagés (frontend + backend NINA-AES).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "lint": "echo '(lint config aligné doc 04)'",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2"
+  }
+}

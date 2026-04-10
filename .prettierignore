@@ -1,0 +1,17 @@
+# Dépendances
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+.turbo/
+
+# Fichiers auto-générés par Next.js (ne pas formater)
+**/next-env.d.ts
+
+# Prisma migrations (SQL généré)
+packages/database/prisma/migrations/
+
+# Lockfile
+pnpm-lock.yaml

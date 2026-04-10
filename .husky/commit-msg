@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# Changer vers le répertoire du monorepo
+cd nina-aes-platform || exit 0
+
+# Vérifier le format du message de commit
+pnpm exec commitlint --edit "$1" || {
+  echo "❌ Format de commit invalide."
+  echo "   Format attendu : type(scope): description"
+  echo "   Exemple : feat(identity): add NINA search endpoint"
+  exit 1
+}

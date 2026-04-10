@@ -1,0 +1,20 @@
+{
+  "name": "@nina-aes/config",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "echo '(lint config will be added in doc 04)'",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2"
+  }
+}

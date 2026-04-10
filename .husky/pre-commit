@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+# Changer vers le répertoire du monorepo
+cd nina-aes-platform || exit 0
+
+# Vérifier le formatage
+pnpm run format:check || {
+  echo "❌ Formatage incorrect. Exécutez : pnpm run format"
+  exit 1
+}
+
+# Linter
+pnpm run lint || {
+  echo "❌ Erreurs de lint. Corrigez-les avant de commiter."
+  exit 1
+}
