@@ -22,6 +22,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import dotenv from 'dotenv';
+import { expand as dotenvExpand } from 'dotenv-expand';
 import { z } from 'zod';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -49,17 +50,29 @@ function locateMonorepoEnv(): string | null {
 }
 
 // Charge le `.env` racine s'il existe — sinon on se contente de `process.env`.
+// On désactive ce chargement quand `NINA_SKIP_DOTENV=1` (tests unitaires
+// ou environnements containerisés où l'orchestrateur fournit déjà les vars).
 const ENV_PATH = locateMonorepoEnv();
-if (ENV_PATH) {
-  dotenv.config({ path: ENV_PATH, override: false });
+if (ENV_PATH && process.env.NINA_SKIP_DOTENV !== '1') {
+  const parsed = dotenv.config({ path: ENV_PATH, override: false });
+  // Permet l'interpolation `${VAR}` dans le .env (alignée sur docker-compose).
+  dotenvExpand(parsed);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Schéma Zod des variables d'environnement
 // ──────────────────────────────────────────────────────────────────────────────
 
-/** Expression régulière d'une durée ISO simplifiée : `15m`, `7d`, `3600s`, … */
-const DURATION_REGEX = /^\d+(ms|s|m|h|d)$/;
+/**
+ * Expression régulière d'une durée acceptée pour les expirations JWT :
+ *   - format ISO simplifié : `15m`, `7d`, `3600s`, `500ms`
+ *   - ou nombre brut de secondes : `86400`, `900`, …
+ *
+ * Les deux formes sont acceptées pour rester compatibles avec les conventions
+ * existantes (NestJS attend un duration string, Keycloak/Vault attendent des
+ * secondes).
+ */
+const DURATION_REGEX = /^(\d+(ms|s|m|h|d)|\d+)$/;
 
 /**
  * Schéma exhaustif des variables d'environnement de la plateforme NINA-AES.
@@ -197,7 +210,15 @@ export function resetConfig(): void {
 }
 
 /**
- * Singleton exporté, validé au chargement du module.
+ * Singleton exporté **paresseux** : la validation n'a lieu qu'au premier
+ * accès à un champ (`config.DATABASE_URL`, …). Permet :
+ *   - aux tests unitaires de charger le module sans crash quand `process.env`
+ *     n'est pas un environnement valide ;
+ *   - aux outils CLI qui n'utilisent qu'une fraction de la config (ex.
+ *     `prisma migrate`) de ne pas exiger TOUTES les variables.
+ *
+ * Au runtime applicatif, le premier accès vaut une validation eager :
+ *   `console.log(config.DATABASE_URL)` lève si `.env` est invalide.
  *
  * @example
  * ```ts
@@ -205,7 +226,20 @@ export function resetConfig(): void {
  * console.log(config.DATABASE_URL);
  * ```
  */
-export const config: Env = getConfig();
+export const config: Env = new Proxy({} as Env, {
+  get(_t, prop, receiver) {
+    return Reflect.get(getConfig(), prop, receiver);
+  },
+  has(_t, prop) {
+    return prop in getConfig();
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getConfig());
+  },
+  getOwnPropertyDescriptor(_t, prop) {
+    return Reflect.getOwnPropertyDescriptor(getConfig(), prop);
+  },
+});
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Constantes partagées
@@ -234,7 +268,7 @@ export const CORS_CONFIG = {
 
 /** Ports canoniques des 11 microservices (doc 07 → 11). */
 export const SERVICE_PORTS = {
-  API_GATEWAY: config.API_GATEWAY_PORT,
+  API_GATEWAY: Number(process.env.API_GATEWAY_PORT) || 3000,
   IDENTITY_SERVICE: Number(process.env.IDENTITY_SERVICE_PORT) || 3001,
   AUTH_SERVICE: Number(process.env.AUTH_SERVICE_PORT) || 3002,
   AI_SERVICE: Number(process.env.AI_SERVICE_PORT) || 3003,

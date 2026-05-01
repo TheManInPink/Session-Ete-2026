@@ -2,27 +2,53 @@
   "name": "@nina-aes/config",
   "version": "0.1.0",
   "private": true,
-  "description": "Centralised environment configuration with Zod validation for the Nina AES platform",
-  "keywords": ["nina", "aes", "platform", "configuration"],
-  "author": "Ibrahim",
+  "description": "Configuration centralisée (Zod) des variables d'environnement de la plateforme NINA-AES.",
+  "keywords": [
+    "nina",
+    "aes",
+    "platform",
+    "configuration",
+    "zod",
+    "env"
+  ],
+  "author": "Étudiant UQAR",
+  "license": "UNLICENSED",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
   },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
-    "lint": "echo '(lint config will be added in doc 04)'",
-    "check-types": "tsc --noEmit"
+    "clean": "rimraf dist .turbo",
+    "lint": "eslint \"src/**/*.ts\"",
+    "check-types": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "dotenv": "^17.4.1",
+    "dotenv-expand": "^12.0.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.5.2",
+    "jest": "^30.3.0",
+    "rimraf": "^6.1.3",
+    "ts-jest": "^29.4.9",
     "typescript": "^6.0.2"
+  },
+  "engines": {
+    "node": ">=24.14.0",
+    "pnpm": ">=10.0.0"
   }
 }
