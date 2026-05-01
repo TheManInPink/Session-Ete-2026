@@ -70,7 +70,9 @@ export const citizenDtoSchema = z.object({
   firstName: z.string().min(1).max(120),
   lastName: z.string().min(1).max(120),
   sex: z.nativeEnum(Sex),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ'),
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ'),
   birthPlace: locationSchema,
   residence: locationSchema,
   maritalStatus: z.nativeEnum(MaritalStatus),
@@ -207,7 +209,11 @@ export const kioskSessionOpenSchema = z.object({
   language: z.nativeEnum(Language),
   assistedMode: z.boolean(),
   /** Durée de session en secondes */
-  ttlSeconds: z.number().int().min(60).max(8 * 3600),
+  ttlSeconds: z
+    .number()
+    .int()
+    .min(60)
+    .max(8 * 3600),
 });
 
 /**
@@ -236,7 +242,9 @@ export type AppointmentUpsertDto = z.infer<typeof appointmentUpsertSchema>;
 /** Type inféré — alerte corruption */
 export type CorruptionAlertCreateDto = z.infer<typeof corruptionAlertCreateSchema>;
 /** Type inféré — directive */
-export type GovernanceDirectiveCreateDto = z.infer<typeof governanceDirectiveCreateSchema>;
+export type GovernanceDirectiveCreateDto = z.infer<
+  typeof governanceDirectiveCreateSchema
+>;
 /** Type inféré — message gouvernance */
 export type GovernanceMessageIngestDto = z.infer<typeof governanceMessageIngestSchema>;
 /** Type inféré — requête interop */

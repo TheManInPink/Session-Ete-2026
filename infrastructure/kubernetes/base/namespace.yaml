@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nina-aes
+  labels:
+    app.kubernetes.io/name: nina-aes
+    app.kubernetes.io/part-of: nina-aes-platform

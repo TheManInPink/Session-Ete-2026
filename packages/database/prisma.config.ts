@@ -3,9 +3,10 @@
  * @description Configuration Prisma 7 — Fournit l'URL de connexion PostgreSQL
  *              pour Prisma Migrate (CLI) et Prisma Studio.
  *
- *              Prisma 7 a supprimé `url = env("DATABASE_URL")` du schema.prisma.
- *              L'URL est maintenant configurée ici pour les outils CLI,
- *              et dans le constructeur PrismaClient pour le runtime.
+ *              Prisma 7 a supprimé `url = env("DATABASE_URL")` du schema.prisma
+ *              ET le champ `datasources` du constructeur `PrismaClient`.
+ *              L'URL est désormais déclarée ici sous `datasource.url`, et le
+ *              runtime lit DATABASE_URL via la variable d'environnement.
  *
  * @see         https://pris.ly/d/config-datasource
  * @author      Étudiant UQAR
@@ -13,25 +14,17 @@
  */
 
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'prisma/config';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const DATABASE_URL =
+  process.env.DATABASE_URL ?? 'postgresql://nina:nina_dev@localhost:5432/nina_aes';
+
 export default defineConfig({
-  earlyAccess: true,
   schema: path.join(__dirname, 'prisma', 'schema.prisma'),
-
-  migrate: {
-    async url() {
-      return (
-        process.env.DATABASE_URL ?? 'postgresql://nina:nina_dev@localhost:5432/nina_aes'
-      );
-    },
-  },
-
-  studio: {
-    async url() {
-      return (
-        process.env.DATABASE_URL ?? 'postgresql://nina:nina_dev@localhost:5432/nina_aes'
-      );
-    },
+  datasource: {
+    url: DATABASE_URL,
   },
 });

@@ -8,9 +8,10 @@
 
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
-  imports: [],
+  imports: [HealthModule],
   controllers: [AppController],
   providers: [],
 })

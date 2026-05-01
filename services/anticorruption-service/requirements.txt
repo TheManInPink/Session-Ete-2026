@@ -10,5 +10,5 @@ httpx>=0.28.1
 python-dotenv>=1.2.2
 
 # Optionnel — ML avancé (LSTM, BERT)
-# torch>=2.11.0
-# transformers>=5.5.0
+torch>=2.11.0
+transformers>=5.5.0

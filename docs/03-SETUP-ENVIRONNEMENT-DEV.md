@@ -684,7 +684,9 @@ python -m uvicorn app.main:app --port 3003
 
 # 3. Vérifier que Turborepo reconnaît tous les workspaces
 cd C:\Users\lonel\Projet-En-Informatique\Session-Ete-2026\nina-aes-platform
-pnpm ls -r --depth -1 | grep "@nina-aes"
+pnpm ls -r --depth -1 | findstr "@nina-aes" # (Windows equivalent)
+pnpm ls -r --depth -1 | Select-String "@nina-aes" # PowerShell
+pnpm ls -r --depth -1 | grep "@nina-aes" # Git Bash
 # Doit lister au minimum 15 packages @nina-aes/*
 ```
 

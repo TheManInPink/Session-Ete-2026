@@ -1,4 +1,4 @@
-import type { Linter } from "eslint";
+import type { Linter } from 'eslint';
 
 /**
  * Configuration ESLint pour paquets React internes (hors Next.js).

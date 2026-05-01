@@ -5,11 +5,7 @@
  * @module      auth-service
  */
 
-import {
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /** Réponse JSON du endpoint `openid-connect/certs` (JWKS). */
@@ -38,10 +34,7 @@ export class JwksService {
       return this.cache.body;
     }
 
-    const baseUrl = this.config.get<string>(
-      'KEYCLOAK_URL',
-      'http://localhost:8080',
-    );
+    const baseUrl = this.config.get<string>('KEYCLOAK_URL', 'http://localhost:8080');
     const realm = this.config.get<string>('KEYCLOAK_REALM', 'nina-aes');
     const url = `${baseUrl.replace(/\/$/, '')}/realms/${realm}/protocol/openid-connect/certs`;
 
@@ -50,9 +43,7 @@ export class JwksService {
     });
 
     if (!response.ok) {
-      this.logger.warn(
-        `JWKS Keycloak indisponible (${response.status}) — ${url}`,
-      );
+      this.logger.warn(`JWKS Keycloak indisponible (${response.status}) — ${url}`);
       throw new ServiceUnavailableException(
         'Impossible de récupérer les clés JWKS depuis Keycloak',
       );

@@ -47,11 +47,21 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguageDef[] = [
   { code: Language.FR, iso639: 'fr', labelFr: 'Français', labelNative: 'Français' },
   { code: Language.BM, iso639: 'bm', labelFr: 'Bambara', labelNative: 'Bamanankan' },
   { code: Language.SNK, iso639: 'snk', labelFr: 'Soninké', labelNative: 'Soninké' },
-  { code: Language.FF, iso639: 'ff', labelFr: 'Peulh (Fulfulde)', labelNative: 'Fulfulde' },
+  {
+    code: Language.FF,
+    iso639: 'ff',
+    labelFr: 'Peulh (Fulfulde)',
+    labelNative: 'Fulfulde',
+  },
   { code: Language.TMQ, iso639: 'tmh', labelFr: 'Tamasheq', labelNative: 'Tamasəḥt' },
   { code: Language.HAU, iso639: 'ha', labelFr: 'Hausa', labelNative: 'Hausa' },
   { code: Language.MOS, iso639: 'mos', labelFr: 'Mooré', labelNative: 'Mõõré' },
-  { code: Language.DJE, iso639: 'dje', labelFr: 'Songhaï (Djerma)', labelNative: 'Songhay' },
+  {
+    code: Language.DJE,
+    iso639: 'dje',
+    labelFr: 'Songhaï (Djerma)',
+    labelNative: 'Songhay',
+  },
 ] as const;
 
 /**

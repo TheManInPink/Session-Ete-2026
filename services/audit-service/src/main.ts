@@ -8,10 +8,11 @@
 
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 /** Port d'écoute du service */
-const PORT = process.env.PORT || 3007;
+const PORT = process.env.AUDIT_SERVICE_PORT || 3007;
 
 /**
  * Fonction de démarrage du microservice.
@@ -35,10 +36,27 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api/v1');
 
   // Activation de CORS pour le développement
-  app.enableCors();
+  app.enableCors({
+    origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+  });
 
+  const config = new DocumentBuilder()
+    .setTitle('NINA-AES Audit Service')
+    .setDescription("Service d'audit — journalisation et conformité")
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('audit', 'Journal d\'audit')
+    .addTag('logs', 'Consultation des logs')
+    .addTag('compliance', 'Rapports de conformité')
+    .addTag('health', 'Health check')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+  
   await app.listen(PORT);
   logger.log(`audit-service démarré sur le port ${PORT}`);
+  console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
 }
 
 bootstrap();

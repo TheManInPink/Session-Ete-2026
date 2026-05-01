@@ -1,6 +1,17 @@
 {
   "name": "nina-aes-platform",
   "private": true,
+  "description": "Système Sécurisé de Gestion d'Identité Numérique pour l'AES (Alliance des États du Sahel)",
+  "keywords": [
+    "nina",
+    "aes",
+    "platform",
+    "security",
+    "identity",
+    "digital"
+  ],
+  "author": "Étudiant UQAR",
+  "license": "UNLICENSED",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -9,34 +20,48 @@
     "dev:governance": "turbo run dev --filter=@nina-aes/governance",
     "dev:identity": "turbo run dev --filter=@nina-aes/identity-service",
     "dev:auth": "turbo run dev --filter=@nina-aes/auth-service",
+    "dev:services": "turbo run start:dev --filter='./services/*'",
     "dev:ai": "cd services/ai-service && uvicorn app.main:app --reload --port 3003",
     "dev:sigac": "cd services/anticorruption-service && uvicorn app.main:app --reload --port 3009",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
     "test": "turbo run test",
     "test:cov": "turbo run test:cov",
     "check-types": "turbo run check-types",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "db:generate": "turbo run db:generate --filter=@nina-aes/database",
     "db:migrate": "turbo run db:migrate --filter=@nina-aes/database",
     "db:seed": "turbo run db:seed --filter=@nina-aes/database",
     "db:studio": "turbo run db:studio --filter=@nina-aes/database",
-    "docker:up": "docker compose -f docker-compose.dev.yml up -d",
-    "docker:down": "docker compose -f docker-compose.dev.yml down",
-    "docker:logs": "docker compose -f docker-compose.dev.yml logs -f",
+    "docker:up": "docker compose -f infrastructure/docker/docker-compose.dev.yml up -d",
+    "docker:down": "docker compose -f infrastructure/docker/docker-compose.dev.yml down",
+    "docker:logs": "docker compose -f infrastructure/docker/docker-compose.dev.yml logs -f",
     "prepare": "cd .. && husky nina-aes-platform/.husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@types/node": "^25.6.0",
     "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "turbo": "^2.9.5",
     "typescript": "6.0.2"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
   "packageManager": "pnpm@10.12.1",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=24.0.0",
+    "pnpm": ">=10.0.0"
   }
 }

@@ -2,6 +2,14 @@
   "name": "@nina-aes/identity-service",
   "version": "0.1.0",
   "private": true,
+  "description": "Identity service for the Nina AES platform",
+  "keywords": [
+    "nina",
+    "aes",
+    "platform",
+    "identity service"
+  ],
+  "author": "Ibrahim",
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
@@ -11,7 +19,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.18",

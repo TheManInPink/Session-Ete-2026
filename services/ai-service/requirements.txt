@@ -16,5 +16,5 @@ httpx>=0.28.1
 python-dotenv>=1.2.2
 
 # Optionnel — OCR
-# pytesseract>=0.3.13
-# Pillow>=12.2.0
+pytesseract>=0.3.13
+Pillow>=12.2.0

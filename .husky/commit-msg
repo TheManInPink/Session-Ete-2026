@@ -1,5 +1,11 @@
 #!/usr/bin/env sh
 
+# Hook commit-msg — Vérifie le format du message de commit
+# Format attendu : type(scope): description
+# Exemples valides : feat(identity): ajouter endpoint de recherche NINA
+#                    fix(auth): corriger expiration token JWT
+#                    docs: mettre à jour le README
+
 # Changer vers le répertoire du monorepo
 cd nina-aes-platform || exit 0
 

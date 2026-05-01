@@ -1,6 +1,27 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalDependencies": [".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "RABBITMQ_URL",
+    "JWT_SECRET",
+    "QR_JWT_SECRET",
+    "CORS_ORIGINS",
+    "API_GATEWAY_PORT",
+    "IDENTITY_SERVICE_PORT",
+    "ADMIN_SERVICE_PORT",
+    "AI_SERVICE_PORT",
+    "ENROLLMENT_SERVICE_PORT",
+    "DOCUMENT_SERVICE_PORT",
+    "NOTIFICATION_SERVICE_PORT",
+    "AUDIT_SERVICE_PORT",
+    "BIOMETRIC_SERVICE_PORT",
+    "USSD_SERVICE_PORT",
+    "SEARCH_SERVICE_PORT"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,19 +33,35 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "inputs": ["src/**", "eslint.config.*"]
+    },
+    "lint:fix": {
+      "dependsOn": ["^lint:fix"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "start:dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "tests/**"],
+      "inputs": ["src/**", "test/**", "tests/**", "**/*.spec.ts", "*.config.*"],
+      "outputs": ["coverage/**"],
+      "env": ["DATABASE_URL", "REDIS_URL", "JWT_SECRET", "NODE_ENV"],
       "cache": false
     },
     "test:cov": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "test/**", "tests/**"],
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "test:e2e": {
+      "dependsOn": ["build"],
       "cache": false
     },
     "clean": {
@@ -37,11 +74,15 @@
       "cache": false
     },
     "db:seed": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["db:migrate"]
     },
     "db:studio": {
       "cache": false,
       "persistent": true
+    },
+    "db:reset": {
+      "cache": false
     }
   }
 }

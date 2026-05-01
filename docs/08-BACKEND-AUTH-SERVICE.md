@@ -1,13 +1,9 @@
 # 08 — Backend : Auth-Service (NestJS 11 + Keycloak 26.1)
 
-> **Projet** : NINA-AES Platform
-> **Document** : 08/26
-> **Service** : `auth-service` — Authentification, autorisation, gestion des sessions
-> **Port** : `3002`
-> **Stack** : NestJS 11.1 · Keycloak 26.1 · Passport · JWT RS256 · Redis 7 · PostgreSQL 17
-> **Auteur** : Étudiant UQAR
-> **Date** : Avril 2026
-> **Prérequis** : [Document 07 — Identity Service](./07-BACKEND-IDENTITY-SERVICE.md)
+> **Projet** : NINA-AES Platform **Document** : 08/26 **Service** : `auth-service` —
+> Authentification, autorisation, gestion des sessions **Port** : `3002` **Stack** : NestJS 11.1 ·
+> Keycloak 26.1 · Passport · JWT RS256 · Redis 7 · PostgreSQL 17 **Auteur** : Étudiant UQAR **Date**
+> : Avril 2026 **Prérequis** : [Document 07 — Identity Service](./07-BACKEND-IDENTITY-SERVICE.md)
 
 ---
 
@@ -29,9 +25,13 @@
 
 ## 1. Objectif pédagogique
 
-Construire le **service d'authentification central** de la plateforme NINA-AES : `auth-service`, responsable de l'émission, de la validation et de la révocation des tokens JWT pour l'ensemble des microservices et des applications frontend.
+Construire le **service d'authentification central** de la plateforme NINA-AES : `auth-service`,
+responsable de l'émission, de la validation et de la révocation des tokens JWT pour l'ensemble des
+microservices et des applications frontend.
 
-Ce service **s'appuie sur Keycloak 26.1** comme Identity Provider (IdP) et **n'implémente pas lui-même** la logique bas-niveau d'authentification (hachage de mots de passe, OAuth2/OIDC). Il agit comme une **façade NestJS** au-dessus de Keycloak, avec les responsabilités suivantes :
+Ce service **s'appuie sur Keycloak 26.1** comme Identity Provider (IdP) et **n'implémente pas
+lui-même** la logique bas-niveau d'authentification (hachage de mots de passe, OAuth2/OIDC). Il agit
+comme une **façade NestJS** au-dessus de Keycloak, avec les responsabilités suivantes :
 
 1. **Proxy REST** vers Keycloak (endpoints `/auth/login`, `/auth/refresh`, `/auth/logout`)
 2. **Enrichissement du token** avec des claims métier NINA (ex: `ninaId`, `codeRegion`)
@@ -41,16 +41,16 @@ Ce service **s'appuie sur Keycloak 26.1** comme Identity Provider (IdP) et **n'i
 
 ### Ce que tu vas apprendre
 
-| Compétence | Niveau | Application au projet |
-|---|---|---|
-| **OIDC / OAuth2** | Avancé | Flow Authorization Code, Password Grant, Client Credentials |
-| **JWT RS256** | Expert | Signature asymétrique, rotation de clés via JWKS |
-| **Keycloak 26** | Avancé | Realm, clients, users, rôles, groupes, claims custom |
-| **Passport (NestJS)** | Avancé | Stratégies `jwt`, `local`, extraction token, validation JWKS |
-| **RBAC** | Avancé | Guards, rôles hiérarchiques, décorateurs custom |
-| **Refresh tokens Redis** | Avancé | Rotation, révocation, TTL |
-| **Rate limiting** | Intermédiaire | `@nestjs/throttler` sur endpoints sensibles |
-| **Tests sécurité** | Avancé | Mock JWKS, tokens expirés, tokens falsifiés |
+| Compétence               | Niveau        | Application au projet                                        |
+| ------------------------ | ------------- | ------------------------------------------------------------ |
+| **OIDC / OAuth2**        | Avancé        | Flow Authorization Code, Password Grant, Client Credentials  |
+| **JWT RS256**            | Expert        | Signature asymétrique, rotation de clés via JWKS             |
+| **Keycloak 26**          | Avancé        | Realm, clients, users, rôles, groupes, claims custom         |
+| **Passport (NestJS)**    | Avancé        | Stratégies `jwt`, `local`, extraction token, validation JWKS |
+| **RBAC**                 | Avancé        | Guards, rôles hiérarchiques, décorateurs custom              |
+| **Refresh tokens Redis** | Avancé        | Rotation, révocation, TTL                                    |
+| **Rate limiting**        | Intermédiaire | `@nestjs/throttler` sur endpoints sensibles                  |
+| **Tests sécurité**       | Avancé        | Mock JWKS, tokens expirés, tokens falsifiés                  |
 
 ### Livrable à la fin de ce document
 
@@ -67,7 +67,9 @@ Un service `auth-service` entièrement fonctionnel :
 
 ### Contexte sécurité : pourquoi Keycloak et pas une implémentation maison ?
 
-Pour un projet académique solo, coder soi-même un système d'authentification complet serait à la fois **risqué** (failles cryptographiques difficiles à détecter) et **improductif** (6 mois pour reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
+Pour un projet académique solo, coder soi-même un système d'authentification complet serait à la
+fois **risqué** (failles cryptographiques difficiles à détecter) et **improductif** (6 mois pour
+reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
 
 - OIDC + OAuth2 + SAML certifiés
 - Interface admin web pour gérer les utilisateurs
@@ -83,45 +85,45 @@ Pour un projet académique solo, coder soi-même un système d'authentification 
 
 ## 2. Technologies utilisées (avec versions à jour — avril 2026)
 
-| Dépendance | Version | Rôle |
-|---|---|---|
-| `@nestjs/common` | `11.1.18` | Core NestJS |
-| `@nestjs/core` | `11.1.18` | Runtime NestJS |
-| `@nestjs/platform-express` | `11.1.18` | Adaptateur HTTP Express |
-| `@nestjs/config` | `4.1.2` | Lecture `.env` via Zod |
-| `@nestjs/swagger` | `11.2.0` | OpenAPI 3.1 |
-| `@nestjs/terminus` | `11.1.0` | Healthchecks |
-| `@nestjs/passport` | `11.0.6` | Intégration Passport |
-| `@nestjs/jwt` | `11.0.0` | Signature/vérification JWT |
-| `@nestjs/throttler` | `6.5.0` | Rate limiting |
-| `passport` | `0.7.0` | Framework d'authentification |
-| `passport-jwt` | `4.0.1` | Stratégie JWT |
-| `passport-local` | `1.0.0` | Stratégie user/password |
-| `jwks-rsa` | `3.2.0` | Fetch + cache des clés publiques Keycloak |
-| `jsonwebtoken` | `9.0.2` | Sign/verify bas niveau |
-| `ioredis` | `5.7.0` | Client Redis (refresh tokens, blacklist) |
-| `axios` | `1.7.12` | HTTP client (appel Keycloak Admin API + identity-service) |
-| `class-validator` | `0.15.1` | Validation DTO |
-| `class-transformer` | `0.5.1` | Sérialisation |
-| `zod` | `4.3.6` | Validation `.env` |
-| `bcryptjs` | `2.4.3` | (Fallback) hachage local si Keycloak down |
-| `@nina-aes/shared-types` | `workspace:*` | Types `JwtPayload`, `Roles` |
-| `@nina-aes/utils` | `workspace:*` | `validateNina()` (pour signup) |
-| **Dev** | | |
-| `@nestjs/testing` | `11.1.18` | Testing module |
-| `jest` | `30.3.0` | Test runner |
-| `supertest` | `7.1.3` | Tests e2e |
-| `nock` | `14.0.0` | Mock HTTP pour tester les appels Keycloak |
-| `@types/passport-jwt` | `4.0.1` | Typings |
-| `@types/passport-local` | `1.0.38` | Typings |
-| `@types/jsonwebtoken` | `9.0.7` | Typings |
-| `@types/bcryptjs` | `2.4.6` | Typings |
-| `typescript-eslint` | `9.2.0` | Lint TS pour ESLint 10 |
+| Dépendance                 | Version       | Rôle                                                      |
+| -------------------------- | ------------- | --------------------------------------------------------- |
+| `@nestjs/common`           | `11.1.18`     | Core NestJS                                               |
+| `@nestjs/core`             | `11.1.18`     | Runtime NestJS                                            |
+| `@nestjs/platform-express` | `11.1.18`     | Adaptateur HTTP Express                                   |
+| `@nestjs/config`           | `4.1.2`       | Lecture `.env` via Zod                                    |
+| `@nestjs/swagger`          | `11.2.0`      | OpenAPI 3.1                                               |
+| `@nestjs/terminus`         | `11.1.0`      | Healthchecks                                              |
+| `@nestjs/passport`         | `11.0.6`      | Intégration Passport                                      |
+| `@nestjs/jwt`              | `11.0.0`      | Signature/vérification JWT                                |
+| `@nestjs/throttler`        | `6.5.0`       | Rate limiting                                             |
+| `passport`                 | `0.7.0`       | Framework d'authentification                              |
+| `passport-jwt`             | `4.0.1`       | Stratégie JWT                                             |
+| `passport-local`           | `1.0.0`       | Stratégie user/password                                   |
+| `jwks-rsa`                 | `3.2.0`       | Fetch + cache des clés publiques Keycloak                 |
+| `jsonwebtoken`             | `9.0.2`       | Sign/verify bas niveau                                    |
+| `ioredis`                  | `5.7.0`       | Client Redis (refresh tokens, blacklist)                  |
+| `axios`                    | `1.7.12`      | HTTP client (appel Keycloak Admin API + identity-service) |
+| `class-validator`          | `0.15.1`      | Validation DTO                                            |
+| `class-transformer`        | `0.5.1`       | Sérialisation                                             |
+| `zod`                      | `4.3.6`       | Validation `.env`                                         |
+| `bcryptjs`                 | `2.4.3`       | (Fallback) hachage local si Keycloak down                 |
+| `@nina-aes/shared-types`   | `workspace:*` | Types `JwtPayload`, `Roles`                               |
+| `@nina-aes/utils`          | `workspace:*` | `validateNina()` (pour signup)                            |
+| **Dev**                    |               |                                                           |
+| `@nestjs/testing`          | `11.1.18`     | Testing module                                            |
+| `jest`                     | `30.3.0`      | Test runner                                               |
+| `supertest`                | `7.1.3`       | Tests e2e                                                 |
+| `nock`                     | `14.0.0`      | Mock HTTP pour tester les appels Keycloak                 |
+| `@types/passport-jwt`      | `4.0.1`       | Typings                                                   |
+| `@types/passport-local`    | `1.0.38`      | Typings                                                   |
+| `@types/jsonwebtoken`      | `9.0.7`       | Typings                                                   |
+| `@types/bcryptjs`          | `2.4.6`       | Typings                                                   |
+| `typescript-eslint`        | `9.2.0`       | Lint TS pour ESLint 10                                    |
 
-| Infrastructure externe | Version | Source |
-|---|---|---|
-| **Keycloak** | `26.1.0` | `quay.io/keycloak/keycloak:26.1` (déjà dans `docker-compose.dev.yml`) |
-| **Redis** | `7.4` | `redis:7.4-alpine` (déjà présent) |
+| Infrastructure externe | Version  | Source                                                                |
+| ---------------------- | -------- | --------------------------------------------------------------------- |
+| **Keycloak**           | `26.1.0` | `quay.io/keycloak/keycloak:26.1` (déjà dans `docker-compose.dev.yml`) |
+| **Redis**              | `7.4`    | `redis:7.4-alpine` (déjà présent)                                     |
 
 ---
 
@@ -178,39 +180,40 @@ sequenceDiagram
 
 ### 3.2 Responsabilités par couche
 
-| Couche | Classe | Responsabilité |
-|---|---|---|
-| **Presentation** | `AuthController` | Routes `/login`, `/refresh`, `/logout`, `/register`, `/me`, `/.well-known/jwks.json` |
-| **Application** | `AuthService` | Orchestration login/refresh/logout, enrichissement JWT, appels Keycloak |
-| **Strategies** | `JwtStrategy`, `LocalStrategy` | Validation token entrant (Passport) |
-| **Infrastructure** | `KeycloakService` | Client HTTP vers Keycloak Admin + Token API |
-| **Infrastructure** | `RedisService` | Stockage refresh tokens + blacklist |
-| **Guards** | `JwtAuthGuard`, `RolesGuard`, `ThrottlerGuard` | Protection des routes |
-| **Decorators** | `@Public()`, `@Roles()`, `@CurrentUser()` | Métadonnées + injection |
+| Couche             | Classe                                         | Responsabilité                                                                       |
+| ------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Presentation**   | `AuthController`                               | Routes `/login`, `/refresh`, `/logout`, `/register`, `/me`, `/.well-known/jwks.json` |
+| **Application**    | `AuthService`                                  | Orchestration login/refresh/logout, enrichissement JWT, appels Keycloak              |
+| **Strategies**     | `JwtStrategy`, `LocalStrategy`                 | Validation token entrant (Passport)                                                  |
+| **Infrastructure** | `KeycloakService`                              | Client HTTP vers Keycloak Admin + Token API                                          |
+| **Infrastructure** | `RedisService`                                 | Stockage refresh tokens + blacklist                                                  |
+| **Guards**         | `JwtAuthGuard`, `RolesGuard`, `ThrottlerGuard` | Protection des routes                                                                |
+| **Decorators**     | `@Public()`, `@Roles()`, `@CurrentUser()`      | Métadonnées + injection                                                              |
 
 ### 3.3 Endpoints REST exposés
 
-| Méthode | Route | Rate limit | Rôle | Description |
-|---|---|---|---|---|
-| `POST` | `/api/v1/auth/login` | 5 req/min/IP | public | Authentification par username + password |
-| `POST` | `/api/v1/auth/refresh` | 20 req/min/IP | public | Rotation du refresh token |
-| `POST` | `/api/v1/auth/logout` | 30 req/min/IP | auth | Révocation du refresh token actif |
-| `POST` | `/api/v1/auth/register/citizen` | 3 req/h/IP | public | Inscription citoyenne (NINA + password) |
-| `GET` | `/api/v1/auth/me` | 60 req/min | auth | Infos utilisateur connecté |
-| `GET` | `/.well-known/jwks.json` | 1000 req/min | public | Proxy JWKS Keycloak (cache 10 min) |
-| `GET` | `/health` | — | public | Probe Docker/K8s |
-| `GET` | `/api/docs` | — | public (dev) | Swagger UI |
+| Méthode | Route                           | Rate limit    | Rôle         | Description                              |
+| ------- | ------------------------------- | ------------- | ------------ | ---------------------------------------- |
+| `POST`  | `/api/v1/auth/login`            | 5 req/min/IP  | public       | Authentification par username + password |
+| `POST`  | `/api/v1/auth/refresh`          | 20 req/min/IP | public       | Rotation du refresh token                |
+| `POST`  | `/api/v1/auth/logout`           | 30 req/min/IP | auth         | Révocation du refresh token actif        |
+| `POST`  | `/api/v1/auth/register/citizen` | 3 req/h/IP    | public       | Inscription citoyenne (NINA + password)  |
+| `GET`   | `/api/v1/auth/me`               | 60 req/min    | auth         | Infos utilisateur connecté               |
+| `GET`   | `/.well-known/jwks.json`        | 1000 req/min  | public       | Proxy JWKS Keycloak (cache 10 min)       |
+| `GET`   | `/health`                       | —             | public       | Probe Docker/K8s                         |
+| `GET`   | `/api/docs`                     | —             | public (dev) | Swagger UI                               |
 
 ### 3.4 Rôles RBAC définis
 
-| Rôle Keycloak | Portée | Exemples d'opérations autorisées |
-|---|---|---|
-| `citizen` | Consultation propre NINA, corrections signalées | `GET /nina/:ownNina`, `POST /corrections` |
-| `agent` | Gestion des corrections, recherche floue | `PATCH /nina/:id`, `POST /nina/search` |
-| `admin` | CRUD complet NINA, gestion utilisateurs | `POST /nina`, `DELETE /users/:id` |
-| `governance_viewer` | Lecture seule dashboards gouvernance | `GET /governance/dashboards/*` |
+| Rôle Keycloak       | Portée                                          | Exemples d'opérations autorisées          |
+| ------------------- | ----------------------------------------------- | ----------------------------------------- |
+| `citizen`           | Consultation propre NINA, corrections signalées | `GET /nina/:ownNina`, `POST /corrections` |
+| `agent`             | Gestion des corrections, recherche floue        | `PATCH /nina/:id`, `POST /nina/search`    |
+| `admin`             | CRUD complet NINA, gestion utilisateurs         | `POST /nina`, `DELETE /users/:id`         |
+| `governance_viewer` | Lecture seule dashboards gouvernance            | `GET /governance/dashboards/*`            |
 
-**Hiérarchie** : `admin > agent > citizen` (l'admin hérite de tous les droits des rôles inférieurs). `governance_viewer` est isolé (lecture dashboards seulement).
+**Hiérarchie** : `admin > agent > citizen` (l'admin hérite de tous les droits des rôles inférieurs).
+`governance_viewer` est isolé (lecture dashboards seulement).
 
 ---
 
@@ -256,7 +259,8 @@ GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
 
 ### 4.3 Realm JSON — `infrastructure/keycloak/realm-export.json`
 
-Ce fichier est importé automatiquement par Keycloak au démarrage. Il contient la configuration complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
+Ce fichier est importé automatiquement par Keycloak au démarrage. Il contient la configuration
+complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
 
 ```json
 {
@@ -316,11 +320,7 @@ Ce fichier est importé automatiquement par Keycloak au démarrage. Il contient 
         "http://localhost:4001/*",
         "http://localhost:4002/*"
       ],
-      "webOrigins": [
-        "http://localhost:4000",
-        "http://localhost:4001",
-        "http://localhost:4002"
-      ],
+      "webOrigins": ["http://localhost:4000", "http://localhost:4001", "http://localhost:4002"],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -421,13 +421,7 @@ Ce fichier est importé automatiquement par Keycloak au démarrage. Il contient 
     }
   ],
 
-  "defaultDefaultClientScopes": [
-    "profile",
-    "email",
-    "roles",
-    "web-origins",
-    "nina-claims"
-  ]
+  "defaultDefaultClientScopes": ["profile", "email", "roles", "web-origins", "nina-claims"]
 }
 ```
 
@@ -445,6 +439,7 @@ curl http://localhost:8080/realms/nina-aes/.well-known/openid-configuration
 ```
 
 Tu dois obtenir un JSON avec :
+
 - `issuer`: `http://localhost:8080/realms/nina-aes`
 - `jwks_uri`: `http://localhost:8080/realms/nina-aes/protocol/openid-connect/certs`
 - `token_endpoint`: `http://localhost:8080/realms/nina-aes/protocol/openid-connect/token`
@@ -463,7 +458,9 @@ curl -X POST http://localhost:8080/realms/nina-aes/protocol/openid-connect/token
   -d "password=Citoyen@2026!"
 ```
 
-Tu dois recevoir un JSON avec `access_token`, `refresh_token`, `expires_in: 900`, etc. Décode le `access_token` sur https://jwt.io — tu verras les claims `realm_access.roles = ["citizen"]` et `ninaId = "198071504270422K"`.
+Tu dois recevoir un JSON avec `access_token`, `refresh_token`, `expires_in: 900`, etc. Décode le
+`access_token` sur https://jwt.io — tu verras les claims `realm_access.roles = ["citizen"]` et
+`ninaId = "198071504270422K"`.
 
 ---
 
@@ -621,15 +618,11 @@ import { z } from 'zod';
 
 export const envSchema = z.object({
   // ─── Application ──────────────────────────────────────────
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(3002),
 
   // ─── CORS ─────────────────────────────────────────────────
-  CORS_ORIGINS: z
-    .string()
-    .default('http://localhost:4000,http://localhost:4001'),
+  CORS_ORIGINS: z.string().default('http://localhost:4000,http://localhost:4001'),
 
   // ─── Keycloak ─────────────────────────────────────────────
   KEYCLOAK_URL: z.string().url().default('http://localhost:8080'),
@@ -640,10 +633,7 @@ export const envSchema = z.object({
   KEYCLOAK_ADMIN_PASSWORD: z.string().default('admin_dev'),
 
   // ─── JWT (pour vérification via JWKS) ────────────────────
-  JWT_ISSUER: z
-    .string()
-    .url()
-    .default('http://localhost:8080/realms/nina-aes'),
+  JWT_ISSUER: z.string().url().default('http://localhost:8080/realms/nina-aes'),
   JWT_AUDIENCE: z.string().default('account'),
   JWKS_CACHE_TTL_MS: z.coerce.number().default(600000), // 10 min
   JWKS_RATE_LIMIT: z.coerce.number().default(10), // 10 req/min max vers jwks_uri
@@ -813,21 +803,12 @@ export function buildSwaggerConfig() {
  * @description Singleton ioredis partagé (refresh tokens + blacklist).
  */
 
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class RedisService
-  extends Redis
-  implements OnModuleInit, OnModuleDestroy
-{
+export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
 
   constructor(config: ConfigService) {
@@ -857,11 +838,7 @@ export class RedisService
    * Stocke un refresh token avec TTL.
    * Key: `refresh:{jti}` → Value: `{userId}`
    */
-  async storeRefreshToken(
-    jti: string,
-    userId: string,
-    ttlSeconds: number,
-  ): Promise<void> {
+  async storeRefreshToken(jti: string, userId: string, ttlSeconds: number): Promise<void> {
     await this.set(`refresh:${jti}`, userId, 'EX', ttlSeconds);
   }
 
@@ -884,10 +861,7 @@ export class RedisService
    * Ajoute un access token à la blacklist jusqu'à son expiration.
    * Utile pour forcer un logout immédiat (sans attendre l'expiration naturelle).
    */
-  async blacklistAccessToken(
-    jti: string,
-    ttlSeconds: number,
-  ): Promise<void> {
+  async blacklistAccessToken(jti: string, ttlSeconds: number): Promise<void> {
     await this.set(`blacklist:${jti}`, '1', 'EX', ttlSeconds);
   }
 
@@ -974,9 +948,7 @@ export class KeycloakService {
     const baseURL = this.config.getOrThrow<string>('KEYCLOAK_URL');
     this.realm = this.config.getOrThrow<string>('KEYCLOAK_REALM');
     this.clientId = this.config.getOrThrow<string>('KEYCLOAK_CLIENT_ID');
-    this.clientSecret = this.config.getOrThrow<string>(
-      'KEYCLOAK_CLIENT_SECRET',
-    );
+    this.clientSecret = this.config.getOrThrow<string>('KEYCLOAK_CLIENT_SECRET');
 
     this.http = axios.create({
       baseURL,
@@ -989,10 +961,7 @@ export class KeycloakService {
    * Échange username+password contre un JWT.
    * Utilisé par POST /auth/login.
    */
-  async login(
-    username: string,
-    password: string,
-  ): Promise<KeycloakTokenResponse> {
+  async login(username: string, password: string): Promise<KeycloakTokenResponse> {
     try {
       const { data } = await this.http.post<KeycloakTokenResponse>(
         `/realms/${this.realm}/protocol/openid-connect/token`,
@@ -1007,9 +976,7 @@ export class KeycloakService {
       );
       return data;
     } catch (err) {
-      this.logger.warn(
-        `Login failed for user ${username}: ${this.extractError(err)}`,
-      );
+      this.logger.warn(`Login failed for user ${username}: ${this.extractError(err)}`);
       throw new UnauthorizedException('Identifiants invalides');
     }
   }
@@ -1062,44 +1029,34 @@ export class KeycloakService {
     const adminToken = await this.getAdminToken();
 
     try {
-      const response = await this.http.post(
-        `/admin/realms/${this.realm}/users`,
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${adminToken}`,
-          },
+      const response = await this.http.post(`/admin/realms/${this.realm}/users`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
         },
-      );
+      });
       // Keycloak renvoie l'ID du user créé dans le header Location
       const locationHeader = response.headers.location as string | undefined;
       if (!locationHeader) {
-        throw new InternalServerErrorException(
-          'Keycloak n\'a pas renvoyé l\'ID utilisateur',
-        );
+        throw new InternalServerErrorException("Keycloak n'a pas renvoyé l'ID utilisateur");
       }
       const segments = locationHeader.split('/').filter(Boolean);
       const userId = segments.pop()?.trim();
       if (!userId) {
         throw new InternalServerErrorException(
-          'Keycloak n\'a pas renvoyé un identifiant utilisateur valide',
+          "Keycloak n'a pas renvoyé un identifiant utilisateur valide",
         );
       }
       return userId;
     } catch (err) {
       if (err instanceof AxiosError && err.response?.status === 409) {
-        throw new UnauthorizedException(
-          'Username ou email déjà utilisé',
-        );
+        throw new UnauthorizedException('Username ou email déjà utilisé');
       }
       if (err instanceof HttpException) {
         throw err;
       }
       this.logger.error(`createUser failed: ${this.extractError(err)}`);
-      throw new InternalServerErrorException(
-        'Erreur lors de la création du compte',
-      );
+      throw new InternalServerErrorException('Erreur lors de la création du compte');
     }
   }
 
@@ -1108,10 +1065,7 @@ export class KeycloakService {
    */
   private async getAdminToken(): Promise<string> {
     // Utilise le cache si non expiré (marge de 30s avant expiration réelle)
-    if (
-      this.adminTokenCache &&
-      this.adminTokenCache.expiresAt > Date.now() + 30000
-    ) {
+    if (this.adminTokenCache && this.adminTokenCache.expiresAt > Date.now() + 30000) {
       return this.adminTokenCache.token;
     }
 
@@ -1132,17 +1086,14 @@ export class KeycloakService {
       return data.access_token;
     } catch (err) {
       this.logger.error(`getAdminToken failed: ${this.extractError(err)}`);
-      throw new InternalServerErrorException(
-        'Impossible d\'obtenir le token admin Keycloak',
-      );
+      throw new InternalServerErrorException("Impossible d'obtenir le token admin Keycloak");
     }
   }
 
   private extractError(err: unknown): string {
     if (err instanceof AxiosError) {
       return (
-        (err.response?.data as { error_description?: string })
-          ?.error_description ?? err.message
+        (err.response?.data as { error_description?: string })?.error_description ?? err.message
       );
     }
     return err instanceof Error ? err.message : String(err);
@@ -1215,14 +1166,7 @@ export class RefreshTokenDto {
  */
 
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsString,
-  Length,
-  Matches,
-  MinLength,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Length, Matches, MinLength } from 'class-validator';
 
 export class RegisterCitizenDto {
   @ApiProperty({ example: '198071504270422K' })
@@ -1235,8 +1179,7 @@ export class RegisterCitizenDto {
   @IsString()
   @Length(4, 50)
   @Matches(/^[a-z0-9._-]+$/, {
-    message:
-      'username doit contenir uniquement des lettres minuscules, chiffres, ., _, -',
+    message: 'username doit contenir uniquement des lettres minuscules, chiffres, ., _, -',
   })
   username!: string;
 
@@ -1246,14 +1189,12 @@ export class RegisterCitizenDto {
 
   @ApiProperty({
     example: 'Passw0rd!2026',
-    description:
-      'Min 12 car., 1 majuscule, 1 chiffre, 1 caractère spécial',
+    description: 'Min 12 car., 1 majuscule, 1 chiffre, 1 caractère spécial',
   })
   @IsString()
   @MinLength(12)
   @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+=\-]).{12,}$/, {
-    message:
-      'Mot de passe trop faible (12+ car., majuscule, chiffre, spécial)',
+    message: 'Mot de passe trop faible (12+ car., majuscule, chiffre, spécial)',
   })
   password!: string;
 
@@ -1392,9 +1333,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
    * ET que l'expiration n'est pas dépassée. On ajoute ici notre logique
    * métier custom (blacklist, enrichissement, etc.).
    */
-  async validate(
-    payload: KeycloakJwtPayload,
-  ): Promise<AuthenticatedUser> {
+  async validate(payload: KeycloakJwtPayload): Promise<AuthenticatedUser> {
     // Vérifie que le token n'a pas été révoqué (logout forcé)
     if (await this.redis.isAccessTokenBlacklisted(payload.jti)) {
       throw new UnauthorizedException('Token révoqué');
@@ -1421,11 +1360,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
  * @description Guard global — applique JWT strategy sauf si @Public().
  */
 
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -1439,18 +1374,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   canActivate(context: ExecutionContext) {
     // Skip si la route est marquée @Public()
-    const isPublic = this.reflector.getAllAndOverride<boolean>(
-      IS_PUBLIC_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (isPublic) return true;
     return super.canActivate(context);
   }
 
-  handleRequest<TUser>(
-    err: Error | null,
-    user: TUser,
-  ): TUser {
+  handleRequest<TUser>(err: Error | null, user: TUser): TUser {
     if (err || !user) {
       throw err ?? new UnauthorizedException('Token manquant ou invalide');
     }
@@ -1466,12 +1398,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
  *              rôles requis par le décorateur @Roles().
  */
 
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 import { ROLES_KEY } from '../../common/decorators/roles.decorator';
@@ -1482,10 +1409,10 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
@@ -1564,13 +1491,8 @@ import type { AuthenticatedUser } from '../../auth/strategies/jwt.strategy';
  *   me(@CurrentUser() user: AuthenticatedUser) { return user; }
  */
 export const CurrentUser = createParamDecorator(
-  (
-    _data: unknown,
-    ctx: ExecutionContext,
-  ): AuthenticatedUser | undefined => {
-    const request = ctx
-      .switchToHttp()
-      .getRequest<{ user?: AuthenticatedUser }>();
+  (_data: unknown, ctx: ExecutionContext): AuthenticatedUser | undefined => {
+    const request = ctx.switchToHttp().getRequest<{ user?: AuthenticatedUser }>();
     return request.user;
   },
 );
@@ -1625,11 +1547,7 @@ export class AuthService {
     const payload = this.decodeJwt(tokens.access_token);
 
     // Stocke le refresh token (durée = expiration Keycloak)
-    await this.redis.storeRefreshToken(
-      payload.jti,
-      payload.sub,
-      tokens.refresh_expires_in,
-    );
+    await this.redis.storeRefreshToken(payload.jti, payload.sub, tokens.refresh_expires_in);
 
     this.logger.log(`✅ Login: ${dto.username} (roles: ${payload.realm_access?.roles?.join(',')})`);
 
@@ -1702,15 +1620,11 @@ export class AuthService {
     // 1. Validation syntaxique
     const v = validateNina(dto.nina);
     if (!v.valid) {
-      throw new BadRequestException(
-        `NINA invalide (motif: ${v.reason})`,
-      );
+      throw new BadRequestException(`NINA invalide (motif: ${v.reason})`);
     }
 
     // 2. Vérification d'existence via identity-service
-    const identityUrl = this.config.getOrThrow<string>(
-      'IDENTITY_SERVICE_URL',
-    );
+    const identityUrl = this.config.getOrThrow<string>('IDENTITY_SERVICE_URL');
     try {
       await axios.get(`${identityUrl}/api/v1/nina/${dto.nina}`);
     } catch (err) {
@@ -1721,21 +1635,15 @@ export class AuthService {
         const status = err.response?.status;
         if (status !== undefined && status >= 500) {
           throw new ServiceUnavailableException(
-            'Le service d\'identité est temporairement indisponible',
+            "Le service d'identité est temporairement indisponible",
           );
         }
         if (status !== undefined && status >= 400) {
-          throw new BadRequestException(
-            'La vérification du NINA auprès du registre a échoué',
-          );
+          throw new BadRequestException('La vérification du NINA auprès du registre a échoué');
         }
-        throw new ServiceUnavailableException(
-          'Impossible de joindre le service d\'identité',
-        );
+        throw new ServiceUnavailableException("Impossible de joindre le service d'identité");
       }
-      throw new ServiceUnavailableException(
-        'Impossible de joindre le service d\'identité',
-      );
+      throw new ServiceUnavailableException("Impossible de joindre le service d'identité");
     }
 
     // 3. Création dans Keycloak
@@ -1759,9 +1667,7 @@ export class AuthService {
       realmRoles: ['citizen'],
     });
 
-    this.logger.log(
-      `👤 Citizen registered: ${dto.username} (NINA: ${dto.nina})`,
-    );
+    this.logger.log(`👤 Citizen registered: ${dto.username} (NINA: ${dto.nina})`);
 
     return {
       id: userId,
@@ -1815,15 +1721,7 @@ export class AuthService {
  * @file        services/auth-service/src/auth/auth.controller.ts
  */
 
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
@@ -1911,7 +1809,7 @@ export class AuthController {
   })
   @Get('me')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Informations de l\'utilisateur connecté' })
+  @ApiOperation({ summary: "Informations de l'utilisateur connecté" })
   @ApiOkResponse({
     schema: {
       example: {
@@ -1994,15 +1892,8 @@ import { RolesGuard } from './guards/roles.guard';
         throttlers: [
           {
             name: 'default',
-            ttl:
-              parseInt(
-                String(config.get('THROTTLE_TTL_SECONDS', 60)),
-                10,
-              ) * 1000,
-            limit: parseInt(
-              String(config.get('THROTTLE_LIMIT_ME', 60)),
-              10,
-            ),
+            ttl: parseInt(String(config.get('THROTTLE_TTL_SECONDS', 60)), 10) * 1000,
+            limit: parseInt(String(config.get('THROTTLE_LIMIT_ME', 60)), 10),
           },
         ],
       }),
@@ -2110,7 +2001,9 @@ export class HealthController {
 
 ### 7.1 Utilisation des décorateurs dans d'autres services
 
-Une fois `auth-service` en place, tous les autres microservices NestJS (identity, audit, document…) peuvent réutiliser `JwtStrategy`, `JwtAuthGuard` et `RolesGuard` en les important depuis `@nina-aes/shared-types` ou via un package partagé `@nina-aes/auth-lib` (à créer au doc 15).
+Une fois `auth-service` en place, tous les autres microservices NestJS (identity, audit, document…)
+peuvent réutiliser `JwtStrategy`, `JwtAuthGuard` et `RolesGuard` en les important depuis
+`@nina-aes/shared-types` ou via un package partagé `@nina-aes/auth-lib` (à créer au doc 15).
 
 Exemple d'usage dans `identity-service/src/nina/nina.controller.ts` (mise à jour post doc 08) :
 
@@ -2144,32 +2037,44 @@ export class NinaController {
 }
 ```
 
-Grâce à la hiérarchie Keycloak (`admin > agent > citizen`), un admin peut tout faire, un agent peut lire et rechercher mais pas supprimer, et un citoyen ne peut que consulter.
+Grâce à la hiérarchie Keycloak (`admin > agent > citizen`), un admin peut tout faire, un agent peut
+lire et rechercher mais pas supprimer, et un citoyen ne peut que consulter.
 
 ### 7.2 Rotation des refresh tokens — protection contre le vol
 
-Le serveur applique une **rotation stricte** : chaque utilisation d'un refresh token le révoque immédiatement et en émet un nouveau. Si un attaquant vole un refresh token et l'utilise, deux cas possibles :
+Le serveur applique une **rotation stricte** : chaque utilisation d'un refresh token le révoque
+immédiatement et en émet un nouveau. Si un attaquant vole un refresh token et l'utilise, deux cas
+possibles :
 
-1. **L'attaquant l'utilise avant l'utilisateur légitime** → l'utilisateur obtient un 401 au prochain refresh → connexion forcée → alerte possible
+1. **L'attaquant l'utilise avant l'utilisateur légitime** → l'utilisateur obtient un 401 au prochain
+   refresh → connexion forcée → alerte possible
 2. **L'utilisateur l'utilise avant l'attaquant** → l'attaquant obtient un 401
 
-Dans les deux cas, la fenêtre d'attaque est **minimale** (quelques minutes max entre deux refresh). Keycloak applique également cette rotation via l'option `revokeRefreshToken: true` + `refreshTokenMaxReuse: 0` du realm.
+Dans les deux cas, la fenêtre d'attaque est **minimale** (quelques minutes max entre deux refresh).
+Keycloak applique également cette rotation via l'option `revokeRefreshToken: true` +
+`refreshTokenMaxReuse: 0` du realm.
 
 ### 7.3 Rate limiting détaillé
 
-| Route | TTL | Limite | Justification |
-|---|---|---|---|
-| `POST /auth/login` | 60 s | 5 | Protection brute force |
-| `POST /auth/register/citizen` | 3600 s | 3 | Prévention spam d'inscription |
-| `POST /auth/refresh` | 60 s | 20 | Refresh légitime fréquent |
-| `POST /auth/logout` | 60 s | 30 | Logout multi-session |
-| `GET /auth/me` | 60 s | 60 | Usage quotidien normal |
+| Route                         | TTL    | Limite | Justification                 |
+| ----------------------------- | ------ | ------ | ----------------------------- |
+| `POST /auth/login`            | 60 s   | 5      | Protection brute force        |
+| `POST /auth/register/citizen` | 3600 s | 3      | Prévention spam d'inscription |
+| `POST /auth/refresh`          | 60 s   | 20     | Refresh légitime fréquent     |
+| `POST /auth/logout`           | 60 s   | 30     | Logout multi-session          |
+| `GET /auth/me`                | 60 s   | 60     | Usage quotidien normal        |
 
-Ces limites sont appliquées **par IP** (via `@nestjs/throttler`). Dans le code (§ 6.13), chaque route porte un décorateur `@Throttle({ default: { limit, ttl } })` aligné sur ce tableau (`ttl` en millisecondes). Les clés `THROTTLE_*` du `.env` documentent les mêmes valeurs pour référence et pour le `ThrottlerModule` par défaut (`THROTTLE_LIMIT_ME` + `THROTTLE_TTL_SECONDS`). En production, on rajoutera un throttler **par utilisateur authentifié** (clé = `jti`).
+Ces limites sont appliquées **par IP** (via `@nestjs/throttler`). Dans le code (§ 6.13), chaque
+route porte un décorateur `@Throttle({ default: { limit, ttl } })` aligné sur ce tableau (`ttl` en
+millisecondes). Les clés `THROTTLE_*` du `.env` documentent les mêmes valeurs pour référence et pour
+le `ThrottlerModule` par défaut (`THROTTLE_LIMIT_ME` + `THROTTLE_TTL_SECONDS`). En production, on
+rajoutera un throttler **par utilisateur authentifié** (clé = `jti`).
 
 ### 7.4 Blacklist des access tokens (logout immédiat)
 
-Lorsqu'un utilisateur fait `POST /auth/logout`, son access token est ajouté à la blacklist Redis jusqu'à son expiration naturelle (~15 min). Ceci garantit que même si quelqu'un a copié le token, il ne pourra plus l'utiliser.
+Lorsqu'un utilisateur fait `POST /auth/logout`, son access token est ajouté à la blacklist Redis
+jusqu'à son expiration naturelle (~15 min). Ceci garantit que même si quelqu'un a copié le token, il
+ne pourra plus l'utiliser.
 
 La blacklist est vérifiée dans `JwtStrategy.validate()` :
 
@@ -2179,7 +2084,8 @@ if (await this.redis.isAccessTokenBlacklisted(payload.jti)) {
 }
 ```
 
-**Trade-off** : ajoute 1 ms de latence par requête authentifiée, mais c'est acceptable vu la criticité de l'identité.
+**Trade-off** : ajoute 1 ms de latence par requête authentifiée, mais c'est acceptable vu la
+criticité de l'identité.
 
 ---
 
@@ -2253,8 +2159,7 @@ describe('AuthService', () => {
           provide: ConfigService,
           useValue: {
             getOrThrow: jest.fn((key) => {
-              if (key === 'IDENTITY_SERVICE_URL')
-                return 'http://localhost:3001';
+              if (key === 'IDENTITY_SERVICE_URL') return 'http://localhost:3001';
               return 'mock';
             }),
           },
@@ -2295,25 +2200,21 @@ describe('AuthService', () => {
     });
 
     it('propage UnauthorizedException si Keycloak refuse', async () => {
-      keycloak.login.mockRejectedValue(
-        new UnauthorizedException('Identifiants invalides'),
+      keycloak.login.mockRejectedValue(new UnauthorizedException('Identifiants invalides'));
+      await expect(service.login({ username: 'x', password: 'y' })).rejects.toThrow(
+        UnauthorizedException,
       );
-      await expect(
-        service.login({ username: 'x', password: 'y' }),
-      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
   describe('refresh', () => {
-    it('refuse si l\'ancien refresh est révoqué en Redis', async () => {
+    it("refuse si l'ancien refresh est révoqué en Redis", async () => {
       redis.isRefreshTokenValid.mockResolvedValue(false);
-      await expect(service.refresh(fakeAccessToken)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.refresh(fakeAccessToken)).rejects.toThrow(UnauthorizedException);
       expect(keycloak.refresh).not.toHaveBeenCalled();
     });
 
-    it('rotation : révoque l\'ancien et stocke le nouveau', async () => {
+    it("rotation : révoque l'ancien et stocke le nouveau", async () => {
       redis.isRefreshTokenValid.mockResolvedValue(true);
       keycloak.refresh.mockResolvedValue({
         access_token: fakeAccessToken,
@@ -2333,7 +2234,7 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('blackliste l\'access token et révoque le refresh', async () => {
+    it("blackliste l'access token et révoque le refresh", async () => {
       await service.logout('jti-abc', 900, fakeAccessToken);
       expect(redis.blacklistAccessToken).toHaveBeenCalledWith('jti-abc', 900);
       expect(redis.revokeRefreshToken).toHaveBeenCalledWith('test-jti-001');
@@ -2503,10 +2404,7 @@ export default [
       },
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        { argsIgnorePattern: '^_' },
-      ],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': 'error',
     },
@@ -2594,12 +2492,12 @@ curl -X POST http://localhost:3002/api/v1/auth/login `
 ```markdown
 # Rapport d'étape — auth-service (doc 08)
 
-**Semaine** : [numéro]
-**Période** : [date début] → [date fin]
-**Temps investi** : [X heures]
+**Semaine** : [numéro] **Période** : [date début] → [date fin] **Temps investi** : [X heures]
 
 ## 🎯 Objectif
+
 Construire le service d'authentification NINA-AES :
+
 - Façade NestJS au-dessus de Keycloak 26.1
 - JWT RS256 avec validation JWKS
 - Refresh token rotation + blacklist via Redis
@@ -2607,6 +2505,7 @@ Construire le service d'authentification NINA-AES :
 - ≥ 85 % de couverture de tests
 
 ## ✅ Réalisations
+
 - [ ] Keycloak bootstrappé avec realm `nina-aes` (3 clients, 4 rôles, 3 users)
 - [ ] `KeycloakService` (login, refresh, logout, createUser)
 - [ ] `RedisService` (refresh tokens, blacklist)
@@ -2620,9 +2519,11 @@ Construire le service d'authentification NINA-AES :
 - [ ] `.env.example` et ESLint flat config
 
 ## 🐛 Problèmes rencontrés
+
 1. …
 
 ## 📊 Métriques
+
 - Lignes de code : [X]
 - Tests : [X unit + X e2e]
 - Couverture : [X %]
@@ -2630,12 +2531,14 @@ Construire le service d'authentification NINA-AES :
 - Latence `GET /me` (avec JWKS cache) : [X ms]
 
 ## 🎓 Ce que j'ai appris
+
 - OIDC / OAuth2 flow Password Grant
 - JWKS et rotation de clés RSA
 - Pattern Guard/Decorator NestJS
 - Refresh token rotation stricte
 
 ## ⏭️ Prochaine étape
+
 Document 09 — Audit Service (Merkle hash chain).
 ```
 
@@ -2674,15 +2577,15 @@ Document 09 — Audit Service (Merkle hash chain).
 
 ### Améliorations à court terme
 
-| Amélioration | Document cible |
-|---|---|
-| 🔐 MFA (TOTP / WebAuthn) via Keycloak | **26 — DevOps / Sécurité avancée** |
-| 📧 Envoi d'email de vérification (Maildev dev, SES prod) | **11 — notification-service** |
-| 🔄 Fédération Google / Facebook pour citoyens | **Extension future** |
-| 👮 Audit trail des connexions dans Merkle chain | **09 — audit-service** |
-| 🛡️ Rate limiting par userId (pas seulement IP) | **24 — sécurité** |
-| 🔑 Package `@nina-aes/auth-lib` partagé | **15 — packages partagés** |
-| 📱 Magic link (login sans password pour USSD) | **11 — notification-service** |
+| Amélioration                                             | Document cible                     |
+| -------------------------------------------------------- | ---------------------------------- |
+| 🔐 MFA (TOTP / WebAuthn) via Keycloak                    | **26 — DevOps / Sécurité avancée** |
+| 📧 Envoi d'email de vérification (Maildev dev, SES prod) | **11 — notification-service**      |
+| 🔄 Fédération Google / Facebook pour citoyens            | **Extension future**               |
+| 👮 Audit trail des connexions dans Merkle chain          | **09 — audit-service**             |
+| 🛡️ Rate limiting par userId (pas seulement IP)           | **24 — sécurité**                  |
+| 🔑 Package `@nina-aes/auth-lib` partagé                  | **15 — packages partagés**         |
+| 📱 Magic link (login sans password pour USSD)            | **11 — notification-service**      |
 
 ### Références externes
 

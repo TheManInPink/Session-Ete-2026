@@ -1,0 +1,240 @@
+# ══════════════════════════════════════════════════════
+# NINA-AES Platform — CI/CD Pipeline
+# ══════════════════════════════════════════════════════
+# name: CI/CD Pipeline
+name: NINA-AES CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.15.0"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ══════════════════════════════════════════
+  # 1. Lint & Type Check
+  # ══════════════════════════════════════════
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run build --filter=@nina-aes/shared-types --filter=@nina-aes/utils --filter=@nina-aes/config
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type Check
+        run: pnpm check-types
+
+  test-node:
+    name: Test Node Services
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nina_user
+          POSTGRES_PASSWORD: nina_pass_2026
+          POSTGRES_DB: nina_aes_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nina_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3.13-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics check_running"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://nina_user:nina_pass_2026@localhost:5432/nina_aes_db
+      REDIS_URL: redis://localhost:6379
+      RABBITMQ_URL: amqp://localhost:5672
+      JWT_SECRET: ci-test-secret-key-minimum-32-characters-long
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Migrations
+        run: pnpm db:push
+        working-directory: packages/database
+
+      - name: Run Tests
+        run: pnpm run test --filter=@nina-aes/identity-service --filter=@nina-aes/auth-service --filter=@nina-aes/audit-service
+        env:
+          DATABASE_URL: postgresql://nina_user:nina_pass_ci@localhost:5432/nina_aes_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci-test-jwt-secret-minimum-32-characters-long
+          NODE_ENV: test
+
+# ══════════════════════════════════════════
+  # 3. AI Service Tests (Python)
+  # ══════════════════════════════════════════
+  test-python:
+    name: Test AI Service
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    defaults:
+      run:
+        working-directory: services/ai-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: services/ai-service/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run Tests
+        run: pytest tests/ -v --tb=short
+
+# ══════════════════════════════════════════
+  # 4. Build Docker Images
+  # ══════════════════════════════════════════
+  build:
+    name: Build All
+    runs-on: ubuntu-latest
+    needs: [test-node, test-python]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Build
+        run: pnpm build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build identity-service
+        run: |
+          docker build \
+            -f services/identity-service/Dockerfile \
+            -t nina-aes/identity-service:${{ github.sha }} \
+            -t nina-aes/identity-service:latest \
+            .
+
+      - name: Build ai-service
+        run: |
+          docker build \
+            -f services/ai-service/Dockerfile \
+            -t nina-aes/ai-service:${{ github.sha }} \
+            -t nina-aes/ai-service:latest \
+            services/ai-service/
+
+  docker:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service: [identity-service, ai-service]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: docker build -t nina-aes/${{ matrix.service }}:${{ github.sha }} ./services/${{ matrix.service }}
+
+
+ # ══════════════════════════════════════════
+  # 5. Security Scan
+  # ══════════════════════════════════════════
+  security:
+    name: "🔒 Security Scan"
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+
+      - name: Audit npm dependencies
+        run: |
+          npx audit-ci --critical
+        continue-on-error: true

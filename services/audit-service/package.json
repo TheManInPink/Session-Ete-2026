@@ -2,6 +2,7 @@
   "name": "@nina-aes/audit-service",
   "version": "0.1.0",
   "private": true,
+  "description": "Service d'audit — journalisation et conformité NINA-AES",
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
@@ -11,7 +12,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.18",

@@ -1,4 +1,7 @@
-"""Tests de base pour le service IA."""
+"""
+Tests de base pour le service IA.
+Ce fichier contient des tests simples pour vérifier que le service IA est opérationnel.
+"""
 
 from fastapi.testclient import TestClient
 from app.main import app

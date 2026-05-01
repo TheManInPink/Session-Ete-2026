@@ -25,6 +25,21 @@ export function computeMerkleHash(data: string, previousHash: string): string {
 }
 
 /**
+ * Alias « orienté générateur » de {@link computeMerkleHash}.
+ *
+ * Intentionnellement nommé avec l'ordre des paramètres inversé
+ * (`previousHash, entryData`) pour correspondre à la signature naturelle
+ * « Je génère un hash qui vient APRÈS ce hash précédent ».
+ *
+ * @param previousHash - Hash SHA-256 de l'entrée précédente (ou `""` pour la première).
+ * @param entryData - Contenu de l'entrée courante (déjà sérialisé).
+ * @returns Hash SHA-256 hexadécimal (64 caractères).
+ */
+export function generateMerkleHash(previousHash: string, entryData: string): string {
+  return computeMerkleHash(entryData, previousHash);
+}
+
+/**
  * Vérifie l'intégrité d'une chaîne d'audit Merkle.
  * Recalcule chaque hash à partir des données et du hash précédent,
  * puis compare avec le hash stocké.

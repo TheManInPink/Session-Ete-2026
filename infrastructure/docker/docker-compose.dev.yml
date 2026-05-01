@@ -1,0 +1,339 @@
+# ═══════════════════════════════════════════════════════════════
+# NINA-AES Platform — Docker Compose Développement
+# ═══════════════════════════════════════════════════════════════
+# Usage : docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
+# Ou    : make docker-up (si le Makefile du Document 01 est en place)
+#
+# Démarre toute l'infrastructure de données et services annexes.
+# Les microservices NestJS/FastAPI tournent en local (hors Docker).
+#
+# Usage :
+#   make docker-up      (demarre tous les services)
+#   make docker-down    (arrete tous les services)
+#   make docker-logs    (voir les logs)
+#   make docker-ps      (voir l'etat)
+#
+# OU directement :
+#   docker compose -f infrastructure/docker/docker-compose.dev.yml \
+#     --env-file infrastructure/docker/.env.docker up -d
+# 
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml down
+#   docker compose -f docker-compose.dev.yml logs -f postgres
+#
+# Services inclus :
+#   - PostgreSQL 18  (port 5432)  — Base de données principale
+#   - Redis 8.6      (port 6379)  — Cache et sessions
+#   - RabbitMQ 4.2   (port 5672)  — Message broker
+#   - Elasticsearch 9 (port 9200) — Recherche floue
+#   - MinIO          (port 9000)  — Stockage objet
+#   - Keycloak 26.5  (port 8080)  — Authentification IAM
+#   - Maildev        (port 1080)  — Serveur SMTP de test
+# ═══════════════════════════════════════════════════════════════
+
+name: nina-aes-dev
+
+services:
+  # ──────────────────────────────────────────────────────────────
+  # ── PostgreSQL 17 — Base de données principale ──
+  # (17 car 18 n'a pas encore d'image Docker stable en avril 2026)
+  
+  # ──────────────────────────────────────────────────────────────
+  # Heberge les donnees NINA, les utilisateurs, les logs d'audit,
+  # les structures gouvernementales et les schemas Keycloak.
+  postgres:
+    image: postgres:18.3-alpine3.22
+    container_name: nina-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER :-nina_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nina_dev_2026!}
+      POSTGRES_DB: ${POSTGRES_DB:-nina_aes_db}
+      # Activer la locale française pour le tri alphabétique correct
+      POSTGRES_INITDB_ARGS: "--locale=fr_FR.UTF-8 --data-checksums"
+      # Fuseau horaire de Bamako (GMT+0, pas de changement d'heure)
+      TZ: Africa/Bamako
+    volumes:
+      # Données persistantes
+      - nina-postgres-data:/var/lib/postgresql/data
+      # Script d'initialisation exécuté au premier démarrage UNIQUEMENT
+      - ../../scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      # pg_isready vérifie que PostgreSQL accepte les connexions
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER :-nina_admin} -d ${POSTGRES_DB:-nina_aes_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - nina-network
+
+  # ── Redis 8.6 — Cache, sessions USSD, queues temporaires ──
+  # Stocke : sessions Keycloak, sessions USSD (TTL 5 min),
+  # cache des recherches fréquentes, rate limiting
+  redis:
+    image: redis:8.4.2-alpine3.22
+    container_name: nina-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD :-nina_redis_dev_2026}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - nina-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD :-nina_redis_dev_2026}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nina-network
+
+  # ──────────────────────────────────────────────────────────────
+  # RabbitMQ 4.2 — Broker de messages entre microservices
+  # ──────────────────────────────────────────────────────────────
+  # Les microservices communiquent de maniere asynchrone via RabbitMQ.
+  # Transporte les événements entre microservices :
+  # - identity.created → audit-service + notification-service
+  # - correction.validated → identity-service + document-service
+  # - notification.sms → notification-service (envoi SMS via Orange/AT)
+
+  # Exemples : identity-service publie un evenement "nina.created",
+  # audit-service et notification-service s'y abonnent.
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: nina-rabbitmq
+    restart: unless-stopped
+    ports:
+      # Port AMQP (utilisé par les microservices)
+      - "${RABBITMQ_PORT:-5672}:5672"     # AMQP
+      # Port de l'interface web de management
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"   # Management UI → http://localhost:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER :-nina_rabbit}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS :-rabbit_dev_2026!}
+    volumes:
+      - nina-rabbitmq-data:/var/lib/rabbitmq
+      # Configuration et définitions pré-chargées (exchanges, queues, bindings)
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping", "check_running"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - nina-network
+
+  # ──────────────────────────────────────────────────────────────
+  # MinIO — Stockage objet compatible S3
+  # ──────────────────────────────────────────────────────────────
+  # Stocke les photos d'identite, les documents scannes,
+  # les PDF de Fiches Descriptives generees.
+  minio:
+    image: bitnami/minio:latest
+    container_name: nina-minio
+    restart: unless-stopped
+    ports:
+      # API S3 (utilisée par les microservices)
+      - "${MINIO_API_PORT:-9000}:9000"     # API S3
+      # Console web d'administration
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"     # Console Web → http://localhost:9001
+    environment:
+      # Aligné avec MINIO_ACCESS_KEY / MINIO_SECRET_KEY du fichier .env (voir .env.example)
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-nina_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-nina_minio_dev_2026_secure}
+    volumes:
+      - nina-minio-data:/data
+    # Démarrer MinIO en mode serveur avec la console activée
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl -f http://localhost:9000/minio/health/live || exit 1", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - nina-network
+
+  # ──────────────────────────────────────────────────────────────
+  # Elasticsearch 8 — Recherche floue sur les noms NINA
+  # ──────────────────────────────────────────────────────────────
+  # Permet de :
+  # - Chercher "Mamadu" et trouver "Mamadou" (fuzzy matching)
+  # - Chercher par phonétique (Soundex/Metaphone) pour les noms bambara
+  # - Autocomplétion dans les formulaires de recherche NINA
+  # - Indexer les 20M+ enregistrements pour des réponses < 100ms
+  # (8.x car 9.x pas encore en image Docker stable en avril 2026)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+    container_name: nina-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "${ES_PORT:-9200}:9200"
+    environment:
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD :-elastic_dev_2026!}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      # Limiter la mémoire JVM en dev pour éviter de consommer tout le RAM du PC
+      - ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms512m -Xmx512m}
+      # Désactiver le machine learning (pas besoin en dev, économise la RAM)
+      - xpack.ml.enabled=false
+      - cluster.name=nina-aes
+    volumes:
+      - nina-elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORDELASTIC_PASSWORD :-elastic_dev_2026!} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    # Elasticsearch a besoin de plus de mémoire virtuelle
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - nina-network
+
+  # ──────────────────────────────────────────────────────────────
+  # Keycloak 26.5 — Serveur d'identité (OAuth2 / OIDC / RBAC)
+  # ──────────────────────────────────────────────────────────────
+  # Centralise l'authentification de TOUS les acteurs du système :
+  # - 6 rôles : citoyen, agent, superviseur, admin, auditeur, inspecteur
+  # - OAuth2 + OpenID Connect (standards ouverts)
+  # - MFA (TOTP + SMS) pour les agents
+  # - Sessions gérées dans Redis (pas en mémoire)
+
+  # Centralise l'authentification de tous les acteurs :
+  # citoyen, agent, superviseur, administrateur, auditeur,
+  # inspecteur anti-corruption.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.4
+    container_name: nina-keycloak
+    restart: unless-stopped
+    ports:
+      - "${KC_PORT:-8080}:8080"     # Console → http://localhost:8080
+    environment:
+      # Connexion à PostgreSQL (base "keycloak" créée par init-db.sql)
+      KC_DB: ${KC_DB}
+      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USERNAME :-nina_admin}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD :-nina_dev_2026!}
+       # Mode développement (HTTP, pas de certificat TLS requis)
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME_STRICT: "false"
+      # KC_HTTP_ENABLED: "true"
+      KC_HTTP_ENABLED: ${ KC_HTTP_ENABLED:-true}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME :-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD :-keycloak_admin_2026!}
+      KC_HEALTH_ENABLED: "true"
+      # KEYCLOAK_ADMIN: admin
+      # KEYCLOAK_ADMIN_PASSWORD: admin_dev
+      KC_PROXY_HEADERS: xforwarded
+      # Cache distribué désactivé en dev (single node)
+      KC_CACHE: local
+    # Démarrer en mode développement
+    command: start-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - nina-network
+
+  # ── HashiCorp Vault — Gestion centralisée des secrets ──
+  vault:
+    image: hashicorp/vault:2.0
+    container_name: nina-vault
+    restart: unless-stopped
+    ports:
+      - "${VAULT_PORT:-8200}:8200"     # API + UI → http://localhost:8200
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-root-token
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nina-network
+
+  # ──────────────────────────────────────────────────────────────
+  # MailDev — Serveur SMTP de test (capture emails)
+  # ──────────────────────────────────────────────────────────────
+  # Intercepte TOUS les emails envoyes par notification-service.
+  # Interface web : http://localhost:1080
+  # Port SMTP : 1025
+  maildev:
+    image: maildev/maildev:latest
+    container_name: nina-maildev
+    restart: unless-stopped
+    ports:
+      # Interface web pour lire les emails interceptés
+      - "${MAILDEV_WEB_PORT:-1080}:1080"     # UI Web → http://localhost:1080
+      # Port SMTP (les microservices envoient ici)
+      - "${MAILDEV_SMTP_PORT:-1025}:1025"     # SMTP
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:1080/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - nina-network
+
+# ──────────────────────────────────────────────────────────────
+# Volumes nommes (persistants entre les redemarrages)
+# ──────────────────────────────────────────────────────────────
+volumes:
+  # postgres_data:
+  #   driver: local
+  # redis_data:
+  #   driver: local
+  # rabbitmq_data:
+  #   driver: local
+  # minio_data:
+  #   driver: local
+  # es_data:
+  #   driver: local
+
+  nina-postgres-data:
+    name: nina-postgres-data
+  nina-redis-data:
+    name: nina-redis-data
+  nina-rabbitmq-data:
+    name: nina-rabbitmq-data
+  nina-elasticsearch-data:
+    name: nina-elasticsearch-data
+  nina-minio-data:
+    name: nina-minio-data
+
+# ──────────────────────────────────────────────────────────────
+# Reseau interne (les conteneurs se voient par nom de service)
+# ──────────────────────────────────────────────────────────────
+networks:
+  nina-network:
+    driver: bridge
+    name: nina-aes-network

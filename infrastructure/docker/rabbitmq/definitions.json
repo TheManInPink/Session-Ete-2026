@@ -1,0 +1,270 @@
+{
+  "rabbit_version": "4.2.5",
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "nina_rabbit",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "nina.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "nina.audit",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "nina.notifications",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "nina.dlx",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "identity.created",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "identity.updated",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "identity.correction.requested",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "identity.correction.validated",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "audit.log",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 604800000
+      }
+    },
+    {
+      "name": "notification.sms",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "notification.email",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "notification.ussd",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 300000
+      }
+    },
+    {
+      "name": "ai.analysis.requested",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "ai.analysis.completed",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "document.generation.requested",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "dlx.parking",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "nina.events",
+      "vhost": "/",
+      "destination": "identity.created",
+      "destination_type": "queue",
+      "routing_key": "identity.created",
+      "arguments": {}
+    },
+    {
+      "source": "nina.events",
+      "vhost": "/",
+      "destination": "identity.updated",
+      "destination_type": "queue",
+      "routing_key": "identity.updated",
+      "arguments": {}
+    },
+    {
+      "source": "nina.events",
+      "vhost": "/",
+      "destination": "identity.correction.requested",
+      "destination_type": "queue",
+      "routing_key": "identity.correction.requested",
+      "arguments": {}
+    },
+    {
+      "source": "nina.events",
+      "vhost": "/",
+      "destination": "identity.correction.validated",
+      "destination_type": "queue",
+      "routing_key": "identity.correction.validated",
+      "arguments": {}
+    },
+    {
+      "source": "nina.audit",
+      "vhost": "/",
+      "destination": "audit.log",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    },
+    {
+      "source": "nina.notifications",
+      "vhost": "/",
+      "destination": "notification.sms",
+      "destination_type": "queue",
+      "routing_key": "notification.sms",
+      "arguments": {}
+    },
+    {
+      "source": "nina.notifications",
+      "vhost": "/",
+      "destination": "notification.email",
+      "destination_type": "queue",
+      "routing_key": "notification.email",
+      "arguments": {}
+    },
+    {
+      "source": "nina.notifications",
+      "vhost": "/",
+      "destination": "notification.ussd",
+      "destination_type": "queue",
+      "routing_key": "notification.ussd",
+      "arguments": {}
+    },
+    {
+      "source": "nina.events",
+      "vhost": "/",
+      "destination": "ai.analysis.requested",
+      "destination_type": "queue",
+      "routing_key": "ai.analysis.requested",
+      "arguments": {}
+    },
+    {
+      "source": "nina.events",
+      "vhost": "/",
+      "destination": "ai.analysis.completed",
+      "destination_type": "queue",
+      "routing_key": "ai.analysis.completed",
+      "arguments": {}
+    },
+    {
+      "source": "nina.events",
+      "vhost": "/",
+      "destination": "document.generation.requested",
+      "destination_type": "queue",
+      "routing_key": "document.generation.requested",
+      "arguments": {}
+    },
+    {
+      "source": "nina.dlx",
+      "vhost": "/",
+      "destination": "dlx.parking",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    }
+  ]
+}

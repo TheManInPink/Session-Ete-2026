@@ -1415,7 +1415,9 @@ copié vers `.env` au premier setup.
 
 ```bash
 # Copier le template
-cp .env.example .env
+copy .env.example .env # cmd
+Copy-Item .env.example .env # PowerShell
+cp .env.example .env # Git Bash
 ```
 
 Les variables sont organisées par catégorie :

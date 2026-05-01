@@ -2,17 +2,41 @@
   "name": "@nina-aes/database",
   "version": "0.1.0",
   "private": true,
+  "description": "Prisma 7 schema, migrations and singleton client for the NINA-AES platform.",
+  "keywords": ["nina", "aes", "platform", "database", "prisma", "postgres"],
+  "author": "Étudiant UQAR",
+  "license": "UNLICENSED",
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "prisma/schema.prisma",
+    "prisma/seed.ts",
+    "prisma.config.ts"
+  ],
   "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist .turbo node_modules/.prisma",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:prod": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:migrate:reset": "prisma migrate reset --force",
+    "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset",
-    "lint": "echo '(lint config will be added in doc 06)'",
-    "check-types": "tsc --noEmit"
+    "db:format": "prisma format",
+    "db:validate": "prisma validate",
+    "lint": "eslint \"src/**/*.ts\" \"prisma/*.ts\"",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^7.7.0"
@@ -21,7 +45,17 @@
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^25.5.2",
     "prisma": "^7.7.0",
+    "rimraf": "^6.0.1",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^2.2.0"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "engines": {
+    "node": ">=24.11.1",
+    "pnpm": ">=10.12.1"
   }
 }

@@ -1,34 +1,668 @@
-// ═════════════════════════════════════════════════════════════
-// Schéma Prisma — NINA-AES Platform
-// Ce fichier sera enrichi dans le document 06-DATABASE-SCHEMA-PRISMA.md
-// Pour l'instant, structure minimale pour valider le setup
-// ═══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
+//  NINA-AES Platform — Schéma Prisma 7 (PostgreSQL 18)
+//  Couvre les 16 tables métier des blocs A (NINA Mali) → F (Biométrie, plan).
+//  @author  Étudiant UQAR
+//  @date    Avril 2026
+//  @see     docs/06-DATABASE-SCHEMA-PRISMA.md
+// ══════════════════════════════════════════════════════════════════════════════
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "relationJoins"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  // L'URL de connexion est fournie par prisma.config.ts (CLI) et par le
+  // constructeur PrismaClient (runtime) — Prisma 7 n'autorise plus `url` ici.
+  extensions = [uuidOssp(map: "uuid-ossp"), pgcrypto, pg_trgm, unaccent, postgis]
 }
 
-/// Enregistrement NINA — Table principale du système d'identité
-model NinaRecord {
-  id            String   @id @default(uuid())
-  /// Numéro NINA — 15 caractères (14 chiffres + 1 lettre de contrôle)
-  nina          String   @unique @db.VarChar(15)
-  nom           String   @db.VarChar(100)
-  prenoms       String   @db.VarChar(200)
-  dateNaissance DateTime @map("date_naissance")
-  lieuNaissance String   @map("lieu_naissance") @db.VarChar(200)
-  sexe          Int      @db.SmallInt
-  codeRegion    String   @map("code_region") @db.VarChar(2)
-  codeCercle    String   @map("code_cercle") @db.VarChar(4)
-  codeCommune   String   @map("code_commune") @db.VarChar(7)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+// ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS (9) — alignés sur packages/shared-types/src/enums.ts
+// ──────────────────────────────────────────────────────────────────────────────
 
-  @@map("nina_records")
-  @@index([nom, prenoms])
-  @@index([codeRegion, codeCercle, codeCommune])
+/// Sexe déclaré (aligné NINA + état civil).
+enum Sex {
+  MALE
+  FEMALE
+  UNKNOWN
+
+  @@map("sex")
+}
+
+/// Statut matrimonial FDI.
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  SEPARATED
+  CIVIL_UNION
+
+  @@map("marital_status")
+}
+
+/// Rôles applicatifs (RBAC).
+enum UserRole {
+  CITIZEN
+  AGENT
+  SUPERVISOR
+  ADMIN
+  AUDITOR
+  ANTICORRUPTION_INSPECTOR
+
+  @@map("user_role")
+}
+
+/// Cycle de vie d'une demande de correction NINA.
+enum CorrectionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+
+  @@map("correction_status")
+}
+
+/// Cycle de vie d'un rendez-vous CTDEC / antenne RAVEC.
+enum AppointmentStatus {
+  REQUESTED
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+
+  @@map("appointment_status")
+}
+
+/// Cycle de vie d'une directive de gouvernance (SGOGT).
+enum DirectiveStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  ESCALATED
+  CLOSED
+  ARCHIVED
+
+  @@map("directive_status")
+}
+
+/// Gravité d'une alerte (SIGAC, intégrité, sécurité).
+enum AlertSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@map("alert_severity")
+}
+
+/// Catégories de vulnérabilité (priorisation agents mobiles / USSD).
+enum VulnerabilityCategory {
+  ELDERLY
+  DISABLED
+  PREGNANT
+  CHRONIC_ILL
+  ILLITERATE
+  DIASPORA
+
+  @@map("vulnerability_category")
+}
+
+/// Langues nationales supportées (UI + USSD + notifications).
+enum Language {
+  FR
+  BM
+  SNK
+  FF
+  TMQ
+  HAU
+  MOS
+  DJE
+
+  @@map("language")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  LOCATIONS — hiérarchie administrative Mali (country → … → fraction)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Entité administrative hiérarchique (8 niveaux : pays → région → cercle →
+/// commune → arrondissement → quartier → village → fraction).
+/// Auto-référente : `parent` relie un niveau à son parent immédiat.
+model Location {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Code administratif officiel (ex. "ML-08-02-005"). Unique.
+  code        String   @unique @db.VarChar(20)
+  name        String   @db.VarChar(150)
+  /// Version ASCII (sans diacritiques) pour recherche fuzzy + index trigram.
+  nameAscii   String   @map("name_ascii") @db.VarChar(150)
+  /// Niveau dans la hiérarchie : 0=pays, 1=région, 2=cercle, 3=commune,
+  /// 4=arrondissement, 5=quartier, 6=village, 7=fraction.
+  level       Int      @db.SmallInt
+  parentId    String?  @map("parent_id") @db.Uuid
+  latitude    Decimal? @db.Decimal(10, 7)
+  longitude   Decimal? @db.Decimal(10, 7)
+  /// Point géographique PostGIS (EPSG:4326). Rempli par trigger SQL.
+  geom        Unsupported("geography(Point,4326)")?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  parent      Location?  @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children    Location[] @relation("LocationHierarchy")
+
+  citizensBirth      Citizen[]    @relation("BirthLocation")
+  citizensResidence  Citizen[]    @relation("ResidenceLocation")
+  appointments       Appointment[]
+  electoralRecords   ElectoralRecord[]
+  institutions       Institution[]
+
+  @@index([parentId])
+  @@index([level])
+  @@index([nameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_locations_name_ascii_trgm")
+  @@map("locations")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  CITIZENS — enregistrement NINA canonique
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Enregistrement NINA — table principale du système d'identité.
+model Citizen {
+  id               String         @id @default(uuid()) @db.Uuid
+  /// Numéro NINA : 14 chiffres + 1 lettre de contrôle.
+  nina             String         @unique @db.VarChar(15)
+  firstName        String         @map("first_name") @db.VarChar(100)
+  lastName         String         @map("last_name") @db.VarChar(100)
+  /// Version ASCII indexée trigram pour recherche fuzzy.
+  lastNameAscii    String         @map("last_name_ascii") @db.VarChar(100)
+  firstNameAscii   String         @map("first_name_ascii") @db.VarChar(100)
+  birthDate        DateTime       @map("birth_date") @db.Date
+  sex              Sex
+  maritalStatus    MaritalStatus  @default(SINGLE) @map("marital_status")
+  profession       String?        @db.VarChar(100)
+  photoUrl         String?        @map("photo_url") @db.VarChar(500)
+  /// Hash SHA-256 de la photo (vérifiable depuis le QR JWT).
+  photoHash        String?        @map("photo_hash") @db.VarChar(64)
+  birthPlaceId     String         @map("birth_place_id") @db.Uuid
+  residenceId      String         @map("residence_id") @db.Uuid
+  fatherId         String?        @map("father_id") @db.Uuid
+  motherId         String?        @map("mother_id") @db.Uuid
+  preferredLanguage Language      @default(FR) @map("preferred_language")
+  phoneNumber      String?        @map("phone_number") @db.VarChar(20)
+  email            String?        @db.VarChar(200)
+  /// Version optimistic locking pour éviter les écrasements concurrents.
+  version          Int            @default(0)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
+
+  birthPlace          Location    @relation("BirthLocation", fields: [birthPlaceId], references: [id], onDelete: Restrict)
+  residence           Location    @relation("ResidenceLocation", fields: [residenceId], references: [id], onDelete: Restrict)
+  father              Parent?     @relation("FatherOf", fields: [fatherId], references: [id], onDelete: Restrict)
+  mother              Parent?     @relation("MotherOf", fields: [motherId], references: [id], onDelete: Restrict)
+
+  correctionRequests  CorrectionRequest[]
+  appointments        Appointment[]
+  vulnerabilities     VulnerabilityRecord[]
+  electoralRecord     ElectoralRecord?
+  notifications       Notification[]
+
+  @@index([lastName])
+  @@index([birthDate])
+  @@index([sex])
+  @@index([deletedAt])
+  @@index([lastNameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_citizens_lastname_trgm")
+  @@index([firstNameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_citizens_firstname_trgm")
+  @@map("citizens")
+}
+
+/// Parent (père ou mère) d'un·e citoyen·ne. Peut être partagé si fratrie.
+model Parent {
+  id            String    @id @default(uuid()) @db.Uuid
+  firstName     String    @map("first_name") @db.VarChar(100)
+  lastName      String    @map("last_name") @db.VarChar(100)
+  /// NINA du parent s'il·elle est lui-même enregistré·e. Nullable.
+  nina          String?   @unique @db.VarChar(15)
+  sex           Sex
+  birthDate     DateTime? @map("birth_date") @db.Date
+  deceased      Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  fatheredChildren  Citizen[] @relation("FatherOf")
+  motheredChildren  Citizen[] @relation("MotherOf")
+
+  @@index([lastName])
+  @@map("parents")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  USERS / INSTITUTIONS / AUDIT
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Utilisateur interne (agents, superviseurs, admins, auditeurs, inspecteurs).
+/// Les citoyens s'authentifient via Keycloak directement — pas stockés ici.
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  /// Identifiant Keycloak (sub). Source de vérité de l'auth.
+  keycloakId      String    @unique @map("keycloak_id") @db.VarChar(100)
+  email           String    @unique @db.VarChar(200)
+  username        String    @unique @db.VarChar(100)
+  firstName       String    @map("first_name") @db.VarChar(100)
+  lastName        String    @map("last_name") @db.VarChar(100)
+  role            UserRole
+  institutionId   String?   @map("institution_id") @db.Uuid
+  phoneNumber     String?   @map("phone_number") @db.VarChar(20)
+  preferredLanguage Language @default(FR) @map("preferred_language")
+  mfaEnabled      Boolean   @default(false) @map("mfa_enabled")
+  lastLoginAt     DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  institution            Institution?          @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  requestedCorrections   CorrectionRequest[]   @relation("CorrectionRequestedBy")
+  assignedCorrections    CorrectionRequest[]   @relation("CorrectionAssignedTo")
+  assignedAppointments   Appointment[]
+  auditLogs              AuditLog[]
+  issuedDirectives       GovernanceDirective[] @relation("DirectiveIssuedBy")
+  sentMessages           GovernanceMessage[]   @relation("MessageSender")
+  receivedMessages       GovernanceMessage[]   @relation("MessageRecipient")
+  verifiedVulnerabilities VulnerabilityRecord[]
+  reportedAlerts         CorruptionAlert[]     @relation("AlertReporter")
+  targetedAlerts         CorruptionAlert[]     @relation("AlertSubject")
+  assignedAlerts         CorruptionAlert[]     @relation("AlertAssignedTo")
+  notifications          Notification[]
+  directiveRecipients    DirectiveRecipient[]
+
+  @@index([role])
+  @@index([institutionId])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+/// Institutions publiques (CTDEC, DNEC, mairies, gouvernorats, etc.).
+model Institution {
+  id           String    @id @default(uuid()) @db.Uuid
+  code         String    @unique @db.VarChar(30)
+  name         String    @db.VarChar(200)
+  /// Type : MINISTRY, CTDEC, DNEC, MAIRIE, GOUVERNORAT, PREFECTURE, AUTRE.
+  type         String    @db.VarChar(30)
+  parentId     String?   @map("parent_id") @db.Uuid
+  locationId   String?   @map("location_id") @db.Uuid
+  address      String?   @db.VarChar(300)
+  phoneNumber  String?   @map("phone_number") @db.VarChar(20)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  parent        Institution?   @relation("InstitutionTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children      Institution[]  @relation("InstitutionTree")
+  location      Location?      @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  users         User[]
+  appointments  Appointment[]
+
+  @@index([type])
+  @@index([parentId])
+  @@map("institutions")
+}
+
+/// Journal d'audit append-only + chaîne Merkle (cf. doc 09).
+model AuditLog {
+  /// BigInt pour supporter 10 ans de rétention à ~10k events/jour.
+  id             BigInt    @id @default(autoincrement())
+  /// Utilisateur acteur (si auth). Null = citoyen non authentifié ou système.
+  actorId        String?   @map("actor_id") @db.Uuid
+  actorType      String    @map("actor_type") @db.VarChar(30)
+  action         String    @db.VarChar(100)
+  resource       String    @db.VarChar(100)
+  resourceId     String?   @map("resource_id") @db.VarChar(100)
+  /// Hash SHA-256 du payload JSON canonicalisé (JCS RFC 8785).
+  payloadHash    String    @map("payload_hash") @db.VarChar(64)
+  /// Hash chaîné du précédent événement (ou GENESIS = 64 zéros).
+  previousHash   String    @map("previous_hash") @db.VarChar(64)
+  /// Hash de chaîne de l'événement courant (unique — scellé).
+  chainHash      String    @unique @map("chain_hash") @db.VarChar(64)
+  /// Signature Ed25519 du root Merkle de l'heure (posée par cron).
+  signature      String?   @db.VarChar(128)
+  /// Identifiant d'événement source (idempotence AMQP).
+  sourceEventId  String    @unique @map("source_event_id") @db.VarChar(100)
+  correlationId  String?   @map("correlation_id") @db.VarChar(100)
+  occurredAt     DateTime  @map("occurred_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor          User?     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([actorId])
+  @@index([resource, resourceId])
+  @@index([occurredAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  CORRECTIONS / APPOINTMENTS / NOTIFICATIONS
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Demande de correction d'un champ NINA (workflow citoyen ↔ agent).
+model CorrectionRequest {
+  id                  String           @id @default(uuid()) @db.Uuid
+  citizenId           String           @map("citizen_id") @db.Uuid
+  requestedByUserId   String?          @map("requested_by_user_id") @db.Uuid
+  assignedToUserId    String?          @map("assigned_to_user_id") @db.Uuid
+  field               String           @db.VarChar(50)
+  currentValue        String           @map("current_value") @db.VarChar(500)
+  proposedValue       String           @map("proposed_value") @db.VarChar(500)
+  reason              String           @db.Text
+  evidenceUrl         String?          @map("evidence_url") @db.VarChar(500)
+  /// Score IA (0-100) — cf. doc 11 (ai-service).
+  aiScore             Decimal?         @map("ai_score") @db.Decimal(5, 2)
+  aiVerdict           String?          @map("ai_verdict") @db.VarChar(30)
+  aiExplanation       Json?            @map("ai_explanation")
+  status              CorrectionStatus @default(DRAFT)
+  decidedAt           DateTime?        @map("decided_at") @db.Timestamptz(6)
+  decisionReason      String?          @map("decision_reason") @db.Text
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt           DateTime?        @map("deleted_at") @db.Timestamptz(6)
+
+  citizen         Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+  requestedBy     User?   @relation("CorrectionRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  assignedTo      User?   @relation("CorrectionAssignedTo", fields: [assignedToUserId], references: [id], onDelete: Restrict)
+
+  @@index([citizenId])
+  @@index([status])
+  @@index([assignedToUserId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("correction_requests")
+}
+
+/// Rendez-vous au CTDEC, en mairie ou en antenne mobile RAVEC.
+model Appointment {
+  id             String            @id @default(uuid()) @db.Uuid
+  citizenId      String            @map("citizen_id") @db.Uuid
+  institutionId  String            @map("institution_id") @db.Uuid
+  locationId     String?           @map("location_id") @db.Uuid
+  agentId        String?           @map("agent_id") @db.Uuid
+  status         AppointmentStatus @default(REQUESTED)
+  purpose        String            @db.VarChar(100)
+  scheduledAt    DateTime          @map("scheduled_at") @db.Timestamptz(6)
+  completedAt    DateTime?         @map("completed_at") @db.Timestamptz(6)
+  notes          String?           @db.Text
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen        Citizen       @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+  institution    Institution   @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  location       Location?     @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  agent          User?         @relation(fields: [agentId], references: [id], onDelete: Restrict)
+
+  @@index([citizenId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([institutionId])
+  @@map("appointments")
+}
+
+/// Notification transactionnelle (SMS, push, email, USSD callback).
+model Notification {
+  id                  String    @id @default(uuid()) @db.Uuid
+  recipientUserId     String?   @map("recipient_user_id") @db.Uuid
+  recipientCitizenId  String?   @map("recipient_citizen_id") @db.Uuid
+  /// Canal : SMS, PUSH, EMAIL, USSD, VOICE.
+  channel             String    @db.VarChar(20)
+  /// Statut : PENDING, SENT, DELIVERED, FAILED, READ.
+  status              String    @default("PENDING") @db.VarChar(20)
+  templateKey         String    @map("template_key") @db.VarChar(100)
+  language            Language  @default(FR)
+  payload             Json
+  providerId          String?   @map("provider_id") @db.VarChar(100)
+  sentAt              DateTime? @map("sent_at") @db.Timestamptz(6)
+  deliveredAt         DateTime? @map("delivered_at") @db.Timestamptz(6)
+  failureReason       String?   @map("failure_reason") @db.Text
+  retryCount          Int       @default(0) @map("retry_count")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipientUser    User?    @relation(fields: [recipientUserId], references: [id], onDelete: Restrict)
+  recipientCitizen Citizen? @relation(fields: [recipientCitizenId], references: [id], onDelete: Restrict)
+
+  @@index([recipientUserId])
+  @@index([recipientCitizenId])
+  @@index([status])
+  @@index([channel])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  BLOC B — Interopérabilité AES
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Journal des vérifications transfrontalières BCID-AES (Niger, Burkina Faso).
+model AesVerificationLog {
+  id                 String   @id @default(uuid()) @db.Uuid
+  /// Pays requêteur (ISO 3166-1 alpha-3 : MLI, BFA, NER).
+  requesterCountry   String   @map("requester_country") @db.Char(3)
+  /// Hash SHA-256 du NINA demandé — on ne stocke jamais le NINA en clair côté log transfrontalier.
+  requestedNinaHash  String   @map("requested_nina_hash") @db.VarChar(64)
+  /// Type : IDENTITY_CHECK, STATUS_CHECK, SIGNATURE_VERIFY.
+  requestType        String   @map("request_type") @db.VarChar(40)
+  /// Verdict : MATCH, NO_MATCH, EXPIRED, REVOKED, ERROR.
+  verdict            String   @db.VarChar(20)
+  latencyMs          Int      @map("latency_ms")
+  /// Signature Ed25519 de la réponse (pour non-répudiation).
+  signature          String   @db.VarChar(128)
+  correlationId      String   @map("correlation_id") @db.VarChar(100)
+  clientIp           String?  @map("client_ip") @db.Inet
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([requesterCountry])
+  @@index([createdAt])
+  @@index([verdict])
+  @@map("aes_verification_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  BLOC D — SIGAC (anti-corruption)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Alerte anti-corruption (signalement + détection automatique IA).
+model CorruptionAlert {
+  id                 String         @id @default(uuid()) @db.Uuid
+  /// Rapporteur (agent ou citoyen identifié). Null = lanceur d'alerte anonyme.
+  reporterId         String?        @map("reporter_id") @db.Uuid
+  /// Cible du signalement (agent suspect). Null = non nominatif.
+  subjectUserId      String?        @map("subject_user_id") @db.Uuid
+  assignedToUserId   String?        @map("assigned_to_user_id") @db.Uuid
+  severity           AlertSeverity  @default(LOW)
+  /// Catégorie : BRIBERY, FORGERY, FAVORITISM, ABUSE, PROCUREMENT, OTHER.
+  category           String         @db.VarChar(30)
+  title              String         @db.VarChar(300)
+  body               String         @db.Text
+  /// URLs MinIO des pièces jointes (chiffrées SSE-C).
+  evidenceUrls       String[]       @map("evidence_urls")
+  /// Score d'intégrité IA (0-100), 5 facteurs pondérés (cf. doc 23).
+  integrityScore     Decimal        @default(0) @map("integrity_score") @db.Decimal(5, 2)
+  /// Montant impliqué en XOF si détourneemnt financier.
+  estimatedAmount    Decimal?       @map("estimated_amount") @db.Decimal(18, 2)
+  /// Payload chiffré asymétriquement (clé publique inspecteur, cf. doc 23).
+  encryptedPayload   Bytes?         @map("encrypted_payload")
+  encryptionKeyId    String?        @map("encryption_key_id") @db.VarChar(64)
+  /// Statut : RECEIVED, TRIAGED, INVESTIGATING, SUBSTANTIATED, DISMISSED, CLOSED.
+  status             String         @default("RECEIVED") @db.VarChar(30)
+  channel            String         @db.VarChar(20)
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  reporter      User? @relation("AlertReporter",    fields: [reporterId],       references: [id], onDelete: Restrict)
+  subject       User? @relation("AlertSubject",     fields: [subjectUserId],    references: [id], onDelete: Restrict)
+  assignedTo    User? @relation("AlertAssignedTo",  fields: [assignedToUserId], references: [id], onDelete: Restrict)
+
+  @@index([severity])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@map("corruption_alerts")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  BLOC C2 — SGOGT (gouvernance traçable)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Directive officielle signée (Ed25519) remplaçant les appels téléphoniques.
+model GovernanceDirective {
+  id             String          @id @default(uuid()) @db.Uuid
+  reference      String          @unique @db.VarChar(50)
+  title          String          @db.VarChar(300)
+  body           String          @db.Text
+  /// Portée : national, regional, local.
+  scope          String          @db.VarChar(20)
+  regionCode     String?         @map("region_code") @db.VarChar(10)
+  issuedByUserId String          @map("issued_by_user_id") @db.Uuid
+  status         DirectiveStatus @default(DRAFT)
+  /// Signature Ed25519 base64.
+  signature      String?         @db.VarChar(128)
+  signedAt       DateTime?       @map("signed_at") @db.Timestamptz(6)
+  publishedAt    DateTime?       @map("published_at") @db.Timestamptz(6)
+  dueAt          DateTime?       @map("due_at") @db.Timestamptz(6)
+  closedAt       DateTime?       @map("closed_at") @db.Timestamptz(6)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  issuedBy    User                 @relation("DirectiveIssuedBy", fields: [issuedByUserId], references: [id], onDelete: Restrict)
+  recipients  DirectiveRecipient[]
+  messages    GovernanceMessage[]
+
+  @@index([status])
+  @@index([scope])
+  @@index([issuedByUserId])
+  @@index([publishedAt])
+  @@map("governance_directives")
+}
+
+/// N:N — destinataires d'une directive (join table).
+model DirectiveRecipient {
+  directiveId  String    @map("directive_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  acknowledgedAt DateTime? @map("acknowledged_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  directive    GovernanceDirective @relation(fields: [directiveId], references: [id], onDelete: Restrict)
+  user         User                @relation(fields: [userId],      references: [id], onDelete: Restrict)
+
+  @@id([directiveId, userId])
+  @@index([userId])
+  @@map("directive_recipients")
+}
+
+/// Message de gouvernance (fil de discussion attaché à une directive).
+model GovernanceMessage {
+  id           String    @id @default(uuid()) @db.Uuid
+  directiveId  String?   @map("directive_id") @db.Uuid
+  senderId     String    @map("sender_id") @db.Uuid
+  recipientId  String?   @map("recipient_id") @db.Uuid
+  /// Groupe destinataire (rôle ou région) si recipientId nul.
+  recipientGroup String? @map("recipient_group") @db.VarChar(100)
+  subject      String    @db.VarChar(300)
+  body         String    @db.Text
+  signature    String?   @db.VarChar(128)
+  readAt       DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  directive    GovernanceDirective? @relation(fields: [directiveId], references: [id], onDelete: Restrict)
+  sender       User                 @relation("MessageSender",    fields: [senderId],    references: [id], onDelete: Restrict)
+  recipient    User?                @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@index([directiveId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([createdAt])
+  @@map("governance_messages")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  BLOC C1 — Vulnérables
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Fiche de vulnérabilité rattachée à un·e citoyen·ne (priorisation files).
+model VulnerabilityRecord {
+  id                 String                @id @default(uuid()) @db.Uuid
+  citizenId          String                @map("citizen_id") @db.Uuid
+  category           VulnerabilityCategory
+  description        String?               @db.Text
+  /// P1 (urgent) à P3 (standard).
+  priority           String                @default("P3") @db.VarChar(2)
+  verifiedByUserId   String?               @map("verified_by_user_id") @db.Uuid
+  verifiedAt         DateTime?             @map("verified_at") @db.Timestamptz(6)
+  /// Preuve (certificat médical, attestation) — URL MinIO.
+  evidenceUrl        String?               @map("evidence_url") @db.VarChar(500)
+  activeFrom         DateTime              @default(now()) @map("active_from") @db.Date
+  activeUntil        DateTime?             @map("active_until") @db.Date
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen     Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+  verifiedBy  User?   @relation(fields: [verifiedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([citizenId])
+  @@index([category])
+  @@index([priority])
+  @@map("vulnerability_records")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  BLOC C3 — Intégrité électorale
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Enregistrement électoral lié 1:1 à un·e citoyen·ne (auto à 18 ans).
+model ElectoralRecord {
+  id                  String    @id @default(uuid()) @db.Uuid
+  citizenId           String    @unique @map("citizen_id") @db.Uuid
+  registrationNumber  String    @unique @map("registration_number") @db.VarChar(30)
+  pollingStationId    String?   @map("polling_station_id") @db.Uuid
+  /// Date à partir de laquelle le·la citoyen·ne est éligible (18 ans).
+  eligibleAt          DateTime  @map("eligible_at") @db.Date
+  /// Enregistrement actif (désactivé en cas de radiation, décès, etc.).
+  active              Boolean   @default(true)
+  autoRegisteredAt    DateTime? @map("auto_registered_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen         Citizen    @relation(fields: [citizenId],        references: [id], onDelete: Restrict)
+  pollingStation  Location?  @relation(fields: [pollingStationId], references: [id], onDelete: Restrict)
+
+  @@index([active])
+  @@index([pollingStationId])
+  @@map("electoral_records")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  BLOC E — Bornes kiosque (Electron)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Session d'utilisation d'une borne interactive en mairie.
+model KioskSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  kioskId          String    @map("kiosk_id") @db.VarChar(50)
+  /// NINA éventuellement saisi/scanné durant la session. Anonymisé si nul.
+  citizenNina      String?   @map("citizen_nina") @db.VarChar(15)
+  language         Language  @default(FR)
+  startedAt        DateTime  @map("started_at") @db.Timestamptz(6)
+  endedAt          DateTime? @map("ended_at") @db.Timestamptz(6)
+  actionsCount     Int       @default(0) @map("actions_count")
+  printedReceipts  Int       @default(0) @map("printed_receipts")
+  ipAddress        String?   @map("ip_address") @db.Inet
+  outcome          String?   @db.VarChar(30)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([kioskId])
+  @@index([startedAt])
+  @@map("kiosk_sessions")
 }

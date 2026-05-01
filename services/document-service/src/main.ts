@@ -35,10 +35,27 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api/v1');
 
   // Activation de CORS pour le développement
-  app.enableCors();
+  app.enableCors({
+    origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+  });
+
+  const config = new DocumentBuilder()
+    .setTitle('NINA-AES Document Service')
+    .setDescription('Service de gestion documentaire — stockage et génération de documents')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('documents', 'Gestion des documents')
+    .addTag('storage', 'Stockage fichiers (MinIO)')
+    .addTag('certificates', 'Génération de certificats')
+    .addTag('health', 'Health check')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(PORT);
   logger.log(`document-service démarré sur le port ${PORT}`);
+  console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
 }
 
 bootstrap();

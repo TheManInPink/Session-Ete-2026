@@ -2,6 +2,7 @@
 name = "nina-aes-ai-service"
 version = "0.1.0"
 description = "Module IA de détection et correction des erreurs NINA — Pipeline 5 étapes"
+authors = ["Ibrahim"]
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.135.0",

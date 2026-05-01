@@ -1,66 +1,262 @@
 /**
  * @file        index.ts
- * @description Validation centralisée des variables d'environnement via Zod.
- *              Chaque microservice importe et étend ce schéma de base.
+ * @description Configuration centrale de la plateforme NINA-AES.
+ *
+ *              Fournit :
+ *                - Un schéma Zod exhaustif des variables d'environnement
+ *                  requises par les 11 microservices, les frontaux et
+ *                  l'infrastructure.
+ *                - Un chargement automatique du fichier `.env` situé à la
+ *                  racine du monorepo (si présent).
+ *                - Un singleton `config` (validation paresseuse, une seule fois).
+ *                - Des constantes partagées (CORS, ports, limites de débit).
+ *
+ *              En cas de variable manquante ou invalide, l'erreur listée
+ *              explicitement les champs fautifs et interrompt le démarrage.
+ *
  * @author      Étudiant UQAR
- * @date        2026
- * @module      config
+ * @date        Avril 2026
+ * @module      @nina-aes/config
  */
 
+import path from 'node:path';
+import fs from 'node:fs';
+import dotenv from 'dotenv';
 import { z } from 'zod';
 
-/**
- * Schéma de base des variables d'environnement communes à tous les services.
- * Chaque service peut l'étendre avec ses propres variables via `.extend()`.
- */
-export const baseEnvSchema = z.object({
-  /** Environnement d'exécution */
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+// ──────────────────────────────────────────────────────────────────────────────
+//  Chargement automatique du fichier .env (racine du monorepo)
+// ──────────────────────────────────────────────────────────────────────────────
 
-  /** URL de connexion PostgreSQL */
+/**
+ * Localise le fichier `.env` en remontant depuis `process.cwd()` jusqu'à trouver
+ * un dossier contenant `pnpm-workspace.yaml` (marqueur de la racine du monorepo).
+ * Évite d'avoir à lancer chaque service depuis la racine du projet.
+ *
+ * @returns Chemin absolu vers `.env` si trouvé, sinon `null`.
+ */
+function locateMonorepoEnv(): string | null {
+  let dir = process.cwd();
+  const { root } = path.parse(dir);
+  for (let i = 0; i < 8; i++) {
+    const envPath = path.join(dir, '.env');
+    const wsPath = path.join(dir, 'pnpm-workspace.yaml');
+    if (fs.existsSync(envPath) && fs.existsSync(wsPath)) return envPath;
+    if (dir === root) break;
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
+// Charge le `.env` racine s'il existe — sinon on se contente de `process.env`.
+const ENV_PATH = locateMonorepoEnv();
+if (ENV_PATH) {
+  dotenv.config({ path: ENV_PATH, override: false });
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Schéma Zod des variables d'environnement
+// ──────────────────────────────────────────────────────────────────────────────
+
+/** Expression régulière d'une durée ISO simplifiée : `15m`, `7d`, `3600s`, … */
+const DURATION_REGEX = /^\d+(ms|s|m|h|d)$/;
+
+/**
+ * Schéma exhaustif des variables d'environnement de la plateforme NINA-AES.
+ *
+ * Les valeurs par défaut sont adaptées à un poste de développement Windows
+ * (docker-compose local). En production, toutes les variables sensibles
+ * (JWT_SECRET, VAULT_TOKEN, *_CERT_PATH…) doivent être fournies explicitement.
+ */
+export const envSchema = z.object({
+  // ── Environnement ─────────────────────────────────────────────────────
+  NODE_ENV: z
+    .enum(['development', 'staging', 'production', 'test'])
+    .default('development'),
+
+  // ── Bases de données & infrastructures ─────────────────────────────────
   DATABASE_URL: z
     .string()
     .url()
     .default('postgresql://nina:nina_dev@localhost:5432/nina_aes'),
-
-  /** URL de connexion Redis */
   REDIS_URL: z.string().default('redis://localhost:6379'),
-
-  /** URL du broker RabbitMQ */
   RABBITMQ_URL: z.string().default('amqp://nina:nina_dev@localhost:5672'),
+  ELASTICSEARCH_URL: z.string().url().default('http://localhost:9200'),
 
-  /** Clé secrète JWT (pour le dev — en prod, utiliser Vault) */
+  // ── Stockage objet MinIO ──────────────────────────────────────────────
+  MINIO_ENDPOINT: z.string().default('localhost'),
+  MINIO_PORT: z.coerce.number().int().positive().default(9000),
+  MINIO_USE_SSL: z.coerce.boolean().default(false),
+  MINIO_ACCESS_KEY: z.string().min(3).default('nina_minio_key'),
+  MINIO_SECRET_KEY: z.string().min(8).default('nina_minio_secret'),
+  MINIO_BUCKET: z.string().default('nina-documents'),
+  MINIO_REGION: z.string().default('us-east-1'),
+
+  // ── JWT & clés asymétriques ───────────────────────────────────────────
   JWT_SECRET: z
     .string()
-    .min(32)
-    .default('dev-jwt-secret-change-this-in-production-32chars'),
+    .min(32, 'JWT_SECRET doit contenir au moins 32 caractères')
+    .default('dev-jwt-secret-change-this-in-production-32chars!'),
+  JWT_PRIVATE_KEY_PATH: z.string().default('./secrets/jwt-private.pem'),
+  JWT_PUBLIC_KEY_PATH: z.string().default('./secrets/jwt-public.pem'),
+  JWT_ACCESS_EXPIRATION: z
+    .string()
+    .regex(DURATION_REGEX, 'Format attendu : "15m", "1h", "7d"…')
+    .default('15m'),
+  JWT_REFRESH_EXPIRATION: z
+    .string()
+    .regex(DURATION_REGEX, 'Format attendu : "15m", "1h", "7d"…')
+    .default('7d'),
 
-  /** Durée de validité du JWT (en secondes) */
-  JWT_EXPIRATION: z.coerce.number().default(900), // 15 minutes
+  // ── Journalisation & ports ────────────────────────────────────────────
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  API_GATEWAY_PORT: z.coerce.number().int().positive().default(3000),
+
+  // ── HashiCorp Vault ───────────────────────────────────────────────────
+  VAULT_ADDR: z.string().url().default('http://localhost:8200'),
+  VAULT_TOKEN: z.string().default('dev-root-token'),
+  VAULT_NAMESPACE: z.string().default('nina-aes'),
+
+  // ── APIs externes : Africa's Talking (USSD / SMS) ─────────────────────
+  AFRICAS_TALKING_API_KEY: z.string().default('sandbox-api-key'),
+  AFRICAS_TALKING_USERNAME: z.string().default('sandbox'),
+
+  // ── Certificats mTLS pour l'interopérabilité AES ──────────────────────
+  AES_MLI_CERT_PATH: z.string().default('./secrets/aes/mli.pem'),
+  AES_BFA_CERT_PATH: z.string().default('./secrets/aes/bfa.pem'),
+  AES_NER_CERT_PATH: z.string().default('./secrets/aes/ner.pem'),
+  AES_CA_PATH: z.string().default('./secrets/aes/ca.pem'),
+
+  // ── Observabilité ─────────────────────────────────────────────────────
+  PROMETHEUS_PORT: z.coerce.number().int().positive().default(9090),
+  JAEGER_ENDPOINT: z
+    .string()
+    .url()
+    .default('http://localhost:14268/api/traces'),
 });
 
-/** Type inféré du schéma de base */
-export type BaseEnv = z.infer<typeof baseEnvSchema>;
+/** Type inféré du schéma complet (à consommer par les microservices). */
+export type Env = z.infer<typeof envSchema>;
+
+// Rétro-compatibilité : alias historique pour les services qui importaient
+// déjà `BaseEnv` / `baseEnvSchema` depuis ce module.
+export const baseEnvSchema = envSchema;
+export type BaseEnv = Env;
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Validation paresseuse + singleton
+// ──────────────────────────────────────────────────────────────────────────────
 
 /**
- * Valide les variables d'environnement avec un schéma Zod.
- * Lance une erreur descriptive si la validation échoue.
+ * Valide un ensemble de variables d'environnement avec un schéma Zod arbitraire.
+ * Utile pour les microservices qui étendent {@link envSchema} avec leurs
+ * propres variables (ex. `KEYCLOAK_REALM`, `IDENTITY_SERVICE_PORT`…).
  *
- * @param schema - Schéma Zod à utiliser pour la validation
- * @returns Les variables d'environnement validées et typées
- * @throws {Error} Si des variables obligatoires sont manquantes ou invalides
+ * @param schema - Schéma Zod à appliquer (par défaut {@link envSchema}).
+ * @param source - Source des variables (par défaut `process.env`).
+ * @returns L'objet typé et validé.
+ * @throws {Error} Message enrichi listant les chemins invalides.
  */
-export function validateEnv<T extends z.ZodType>(schema: T): z.infer<T> {
-  const result = schema.safeParse(process.env);
-
+export function validateEnv<T extends z.ZodType>(
+  schema: T,
+  source: Record<string, unknown> = process.env,
+): z.infer<T> {
+  const result = schema.safeParse(source);
   if (!result.success) {
-    const formatted = result.error.format();
-    console.error("❌ Variables d'environnement invalides :");
-    console.error(JSON.stringify(formatted, null, 2));
-    throw new Error('Configuration invalide — vérifiez votre fichier .env');
+    const lines = result.error.issues
+      .map((i) => `  • ${i.path.join('.') || '<root>'} : ${i.message}`)
+      .join('\n');
+    throw new Error(
+      `❌ Variables d'environnement invalides :\n${lines}\n→ Vérifiez votre fichier .env`,
+    );
   }
-
   return result.data;
 }
 
+let _config: Env | null = null;
+
+/**
+ * Retourne la configuration validée (singleton). Valide au premier appel,
+ * puis renvoie la même instance sans re-valider.
+ *
+ * @returns L'objet {@link Env} entièrement validé.
+ */
+export function getConfig(): Env {
+  if (!_config) {
+    _config = validateEnv(envSchema);
+  }
+  return _config;
+}
+
+/**
+ * Réinitialise le singleton. **À n'utiliser que dans les tests** pour pouvoir
+ * modifier `process.env` entre deux cas.
+ */
+export function resetConfig(): void {
+  _config = null;
+}
+
+/**
+ * Singleton exporté, validé au chargement du module.
+ *
+ * @example
+ * ```ts
+ * import { config } from '@nina-aes/config';
+ * console.log(config.DATABASE_URL);
+ * ```
+ */
+export const config: Env = getConfig();
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Constantes partagées
+// ──────────────────────────────────────────────────────────────────────────────
+
+/** Configuration CORS par défaut des passerelles d'API. */
+export const CORS_CONFIG = {
+  origin: process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()) ?? [
+    'http://localhost:3000',
+    'http://localhost:4001',
+    'http://localhost:4002',
+    'http://localhost:4003',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as const,
+  credentials: true,
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Request-ID',
+    'X-Correlation-ID',
+    'Accept-Language',
+    'X-API-Key',
+  ],
+  maxAge: 86400,
+} as const;
+
+/** Ports canoniques des 11 microservices (doc 07 → 11). */
+export const SERVICE_PORTS = {
+  API_GATEWAY: config.API_GATEWAY_PORT,
+  IDENTITY_SERVICE: Number(process.env.IDENTITY_SERVICE_PORT) || 3001,
+  AUTH_SERVICE: Number(process.env.AUTH_SERVICE_PORT) || 3002,
+  AI_SERVICE: Number(process.env.AI_SERVICE_PORT) || 3003,
+  DOCUMENT_SERVICE: Number(process.env.DOCUMENT_SERVICE_PORT) || 3004,
+  NOTIFICATION_SERVICE: Number(process.env.NOTIFICATION_SERVICE_PORT) || 3005,
+  INTEROP_SERVICE: Number(process.env.INTEROP_SERVICE_PORT) || 3006,
+  AUDIT_SERVICE: Number(process.env.AUDIT_SERVICE_PORT) || 3007,
+  APPOINTMENT_SERVICE: Number(process.env.APPOINTMENT_SERVICE_PORT) || 3008,
+  ANTICORRUPTION_SERVICE:
+    Number(process.env.ANTICORRUPTION_SERVICE_PORT) || 3009,
+  GOVERNANCE_SERVICE: Number(process.env.GOVERNANCE_SERVICE_PORT) || 3010,
+  VULNERABILITY_SERVICE: Number(process.env.VULNERABILITY_SERVICE_PORT) || 3011,
+} as const;
+
+/** Configuration de limitation de débit (rate limiting) standard. */
+export const RATE_LIMIT_CONFIG = {
+  short: { ttl: 1000, limit: 10 },
+  medium: { ttl: 60000, limit: 100 },
+  long: { ttl: 3600000, limit: 1000 },
+  auth: { ttl: 900000, limit: 5 },
+} as const;
+
+// Ré-export de Zod pour que les services puissent étendre le schéma sans
+// avoir à ajouter Zod à leurs propres dépendances.
 export { z };
