@@ -35,9 +35,9 @@
     "db:migrate": "turbo run db:migrate --filter=@nina-aes/database",
     "db:seed": "turbo run db:seed --filter=@nina-aes/database",
     "db:studio": "turbo run db:studio --filter=@nina-aes/database",
-    "docker:up": "docker compose -f infrastructure/docker/docker-compose.dev.yml up -d",
-    "docker:down": "docker compose -f infrastructure/docker/docker-compose.dev.yml down",
-    "docker:logs": "docker compose -f infrastructure/docker/docker-compose.dev.yml logs -f",
+    "docker:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml up -d",
+    "docker:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml down",
+    "docker:logs": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs -f",
     "prepare": "cd .. && husky nina-aes-platform/.husky"
   },
   "devDependencies": {

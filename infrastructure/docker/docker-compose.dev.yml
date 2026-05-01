@@ -42,27 +42,35 @@ services:
   # Heberge les donnees NINA, les utilisateurs, les logs d'audit,
   # les structures gouvernementales et les schemas Keycloak.
   postgres:
-    image: postgres:18.3-alpine3.22
+    # Image officielle PostGIS basée sur PostgreSQL 18 — fournit pgcrypto,
+    # uuid-ossp, pg_trgm, unaccent, citext ET postgis (extension spatiale
+    # nécessaire pour les colonnes `geography(Point,4326)` du modèle Location).
+    image: postgis/postgis:18-3.6
     container_name: nina-postgres
     restart: unless-stopped
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER :-nina_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-nina_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nina_dev_2026!}
       POSTGRES_DB: ${POSTGRES_DB:-nina_aes_db}
-      # Activer la locale française pour le tri alphabétique correct
-      POSTGRES_INITDB_ARGS: "--locale=fr_FR.UTF-8 --data-checksums"
+      # Locale ICU française pour le tri alphabétique correct des noms maliens.
+      # ICU est portable (pas besoin de générer la locale dans l'image), utilisé
+      # par PostgreSQL 16+. `--data-checksums` détecte la corruption disque.
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=fr-FR --encoding=UTF8 --data-checksums"
       # Fuseau horaire de Bamako (GMT+0, pas de changement d'heure)
       TZ: Africa/Bamako
     volumes:
-      # Données persistantes
-      - nina-postgres-data:/var/lib/postgresql/data
+      # Données persistantes — Postgres 18 exige un montage sur le parent
+      # `/var/lib/postgresql` (et non `/data`) pour permettre `pg_upgrade --link`
+      # entre versions majeures. Le sous-dossier `<major>/data` est créé par
+      # l'image au premier démarrage.
+      - nina-postgres-data:/var/lib/postgresql
       # Script d'initialisation exécuté au premier démarrage UNIQUEMENT
       - ../../scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       # pg_isready vérifie que PostgreSQL accepte les connexions
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER :-nina_admin} -d ${POSTGRES_DB:-nina_aes_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nina_admin} -d ${POSTGRES_DB:-nina_aes_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -81,14 +89,14 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD :-nina_redis_dev_2026}
+      --requirepass ${REDIS_PASSWORD:-nina_redis_dev_2026}
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
       --appendonly yes
     volumes:
       - nina-redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD :-nina_redis_dev_2026}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-nina_redis_dev_2026}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -117,8 +125,8 @@ services:
       # Port de l'interface web de management
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"   # Management UI → http://localhost:15672
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER :-nina_rabbit}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS :-rabbit_dev_2026!}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-nina_rabbit}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-rabbit_dev_2026!}
     volumes:
       - nina-rabbitmq-data:/var/lib/rabbitmq
       # Configuration et définitions pré-chargées (exchanges, queues, bindings)
@@ -181,7 +189,7 @@ services:
       - "${ES_PORT:-9200}:9200"
     environment:
       - discovery.type=single-node
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD :-elastic_dev_2026!}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-elastic_dev_2026!}
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
@@ -193,7 +201,7 @@ services:
     volumes:
       - nina-elasticsearch-data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORDELASTIC_PASSWORD :-elastic_dev_2026!} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD:-elastic_dev_2026!} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -232,15 +240,15 @@ services:
       # Connexion à PostgreSQL (base "keycloak" créée par init-db.sql)
       KC_DB: ${KC_DB}
       KC_DB_URL: ${KC_DB_URL}
-      KC_DB_USERNAME: ${KC_DB_USERNAME :-nina_admin}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD :-nina_dev_2026!}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-nina_admin}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-nina_dev_2026!}
        # Mode développement (HTTP, pas de certificat TLS requis)
       KC_HOSTNAME: ${KC_HOSTNAME}
       KC_HOSTNAME_STRICT: "false"
       # KC_HTTP_ENABLED: "true"
-      KC_HTTP_ENABLED: ${ KC_HTTP_ENABLED:-true}
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME :-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD :-keycloak_admin_2026!}
+      KC_HTTP_ENABLED: ${KC_HTTP_ENABLED:-true}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-keycloak_admin_2026!}
       KC_HEALTH_ENABLED: "true"
       # KEYCLOAK_ADMIN: admin
       # KEYCLOAK_ADMIN_PASSWORD: admin_dev

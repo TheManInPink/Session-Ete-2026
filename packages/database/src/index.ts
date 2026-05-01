@@ -24,6 +24,7 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Configuration
@@ -59,14 +60,21 @@ const SOFT_DELETE_MODELS = new Set<string>([
 /**
  * Construit un PrismaClient configuré.
  *
- * L'URL de connexion est lue par Prisma directement dans la variable
- * d'environnement `DATABASE_URL` — Prisma 7 a retiré `datasources` / `datasourceUrl`
- * du constructeur.
+ * Prisma 7.7+ utilise par défaut le moteur « client » qui exige un driver
+ * adapter — pour PostgreSQL on utilise `@prisma/adapter-pg` qui s'appuie
+ * sur le driver natif `pg`. L'URL de connexion est lue dans `DATABASE_URL`
+ * (chargée par `@nina-aes/config` qui supporte l'interpolation `${VAR}`
+ * dans le `.env` racine).
  *
  * @returns Un `PrismaClient` non étendu.
  */
 function createBareClient(): PrismaClient {
+  const connectionString =
+    process.env.DATABASE_URL ??
+    'postgresql://nina_admin:nina_dev_2026_secure@localhost:5432/nina_aes_db?schema=public';
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({
+    adapter,
     log: LOG_LEVELS,
     errorFormat: IS_DEV ? 'pretty' : 'minimal',
   });

@@ -18,7 +18,11 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions", "relationJoins"]
+  // Prisma 7.x utilise le moteur « client » (queries compilées) qui exige
+  // un driver adapter natif. Pour PostgreSQL on utilise `@prisma/adapter-pg`
+  // (cf. `src/index.ts`). `driverAdapters` doit être listé dans les
+  // previewFeatures pour que `new PrismaClient({ adapter })` soit accepté.
+  previewFeatures = ["driverAdapters", "postgresqlExtensions", "relationJoins"]
 }
 
 datasource db {
@@ -26,7 +30,7 @@ datasource db {
   // L'URL de connexion est fournie par prisma.config.ts (CLI) et par
   // l'environnement (`DATABASE_URL`) au runtime — Prisma 7 n'autorise plus
   // `url` ici.
-  extensions = [uuidOssp(map: "uuid-ossp"), pgcrypto, pg_trgm, unaccent, postgis]
+  extensions = [uuidOssp(map: "uuid-ossp"), pgcrypto, pg_trgm, unaccent, citext, postgis]
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

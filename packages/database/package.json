@@ -3,7 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "description": "Prisma 7 schema, migrations and singleton client for the NINA-AES platform.",
-  "keywords": ["nina", "aes", "platform", "database", "prisma", "postgres"],
+  "keywords": [
+    "nina",
+    "aes",
+    "platform",
+    "database",
+    "prisma",
+    "postgres"
+  ],
   "author": "Étudiant UQAR",
   "license": "UNLICENSED",
   "type": "module",
@@ -39,12 +46,17 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "^7.7.0"
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^25.5.2",
-    "prisma": "^7.7.0",
+    "@types/pg": "^8.20.0",
+    "dotenv": "^17.4.2",
+    "dotenv-expand": "^13.0.0",
+    "prisma": "^7.8.0",
     "rimraf": "^6.0.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
