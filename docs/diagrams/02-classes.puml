@@ -1,0 +1,363 @@
+@startuml NINA-AES_Classes
+' ════════════════════════════════════════════════════════════════════════════
+'  NINA-AES Platform — Diagramme de classes (modèle de domaine)
+'  13 entités · 8 enums · méthodes métier · cardinalités explicites
+'  Aligné sur packages/shared-types et packages/database/prisma/schema.prisma
+'  Auteur : Étudiant UQAR · Avril 2026
+' ════════════════════════════════════════════════════════════════════════════
+
+title NINA-AES — Modèle de classes (domaine métier)
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam class {
+  BackgroundColor #EEF2FF
+  BorderColor #4F46E5
+  ArrowColor #475569
+  FontName Inter
+  AttributeIconSize 0
+}
+skinparam enum {
+  BackgroundColor #FEF3C7
+  BorderColor #D97706
+}
+skinparam note {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+}
+
+' ── Enums ───────────────────────────────────────────────────────────────────
+enum Sex {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  SEPARATED
+  CIVIL_UNION
+}
+
+enum UserRole {
+  CITIZEN
+  AGENT
+  SUPERVISOR
+  ADMIN
+  AUDITOR
+  ANTICORRUPTION_INSPECTOR
+}
+
+enum CorrectionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum DirectiveStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  ESCALATED
+  CLOSED
+  ARCHIVED
+}
+
+enum AlertSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VulnerabilityCategory {
+  ELDERLY
+  DISABLED
+  PREGNANT
+  CHRONIC_ILL
+  ILLITERATE
+  DIASPORA
+}
+
+' ── Entités principales ─────────────────────────────────────────────────────
+class Location {
+  + id : UUID
+  + countryCode : char(3)
+  + pays : string
+  + région : string
+  + cercle : string
+  + commune : string
+  + quartier : string
+  + fraction : string
+  + village : string
+  + hameau : string
+  + latitude : decimal(10,7)
+  + longitude : decimal(10,7)
+  --
+  + isInDistrictBamako() : bool
+  + fullPath() : string
+}
+
+class Citizen {
+  + id : UUID
+  + nina : string(15)
+  + firstName : string
+  + lastName : string
+  + sex : Sex
+  + birthDate : date
+  + maritalStatus : MaritalStatus
+  + profession : string
+  + photoUrl : string
+  + photoHash : string(64)
+  + fingerprintHash : string(64)
+  + vulnerabilityCategory : VulnerabilityCategory?
+  + preferredLanguage : Language
+  + phoneNumber : string
+  + email : string
+  + version : int
+  + createdAt : timestamptz
+  + updatedAt : timestamptz
+  + deletedAt : timestamptz?
+  --
+  + computeAge() : int
+  + maskNina() : string
+  + isVulnerable() : bool
+  + canVote() : bool
+}
+
+class Parent {
+  + id : UUID
+  + firstName : string
+  + lastName : string
+  + nina : string?
+  + sex : Sex
+  + birthDate : date?
+  + deceased : bool
+  --
+  + isAlive() : bool
+}
+
+class User {
+  + id : UUID
+  + keycloakId : string
+  + email : string
+  + username : string
+  + firstName : string
+  + lastName : string
+  + role : UserRole
+  + mfaEnabled : bool
+  + mfaSecret : string (Vault Transit)
+  + lastLoginAt : timestamptz
+  --
+  + canApprove(corr : CorrectionRequest) : bool
+  + canIssueDirective() : bool
+}
+
+class Institution {
+  + id : UUID
+  + code : string
+  + name : string
+  + type : string
+  + address : string
+  --
+  + listAgents() : List<User>
+}
+
+class CorrectionRequest {
+  + id : UUID
+  + field : string
+  + currentValue : string
+  + proposedValue : string
+  + aiScore : decimal(5,2)
+  + aiVerdict : string
+  + justificationDocUrl : string
+  + status : CorrectionStatus
+  + reviewedBy : UUID?
+  + decidedAt : timestamptz?
+  + decisionReason : string
+  --
+  + isHighConfidence() : bool
+  + autoApprovable() : bool
+}
+
+class Appointment {
+  + id : UUID
+  + queueNumber : int
+  + status : AppointmentStatus
+  + priority : string
+  + scheduledAt : timestamptz
+  + completedAt : timestamptz?
+  + purpose : string
+  --
+  + isUpcoming() : bool
+  + sendReminder() : void
+}
+
+class VulnerabilityRecord {
+  + id : UUID
+  + category : VulnerabilityCategory
+  + priority : string
+  + deliveryPreference : string
+  + ussdPhone : string
+  + activeFrom : date
+  + activeUntil : date?
+  --
+  + isActive() : bool
+}
+
+class CorruptionAlert {
+  + id : UUID
+  + severity : AlertSeverity
+  + category : string
+  + title : string
+  + description : string
+  + evidenceUrls : string[]
+  + anonymousReporterToken : string?
+  + integrityScore : decimal(5,2)
+  + status : string
+  --
+  + isAnonymous() : bool
+  + classify() : AlertSeverity
+}
+
+class GovernanceDirective {
+  + id : UUID
+  + reference : string
+  + title : string
+  + description : string
+  + status : DirectiveStatus
+  + priority : string
+  + escalationLevel : int
+  + deadline : timestamptz?
+  + signature : string
+  --
+  + escalate() : void
+  + isSigned() : bool
+}
+
+class GovernanceMessage {
+  + id : UUID
+  + subject : string
+  + body : string
+  + attachments : json
+  + signatureEd25519 : string
+  + readStatus : enum
+  + serverTimestamp : timestamptz
+  --
+  + verifySignature() : bool
+}
+
+class AuditLog {
+  + id : bigint
+  + action : string
+  + entityType : string
+  + entityId : string
+  + oldValue : json
+  + newValue : json
+  + ipAddress : inet
+  + merkleHash : string(64)
+  + previousHash : string(64)
+  + signature : string
+  + timestamp : timestamptz
+  --
+  + verifyChain(prev : AuditLog) : bool
+}
+
+class AESVerificationLog {
+  + id : UUID
+  + requesterCountry : char(3)
+  + targetNina : string(15)
+  + result : string
+  + confidence : decimal(5,2)
+  + latencyMs : int
+  + signature : string
+  + correlationId : string
+  --
+  + isMatch() : bool
+}
+
+' ── Enum d'aide importé du package shared-types ─────────────────────────────
+enum Language <<from shared-types>> {
+  FR
+  BM
+  SNK
+  FF
+  TMQ
+  HAU
+  MOS
+  DJE
+}
+
+' ── Relations & cardinalités ────────────────────────────────────────────────
+Citizen "0..1" --> "1" Location : birthPlace
+Citizen "0..1" --> "1" Location : residence
+Citizen "0..N" --> "0..1" Parent : father
+Citizen "0..N" --> "0..1" Parent : mother
+Citizen "1" o-- "0..N" CorrectionRequest : has
+Citizen "1" o-- "0..N" Appointment : has
+Citizen "1" o-- "0..N" VulnerabilityRecord : has
+
+User "0..N" --> "1" Institution : works at
+User "1" o-- "0..N" CorrectionRequest : reviewed by
+User "1" o-- "0..N" Appointment : agent
+User "1" o-- "0..N" GovernanceDirective : issuer
+User "1" o-- "0..N" GovernanceDirective : assignee
+User "1" o-- "0..N" GovernanceMessage : sender
+User "1" o-- "0..N" CorruptionAlert : reporter
+User "1" o-- "0..N" AuditLog : actor
+
+GovernanceDirective "0..1" o-- "0..N" GovernanceMessage : thread
+Location "1" o-- "0..N" Location : children
+Institution "1" o-- "0..N" Institution : children
+
+CorrectionRequest --> CorrectionStatus
+Appointment --> AppointmentStatus
+GovernanceDirective --> DirectiveStatus
+CorruptionAlert --> AlertSeverity
+User --> UserRole
+Citizen --> Sex
+Citizen --> MaritalStatus
+Citizen --> VulnerabilityCategory
+
+' ── Notes pédagogiques ──────────────────────────────────────────────────────
+note right of Citizen
+  PII rédigées via
+  sanitizeForLog() avant
+  toute journalisation.
+  Soft-delete via deletedAt.
+end note
+
+note bottom of AuditLog
+  Chaîne Merkle :
+  merkleHash = SHA256(
+    previousHash || JSON
+  )
+  Toute modification a
+  posteriori est détectable.
+end note
+
+note right of CorruptionAlert
+  Si anonymousReporterToken
+  est défini, reporterId
+  doit être null. Aucune
+  PII liée au lanceur d'alerte.
+end note
+
+@enduml

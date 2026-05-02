@@ -1,0 +1,157 @@
+@startuml NINA-AES_Sequence_VulnerablePerson
+' ════════════════════════════════════════════════════════════════════════════
+'  NINA-AES — Séquence : Parcours personne vulnérable (USSD → livraison à domicile)
+'  Bloc A + C1 · Acteur principal : personne âgée illettrée parlant bambara
+'  Auteur : Étudiant UQAR · Avril 2026
+' ════════════════════════════════════════════════════════════════════════════
+
+title Séquence — Parcours personne vulnérable (Bloc A + C1)
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam sequence {
+  ArrowColor #475569
+  ActorBackgroundColor #FEF3C7
+  ActorBorderColor #D97706
+  ParticipantBackgroundColor #EAF4FF
+  ParticipantBorderColor #2563EB
+  FontName Inter
+}
+skinparam note {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+}
+
+actor "Personne âgée\n(72 ans, bambara)" as Elder #FED7AA
+participant "Téléphone\nfeature phone\n(non-smartphone)" as Phone #FEF3C7
+participant "Africa's Talking\n(passerelle USSD)" as ATG #FCE7F3
+participant "USSD Service\n(:3014)" as USSD #DBEAFE
+database "Redis\n(sessions USSD)" as Redis #FEE2E2
+participant "Vulnerability\nService (:3011)" as Vuln #DCFCE7
+participant "Appointment\nService (:3008)" as Appt #E0E7FF
+participant "Notification\nService (:3005)" as Notif #DCFCE7
+actor "Agent mobile\n(antenne RAVEC)" as Agent #FED7AA
+participant "Mobile Expo\n(offline-first)" as Mobile #DBEAFE
+participant "Identity Service\n(:3001)" as Identity #E0E7FF
+
+== 1. Composition USSD ==
+
+Elder -> Phone : Compose *123*NINA#
+Phone -> ATG : USSD INVOKE
+activate ATG
+ATG -> USSD : POST /ussd\n{ sessionId, phoneNumber: +22376547842, text: "" }
+activate USSD
+
+USSD -> Redis : GET session:{phoneNumber}
+Redis --> USSD : null (nouvelle session)
+
+USSD -> USSD : Détecte langue préférée\n(via Citizen.preferredLanguage si NINA connu,\nsinon FR par défaut)
+USSD -> Redis : SET session:{phoneNumber}\n{ step: "lang_select", lang: "FR" }\nTTL = 300s
+
+USSD --> ATG : CON "1. Français\n2. Bamanankan\n3. Soninké\n4. Fulfulde\n..."
+ATG --> Phone : Affiche menu
+Phone --> Elder : Lit le menu
+Elder -> Phone : "2" (Bamanankan)
+Phone -> ATG : USSD CONTINUE "2"
+ATG -> USSD : POST /ussd { text: "2" }
+
+== 2. Sélection du service en bambara ==
+
+USSD -> Redis : UPDATE step="service_select", lang="BM"
+USSD --> ATG : CON "I bisimila!\n1. NINA tonyiri\n2. Telefon ni a kɔ\n3. Lɔni ɲinini..."
+ATG --> Phone : Menu en bambara
+Phone --> Elder : (lit le menu / aidant lui lit)
+Elder -> Phone : "3" (rendez-vous)
+Phone -> ATG : "3"
+
+== 3. Détection vulnérabilité + saisie NINA ==
+
+ATG -> USSD : POST /ussd { text: "3" }
+USSD --> ATG : CON "I ka NINA Sɛbɛn..."
+ATG --> Phone : Saisir NINA
+Phone --> Elder : (l'aidant saisit)
+Elder -> Phone : 18901021015042F
+Phone -> ATG : "18901021015042F"
+ATG -> USSD : POST /ussd { text: "...*18901021015042F" }
+
+USSD -> Identity : GET /citizens/by-nina/18901021015042F
+activate Identity
+Identity --> USSD : { id, age: 72, vulnerabilityCategory: ELDERLY }
+deactivate Identity
+
+USSD -> Vuln : POST /priority-queue\n{ citizenId, category: ELDERLY }
+activate Vuln
+Vuln -> Vuln : Calcule priorité = P1\n(VULNERABILITY_PRIORITIES[ELDERLY])
+Vuln -> Appt : POST /appointments/priority\n{ citizenId, priority: P1, requestedFor: "demain" }
+activate Appt
+
+Appt -> Appt : Crée RDV créneau prioritaire\n(7h30 — premier de la file)\nstatus=SCHEDULED, queueNumber=1
+Appt --> Vuln : { appointmentId, scheduledAt: 2026-05-02T07:30Z, queueNumber: 1 }
+deactivate Appt
+
+Vuln -> Vuln : Crée VulnerabilityRecord\n{ category: ELDERLY, priority: P1,\n  deliveryPreference: IN_PERSON,\n  ussdPhone: +22376547842 }
+Vuln --> USSD : { appointmentId, queueNumber: 1 }
+deactivate Vuln
+
+== 4. Confirmation + clôture USSD ==
+
+USSD -> Redis : DEL session:{phoneNumber}
+USSD --> ATG : END "I ka rendez-vous bɛna kɛ\nsini sɔgɔma 7h30.\nI bɛna SMS sɔrɔ."
+ATG --> Phone : Affiche confirmation
+deactivate USSD
+deactivate ATG
+
+== 5. Notification SMS ==
+
+Vuln -> Notif : Publish "appointment.scheduled"\n{ phoneNumber, language: BM, channel: SMS }
+activate Notif
+Notif -> Notif : Rendu template BM\n"I ka tɔgɔ bɛ : Demain 07h30, antenne mobile,\nrue Baba Diarra. Sɛbɛliw ka kɛ."
+Notif -> ATG : POST /sms (Africa's Talking API)
+ATG -> Phone : SMS bambara
+Phone --> Elder : 📱 SMS reçu
+deactivate Notif
+
+== 6. Jour J — antenne mobile ==
+
+Agent -> Mobile : Ouvre app, mode offline\nScanne tablette agent
+activate Mobile
+Mobile -> Mobile : Charge file d'attente locale\n(synchronisée avant départ)
+
+note over Mobile
+  Mode offline-first :
+  WatermelonDB local +
+  queue de mutations
+  réémises au retour réseau.
+end note
+
+Mobile -> Mobile : Affiche file → 1. Diallo F. (P1, 72 ans)
+Agent -> Elder : "Madame Diallo ?\nJ'ai votre rendez-vous."
+
+== 7. Livraison à domicile (cas hors mobilité) ==
+
+alt Personne incapable de se déplacer
+  Agent -> Mobile : Active "livraison à domicile"
+  Mobile -> Mobile : Capture empreinte\n(bord BLE → kit empreinte)
+  Mobile -> Mobile : hashBiometric(template)\n→ SHA256
+  Mobile -> Identity : POST /citizens/{id}/deliver-fdi\n(via VPN agent + JWT mTLS,\nQUEUED si offline)
+  activate Identity
+  Identity -> Identity : Vérifie hash empreinte ==\nCitizen.fingerprintHash
+  Identity --> Mobile : { fdiUrl, qrCodeJwt }
+  deactivate Identity
+  Mobile -> Mobile : Imprime FDI portable\n(imprimante Bluetooth)
+  Mobile --> Elder : 📄 Remet la FDI\n(QR JWT RS256)
+end
+
+deactivate Mobile
+
+note over Elder, Identity
+  ♿ Inclusion garantie :
+     • USSD (téléphone non-smartphone)
+     • 8 langues nationales
+     • File prioritaire P1 (ELDERLY)
+     • Livraison à domicile sur empreinte
+  📊 SLA cible : RDV obtenu en < 60 s d'USSD
+end note
+
+@enduml

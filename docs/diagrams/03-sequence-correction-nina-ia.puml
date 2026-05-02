@@ -1,0 +1,142 @@
+@startuml NINA-AES_Sequence_CorrectionNINA
+' ════════════════════════════════════════════════════════════════════════════
+'  NINA-AES — Séquence : Correction NINA assistée par IA
+'  Bloc A · Acteur principal : Citoyen
+'  Auteur : Étudiant UQAR · Avril 2026
+' ════════════════════════════════════════════════════════════════════════════
+
+title Séquence — Correction NINA avec IA (Bloc A)
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam sequence {
+  ArrowColor #475569
+  ActorBackgroundColor #FEF3C7
+  ActorBorderColor #D97706
+  LifeLineBorderColor #94A3B8
+  LifeLineBackgroundColor #F1F5F9
+  ParticipantBackgroundColor #EAF4FF
+  ParticipantBorderColor #2563EB
+  FontName Inter
+}
+skinparam note {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+}
+
+actor "Citoyen" as Citizen #FEF3C7
+participant "Portail Web\n(citizen)" as Portal #DBEAFE
+participant "API Gateway\n(:3000)" as Gateway #DBEAFE
+participant "Identity\nService\n(:3001)" as Identity #E0E7FF
+participant "AI Service\n(:3003)" as AI #FEE2E2
+participant "SIGAC\n(:3009)" as SIGAC #FCE7F3
+participant "Audit\nService\n(:3007)" as Audit #FEF3C7
+participant "Notification\nService\n(:3005)" as Notif #DCFCE7
+actor "Superviseur" as Sup #FED7AA
+participant "Document\nService\n(:3004)" as Doc #E0F2FE
+
+== 1. Soumission de la demande ==
+
+Citizen -> Portal : Saisit nouveau libellé\n(ex. cercle "Sikaso" → "Sikasso")
+activate Portal
+Portal -> Portal : Validation Zod côté client\n(longueur, caractères autorisés)
+Portal -> Gateway : POST /correction-requests\n{ nina, field, proposedValue, evidenceFile }
+activate Gateway
+Gateway -> Gateway : Vérifie JWT RS256\n(citoyen authentifié OIDC)
+Gateway -> Identity : POST /corrections (forwardé + correlationId)
+deactivate Portal
+activate Identity
+
+== 2. Analyse IA ==
+
+Identity -> AI : POST /score\n{ field, current, proposed, citizen_context }
+activate AI
+note right of AI
+  Pipeline 5 étapes :
+  1. Normalisation (NFD, lowercase)
+  2. Fuzzy matching (RapidFuzz / Jellyfish)
+  3. Embedding spaCy (similarité sémantique)
+  4. XGBoost binary classifier
+  5. Calibration → score 0-100
+end note
+AI --> Identity : { score: 92.4, verdict: "HIGH_CONFIDENCE",\n  matches: ["Sikasso ML-03"] }
+deactivate AI
+
+== 3. Vérification anti-corruption ==
+
+Identity -> SIGAC : POST /integrity-check\n{ agentId?, citizenId, field, score }
+activate SIGAC
+SIGAC -> SIGAC : Recalcule score d'intégrité agent\n(Isolation Forest sur historique)
+SIGAC --> Identity : { agentScore: 87, suspicious: false }
+deactivate SIGAC
+
+== 4. Persistance + audit ==
+
+Identity -> Identity : Crée CorrectionRequest\n(status=UNDER_REVIEW)
+Identity -> Audit : Publish AMQP "audit.correction.created"\n{ entityType, entityId, oldValue, newValue, ipAddress }
+activate Audit
+Audit -> Audit : SHA256(previousHash || JSON)\n→ merkleHash
+Audit -> Audit : Sign Ed25519 (clé Vault)
+Audit --> Identity : ack
+deactivate Audit
+
+Identity --> Gateway : 201 Created\n{ id, status: UNDER_REVIEW, aiScore: 92.4 }
+Gateway --> Citizen : Confirmation + n° de suivi
+deactivate Gateway
+
+== 5. Notification au superviseur ==
+
+Identity -> Notif : Publish "correction.review_required"\n{ correctionId, supervisorId, priority }
+activate Notif
+Notif -> Sup : Push + Email + SMS\n"Correction #1234 à examiner (score IA 92)"
+deactivate Notif
+
+== 6. Décision superviseur ==
+
+Sup -> Portal : Ouvre l'écran AD-02\n(détail correction + score IA + justificatif)
+activate Portal
+Portal -> Gateway : PATCH /corrections/:id\n{ status: APPROVED, reviewerNote }
+activate Gateway
+Gateway -> Identity : PATCH (avec sub Keycloak du superviseur)
+activate Identity
+Identity -> Identity : Vérifie role=SUPERVISOR\nrégion correspondante
+Identity -> Identity : Update CorrectionRequest\n(reviewedBy, decidedAt)
+Identity -> Identity : Update Citizen.fieldXxx\n(version++ — optimistic lock)
+
+Identity -> Audit : Publish "audit.correction.approved"
+activate Audit
+Audit --> Identity : ack
+deactivate Audit
+
+== 7. Régénération de la FDI signée ==
+
+Identity -> Doc : POST /fdi/regenerate\n{ citizenId, version }
+activate Doc
+Doc -> Doc : Génère PDF/A-3\n(Puppeteer + template HBS)
+Doc -> Doc : Génère QR code\n→ JWT RS256\n{ nina, name, dob, photoHash, ver, exp }
+Doc -> Doc : Stocke MinIO (chiffré SSE-C)\n+ index Elasticsearch
+Doc --> Identity : { url: signed-url-15min, hash: sha256 }
+deactivate Doc
+
+Identity --> Gateway : 200 OK { fdiUrl }
+deactivate Identity
+Gateway --> Portal : Réponse OK
+deactivate Gateway
+deactivate Portal
+
+== 8. Notification au citoyen ==
+
+Identity -> Notif : Publish "correction.approved"\n{ citizenId, channel: preferredLanguage }
+activate Notif
+Notif -> Citizen : SMS (FR/BM/SNK/FF/TMQ/HAU/MOS/DJE)\n+ Push si app mobile installée\n"Votre NINA a été corrigé. FDI : <url>"
+deactivate Notif
+
+note over Citizen, Doc
+  ⏱ Latence cible end-to-end : < 4 s (hors décision humaine)
+  📊 Confiance IA ≥ 85 % → suggestion "auto-approuvable"
+  📊 Confiance IA 60–85 % → revue agent obligatoire
+  📊 Confiance IA < 60 % → rejet auto + demande pièce supplémentaire
+end note
+
+@enduml

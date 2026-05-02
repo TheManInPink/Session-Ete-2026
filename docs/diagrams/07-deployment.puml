@@ -1,0 +1,194 @@
+@startuml NINA-AES_Deployment
+' ════════════════════════════════════════════════════════════════════════════
+'  NINA-AES — Diagramme de déploiement (infra cible MVP + production)
+'  Auteur : Étudiant UQAR · Avril 2026
+' ════════════════════════════════════════════════════════════════════════════
+
+title NINA-AES — Déploiement (CTDEC on-premise + Edge AES + Clients)
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam node {
+  BackgroundColor #EAF4FF
+  BorderColor #2563EB
+  FontName Inter
+}
+skinparam database {
+  BackgroundColor #FEF3C7
+  BorderColor #D97706
+}
+skinparam cloud {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+}
+skinparam component {
+  BackgroundColor #EEF2FF
+  BorderColor #4F46E5
+}
+skinparam artifact {
+  BackgroundColor #FCE7F3
+  BorderColor #DB2777
+}
+
+' ══════════════ Couche clients ════════════════════════════════════════════
+node "Clients citoyens & agents" as Clients {
+  artifact "Navigateur web\n(Next.js apps)" as Browser
+  artifact "Mobile React Native\n(Expo SDK 55+)" as Mobile
+  artifact "Téléphone non-smartphone\n(USSD *123*NINA#)" as Phone
+  artifact "Borne kiosque\n(Electron)" as Kiosk
+}
+
+' ══════════════ Edge / CDN ════════════════════════════════════════════════
+cloud "Edge réseau" as Edge {
+  node "Cloudflare\n(CDN + WAF + DDoS)" as CF
+  node "Africa's Talking\n(USSD / SMS)" as ATG
+}
+
+' ══════════════ Cluster K3s on-premise CTDEC (Bamako) ═════════════════════
+node "Datacenter CTDEC — Bamako\nSouveraineté numérique 🇲🇱" as CTDEC #FFFBEB {
+
+  node "Cluster K3s (HA, 5 nœuds)" as K3s {
+
+    node "ns: frontend" as NSFront #DBEAFE {
+      component "citizen (Next.js)\n3 réplicas" as Citizen
+      component "admin (Next.js)\n2 réplicas" as Admin
+      component "governance (Next.js)\n2 réplicas" as Governance
+    }
+
+    node "ns: services" as NSCore #E0E7FF {
+      component "api-gateway :3000" as Gateway
+      component "identity-service :3001" as Identity
+      component "auth-service :3002" as Auth
+      component "document-service :3004" as Doc
+      component "notification-service :3005" as Notif
+      component "audit-service :3007" as Audit
+      component "appointment-service :3008" as Appt
+    }
+
+    node "ns: ai" as NSAI #FEE2E2 {
+      component "ai-service :3003\n(FastAPI · XGBoost · spaCy)" as AI
+      component "anticorruption-service :3009\n(FastAPI · Isolation Forest)" as SIGAC
+      artifact "Models registry\n(MinIO bucket: ml-models)" as Models
+    }
+
+    node "ns: interop" as NSInterop #FCE7F3 {
+      component "interop-service :3006\n(mTLS + JWS Ed25519)" as Interop
+    }
+
+    node "ns: governance" as NSGov #DCFCE7 {
+      component "governance-service :3010\n(SGOGT — directives)" as Gov
+      component "vulnerability-service :3011" as Vuln
+      component "ussd-service :3014" as USSD
+    }
+
+    node "ns: infra" as NSInfra #FEF3C7 {
+      component "Prometheus" as Prom
+      component "Grafana" as Graf
+      component "Loki" as Loki
+      component "Jaeger" as Jaeger
+      component "Keycloak 26.5\n(OIDC + RBAC)" as KC
+    }
+  }
+
+  ' ── Couche données on-premise (hors cluster pour résilience) ─────────────
+  database "PostgreSQL 18\n+ PostGIS 3.6\n(TDE chiffrement)" as PG
+  database "Redis 8.6\n(sessions USSD,\ncache, rate-limit)" as Redis
+  database "Elasticsearch 9.3\n(recherche fuzzy NINA)" as ES
+  database "MinIO\n(S3-compat — FDI PDF,\nphotos, evidence SIGAC)" as Minio
+  database "RabbitMQ 4.2\n(events bus AMQP)" as MQ
+  artifact "HashiCorp Vault\n(secrets + Transit\n+ PKI X.509)" as Vault
+}
+
+' ══════════════ Gateways AES transfrontalières ════════════════════════════
+node "Gateway AES Burkina Faso\n(BCID-AES Ouagadougou)" as GwBFA #FCE7F3 {
+  component "interop-service BFA" as InteropBFA
+}
+node "Gateway AES Niger\n(BCID-AES Niamey)" as GwNER #FCE7F3 {
+  component "interop-service NER" as InteropNER
+}
+
+' ══════════════ Connexions clients ════════════════════════════════════════
+Browser    --> CF : HTTPS (TLS 1.3)
+Mobile     --> CF : HTTPS pinning
+Kiosk      --> CF : HTTPS + cert client
+Phone      --> ATG : USSD GSM
+
+CF         --> Gateway : HTTPS\n(mTLS interne)
+ATG        --> USSD     : HTTPS callback
+
+' ══════════════ Trafic intra-cluster ═════════════════════════════════════
+Gateway    --> Identity
+Gateway    --> Auth
+Gateway    --> Doc
+Gateway    --> Appt
+Gateway    --> Gov
+Gateway    --> SIGAC
+Gateway    --> Vuln
+Gateway    --> AI
+
+Identity   --> AI
+Identity   --> Audit       : AMQP
+Identity   --> Notif       : AMQP
+
+Auth       --> KC          : OIDC
+
+Identity   ..> PG          : Prisma
+Audit      ..> PG          : append-only
+Doc        ..> Minio       : signed-URL
+Doc        ..> ES          : index FDI
+Notif      ..> ATG         : SMS/USSD
+Notif      ..> MQ          : queues
+USSD       ..> Redis       : sessions TTL
+SIGAC      ..> PG          : alerts
+SIGAC      ..> Vault       : encrypt PII
+Identity   ..> Redis       : rate-limit
+
+' ══════════════ Flux interop AES ══════════════════════════════════════════
+InteropBFA <--> Interop : mTLS\nJWS Ed25519
+InteropNER <--> Interop : mTLS\nJWS Ed25519
+
+' ══════════════ Observabilité ═════════════════════════════════════════════
+Identity   ..> Prom : metrics :9090
+Identity   ..> Loki : logs JSON
+Identity   ..> Jaeger : traces OTLP
+SIGAC      ..> Prom
+AI         ..> Prom
+
+' ══════════════ Sécurité ══════════════════════════════════════════════════
+Identity   ..> Vault : auth Kubernetes\n(short-lived tokens)
+Auth       ..> Vault : sigKey JWT RS256
+Doc        ..> Vault : sigKey QR JWT
+Interop    ..> Vault : sigKey Ed25519
+
+' ── Notes ────────────────────────────────────────────────────────────────
+note bottom of Clients
+  Inclusion : web, mobile,
+  USSD (téléphone simple),
+  borne (mairie).
+end note
+
+note right of CTDEC
+  🇲🇱 Souveraineté :
+  • Données chiffrées au repos (TDE)
+  • Backups quotidiens MinIO + WAL PG
+  • Pas de cloud étranger
+  • RGPD-like AES respecté
+end note
+
+note bottom of NSAI
+  IA on-premise :
+  • XGBoost (corrections)
+  • RapidFuzz (fuzzy match)
+  • Isolation Forest (SIGAC)
+  • CamemBERT (NLP signalements)
+  • Tesseract OCR (justificatifs)
+end note
+
+note right of GwBFA
+  Anti-replay 30s,
+  rotation clé 90j,
+  CA AES partagée.
+end note
+
+@enduml

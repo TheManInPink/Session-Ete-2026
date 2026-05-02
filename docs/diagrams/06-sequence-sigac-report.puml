@@ -1,0 +1,178 @@
+@startuml NINA-AES_Sequence_SIGACReport
+' ════════════════════════════════════════════════════════════════════════════
+'  NINA-AES — Séquence : Signalement de corruption (SIGAC)
+'  Bloc D · Acteur principal : Citoyen anonyme (lanceur d'alerte)
+'  Auteur : Étudiant UQAR · Avril 2026
+' ════════════════════════════════════════════════════════════════════════════
+
+title Séquence — Signalement anonyme SIGAC (Bloc D)
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam sequence {
+  ArrowColor #475569
+  ActorBackgroundColor #FEF3C7
+  ActorBorderColor #D97706
+  ParticipantBackgroundColor #EAF4FF
+  ParticipantBorderColor #2563EB
+  FontName Inter
+}
+skinparam note {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+}
+
+actor "Citoyen anonyme\n(lanceur d'alerte)" as Anon #FED7AA
+participant "Portail Tor /\nWeb anonymisé" as Portal #DBEAFE
+participant "Reverse proxy\n(strip headers)" as Proxy #FEE2E2
+participant "SIGAC Service\n(:3009 FastAPI)" as SIGAC #FCE7F3
+participant "AI Classifier\nNLP (BERT-FR)" as NLP #FFE4E6
+participant "Vault Transit\n(chiffrement)" as Vault #FEF3C7
+database "PostgreSQL\nCTDEC" as DB #FFFBEB
+participant "Audit Service\n(:3007)" as Audit #FEF3C7
+participant "Notification\nService (:3005)" as Notif #DCFCE7
+actor "Auditeur SIGAC\n(OCLEI / ASCE-LC)" as Auditor #C7D2FE
+participant "Score d'intégrité\n(Isolation Forest)" as Score #FCE7F3
+
+== 1. Signalement anonyme ==
+
+Anon -> Portal : Ouvre portail SIGAC\n(via Tor browser ou onion .onion)
+activate Portal
+Portal -> Portal : Pas de cookies\nPas de localStorage\nPas de fingerprinting JS
+
+Anon -> Portal : Remplit formulaire\n+ joint photo / audio\n(évidence)
+Portal -> Proxy : POST /alerts (HTTPS only)
+activate Proxy
+note right of Proxy
+  Reverse proxy CTDEC :
+  • Strip X-Forwarded-For
+  • Strip User-Agent (réécrit générique)
+  • Drop tous les Set-Cookie
+  • Pas de logs IP côté nginx
+end note
+
+Proxy -> SIGAC : POST /alerts\nBody = { title, description, evidenceFiles, category }
+deactivate Proxy
+activate SIGAC
+
+== 2. Génération du token anonyme ==
+
+SIGAC -> Vault : POST /transit/encrypt/sigac-anonymous\n+ rotation key v3
+activate Vault
+Vault --> SIGAC : ciphertext (token opaque, 128 chars)
+deactivate Vault
+
+SIGAC -> SIGAC : token = `vault:v3:{ciphertext}`\n→ servira au rapporteur\nà suivre l'instruction sans s'identifier
+
+== 3. Classification NLP ==
+
+SIGAC -> NLP : POST /classify\n{ description }
+activate NLP
+note right of NLP
+  Pipeline :
+  • Tokenisation spaCy fr_core_news_lg
+  • Embedding BERT (CamemBERT distillé)
+  • Classifieur multi-classes :
+    BRIBERY · FORGERY · FAVORITISM ·
+    ABUSE · PROCUREMENT · OTHER
+  • Heuristiques de sévérité
+    (montant détecté, mots-clés violences)
+end note
+NLP --> SIGAC : { category: BRIBERY,\n  severity: HIGH, score: 0.84 }
+deactivate NLP
+
+== 4. Chiffrement + persistance ==
+
+SIGAC -> Vault : POST /transit/encrypt/sigac-pii
+activate Vault
+Vault --> SIGAC : ciphertext (description chiffrée)
+deactivate Vault
+
+SIGAC -> DB : INSERT INTO corruption_alerts\n(severity=HIGH, category=BRIBERY,\n  encrypted_payload=ciphertext,\n  anonymous_reporter_token=token,\n  reporter_id=NULL)
+activate DB
+DB --> SIGAC : { id }
+deactivate DB
+
+== 5. Audit (sans PII) ==
+
+SIGAC -> Audit : Publish "audit.alert.created"\n{ entityType: "CorruptionAlert",\n  entityId, severity, category,\n  ipAddress: NULL }
+activate Audit
+Audit -> Audit : Append AuditLog\n+ chaîne Merkle\n(oldValue/newValue rédigés)
+Audit --> SIGAC : ack
+deactivate Audit
+
+SIGAC --> Proxy : 201 Created\n{ token: "ABCD-1234-EFGH",\n  trackingUrl: "/follow/{token}" }
+Proxy --> Portal : Réponse
+deactivate SIGAC
+Portal --> Anon : ✅ "Alerte enregistrée.\nToken : ABCD-1234-EFGH\n(à conserver pour le suivi)"
+deactivate Portal
+
+== 6. Notification auditeur ==
+
+SIGAC -> Notif : Publish "alert.investigation_required"\n{ alertId, severity: HIGH }
+activate Notif
+Notif -> Auditor : Push notification chiffrée\n(canal Vault PKI)\n"Nouvelle alerte HIGH — BRIBERY"
+deactivate Notif
+
+== 7. Investigation ==
+
+Auditor -> Portal : Login MFA + cert client X.509
+activate Portal
+Portal -> SIGAC : GET /alerts/{id} (auth=AUDITOR)
+activate SIGAC
+
+SIGAC -> Vault : POST /transit/decrypt
+activate Vault
+Vault --> SIGAC : description en clair
+deactivate Vault
+
+SIGAC --> Portal : { alert décryptée + evidenceUrls signed }
+Portal --> Auditor : Dossier complet
+deactivate Portal
+
+Auditor -> SIGAC : PATCH /alerts/{id}\n{ status: INVESTIGATING,\n  assignedToUserId }
+
+== 8. Recalcul du score d'intégrité agent ==
+
+SIGAC -> Score : POST /agents/{agentUserId}/recompute
+activate Score
+note right of Score
+  5 facteurs (Isolation Forest +
+  pondération métier) :
+  • anomalyRate
+  • scheduleCompliance
+  • justificationRate
+  • citizenFeedback
+  • volumeDeviation
+  Score 0–100, baisse si alerte SUBSTANTIATED.
+end note
+Score -> Score : Lit historique alertes\n+ historique corrections\n+ historique RDV\n→ recalcule totalScore
+Score -> DB : UPDATE agent_integrity_scores
+Score --> SIGAC : { totalScore: 64 (-23) }
+deactivate Score
+
+SIGAC -> Audit : Publish "audit.score.updated"
+deactivate SIGAC
+
+== 9. Rapport mensuel ==
+
+note over Auditor, Score
+  📅 Cron mensuel (1er du mois 02:00 UTC) :
+     Compile rapport agrégé OCLEI / ASCE-LC :
+     • Nb alertes par catégorie / sévérité
+     • Top 10 agents avec score < 70
+     • Tendances par région (heatmap)
+     Rapport signé Ed25519 → archive immuable.
+end note
+
+note over Anon, DB
+  🔒 Garanties :
+     • IP du rapporteur jamais stockée
+     • Description chiffrée Vault (rotation 90j)
+     • Token rotation aussi : seuls les hashes liés
+     • Aucun lien possible token ↔ identité civile
+  🛡 Conforme RGPD-like AES + protection lanceurs d'alerte.
+end note
+
+@enduml

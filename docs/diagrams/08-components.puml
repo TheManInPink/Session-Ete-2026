@@ -1,0 +1,218 @@
+@startuml NINA-AES_Components
+' ════════════════════════════════════════════════════════════════════════════
+'  NINA-AES — Diagramme de composants (vue logicielle complète)
+'  Frontend (3 apps) · API Gateway · Services Core (7) · IA (2) ·
+'  Gouvernance (3) · Packages partagés (4) · Infrastructure (7)
+'  Auteur : Étudiant UQAR · Avril 2026
+' ════════════════════════════════════════════════════════════════════════════
+
+title NINA-AES — Vue composants (monorepo Turborepo)
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam component {
+  BackgroundColor #EEF2FF
+  BorderColor #4F46E5
+  FontName Inter
+}
+skinparam package {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontStyle bold
+}
+skinparam interface {
+  BackgroundColor #FEF3C7
+  BorderColor #D97706
+}
+skinparam database {
+  BackgroundColor #FFFBEB
+  BorderColor #B45309
+}
+
+' ══════════════ Frontend — apps Next.js + mobile + kiosque ════════════════
+package "Frontend (apps/)" as FE #DBEAFE {
+  component "citizen\n(Next.js 16 — 6 écrans)" as App_Citizen
+  component "admin\n(Next.js 16 — 3 écrans)" as App_Admin
+  component "governance\n(Next.js 16 — 2 écrans)" as App_Gov
+  component "mobile\n(React Native + Expo SDK 55)" as App_Mobile
+  component "kiosk\n(Electron — Bloc E)" as App_Kiosk
+}
+
+' ══════════════ API Gateway ═══════════════════════════════════════════════
+package "Gateway" as GW #FCE7F3 {
+  component "api-gateway\n(NestJS :3000)\nrate-limit · CORS · auth" as Gateway
+}
+
+' ══════════════ Services Core (NestJS) ═══════════════════════════════════
+package "Services Core (NestJS — services/)" as CORE #E0E7FF {
+  component "identity-service\n:3001" as Identity
+  component "auth-service\n:3002\nKeycloak adapter" as Auth
+  component "document-service\n:3004\nFDI PDF + QR JWT" as Doc
+  component "notification-service\n:3005\nSMS · push · email" as Notif
+  component "interop-service\n:3006\nmTLS + Ed25519" as Interop
+  component "audit-service\n:3007\nMerkle chain" as Audit
+  component "appointment-service\n:3008" as Appt
+}
+
+' ══════════════ Services IA (FastAPI) ═════════════════════════════════════
+package "Services IA (FastAPI — services/)" as AI #FEE2E2 {
+  component "ai-service\n:3003\nfuzzy match · XGBoost · OCR" as AIcore
+  component "anticorruption-service\n:3009\nIsolation Forest · BERT" as SIGAC
+}
+
+' ══════════════ Services Gouvernance (NestJS) ═════════════════════════════
+package "Services Gouvernance" as GOV #DCFCE7 {
+  component "governance-service\n:3010 — directives SGOGT" as Gov
+  component "vulnerability-service\n:3011 — file prioritaire" as Vuln
+  component "ussd-service\n:3014 — Africa's Talking" as USSD
+}
+
+' ══════════════ Packages partagés (packages/) ════════════════════════════
+package "Packages partagés (packages/)" as PKG #F3E8FF {
+  component "@nina-aes/shared-types\nenums · interfaces · DTOs Zod" as PkgTypes
+  component "@nina-aes/database\nPrisma 7.8 + adapter-pg\n+ singleton soft-delete" as PkgDB
+  component "@nina-aes/config\nValidation Zod env\n+ dotenv-expand" as PkgConfig
+  component "@nina-aes/utils\nNINA · Merkle · crypto\n· sanitizeForLog" as PkgUtils
+  component "@nina-aes/ui\ncomposants React shadcn" as PkgUI
+  component "@nina-aes/logger\nPino + Loki transport" as PkgLogger
+  component "@nina-aes/eslint-config" as PkgEslint
+  component "@nina-aes/typescript-config" as PkgTSC
+}
+
+' ══════════════ Infrastructure (infrastructure/ + bases) ═════════════════
+package "Infrastructure" as INFRA #FEF3C7 {
+  database "PostgreSQL 18\n+ PostGIS 3.6" as PG
+  database "Redis 8.6" as Redis
+  database "Elasticsearch 9.3" as ES
+  database "MinIO" as Minio
+  component "RabbitMQ 4.2\n(events bus)" as MQ
+  component "Keycloak 26.5\n(OIDC + RBAC)" as KC
+  component "HashiCorp Vault\n(secrets + Transit + PKI)" as Vault
+}
+
+' ══════════════ Interfaces exposées ═══════════════════════════════════════
+interface "REST + OpenAPI 3.2" as IRest
+interface "AMQP (RabbitMQ)" as IAmqp
+interface "SQL (Prisma)" as IPrisma
+interface "S3 (MinIO)" as IS3
+interface "OIDC" as IOidc
+interface "Vault HTTP API" as IVault
+interface "USSD HTTP\n(Africa's Talking)" as IUssd
+
+' ══════════════ Connexions Frontend → Gateway ════════════════════════════
+App_Citizen --> Gateway : IRest
+App_Admin   --> Gateway : IRest
+App_Gov     --> Gateway : IRest
+App_Mobile  --> Gateway : IRest
+App_Kiosk   --> Gateway : IRest
+
+' ══════════════ Connexions Gateway → Services Core ═══════════════════════
+Gateway --> Identity   : IRest
+Gateway --> Auth       : IRest
+Gateway --> Doc        : IRest
+Gateway --> Notif      : IRest
+Gateway --> Audit      : IRest
+Gateway --> Appt       : IRest
+Gateway --> Interop    : IRest
+Gateway --> AIcore     : IRest
+Gateway --> SIGAC      : IRest
+Gateway --> Gov        : IRest
+Gateway --> Vuln       : IRest
+
+' ══════════════ Services → Bases ═════════════════════════════════════════
+Identity --> PG     : IPrisma
+Auth     --> KC     : IOidc
+Doc      --> Minio  : IS3
+Doc      --> PG     : IPrisma
+Doc      --> ES     : index FDI
+Audit    --> PG     : append-only
+Appt     --> PG     : IPrisma
+Interop  --> PG     : IPrisma
+Vuln     --> PG     : IPrisma
+Gov      --> PG     : IPrisma
+SIGAC    --> PG     : IPrisma
+
+' ══════════════ Bus AMQP ═════════════════════════════════════════════════
+Identity ..> MQ     : IAmqp publish
+Doc      ..> MQ     : publish
+SIGAC    ..> MQ     : publish
+Notif    ..> MQ     : consume
+Audit    ..> MQ     : consume
+
+' ══════════════ Cache / sessions ═════════════════════════════════════════
+USSD     --> Redis  : sessions TTL
+Auth     --> Redis  : refresh-tokens
+Identity --> Redis  : rate-limit
+
+' ══════════════ Sécurité ═════════════════════════════════════════════════
+Identity --> Vault  : IVault (signing keys)
+Doc      --> Vault  : IVault (RS256 JWT QR)
+Interop  --> Vault  : IVault (Ed25519 + PKI)
+SIGAC    --> Vault  : IVault (Transit chiffrement)
+Auth     --> Vault  : IVault (rotation secrets)
+
+' ══════════════ USSD / SMS ═══════════════════════════════════════════════
+USSD     <-- IUssd
+Notif    --> IUssd  : SMS sortants
+
+' ══════════════ Packages partagés (consommés par tous) ═══════════════════
+Identity ..> PkgDB
+Identity ..> PkgConfig
+Identity ..> PkgUtils
+Identity ..> PkgTypes
+Auth     ..> PkgConfig
+Auth     ..> PkgTypes
+Doc      ..> PkgDB
+Doc      ..> PkgUtils
+Notif    ..> PkgLogger
+Audit    ..> PkgUtils  : Merkle hash
+Audit    ..> PkgDB
+Interop  ..> PkgUtils  : Ed25519
+SIGAC    ..> PkgConfig
+AIcore   ..> PkgConfig
+App_Citizen ..> PkgUI
+App_Citizen ..> PkgTypes
+App_Admin   ..> PkgUI
+App_Admin   ..> PkgTypes
+App_Gov     ..> PkgUI
+App_Mobile  ..> PkgTypes
+
+' ══════════════ Notes ════════════════════════════════════════════════════
+note right of PKG
+  Construits avec :
+  • TypeScript 6.0+
+  • tsconfig de base partagé
+  • Tests Jest 30 (utils, config)
+    Vitest 4 (database)
+  • Couverture cible ≥ 85 %
+end note
+
+note bottom of CORE
+  Tous les services NestJS 11 :
+  • Validation Zod via DTOs partagés
+  • OpenAPI 3.2 auto-généré
+  • Health & readiness /health
+  • Prometheus /metrics
+  • Pino → Loki + Jaeger OTLP
+end note
+
+note right of AI
+  IA souveraine :
+  • Modèles entraînés on-premise
+  • MinIO bucket "ml-models"
+    (versionning + checksum)
+  • Pas d'appel sortant (offline-friendly)
+  • Datasets synthétiques générés
+    pour le développement (doc 11)
+end note
+
+note bottom of GOV
+  Bloc C complet :
+  • C1 vulnerability-service
+  • C2 governance-service (SGOGT)
+  • C3 audit-service (intégrité électorale)
+  USSD-service couvre l'inclusion (Bloc A + C1).
+end note
+
+@enduml

@@ -1,0 +1,119 @@
+@startuml NINA-AES_Sequence_AESVerification
+' ════════════════════════════════════════════════════════════════════════════
+'  NINA-AES — Séquence : Vérification transfrontalière AES
+'  Bloc B · Acteur principal : Autorité Burkina Faso
+'  Auteur : Étudiant UQAR · Avril 2026
+' ════════════════════════════════════════════════════════════════════════════
+
+title Séquence — Vérification AES transfrontalière (Bloc B)
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam sequence {
+  ArrowColor #475569
+  ActorBackgroundColor #FEF3C7
+  ActorBorderColor #D97706
+  LifeLineBorderColor #94A3B8
+  ParticipantBackgroundColor #EAF4FF
+  ParticipantBorderColor #2563EB
+  FontName Inter
+}
+skinparam note {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+}
+
+actor "Autorité BFA\n(agent frontière)" as BFA #FED7AA
+participant "Gateway BFA\n(BCID-AES)" as GwBFA #FCE7F3
+participant "Gateway MLI\n(interop-service\n:3006)" as GwMLI #DBEAFE
+participant "Identity Service\n(MLI :3001)" as Identity #E0E7FF
+participant "AI Service\n(fuzzy matching)" as AI #FEE2E2
+participant "Audit Service\n(:3007)" as Audit #FEF3C7
+database "PostgreSQL\nMLI" as DB #FFFBEB
+
+== 1. Émission de la requête ==
+
+BFA -> GwBFA : Scanne carte AES /\nsaisit { nina, lastName, birthDate }
+activate GwBFA
+GwBFA -> GwBFA : Crée requête JWS Ed25519\nclé privée BFA → header `kid: bfa-2026`
+GwBFA -> GwBFA : Ajoute correlationId UUID v7\n+ timestamp signé
+
+== 2. Transport mTLS BFA → MLI ==
+
+GwBFA -> GwMLI : POST /aes/verify\n(mTLS — cert BFA présenté)\nBody = AESVerificationRequest signé JWS
+activate GwMLI
+note right of GwMLI
+  Étape 2a : termination TLS mutuelle
+  Étape 2b : validation chaîne X.509
+  contre AES_CA_PATH (root commune AES)
+  Étape 2c : vérification JWS Ed25519
+  avec clé publique BFA pré-enregistrée
+end note
+
+GwMLI -> GwMLI : Vérifie cert client\n(Subject CN = "AES-BFA-GW-01")
+GwMLI -> GwMLI : Vérifie signature JWS\nclé publique BFA (rotation 90j)
+GwMLI -> GwMLI : Anti-replay : window 30s\n+ correlationId vu ?
+
+alt cert / JWS / replay invalide
+  GwMLI --> GwBFA : 401 Unauthorized\n{ error: INVALID_SIGNATURE }
+  GwBFA --> BFA : ❌ Échec vérification
+end
+
+== 3. Recherche identité ==
+
+GwMLI -> Identity : POST /search/aes\n{ nina, lastName, birthDate, requesterCountry: BFA }
+activate Identity
+Identity -> DB : SELECT * FROM citizens\nWHERE nina = $1
+activate DB
+DB --> Identity : Citizen ou null
+deactivate DB
+
+alt NINA introuvable
+  Identity -> Audit : audit.aes.no_match\n(targetNinaHash = SHA256(nina))
+  Identity --> GwMLI : { result: NO_MATCH, confidence: 0 }
+end
+
+== 4. Fuzzy matching nom de famille ==
+
+Identity -> AI : POST /fuzzy-match\n{ stored: "Touré", queried: "Toure" }
+activate AI
+AI -> AI : Normalisation NFD + ASCII fold
+AI -> AI : Jaro-Winkler + Levenshtein
+AI -> AI : Score combiné 0-100
+AI --> Identity : { score: 96.2, threshold_passed: true }
+deactivate AI
+
+Identity -> Identity : Score global =\n0.5 × ninaMatch (binaire)\n+ 0.3 × lastNameScore\n+ 0.2 × birthDateMatch
+
+== 5. Audit + journalisation ==
+
+Identity -> Audit : Publish "audit.aes.verified"\n{ requesterCountry, targetNinaHash, result, confidence, ipAddress }
+activate Audit
+Audit -> Audit : Append AesVerificationLog\n+ chaîne Merkle
+Audit --> Identity : ack
+deactivate Audit
+deactivate Identity
+
+== 6. Réponse signée ==
+
+Identity --> GwMLI : { result: MATCH, confidence: 96.2,\n  matchFields: ["nina","lastName","birthDate"] }
+GwMLI -> GwMLI : Construit AESVerificationResponse\n{ verified, confidence, matchFields, timestamp }
+GwMLI -> GwMLI : Signe Ed25519 (clé MLI)\n→ JWS detached signature
+
+GwMLI --> GwBFA : 200 OK\nAESVerificationResponse signé\n(mTLS retour)
+deactivate GwMLI
+
+GwBFA -> GwBFA : Vérifie signature MLI\nclé publique pré-enregistrée
+GwBFA --> BFA : ✅ Identité vérifiée\n(score 96 %, NINA + nom + DDN)
+deactivate GwBFA
+
+note over BFA, DB
+  🔒 Aucune donnée personnelle en clair côté BFA après l'échange.
+     Seuls : NINA hashé + booléen + score de confiance + timestamp.
+     Le contrôle conforme au RGPD-like (principe de minimisation).
+  ⏱ Latence cible : < 800 ms (P99) sous 50 req/s soutenues.
+  🛡 Anti-replay : correlationId conservés 30s en Redis (TTL).
+end note
+
+@enduml
