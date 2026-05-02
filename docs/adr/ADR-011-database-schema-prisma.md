@@ -2,7 +2,8 @@
 
 ## Statut
 
-Accepté — Avril 2026
+Accepté — Avril 2026 · **Révisé — Mai 2026** (Prisma 7.8 + driver adapter
+`@prisma/adapter-pg`, alignement spec PROMPT 1.3 sur 16 modèles)
 
 ## Contexte
 
@@ -23,13 +24,31 @@ temps (12-16 semaines).
 
 ## Décision
 
-Utilisation d'une **base de données PostgreSQL partagée** (shared database) avec un schéma Prisma
-unifié dans le package `@nina-aes/database`. Le schéma comprend 16 modèles et 16 enums couvrant tous
-les domaines fonctionnels. Prisma 7.7+ est utilisé comme ORM pour la génération du client
-TypeScript, les migrations et le seeding.
+Utilisation d'une **base de données PostgreSQL 18 partagée** (shared database) avec un schéma
+Prisma unifié dans le package `@nina-aes/database`. Le schéma comprend **16 modèles et 10 enums**
+couvrant tous les domaines fonctionnels (`Location`, `Citizen`, `Parent`, `User`, `Institution`,
+`AuditLog`, `CorrectionRequest`, `Appointment`, `AesVerificationLog`, `CorruptionAlert`,
+`GovernanceDirective`, `DirectiveRecipient`, `GovernanceMessage`, `VulnerabilityRecord`,
+`ElectoralRecord`, `KioskSession`, `Notification`).
 
-Le client Prisma est exposé comme un singleton via `packages/database/src/index.ts` et importé par
-tous les services NestJS.
+**Prisma 7.8+** est utilisé comme ORM. Depuis 7.7, Prisma fait défaut sur le moteur « client » qui
+exige un **driver adapter** : pour PostgreSQL, on utilise `@prisma/adapter-pg` adossé au driver
+natif `pg`. Le `schema.prisma` doit lister `previewFeatures = ["driverAdapters", …]` et le
+constructeur `PrismaClient` reçoit une instance `new PrismaPg({ connectionString })`.
+
+Le client Prisma est exposé comme un **singleton paresseux** via
+`packages/database/src/index.ts`, étendu avec une extension de **soft-delete** (forme callback
+`Prisma.defineExtension((client) => client.$extends({...}))` — préserve la propagation générique
+du `TypeMap`).
+
+### Configuration runtime / CLI
+
+- **Runtime** : `DATABASE_URL` lu depuis `process.env` (chargé par `@nina-aes/config` qui
+  supporte `dotenv-expand` pour les `${VAR}` du `.env` racine).
+- **CLI Prisma** : `prisma.config.ts` charge lui-même le `.env` racine via une remontée
+  ascendante détectant `pnpm-workspace.yaml`, puis applique `dotenv-expand`.
+- **Extensions actives** : `previewFeatures = ["driverAdapters", "postgresqlExtensions",
+  "relationJoins"]` ; `extensions = [uuidOssp, pgcrypto, pg_trgm, unaccent, citext, postgis]`.
 
 ## Conséquences positives
 

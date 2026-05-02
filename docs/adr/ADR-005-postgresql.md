@@ -2,7 +2,8 @@
 
 ## Statut
 
-Accepté — Avril 2026
+Accepté — Avril 2026 · **Révisé — Mai 2026** (image PostGIS, locale ICU,
+layout Postgres 18, driver adapter Prisma)
 
 ## Contexte
 
@@ -14,8 +15,25 @@ référentielle, transactions).
 
 ## Décision
 
-PostgreSQL 17 (dernière version stable avec image Docker officielle) comme base de données unique
-partagée par tous les services, accédée via Prisma 7.7+ ORM.
+**PostgreSQL 18** (dernière version stable, image officielle PostGIS) comme base de données unique
+partagée par tous les services, accédée via **Prisma 7.8+** ORM **avec driver adapter
+`@prisma/adapter-pg`** (Prisma 7.7+ a basculé sur le moteur « client » qui exige un adapter natif).
+
+L'image utilisée est **`postgis/postgis:18-3.6`** plutôt que `postgres:18-alpine` car :
+
+1. Elle inclut nativement les 5 extensions requises (`uuid-ossp`, `pgcrypto`, `pg_trgm`, `unaccent`,
+   `citext`) **plus PostGIS 3.6** pour la colonne `geography(Point,4326)` du modèle `Location`.
+2. Elle évite l'installation manuelle de PostGIS (l'image alpine officielle ne le fournit pas).
+
+### Configuration effective (`infrastructure/docker/docker-compose.dev.yml`)
+
+- **Locale** : `--locale-provider=icu --icu-locale=fr-FR --encoding=UTF8 --data-checksums`.
+  L'ICU est portable (pas besoin de générer la locale `fr_FR.UTF-8` dans l'image, qui n'est pas
+  présente dans `postgis/postgis:18-3.6` Debian-based).
+- **Volume** : `nina-postgres-data:/var/lib/postgresql` (parent — exigence Postgres 18 pour
+  permettre `pg_upgrade --link` entre versions majeures, le sous-dossier `<major>/data` est créé
+  automatiquement par l'image).
+- **Variables** : chargées depuis `.env` racine via `docker compose --env-file .env -f …`.
 
 ## Conséquences positives
 
@@ -25,6 +43,10 @@ partagée par tous les services, accédée via Prisma 7.7+ ORM.
   inter-langues
 - Extension `pgcrypto` : fonctions de hachage cryptographique côté base (gen_random_uuid, crypt)
 - Extension `uuid-ossp` : génération d'UUID v4 pour les identifiants primaires
+- **Extension `postgis`** : colonnes géographiques `geography(Point,4326)` pour les `Location`
+  (centroides régionaux/communaux) et requêtes spatiales (heatmap, zones desservies par antenne
+  mobile)
+- **Extension `citext`** : types case-insensitive utilisables sur des champs comme `email`
 - Support TDE (Transparent Data Encryption) pour le chiffrement au repos — exigence ENF-013
 - Maturité et fiabilité éprouvées : utilisé en production pour des systèmes gouvernementaux dans le
   monde entier depuis 25+ ans

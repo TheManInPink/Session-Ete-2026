@@ -1,7 +1,19 @@
 # 06 — Schéma de Base de Données Prisma
 
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §1–2.
+> Versions effectives :
+> - **Prisma 7.8.0** + `@prisma/adapter-pg` + `pg` (le moteur « library »
+>   est remplacé par le moteur « client » qui exige un driver adapter).
+> - `previewFeatures = ["driverAdapters", "postgresqlExtensions", "relationJoins"]`
+>   dans le `generator client`.
+> - Image PostgreSQL : `postgis/postgis:18-3.6` (et non `postgres:18-alpine`)
+>   pour disposer nativement de PostGIS + extensions requises.
+> - Locale : ICU (`--locale-provider=icu --icu-locale=fr-FR`).
+> - 16 modèles, 10 enums, soft-delete via callback `Prisma.defineExtension`.
+> - Singleton paresseux via Proxy.
+
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00 à 05 complétés
-> ; PostgreSQL Docker running et healthy ; `packages/database` existant avec Prisma 7.7+ **Durée
+> ; PostgreSQL Docker running et healthy ; `packages/database` existant avec **Prisma 7.8+** **Durée
 > estimée** : 12 à 16 heures pour un étudiant seul **Livrables de cette étape** :
 >
 > - Schéma Prisma complet (`packages/database/prisma/schema.prisma`) couvrant les 11 services

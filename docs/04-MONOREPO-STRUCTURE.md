@@ -1,5 +1,21 @@
 # 04 — Structure du Monorepo Turborepo
 
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §2.
+> Packages effectivement présents (au-delà de la liste initiale) :
+>
+> - `packages/shared-types` ✅ aligné PROMPT 1.2 (11 enums, 16 interfaces)
+> - `packages/database` ✅ aligné PROMPT 1.3 (Prisma 7.8 + adapter-pg)
+> - `packages/config` ✅ aligné PROMPT 1.4 (Zod + dotenv-expand, 9 tests)
+> - `packages/utils` ✅ aligné PROMPT 1.4 (NINA + Merkle + crypto + sanitize, 44 tests)
+> - `packages/logger` ⚠️ **stub temporaire** créé pour débloquer l'install
+>   (4 services le référençaient avant qu'il existe). Implémentation
+>   Pino + transport Loki à livrer au document 17.
+> - `scripts/typecheck.ts` — placeholder permettant à `tsc --noEmit` à
+>   la racine de ne pas erroreur `TS18003` (le vrai typage utilise
+>   `pnpm check-types` via Turborepo).
+> - Configuration TypeScript racine modernisée : `module/moduleResolution`
+>   à `NodeNext`, `baseUrl` retiré (TS 6 deprecation).
+
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00, 01, 02 et 03
 > complétés **Durée estimée** : 6 à 10 heures pour un étudiant seul **Livrables de cette étape** :
 >

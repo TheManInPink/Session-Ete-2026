@@ -1,5 +1,22 @@
 # 03 — Setup de l'Environnement de Développement
 
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §5.
+> Règles opérationnelles à appliquer dans tout ce document :
+>
+> - **Jamais `npm` dans ce monorepo — toujours `pnpm`.** Les commandes
+>   `npm i …` cassent le workspace pnpm avec
+>   `Cannot read properties of null (reading 'matches')`.
+> - Pour exécuter un binaire qui n'est pas global (ex. `prisma`) : préfixer
+>   par `pnpm --filter <pkg> exec <bin>` ou utiliser le script du package
+>   (`pnpm --filter @nina-aes/database db:validate`).
+> - Pour le typage du monorepo : `pnpm check-types` (turbo) — **pas**
+>   `tsc --noEmit` à la racine (le tsconfig racine n'a pas de fichiers à
+>   compiler par design ; un placeholder `scripts/typecheck.ts` empêche
+>   l'erreur `TS18003`).
+> - Chemin local utilisé pendant les sessions :
+>   `C:\Users\lonel\Projet-En-Informatique\Session-Ete-2026\nina-aes-platform`
+>   (sans suffixe `-uqar` — adapter si vous avez cloné sous un autre nom).
+
 > **Bloc concerné** : Transversal — prérequis pour tous les blocs A → F **Prérequis** : Documents
 > 00, 01, 02 lus et compris **Durée estimée** : 4 à 6 heures pour un étudiant seul (première
 > installation complète) **Livrables de cette étape** :

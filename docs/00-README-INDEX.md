@@ -29,29 +29,38 @@ Le parcours suit trois principes :
    (commandes `curl`, captures d'écran, sorties attendues) et une checklist de fin d'étape. Rien
    n'est considéré comme terminé tant que la checklist n'est pas cochée.
 
-### État actuel du repo (avril 2026)
+### État actuel du repo (mai 2026)
+
+> ⚠️ **Pour les versions effectives, écarts et incidents résolus**, consulter
+> en priorité **[`CHANGELOG.md`](./CHANGELOG.md)** — c'est la source de vérité
+> qui surclasse les versions/commandes mentionnées dans les documents
+> numérotés quand il y a contradiction.
 
 | Élément                          | État                                                                                 |
 | -------------------------------- | ------------------------------------------------------------------------------------ |
-| Monorepo Turborepo               | ✅ Initialisé (starter par défaut)                                                   |
-| pnpm                             | ✅ v9.0.0 installé (à mettre à jour vers v10)                                        |
+| Monorepo Turborepo 2.9.5         | ✅ Initialisé                                                                        |
+| pnpm                             | ✅ v10.12.1                                                                          |
 | `apps/web` + `apps/docs`         | ⚠️ Scaffolds par défaut Turborepo — à remplacer par `citizen`, `admin`, `governance` |
 | `packages/ui`                    | ⚠️ Stub par défaut — à enrichir avec le design system AES                            |
 | `packages/eslint-config`         | ✅ Présent                                                                           |
 | `packages/typescript-config`     | ✅ Présent                                                                           |
-| `services/` (11 microservices)   | ❌ Inexistant — à créer                                                              |
-| `packages/shared-types`          | ❌ Inexistant — à créer                                                              |
-| `packages/database` (Prisma)     | ❌ Inexistant — à créer                                                              |
-| `packages/config` (Zod)          | ❌ Inexistant — à créer                                                              |
-| `packages/utils` (NINA helpers)  | ❌ Inexistant — à créer                                                              |
-| `infrastructure/` (Docker, K3s)  | ❌ Inexistant — à créer                                                              |
+| `packages/shared-types`          | ✅ **Livré (PROMPT 1.2)** — 11 enums, 16 interfaces, DTOs Zod                        |
+| `packages/database` (Prisma 7.8) | ✅ **Livré (PROMPT 1.3)** — 16 modèles, schema validé, seed appliqué (371 locations) |
+| `packages/config` (Zod)          | ✅ **Livré (PROMPT 1.4)** — schéma exhaustif + 9 tests Jest                          |
+| `packages/utils` (NINA helpers)  | ✅ **Livré (PROMPT 1.4)** — NINA + Merkle + crypto + sanitize, 44 tests Jest         |
+| `packages/logger`                | ⚠️ **Stub temporaire** — implémentation Pino + Loki à livrer doc 17                  |
+| `services/` (11 microservices)   | ⚠️ Scaffolds — corps des services aux docs 07 → 11                                   |
+| `infrastructure/docker/`         | ✅ `docker-compose.dev.yml` opérationnel (PostgreSQL+PostGIS), corrections en cours  |
+| `docs/diagrams/*.puml`           | ✅ **8 diagrammes UML livrés (PROMPT 1.5)** — 1 557 lignes                           |
 | `ai-models/` (datasets, modèles) | ❌ Inexistant — à créer                                                              |
 | `.github/workflows/` (CI/CD)     | ❌ Inexistant — à créer                                                              |
-| `scripts/` (Bash + PowerShell)   | ❌ Inexistant — à créer                                                              |
-| Husky + hooks pre-commit         | ❌ Non configuré                                                                     |
-| Docker Compose local             | ❌ Inexistant                                                                        |
-| Schéma Prisma                    | ❌ Inexistant                                                                        |
-| Tests (Jest, Pytest, Playwright) | ❌ Inexistant                                                                        |
+| `scripts/` (Bash + PowerShell)   | ✅ Init-db.sql + setup.ps1 + setup.sh + `typecheck.ts` (placeholder TS)              |
+| Husky + hooks pre-commit         | ⚠️ Présent mais à configurer fully (lint-staged déjà installé)                       |
+| Docker Compose local             | ✅ Postgres+PostGIS démarrable via `pnpm docker:up`                                  |
+| Schéma Prisma                    | ✅ 16 modèles, migration `init_v1` appliquée                                         |
+| Tests Jest (utils + config)      | ✅ **53 tests passants** (44 utils + 9 config)                                       |
+| Tests Vitest (database)          | ⚠️ Vitest 4.1.5 installé, suites à écrire                                            |
+| Tests E2E (Playwright)           | ❌ Inexistant                                                                        |
 
 ---
 

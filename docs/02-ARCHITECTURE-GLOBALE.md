@@ -1,5 +1,22 @@
 # 02 — Architecture Globale
 
+> ⚠️ **Mise à jour mai 2026** — les diagrammes UML canoniques sont désormais
+> dans **`docs/diagrams/*.puml`** (8 fichiers PlantUML, 1 557 lignes,
+> PROMPT 1.5) :
+>
+> - `01-use-cases.puml` — 9 acteurs · 8 packages · 26 cas d'utilisation
+> - `02-classes.puml` — 13 entités · 8 enums · cardinalités
+> - `03-sequence-correction-nina-ia.puml` — flux correction NINA + IA
+> - `04-sequence-aes-verification.puml` — vérif transfrontalière mTLS+Ed25519
+> - `05-sequence-vulnerable-person.puml` — USSD bambara → file P1 → domicile
+> - `06-sequence-sigac-report.puml` — signalement anonyme + NLP + audit
+> - `07-deployment.puml` — K3s on-premise CTDEC + gateways AES
+> - `08-components.puml` — vue logicielle complète du monorepo
+>
+> Les sections Mermaid de ce document restent valables comme **complément
+> textuel**, mais toute incohérence entre Mermaid (ce doc) et PlantUML
+> (`diagrams/`) → les fichiers `.puml` font autorité.
+
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00 et 01
 > complétés **Durée estimée** : 6 à 10 heures pour un étudiant seul **Livrables de cette étape** :
 >

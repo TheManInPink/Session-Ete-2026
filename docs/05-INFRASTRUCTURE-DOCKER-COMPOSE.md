@@ -1,5 +1,24 @@
 # 05 — Infrastructure Docker Compose
 
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §4.
+> Points à connaître avant de copier les commandes de ce document :
+>
+> - **Image Postgres** : utiliser `postgis/postgis:18-3.6` (l'image alpine
+>   officielle ne fournit pas PostGIS et n'a pas la locale `fr_FR.UTF-8`).
+> - **Locale Postgres** : ICU obligatoire (`--locale-provider=icu
+>   --icu-locale=fr-FR --encoding=UTF8 --data-checksums`).
+> - **Volume Postgres** : monter `/var/lib/postgresql` (parent), pas `/data`
+>   (Postgres 18 a changé son layout).
+> - **Compose & .env** : préfixer **toutes** les commandes par
+>   `--env-file .env` (le `.env` racine n'est pas découvert automatiquement
+>   par compose v2 quand le YAML est dans `infrastructure/docker/`). Le
+>   script `pnpm docker:up` inclut déjà `--env-file .env`.
+> - **Interpolations** `${VAR :-default}` avec espace = **invalide** —
+>   toujours coller `${VAR:-default}` sans espace.
+> - **Images obsolètes** à corriger dans `docker-compose.dev.yml` initial :
+>   `bitnami/minio:latest` (n'existe plus → `quay.io/minio/minio:latest`),
+>   `hashicorp/vault:2.0` (inexistant → `hashicorp/vault:1.18`).
+
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00, 01, 02, 03 et
 > 04 complétés ; Docker Desktop installé et fonctionnel **Durée estimée** : 8 à 12 heures pour un
 > étudiant seul **Livrables de cette étape** :
