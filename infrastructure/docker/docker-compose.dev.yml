@@ -271,7 +271,8 @@ services:
 
   # ── HashiCorp Vault — Gestion centralisée des secrets ──
   vault:
-    image: hashicorp/vault:2.0
+    # Vault n'a pas de version 2.x — la dernière stable mai 2026 est 1.18.
+    image: hashicorp/vault:1.18
     container_name: nina-vault
     restart: unless-stopped
     ports:
