@@ -951,7 +951,3 @@ Ajouter aussi **`docs/api/13-mobile-endpoints.md`** : liste des endpoints API co
   - https://op-engineering.github.io/op-sqlite/ (perf benchmarks vs WatermelonDB)
 
 ---
-
-✅ « Document 13 terminé »
-➡️ « Prochain document : `14-USSD-SERVICE-AFRICAS-TALKING.md` »
-❓ « Veux-tu que je continue avec le document 14 ? »
