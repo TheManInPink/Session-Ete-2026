@@ -1,8 +1,8 @@
 # ═══════════════════════════════════════════════════════════════
 # NINA-AES Platform — Docker Compose Développement
 # ═══════════════════════════════════════════════════════════════
-# Usage : docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
-# Ou    : make docker-up (si le Makefile du Document 01 est en place)
+# Variables : fichier `.env` à la RACINE du monorepo (comme les apps NestJS / Next.js).
+# Usage : make docker-up   OU   docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml up -d
 #
 # Démarre toute l'infrastructure de données et services annexes.
 # Les microservices NestJS/FastAPI tournent en local (hors Docker).
@@ -13,31 +13,29 @@
 #   make docker-logs    (voir les logs)
 #   make docker-ps      (voir l'etat)
 #
-# OU directement :
-#   docker compose -f infrastructure/docker/docker-compose.dev.yml \
-#     --env-file infrastructure/docker/.env.docker up -d
+# Option fichier séparé (mêmes clés que `.env`) : voir `.env.docker.example`.
+#   docker compose --env-file infrastructure/docker/.env.docker -f infrastructure/docker/docker-compose.dev.yml up -d
 # 
 #   docker compose -f docker-compose.dev.yml up -d
 #   docker compose -f docker-compose.dev.yml down
 #   docker compose -f docker-compose.dev.yml logs -f postgres
 #
 # Services inclus :
-#   - PostgreSQL 18  (port 5432)  — Base de données principale
-#   - Redis 8.6      (port 6379)  — Cache et sessions
-#   - RabbitMQ 4.2   (port 5672)  — Message broker
-#   - Elasticsearch 9 (port 9200) — Recherche floue
-#   - MinIO          (port 9000)  — Stockage objet
-#   - Keycloak 26.5  (port 8080)  — Authentification IAM
-#   - Maildev        (port 1080)  — Serveur SMTP de test
+#   - PostgreSQL 18 + PostGIS (5432) — Base principale (+ géographie)
+#   - Redis 8.4.x (6379) — Cache et sessions
+#   - RabbitMQ (5672 / 15672) — Message broker
+#   - Elasticsearch 8.19.x (9200) — Recherche floue
+#   - MinIO (9000 / 9001) — Stockage objet (tag image épinglé)
+#   - Keycloak 26.2.x (8080) — Authentification IAM
+#   - Vault (8200) — Secrets (mode dev)
+#   - Maildev (1080 / 1025) — SMTP de test
 # ═══════════════════════════════════════════════════════════════
 
 name: nina-aes-dev
 
 services:
   # ──────────────────────────────────────────────────────────────
-  # ── PostgreSQL 17 — Base de données principale ──
-  # (17 car 18 n'a pas encore d'image Docker stable en avril 2026)
-  
+  # ── PostgreSQL 18 + PostGIS — Base de données principale ──
   # ──────────────────────────────────────────────────────────────
   # Heberge les donnees NINA, les utilisateurs, les logs d'audit,
   # les structures gouvernementales et les schemas Keycloak.
@@ -89,14 +87,14 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD:-nina_redis_dev_2026}
+      --requirepass ${REDIS_PASSWORD:-redis_dev_2026!}
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
       --appendonly yes
     volumes:
       - nina-redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-nina_redis_dev_2026}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_dev_2026!}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -125,8 +123,9 @@ services:
       # Port de l'interface web de management
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"   # Management UI → http://localhost:15672
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-nina_rabbit}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-rabbit_dev_2026!}
+      # Alias des variables applicatives RABBITMQ_USER / RABBITMQ_PASSWORD (.env racine)
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-${RABBITMQ_USER:-nina_rabbit}}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-${RABBITMQ_PASSWORD:-rabbit_dev_2026!}}
     volumes:
       - nina-rabbitmq-data:/var/lib/rabbitmq
       # Configuration et définitions pré-chargées (exchanges, queues, bindings)
@@ -147,7 +146,8 @@ services:
   # Stocke les photos d'identite, les documents scannes,
   # les PDF de Fiches Descriptives generees.
   minio:
-    image: bitnami/minio:latest
+    # Image officielle MinIO (bitnami/minio:latest n'existe plus sur Docker Hub).
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: nina-minio
     restart: unless-stopped
     ports:
@@ -156,15 +156,15 @@ services:
       # Console web d'administration
       - "${MINIO_CONSOLE_PORT:-9001}:9001"     # Console Web → http://localhost:9001
     environment:
-      # Aligné avec MINIO_ACCESS_KEY / MINIO_SECRET_KEY du fichier .env (voir .env.example)
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-nina_minio_admin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-nina_minio_dev_2026_secure}
+      # MINIO_ACCESS_KEY / MINIO_SECRET_KEY (apps) ≡ MINIO_ROOT_* (conteneur)
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-${MINIO_ACCESS_KEY:-nina_minio_admin}}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-${MINIO_SECRET_KEY:-minio_dev_2026!}}
     volumes:
       - nina-minio-data:/data
     # Démarrer MinIO en mode serveur avec la console activée
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl -f http://localhost:9000/minio/health/live || exit 1", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -189,7 +189,7 @@ services:
       - "${ES_PORT:-9200}:9200"
     environment:
       - discovery.type=single-node
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-elastic_dev_2026!}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}}
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
@@ -201,7 +201,7 @@ services:
     volumes:
       - nina-elasticsearch-data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD:-elastic_dev_2026!} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -238,17 +238,17 @@ services:
       - "${KC_PORT:-8080}:8080"     # Console → http://localhost:8080
     environment:
       # Connexion à PostgreSQL (base "keycloak" créée par init-db.sql)
-      KC_DB: ${KC_DB}
-      KC_DB_URL: ${KC_DB_URL}
-      KC_DB_USERNAME: ${KC_DB_USERNAME:-nina_admin}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-nina_dev_2026!}
+      KC_DB: ${KC_DB:-postgres}
+      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres:5432/keycloak}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-${POSTGRES_USER:-nina_admin}}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-nina_dev_2026!}}
        # Mode développement (HTTP, pas de certificat TLS requis)
-      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
       KC_HOSTNAME_STRICT: "false"
       # KC_HTTP_ENABLED: "true"
       KC_HTTP_ENABLED: ${KC_HTTP_ENABLED:-true}
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-keycloak_admin_2026!}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-${KEYCLOAK_ADMIN:-admin}}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-${KEYCLOAK_ADMIN_PASSWORD:-keycloak_admin_2026!}}
       KC_HEALTH_ENABLED: "true"
       # KEYCLOAK_ADMIN: admin
       # KEYCLOAK_ADMIN_PASSWORD: admin_dev

@@ -8,7 +8,10 @@
 
 .PHONY: help install dev dev-citizen dev-admin dev-governance dev-service build lint format test clean docker-up docker-down db-migrate db-seed db-studio ai-dev
 
-DOCKER_COMPOSE = docker compose -f infrastructure/docker/docker-compose.dev.yml --env-file infrastructure/docker/.env.docker
+# Infrastructure Docker : même fichier `.env` à la racine que les apps (pas de valeurs éparpillées).
+# Alternative : copier `infrastructure/docker/.env.docker.example` vers `.env.docker` et passer
+#   --env-file infrastructure/docker/.env.docker à la place de `--env-file .env`.
+DOCKER_COMPOSE = docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml
 
 # Cible par défaut : affiche l'aide
 help: ## Affiche cette aide
@@ -83,19 +86,19 @@ check-types: ## Vérifier les types TypeScript
 
 # ── Docker ──
 docker-up: ## Démarre l'infrastructure Docker (PostgreSQL, Redis, RabbitMQ, etc.)
-	docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
+	$(DOCKER_COMPOSE) up -d
 
 docker-down: ## Arrête l'infrastructure Docker
-	docker compose -f infrastructure/docker/docker-compose.dev.yml down
+	$(DOCKER_COMPOSE) down
 
 docker-logs: ## Affiche les logs Docker en temps réel
-	docker compose -f infrastructure/docker/docker-compose.dev.yml logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 docker-ps: ## Liste les conteneurs en cours d'exécution
-	docker compose -f infrastructure/docker/docker-compose.dev.yml ps
+	$(DOCKER_COMPOSE) ps
 
 docker-down-v: ## Arrêter ET supprimer les volumes (PERTE DE DONNÉES)
-	docker compose -f infrastructure/docker/docker-compose.dev.yml down -v
+	$(DOCKER_COMPOSE) down -v
 
 # ── Base de données ──
 db-generate: ## Génère le client Prisma
