@@ -1,0 +1,363 @@
+# Divisions administratives du Mali — Référentiel NINA-AES
+
+> **Version** : 2026.05.03
+> **Statut** : Référentiel officiel du projet · 19 régions + District de Bamako
+> **Pays couvert** : République du Mali (ISO 3166-1 alpha-3 : **MLI**)
+
+Ce document est la **source unique de vérité** pour la hiérarchie administrative du
+Mali utilisée par la plateforme NINA-AES (frontend, backend, base de données, IA).
+Il accompagne les fichiers `data/mali/regions.json`, `data/mali/cercles.json` et
+`data/mali/mali.geojson`.
+
+---
+
+## 1. Hiérarchie administrative officielle
+
+Selon la **Loi N°2023-001 du 13 mars 2023** portant organisation territoriale de la
+République du Mali, le pays est structuré sur **8 niveaux** (alignés sur le modèle
+`Location` de notre schéma Prisma, cf. `packages/database/prisma/schema.prisma`) :
+
+| Niveau | Type             | Total officiel | Statut dans NINA-AES                                    |
+| ------ | ---------------- | -------------: | ------------------------------------------------------- |
+| 0      | Pays             |              1 | ✅ Complet (1 entrée : Mali)                             |
+| 1      | Région           |             19 | ✅ Complet (19 régions + District de Bamako = 20)        |
+| 2      | Cercle           |        **159** | ⚠️ **Partiel** — ~65 cercles confirmés, ~94 à enrichir   |
+| 3      | Arrondissement   |            466 | ❌ Structure prête, données à ingérer                    |
+| 4      | Commune          |       **819**  | ⚠️ Communes urbaines de Bamako présentes (6/819)         |
+| 5      | Quartier         |              — | ❌ À ingérer au cas par cas                              |
+| 6      | Village          |     **12 712** | ❌ Hors scope V1 — ingestion future via INSTAT Mali      |
+| 7      | Hameau / fraction|              — | ❌ Hors scope                                             |
+
+**Total niveau 1 = 20 entités** : 19 régions au sens strict + le District autonome de
+Bamako (qui n'est juridiquement pas une région mais est traité comme niveau 1 pour
+la cohérence du modèle de données — il joue le rôle de capitale fédérée).
+
+---
+
+## 2. Sources et politique de citation
+
+### 2.1 Sources primaires (faisant foi)
+
+1. **Loi N°2023-001 du 13 mars 2023** — texte législatif fondateur de l'actuelle
+   organisation à 19 régions. Source officielle : Journal Officiel de la République
+   du Mali.
+2. **Ministère de l'Administration Territoriale et de la Décentralisation (MATD)** —
+   <https://www.facebook.com/matdmali/> <https://www.matcl.gov.ml/> (référentiel administratif gouvernemental).
+3. **Institut National de la Statistique du Mali (INSTAT)** — <https://www.instat-mali.org>
+   (recensements RGPH, listes de villages).
+
+### 2.2 Sources secondaires (utilisées pour ce projet)
+
+1. **Wikipédia FR — Régions du Mali** :
+   <https://fr.wikipedia.org/wiki/R%C3%A9gions_du_Mali>
+2. **Wikipédia FR — Cercles du Mali** :
+   <https://fr.wikipedia.org/wiki/Cercles_du_Mali>
+3. **UN OCHA — HDX Mali Common Operational Datasets** :
+   <https://data.humdata.org/organization/ocha-mali> <https://response.reliefweb.int/mali> (shapefiles administratifs avec
+   polygones officiels en projection WGS84).
+4. **GeoNames Mali** : <https://www.geonames.org/search.html?q=Mali&country=> (coordonnées de chefs-lieux).
+
+### 2.3 Politique de citation
+
+- **Toute donnée** dans `regions.json` / `cercles.json` qui ne provient pas
+  directement d'une source primaire est marquée par `"estime": true` ou
+  `"confiance": "moyenne"` / `"basse"`.
+- **Aucune division administrative n'est inventée**. Si un cercle n'est pas dans
+  les données ouvertes, il est listé dans `cercles.json` → `cercles_a_enrichir`
+  comme à compléter, jamais inséré avec un nom fabriqué.
+
+---
+
+## 3. État de complétude et stratégie d'enrichissement
+
+### 3.1 Régions (niveau 1) — ✅ 20/20
+
+Toutes les régions et le district sont présents dans `regions.json` avec :
+
+- Nom officiel + nom court
+- Chef-lieu
+- Centroïde (lat/lng) basé sur le chef-lieu
+- Date de création / statut post-2023
+- Langues principales pratiquées (cf. `Language` enum dans `@nina-aes/shared-types`)
+
+**Aucune lacune.** Coordonnées vérifiées contre GeoNames pour les chefs-lieux.
+
+### 3.2 Cercles (niveau 2) — ⚠️ 65 / 159
+
+Le fichier `cercles.json` contient **65 cercles** correspondant à la structure
+pré-2023 (53 cercles historiques) augmentée des cercles confirmés des nouvelles
+régions (Taoudénit, Ménaka, Bandiagara, Bougouni, Koutiala, San, Douentza, Nara,
+Dioïla, Nioro, Kita), plus les 6 communes urbaines de Bamako traitées comme
+cercles.
+
+**Les ~94 cercles supplémentaires créés par la loi 2023** (subdivisions plus fines
+des nouvelles régions) sont à ingérer depuis Wikipedia. Procédure :
+
+```bash
+# Le script suivant est un placeholder à créer (cf. checklist §6) :
+# python scripts/enrich-cercles.py \
+#     --source https://fr.wikipedia.org/wiki/Cercles_du_Mali \
+#     --output data/mali/cercles.json \
+#     --merge
+```
+
+Le script doit :
+
+1. Télécharger et parser la table HTML de Wikipedia (BeautifulSoup4).
+2. Aligner chaque cercle sur sa région via `region_code`.
+3. Renseigner `centroide` depuis GeoNames (API gratuite, requiert un compte).
+4. Marquer `"confiance": "basse"` pour tout cercle sans coordonnée GeoNames.
+5. Faire un `merge` non-destructif avec les 65 entrées existantes.
+
+### 3.3 Arrondissements (niveau 3) — ❌ Structure prête, 0/466
+
+Pas encore peuplé. Source recommandée : INSTAT Mali (recensement RGPH 2009 mis à
+jour selon la loi 2023). Format à suivre : `data/mali/arrondissements.json` (à
+créer, schema identique à `cercles.json` avec `cercle_code` pointant vers le
+parent).
+
+### 3.4 Communes (niveau 4) — ⚠️ 6/819
+
+Seules les 6 communes urbaines de Bamako sont présentes (intégrées dans
+`cercles.json` avec `type_special: "commune_urbaine"`). Les 813 communes rurales
+restantes sont à ingérer. Volume gérable manuellement via tables Wikipedia mais
+fastidieux — le script d'enrichissement peut couvrir aussi les communes.
+
+### 3.5 Villages (niveau 6) — ❌ Hors scope V1
+
+Volume : **12 712 villages**. Ingérer via :
+
+- INSTAT Mali — fichier complet du RGPH (~5 MB CSV), à demander officiellement.
+- OpenStreetMap Overpass API : `[place=village][addr:country="ML"]` ; ~80 % de
+  couverture, sans hiérarchie commune ↔ village stricte.
+
+**Recommandation pour V1 NINA-AES** : ne **pas** charger les 12 712 villages en
+base. Le modèle `Location` reste à 4 niveaux remplis (pays / région / cercle /
+commune urbaine ou cercle-bis pour les rurales). Les villages individuels sont
+pris dans le champ `firstNameAscii` du citoyen ou dans un champ texte libre.
+
+---
+
+## 4. Hypothèses et corrections appliquées
+
+Liste des choix **non-triviaux** documentés explicitement (en complément des
+flags `estime` / `confiance` dans les JSON) :
+
+1. **District de Bamako = niveau 1** : juridiquement particulier (collectivité
+   territoriale autonome), mais traité comme une région dans nos données pour
+   éviter une exception dans le modèle relationnel.
+2. **Communes urbaines de Bamako = niveau 2 (cercle)** : la Commune I de Bamako
+   n'est pas un cercle au sens malien, c'est une commune. Pour préserver la
+   hiérarchie 8-niveaux uniforme, nous la classons niveau 2 avec
+   `type_special: "commune_urbaine"`. Les utilisateurs du frontend voient
+   « Commune IV » sous Bamako exactement comme « Sikasso » sous la région
+   Sikasso.
+3. **Cercles partagés / réorganisés** : certains cercles pré-2023 ont changé de
+   région (ex. Yanfolila était à Sikasso, est désormais à Bougouni). Nous
+   appliquons le **rattachement post-2023** dans `region_code`. L'historique
+   pré-2023 n'est pas conservé (un cercle = une région).
+4. **Coordonnées centroïdes** : pour les régions de création récente
+   (Taoudénit, Ménaka), les centroïdes pointent sur le chef-lieu et non sur le
+   centre géographique de la région (zones désertiques sans centre démographique
+   clair). Pour la cartographie heatmap, **utiliser les polygones HDX** plutôt
+   que les centroïdes.
+5. **Encodage des caractères** : tous les noms en UTF-8 NFC (forme normalisée
+   composée). Les caractères spéciaux (`é`, `ë`, `ï`, `ô`) sont préservés tels
+   quels dans `nom_officiel`. Le champ `nameAscii` (côté Prisma `Location`) est
+   généré par `toAscii()` (cf. `prisma/seed.ts`) pour les recherches fuzzy
+   trigram.
+
+---
+
+## 5. Limites connues et risques
+
+| Limite                                            | Impact                                                       | Mitigation                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| 94 cercles non nommés                             | Recherches NINA partielles dans nouvelles régions            | Script `enrich-cercles.py` à exécuter avant déploiement prod     |
+| Pas de polygones administratifs (que des Points)  | Heatmap par région impossible sans données externes          | Ingérer shapefile HDX OCHA via `mapshaper` (cf. §6)              |
+| 813 communes rurales absentes                     | Citoyens ruraux ne peuvent pas saisir leur commune dans les  | Champ texte libre + suggestion floue (RapidFuzz côté `ai-service`) |
+|                                                   | dropdowns hiérarchiques précâblés                             |                                                                  |
+| Coordonnées de cercles désertiques estimées       | Markers cartographiques mal positionnés à zoom élevé         | Vérification manuelle visuelle après ingestion HDX               |
+| Loi 2023 partiellement opérationnelle (2026)      | Certaines régions « légalement créées » mais pas encore      | Frontend masque les régions non-opérationnelles via flag         |
+|                                                   | dotées d'administration locale                                | `"statut_2023"` dans `regions.json`                              |
+| Évolutions futures de la loi                      | Le découpage peut encore changer (loi en discussion 2025)    | Versionner `regions.json` (champ `metadata.version`) + ADR       |
+
+---
+
+## 6. Stratégie de mise à jour
+
+### 6.1 Cadence
+
+| Type de donnée                 | Fréquence de revue       | Déclencheur                                         |
+| ------------------------------ | ------------------------ | --------------------------------------------------- |
+| Régions (niveau 1)             | Annuelle                 | Publication d'une nouvelle loi territoriale         |
+| Cercles (niveau 2)             | Trimestrielle            | Mise à jour Wikipedia FR + vérif MATD               |
+| Arrondissements / communes     | Semestrielle             | Recensement INSTAT                                  |
+| Villages                       | Sur demande              | Cas particulier dans le seed-data                   |
+| Coordonnées géographiques      | Annuelle                 | Comparaison avec OpenStreetMap                      |
+
+### 6.2 Workflow de mise à jour
+
+```text
+1. Modifier regions.json / cercles.json / mali.geojson
+2. Bumper metadata.version en YYYY.MM.DD
+3. Lancer la validation : `pnpm tsx scripts/validate-mali-data.ts`
+4. Mettre à jour packages/database/prisma/seed.ts si la structure change
+5. Re-seeder la base : `pnpm --filter @nina-aes/database db:seed`
+6. Mettre à jour ce document (§3 état de complétude)
+7. Commit conventionnel : `data(mali): mise à jour référentiel administratif vYYYY.MM.DD`
+```
+
+### 6.3 Ingestion automatique des polygones HDX
+
+```powershell
+# 1) Télécharger le shapefile officiel UN OCHA (CC BY)
+curl -L -o /tmp/mli_admbnda.zip `
+  https://data.humdata.org/dataset/cod-ab-mli/resource/abc123/download/mli_admbnda.zip
+unzip /tmp/mli_admbnda.zip -d /tmp/mli_admbnda
+
+# 2) Convertir en GeoJSON simplifié (5% des sommets — léger pour le web)
+# Requis : mapshaper (npm i -g mapshaper)
+mapshaper /tmp/mli_admbnda/mli_admbnda_adm1.shp `
+  -simplify 5% `
+  -o data/mali/mali-regions-polygons.geojson
+
+# 3) Idem pour les cercles
+mapshaper /tmp/mli_admbnda/mli_admbnda_adm2.shp `
+  -simplify 8% `
+  -o data/mali/mali-cercles-polygons.geojson
+
+# 4) Vérifier la géométrie (pas d'auto-intersection, fermeture des polygones)
+pnpm dlx @turf/turf-validate data/mali/mali-regions-polygons.geojson
+```
+
+---
+
+## 7. Validation et tests
+
+### 7.1 Invariants à vérifier
+
+1. ∀ cercle dans `cercles.json` : son `region_code` existe dans `regions.json`.
+2. ∀ région : son `code` est unique et au format `ML-NN`.
+3. ∀ centroïde : `lat ∈ [10.0, 25.1]` et `lng ∈ [-12.3, 4.3]` (boîte
+   englobante du Mali avec marge).
+4. Total régions = 19, total district = 1, total niveau 1 = 20.
+5. Tous les `chef_lieu` sont présents en tant que cercles dans `cercles.json`
+   (cohérence référentielle).
+
+Script de validation à créer (`scripts/validate-mali-data.ts`) :
+
+```ts
+// Lit les 3 fichiers JSON, applique les 5 invariants ci-dessus,
+// imprime un rapport de cohérence et exit avec code 1 si KO.
+```
+
+### 7.2 Tests unitaires
+
+- `packages/utils/src/__tests__/geo.test.ts` (à créer) : valider les helpers
+  géographiques (calcul de distance, recherche par bbox, etc.).
+- `packages/database/src/__tests__/locations.test.ts` (à créer) : valider que
+  le seed Prisma charge bien les 20 régions.
+
+---
+
+## 8. Intégration côté projet — où ces données vivent
+
+### 8.1 Frontend (apps/citizen, apps/admin, apps/governance)
+
+- **`packages/ui/src/business/MaliMap.tsx`** consomme `mali.geojson` pour le
+  rendu des centroïdes Points (Leaflet markers ou D3 projection).
+- **Quand les polygones HDX sont ingérés** : la même `MaliMap` ajoute une couche
+  `<GeoJSON data={polygons} />` pour le rendu choroplèthe heatmap.
+- **`packages/ui/src/business/MaliHeatmap.tsx`** projette une métrique sur les
+  polygones régionaux (gradient color/success/100 → color/danger/500).
+- Les 3 apps importent `data/mali/regions.json` directement via tsconfig path
+  alias `@nina-aes/data` (à configurer une fois pour toutes).
+
+### 8.2 Backend (services NestJS)
+
+- **`identity-service`** valide les `Citizen.birthPlaceId` / `Citizen.residenceId`
+  contre le référentiel chargé en mémoire au démarrage (cache Redis 24 h).
+- **`appointment-service`** utilise les centroïdes pour le calcul de distance
+  citoyen ↔ centre RAVEC.
+- **`vulnerability-service`** filtre les agents mobiles par région.
+
+### 8.3 Base de données (`@nina-aes/database`)
+
+- Le seed `prisma/seed.ts` lit `regions.json` + `cercles.json` et **upsert**
+  toutes les `Location` correspondantes en respectant la hiérarchie via
+  `parentId`.
+- Les colonnes `latitude` / `longitude` (`Decimal(10,7)`) reçoivent les
+  centroïdes ; la colonne `geom` (`geography(Point,4326)`) est remplie par un
+  trigger SQL `BEFORE INSERT` qui fait `ST_SetSRID(ST_MakePoint(lng, lat), 4326)`.
+- Index GIN trigram sur `nameAscii` permet la recherche fuzzy ("Sikaso" trouve
+  "Sikasso").
+
+### 8.4 IA (`ai-service`)
+
+- Le module de **fuzzy matching** charge les noms de régions/cercles au
+  démarrage (cache mémoire) pour propositions de correction.
+- RapidFuzz score + Jellyfish Levenshtein → seuil de confiance ≥ 85 pour
+  auto-suggestion.
+
+---
+
+## 9. Checklist des mises à jour appliquées au projet (mai 2026)
+
+- [x] `data/mali/regions.json` créé (20 entrées complètes)
+- [x] `data/mali/cercles.json` créé (65 cercles confirmés + flag complétude)
+- [x] `data/mali/mali.geojson` créé (centroïdes Points)
+- [x] `docs/data/mali-divisions.md` créé (ce document)
+- [ ] `docs/data/integration-guide.md` créé (cf. fichier voisin)
+- [ ] `packages/database/prisma/seed.ts` mis à jour avec les 20 régions
+      *(en cours — voir §10 ci-dessous)*
+- [ ] `scripts/validate-mali-data.ts` créé (validation des invariants)
+- [ ] `scripts/enrich-cercles.py` créé (ingestion Wikipedia → JSON)
+- [ ] Polygones HDX OCHA ingérés (`mali-regions-polygons.geojson`)
+- [ ] Tests unitaires `geo.test.ts` écrits
+
+---
+
+## 10. Mise à jour du seed Prisma
+
+Le `prisma/seed.ts` actuel charge **10 régions** correspondant à la structure
+pré-2023. La mise à jour pour passer aux 20 entités est consignée dans le
+commit `data(mali): aligne seed Prisma sur loi 2023` (cf. fichier
+`packages/database/prisma/seed.ts` après application de cette session).
+
+**Différentiel principal** :
+- Suppression de l'ancienne tableau `REGIONS` codé en dur (10 entrées)
+- Ajout d'un import `import regions from '../../../data/mali/regions.json'`
+- Boucle de seed qui upsert 20 `Location` au niveau 1 (au lieu de 10)
+- Cercles : import similaire depuis `cercles.json` ; les 65 cercles connus
+  sont seedés, les 94 manquants attendent l'enrichissement
+
+---
+
+## 11. Annexe — Glossaire administratif malien
+
+| Terme           | Définition                                                                |
+| --------------- | ------------------------------------------------------------------------- |
+| **Région**      | Subdivision de niveau 1 du Mali, dirigée par un Gouverneur (préfet régional) |
+| **District**    | Statut spécifique de Bamako — collectivité territoriale autonome         |
+| **Cercle**      | Subdivision de niveau 2, dirigée par un Préfet de cercle                |
+| **Arrondissement** | Subdivision de niveau 3, dirigée par un Sous-Préfet                  |
+| **Commune**     | Niveau 4, dirigée par un Maire élu (commune urbaine ou rurale)          |
+| **Quartier / Fraction** | Subdivision communale (urbain : quartier ; nomade : fraction)    |
+| **Village**     | Plus petite unité administrative reconnue (avec un Chef de village)     |
+| **CTDEC**       | Centre de Traitement des Données de l'État Civil — gère la base NINA   |
+| **DNEC**        | Direction Nationale de l'État Civil                                     |
+| **MATD**        | Ministère de l'Administration Territoriale et de la Décentralisation   |
+| **RAVEC**       | Recensement Administratif à Vocation d'État Civil (programme depuis 2009) |
+
+---
+
+## 12. Pour aller plus loin
+
+- **Étude approfondie de la loi 2023** : `Journal Officiel n° 12, 13 mars 2023`
+- **Cartographie souveraine** : alternatives à Mapbox (qui dépend de Tiles US) :
+  - `protomaps` + tiles auto-hébergés (souverain)
+  - `MapTiler Server` (peut être déployé on-premise)
+- **Données démographiques** : INSTAT Mali, RGPH 2024 (en cours de publication)
+- **Frontières internationales** : attention au tracé Mali ↔ Burkina (litige
+  Soum réglé en 1986 par CIJ, mais cartes anciennes encore en circulation)

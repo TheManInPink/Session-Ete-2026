@@ -1,0 +1,91 @@
+{
+  "type": "FeatureCollection",
+  "name": "mali_admin_centroides",
+  "metadata": {
+    "title": "Centroïdes administratifs du Mali (régions + cercles connus)",
+    "version": "2026.05.03",
+    "crs": "WGS84 (EPSG:4326)",
+    "geometrie": "Point uniquement (centroïdes des chefs-lieux). Pour les polygones de régions/cercles, utiliser le shapefile officiel UN OCHA HDX : https://www.hdx.un.org/dataset/cod-ab-mli",
+    "limites": "Ce GeoJSON ne contient PAS de polygones administratifs. Il sert au rendu point-marker (Leaflet markers, Mapbox symbol layers) ou à l'initialisation d'une carte focalisée sur le Mali. Pour le rendu choroplèthe (heatmap par région), récupérer le shapefile HDX et le convertir en GeoJSON via : `mapshaper mli_admbnda_adm1.shp -simplify 5% -o mali-regions.geojson`",
+    "bbox_mali": [-12.2402, 10.0995, 4.2440, 25.0009],
+    "centre_geographique_mali": { "lat": 17.5707, "lng": -3.9962 },
+    "license": "Open Data — sources Wikipedia (CC BY-SA) + UN OCHA HDX (CC BY)"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "country",
+        "code": "ML",
+        "name": "République du Mali",
+        "level": 0,
+        "iso3": "MLI"
+      },
+      "geometry": { "type": "Point", "coordinates": [-3.9962, 17.5707] }
+    },
+
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-01", "name": "Kayes",            "level": 1, "chef_lieu": "Kayes" },          "geometry": { "type": "Point", "coordinates": [-11.4444, 14.4467] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-02", "name": "Koulikoro",        "level": 1, "chef_lieu": "Koulikoro" },      "geometry": { "type": "Point", "coordinates": [-7.5598, 12.8628] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-03", "name": "Sikasso",          "level": 1, "chef_lieu": "Sikasso" },        "geometry": { "type": "Point", "coordinates": [-5.6665, 11.3176] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-04", "name": "Ségou",            "level": 1, "chef_lieu": "Ségou" },          "geometry": { "type": "Point", "coordinates": [-6.2156, 13.4318] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-05", "name": "Mopti",            "level": 1, "chef_lieu": "Mopti" },          "geometry": { "type": "Point", "coordinates": [-4.1827, 14.4843] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-06", "name": "Tombouctou",       "level": 1, "chef_lieu": "Tombouctou" },     "geometry": { "type": "Point", "coordinates": [-3.0087, 16.7722] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-07", "name": "Gao",              "level": 1, "chef_lieu": "Gao" },            "geometry": { "type": "Point", "coordinates": [-0.0459, 16.2711] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-08", "name": "Kidal",            "level": 1, "chef_lieu": "Kidal" },          "geometry": { "type": "Point", "coordinates": [1.4080, 18.4412] } },
+    { "type": "Feature", "properties": { "kind": "district", "code": "ML-09", "name": "District de Bamako", "level": 1, "chef_lieu": "Bamako" },     "geometry": { "type": "Point", "coordinates": [-8.0029, 12.6392] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-10", "name": "Taoudénit",        "level": 1, "chef_lieu": "Taoudénit" },      "geometry": { "type": "Point", "coordinates": [-3.9794, 22.6783] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-11", "name": "Ménaka",           "level": 1, "chef_lieu": "Ménaka" },         "geometry": { "type": "Point", "coordinates": [2.4000, 15.9160] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-12", "name": "Nioro",            "level": 1, "chef_lieu": "Nioro du Sahel" }, "geometry": { "type": "Point", "coordinates": [-9.5878, 15.2247] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-13", "name": "Kita",             "level": 1, "chef_lieu": "Kita" },           "geometry": { "type": "Point", "coordinates": [-9.4895, 13.0407] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-14", "name": "Dioïla",           "level": 1, "chef_lieu": "Dioïla" },         "geometry": { "type": "Point", "coordinates": [-6.7984, 12.4953] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-15", "name": "Nara",             "level": 1, "chef_lieu": "Nara" },           "geometry": { "type": "Point", "coordinates": [-7.2853, 15.1701] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-16", "name": "Bougouni",         "level": 1, "chef_lieu": "Bougouni" },       "geometry": { "type": "Point", "coordinates": [-7.4833, 11.4167] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-17", "name": "Koutiala",         "level": 1, "chef_lieu": "Koutiala" },       "geometry": { "type": "Point", "coordinates": [-5.4642, 12.3917] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-18", "name": "San",              "level": 1, "chef_lieu": "San" },            "geometry": { "type": "Point", "coordinates": [-4.8964, 13.3033] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-19", "name": "Bandiagara",       "level": 1, "chef_lieu": "Bandiagara" },     "geometry": { "type": "Point", "coordinates": [-3.6111, 14.3500] } },
+    { "type": "Feature", "properties": { "kind": "region", "code": "ML-20", "name": "Douentza",         "level": 1, "chef_lieu": "Douentza" },       "geometry": { "type": "Point", "coordinates": [-2.9469, 15.0028] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-01-01", "name": "Kayes",         "level": 2, "region_code": "ML-01" }, "geometry": { "type": "Point", "coordinates": [-11.4444, 14.4467] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-01-02", "name": "Bafoulabé",     "level": 2, "region_code": "ML-01" }, "geometry": { "type": "Point", "coordinates": [-10.8311, 13.8073] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-01-03", "name": "Diéma",         "level": 2, "region_code": "ML-01" }, "geometry": { "type": "Point", "coordinates": [-9.1833, 14.5417] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-01-04", "name": "Kéniéba",       "level": 2, "region_code": "ML-01" }, "geometry": { "type": "Point", "coordinates": [-11.2333, 12.8500] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-01-05", "name": "Yélimané",      "level": 2, "region_code": "ML-01" }, "geometry": { "type": "Point", "coordinates": [-10.5667, 15.1333] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-02-01", "name": "Koulikoro",     "level": 2, "region_code": "ML-02" }, "geometry": { "type": "Point", "coordinates": [-7.5598, 12.8628] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-02-02", "name": "Banamba",       "level": 2, "region_code": "ML-02" }, "geometry": { "type": "Point", "coordinates": [-7.4500, 13.5500] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-02-03", "name": "Kangaba",       "level": 2, "region_code": "ML-02" }, "geometry": { "type": "Point", "coordinates": [-8.4167, 11.9333] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-02-04", "name": "Kati",          "level": 2, "region_code": "ML-02" }, "geometry": { "type": "Point", "coordinates": [-8.0731, 12.7444] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-02-05", "name": "Kolokani",      "level": 2, "region_code": "ML-02" }, "geometry": { "type": "Point", "coordinates": [-8.0367, 13.5733] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-03-01", "name": "Sikasso",       "level": 2, "region_code": "ML-03" }, "geometry": { "type": "Point", "coordinates": [-5.6665, 11.3176] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-03-02", "name": "Kadiolo",       "level": 2, "region_code": "ML-03" }, "geometry": { "type": "Point", "coordinates": [-5.7500, 10.5500] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-03-03", "name": "Kolondiéba",    "level": 2, "region_code": "ML-03" }, "geometry": { "type": "Point", "coordinates": [-6.8983, 11.0867] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-04-01", "name": "Ségou",         "level": 2, "region_code": "ML-04" }, "geometry": { "type": "Point", "coordinates": [-6.2156, 13.4318] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-04-02", "name": "Baraouéli",     "level": 2, "region_code": "ML-04" }, "geometry": { "type": "Point", "coordinates": [-6.8333, 13.0833] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-04-03", "name": "Bla",           "level": 2, "region_code": "ML-04" }, "geometry": { "type": "Point", "coordinates": [-5.7667, 12.9500] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-04-04", "name": "Macina",        "level": 2, "region_code": "ML-04" }, "geometry": { "type": "Point", "coordinates": [-5.3667, 13.9667] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-04-05", "name": "Niono",         "level": 2, "region_code": "ML-04" }, "geometry": { "type": "Point", "coordinates": [-5.9858, 14.2533] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-05-01", "name": "Mopti",         "level": 2, "region_code": "ML-05" }, "geometry": { "type": "Point", "coordinates": [-4.1827, 14.4843] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-05-02", "name": "Djenné",        "level": 2, "region_code": "ML-05" }, "geometry": { "type": "Point", "coordinates": [-4.5552, 13.9050] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-05-03", "name": "Ténenkou",      "level": 2, "region_code": "ML-05" }, "geometry": { "type": "Point", "coordinates": [-4.9167, 14.4333] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-05-04", "name": "Youwarou",      "level": 2, "region_code": "ML-05" }, "geometry": { "type": "Point", "coordinates": [-4.0833, 15.4500] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-06-01", "name": "Tombouctou",    "level": 2, "region_code": "ML-06" }, "geometry": { "type": "Point", "coordinates": [-3.0087, 16.7722] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-06-02", "name": "Diré",          "level": 2, "region_code": "ML-06" }, "geometry": { "type": "Point", "coordinates": [-3.3833, 16.2700] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-06-03", "name": "Goundam",       "level": 2, "region_code": "ML-06" }, "geometry": { "type": "Point", "coordinates": [-3.6667, 16.4167] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-06-04", "name": "Gourma-Rharous", "level": 2, "region_code": "ML-06" }, "geometry": { "type": "Point", "coordinates": [-1.9333, 16.8833] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-06-05", "name": "Niafunké",      "level": 2, "region_code": "ML-06" }, "geometry": { "type": "Point", "coordinates": [-3.9911, 15.9322] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-07-01", "name": "Gao",           "level": 2, "region_code": "ML-07" }, "geometry": { "type": "Point", "coordinates": [-0.0459, 16.2711] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-07-02", "name": "Ansongo",       "level": 2, "region_code": "ML-07" }, "geometry": { "type": "Point", "coordinates": [0.5000, 15.6667] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-07-03", "name": "Bourem",        "level": 2, "region_code": "ML-07" }, "geometry": { "type": "Point", "coordinates": [-0.3500, 16.9500] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-08-01", "name": "Kidal",         "level": 2, "region_code": "ML-08" }, "geometry": { "type": "Point", "coordinates": [1.4080, 18.4412] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-08-03", "name": "Tessalit",      "level": 2, "region_code": "ML-08" }, "geometry": { "type": "Point", "coordinates": [1.0167, 20.2000] } },
+
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-11-01", "name": "Ménaka",        "level": 2, "region_code": "ML-11" }, "geometry": { "type": "Point", "coordinates": [2.4000, 15.9160] } },
+    { "type": "Feature", "properties": { "kind": "cercle", "code": "ML-11-03", "name": "Andéramboukane", "level": 2, "region_code": "ML-11" }, "geometry": { "type": "Point", "coordinates": [3.0436, 15.4083] } }
+  ]
+}

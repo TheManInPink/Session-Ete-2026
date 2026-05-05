@@ -1,0 +1,225 @@
+{
+  "$schema": "../../docs/data/schemas/regions.schema.json",
+  "metadata": {
+    "title": "Régions administratives du Mali",
+    "version": "2026.05.03",
+    "source_principale": "Loi N°2023-001 du 13 mars 2023 portant organisation territoriale de la République du Mali",
+    "sources_complementaires": [
+      "https://fr.wikipedia.org/wiki/R%C3%A9gions_du_Mali",
+      "https://www.hdx.un.org/dataset/cod-ab-mli (UN OCHA Mali — shapefiles administratifs)",
+      "https://www.matd.gouv.ml (Ministère de l'Administration Territoriale et de la Décentralisation — Mali)"
+    ],
+    "convention_codes": "Format ISO-like ML-XX où XX est un nombre à 2 chiffres alloué chronologiquement par la loi 2023.",
+    "convention_coordonnees": "WGS84 (EPSG:4326), latitude/longitude en degrés décimaux.",
+    "centroides": "Approximations basées sur le chef-lieu de région. Pour une cartographie de production, remplacer par les centroïdes calculés à partir des polygones HDX OCHA.",
+    "note_organisation": "Total = 19 régions + 1 District autonome (Bamako). Le District est traité ici comme niveau 1 pour cohérence avec le modèle Location à 8 niveaux du schéma Prisma (level=1)."
+  },
+  "regions": [
+    {
+      "code": "ML-01",
+      "nom_officiel": "Région de Kayes",
+      "nom_court": "Kayes",
+      "chef_lieu": "Kayes",
+      "centroide": { "lat": 14.4467, "lng": -11.4444, "estime": false },
+      "creation": "1960 (héritage colonial — 1ère région)",
+      "statut_2023": "Maintenue, périmètre réduit (cession de cercles vers Nioro et Kita)",
+      "langues_principales": ["FR", "SNK", "BM", "FF"]
+    },
+    {
+      "code": "ML-02",
+      "nom_officiel": "Région de Koulikoro",
+      "nom_court": "Koulikoro",
+      "chef_lieu": "Koulikoro",
+      "centroide": { "lat": 12.8628, "lng": -7.5598, "estime": false },
+      "creation": "1977",
+      "statut_2023": "Maintenue, périmètre réduit (cession vers Dioïla et Nara)",
+      "langues_principales": ["FR", "BM"]
+    },
+    {
+      "code": "ML-03",
+      "nom_officiel": "Région de Sikasso",
+      "nom_court": "Sikasso",
+      "chef_lieu": "Sikasso",
+      "centroide": { "lat": 11.3176, "lng": -5.6665, "estime": false },
+      "creation": "1977",
+      "statut_2023": "Maintenue, périmètre réduit (cession vers Bougouni et Koutiala)",
+      "langues_principales": ["FR", "BM", "FF"]
+    },
+    {
+      "code": "ML-04",
+      "nom_officiel": "Région de Ségou",
+      "nom_court": "Ségou",
+      "chef_lieu": "Ségou",
+      "centroide": { "lat": 13.4318, "lng": -6.2156, "estime": false },
+      "creation": "1977",
+      "statut_2023": "Maintenue, périmètre réduit (cession vers San)",
+      "langues_principales": ["FR", "BM"]
+    },
+    {
+      "code": "ML-05",
+      "nom_officiel": "Région de Mopti",
+      "nom_court": "Mopti",
+      "chef_lieu": "Mopti",
+      "centroide": { "lat": 14.4843, "lng": -4.1827, "estime": false },
+      "creation": "1977",
+      "statut_2023": "Maintenue, périmètre fortement réduit (cession vers Bandiagara et Douentza)",
+      "langues_principales": ["FR", "FF", "BM", "DJE"]
+    },
+    {
+      "code": "ML-06",
+      "nom_officiel": "Région de Tombouctou",
+      "nom_court": "Tombouctou",
+      "chef_lieu": "Tombouctou",
+      "centroide": { "lat": 16.7722, "lng": -3.0087, "estime": false },
+      "creation": "1977",
+      "statut_2023": "Maintenue, périmètre réduit (cession vers Taoudénit)",
+      "langues_principales": ["FR", "TMQ", "DJE", "FF"]
+    },
+    {
+      "code": "ML-07",
+      "nom_officiel": "Région de Gao",
+      "nom_court": "Gao",
+      "chef_lieu": "Gao",
+      "centroide": { "lat": 16.2711, "lng": -0.0459, "estime": false },
+      "creation": "1977",
+      "statut_2023": "Maintenue, périmètre réduit (cession vers Ménaka)",
+      "langues_principales": ["FR", "DJE", "TMQ"]
+    },
+    {
+      "code": "ML-08",
+      "nom_officiel": "Région de Kidal",
+      "nom_court": "Kidal",
+      "chef_lieu": "Kidal",
+      "centroide": { "lat": 18.4412, "lng": 1.4080, "estime": false },
+      "creation": "1991",
+      "statut_2023": "Maintenue (couvre l'extrême Nord-Est)",
+      "langues_principales": ["FR", "TMQ"]
+    },
+    {
+      "code": "ML-09",
+      "nom_officiel": "District de Bamako",
+      "nom_court": "Bamako",
+      "chef_lieu": "Bamako",
+      "centroide": { "lat": 12.6392, "lng": -8.0029, "estime": false },
+      "creation": "1978",
+      "statut_2023": "Statut spécial — collectivité territoriale autonome (pas une région stricto sensu, mais traitée comme niveau 1 administratif)",
+      "subdivisions": "6 communes urbaines (I, II, III, IV, V, VI)",
+      "langues_principales": ["FR", "BM"]
+    },
+    {
+      "code": "ML-10",
+      "nom_officiel": "Région de Taoudénit",
+      "nom_court": "Taoudénit",
+      "chef_lieu": "Taoudénit",
+      "centroide": { "lat": 22.6783, "lng": -3.9794, "estime": false },
+      "creation": "Loi 2012, opérationnalisation 2016",
+      "statut_2023": "Confirmée — couvre l'extrême nord saharien (mines de sel historiques)",
+      "langues_principales": ["FR", "TMQ", "HAU"]
+    },
+    {
+      "code": "ML-11",
+      "nom_officiel": "Région de Ménaka",
+      "nom_court": "Ménaka",
+      "chef_lieu": "Ménaka",
+      "centroide": { "lat": 15.9160, "lng": 2.4000, "estime": false },
+      "creation": "Loi 2012, opérationnalisation 2016",
+      "statut_2023": "Confirmée — couvre l'est saharien et le pourtour du fleuve Niger en aval de Gao",
+      "langues_principales": ["FR", "TMQ", "DJE"]
+    },
+    {
+      "code": "ML-12",
+      "nom_officiel": "Région de Nioro",
+      "nom_court": "Nioro",
+      "chef_lieu": "Nioro du Sahel",
+      "centroide": { "lat": 15.2247, "lng": -9.5878, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Kayes",
+      "langues_principales": ["FR", "SNK", "BM"]
+    },
+    {
+      "code": "ML-13",
+      "nom_officiel": "Région de Kita",
+      "nom_court": "Kita",
+      "chef_lieu": "Kita",
+      "centroide": { "lat": 13.0407, "lng": -9.4895, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Kayes",
+      "langues_principales": ["FR", "BM", "SNK"]
+    },
+    {
+      "code": "ML-14",
+      "nom_officiel": "Région de Dioïla",
+      "nom_court": "Dioïla",
+      "chef_lieu": "Dioïla",
+      "centroide": { "lat": 12.4953, "lng": -6.7984, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Koulikoro",
+      "langues_principales": ["FR", "BM"]
+    },
+    {
+      "code": "ML-15",
+      "nom_officiel": "Région de Nara",
+      "nom_court": "Nara",
+      "chef_lieu": "Nara",
+      "centroide": { "lat": 15.1701, "lng": -7.2853, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Koulikoro",
+      "langues_principales": ["FR", "BM", "FF"]
+    },
+    {
+      "code": "ML-16",
+      "nom_officiel": "Région de Bougouni",
+      "nom_court": "Bougouni",
+      "chef_lieu": "Bougouni",
+      "centroide": { "lat": 11.4167, "lng": -7.4833, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Sikasso",
+      "langues_principales": ["FR", "BM"]
+    },
+    {
+      "code": "ML-17",
+      "nom_officiel": "Région de Koutiala",
+      "nom_court": "Koutiala",
+      "chef_lieu": "Koutiala",
+      "centroide": { "lat": 12.3917, "lng": -5.4642, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Sikasso",
+      "langues_principales": ["FR", "BM"]
+    },
+    {
+      "code": "ML-18",
+      "nom_officiel": "Région de San",
+      "nom_court": "San",
+      "chef_lieu": "San",
+      "centroide": { "lat": 13.3033, "lng": -4.8964, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Ségou",
+      "langues_principales": ["FR", "BM"]
+    },
+    {
+      "code": "ML-19",
+      "nom_officiel": "Région de Bandiagara",
+      "nom_court": "Bandiagara",
+      "chef_lieu": "Bandiagara",
+      "centroide": { "lat": 14.3500, "lng": -3.6111, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Mopti, couvre le pays Dogon",
+      "langues_principales": ["FR", "FF"]
+    },
+    {
+      "code": "ML-20",
+      "nom_officiel": "Région de Douentza",
+      "nom_court": "Douentza",
+      "chef_lieu": "Douentza",
+      "centroide": { "lat": 15.0028, "lng": -2.9469, "estime": false },
+      "creation": "Loi 2023",
+      "statut_2023": "Nouvelle région — détachée de Mopti",
+      "langues_principales": ["FR", "FF", "DJE"]
+    }
+  ],
+  "totaux": {
+    "regions": 19,
+    "district": 1,
+    "total_niveau_1": 20
+  }
+}
