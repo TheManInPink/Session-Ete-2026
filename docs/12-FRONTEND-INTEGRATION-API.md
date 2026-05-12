@@ -1,5 +1,18 @@
 # 12 — Frontend Integration API (Next.js 16 + React 19 + shadcn/ui + Design System AES)
 
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) pour l'état
+> effectif. Avant toute modification de ce document :
+>
+> - Lire [`CHANGELOG.md`](./CHANGELOG.md) (versions réelles, écarts résolus)
+> - Lire [`../MAINTENANCE.md`](../MAINTENANCE.md) §3 (mapping « quand modifier quoi »)
+> - Le design system canonique est [`design-system/design-system.md`](./design-system/design-system.md)
+>   + [`design-system/tokens.json`](./design-system/tokens.json) (Style Dictionary)
+> - Les wireframes des 12 écrans sont dans [`design-system/screens.md`](./design-system/screens.md)
+> - Les prompts Figma Make sont dans [`design-system/figma-prompts.md`](./design-system/figma-prompts.md)
+>
+> Toute évolution structurelle (nouvelle app, nouveau client API, nouveau parcours)
+> doit être propagée dans `MAINTENANCE.md` §3.
+
 > **Projet** : NINA-AES Platform **Document** : 12/26 **Apps** : `apps/citizen` (port 4001) ·
 > `apps/admin` (port 4002) · `apps/governance` (port 4003) **Stack** : Next.js 16.1 · React 19.2 ·
 > TanStack Query 5.90 · Zustand 5.1 · Tailwind CSS 4.2 · shadcn/ui (canary-2026) · Zod 4.3 · React
