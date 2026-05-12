@@ -1,0 +1,115 @@
+# ============================================================================
+# Dockerfile générique pour les microservices NestJS NINA-AES
+# ============================================================================
+# Utilisation :
+#
+#   docker build \
+#     -f infrastructure/docker/Dockerfile.nestjs \
+#     --build-arg SERVICE=identity-service \
+#     -t nina-aes/identity-service:latest \
+#     .
+#
+# Multi-stage Node.js 24 Alpine + pnpm 10 + Turborepo pruning :
+#   1. base      : Node 24 Alpine + pnpm 10 (corepack)
+#   2. pruner    : `turbo prune --scope=<SERVICE>` pour ne livrer QUE
+#                  les dépendances workspace nécessaires
+#   3. deps      : `pnpm install --frozen-lockfile` sur le périmètre pruné
+#   4. builder   : `turbo run build --filter=<SERVICE>`
+#   5. runner    : image finale minimale (~150 MB), utilisateur non-root,
+#                  HEALTHCHECK curl /health, ENTRYPOINT node dist/src/main.js
+#
+# Compatible avec les 9 services NestJS du monorepo :
+#   identity-service, auth-service, document-service, notification-service,
+#   interop-service, audit-service, appointment-service, governance-service,
+#   vulnerability-service, ussd-service, biometric-service, enrollment-service,
+#   api-gateway
+# ============================================================================
+
+# Argument unique : nom du service workspace à builder (sans le préfixe @nina-aes/)
+ARG SERVICE
+ARG NODE_VERSION=24-alpine
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 1 — base : Node + pnpm + Turborepo CLI
+# ────────────────────────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION} AS base
+# `corepack` active automatiquement la version de pnpm déclarée dans le
+# `package.json` racine (champ `packageManager`). Évite les drift de version.
+RUN corepack enable && corepack prepare pnpm@latest --activate
+# Outils strictement nécessaires : curl pour le HEALTHCHECK, openssl pour les
+# certificats mTLS au runtime (cf. doc 15 — security).
+RUN apk add --no-cache curl openssl libc6-compat
+WORKDIR /workspace
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 2 — pruner : isole le sous-graphe de dépendances du service ciblé
+# ────────────────────────────────────────────────────────────────────────────
+# `turbo prune` crée un dossier `out/` ne contenant que :
+#   - le workspace cible + ses dépendances workspace (packages/*)
+#   - un pnpm-lock.yaml partiel (lockfile pruning)
+# Résultat : invalidation du cache Docker uniquement quand le code du service
+# concerné OU une de ses dépendances directes change.
+FROM base AS pruner
+ARG SERVICE
+COPY . .
+RUN pnpm dlx turbo prune "@nina-aes/${SERVICE}" --docker
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 3 — deps : installation isolée des dépendances
+# ────────────────────────────────────────────────────────────────────────────
+# Le dossier `out/json/` contient les `package.json` (pour le cache pnpm) ;
+# le dossier `out/full/` contient le code source complet.
+FROM base AS deps
+COPY --from=pruner /workspace/out/json/ ./
+COPY --from=pruner /workspace/out/pnpm-lock.yaml ./pnpm-lock.yaml
+RUN pnpm install --frozen-lockfile --prefer-offline
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 4 — builder : compile TypeScript via Turborepo
+# ────────────────────────────────────────────────────────────────────────────
+FROM base AS builder
+ARG SERVICE
+COPY --from=deps /workspace/ ./
+COPY --from=pruner /workspace/out/full/ ./
+# Compilation parallélisée + cache distant Turborepo (si TURBO_TOKEN défini).
+RUN pnpm dlx turbo run build --filter="@nina-aes/${SERVICE}"
+# Prune des deps de prod uniquement → réduit drastiquement la taille finale.
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 5 — runner : image finale minimale
+# ────────────────────────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION} AS runner
+ARG SERVICE
+ENV NODE_ENV=production \
+    PNPM_HOME=/pnpm \
+    PATH="/pnpm:$PATH"
+RUN apk add --no-cache curl tini libc6-compat
+# Utilisateur non-root (UID 1001 fixe pour cohérence Kubernetes PodSecurityPolicy).
+RUN addgroup -g 1001 -S nina && \
+    adduser -u 1001 -S nina -G nina
+
+WORKDIR /app
+
+# On copie UNIQUEMENT le service ciblé + ses dépendances workspace nécessaires.
+COPY --from=builder --chown=nina:nina /workspace/services/${SERVICE}/dist ./dist
+COPY --from=builder --chown=nina:nina /workspace/services/${SERVICE}/package.json ./package.json
+COPY --from=builder --chown=nina:nina /workspace/node_modules ./node_modules
+COPY --from=builder --chown=nina:nina /workspace/packages ./packages
+
+USER nina
+
+# HEALTHCHECK standard NestJS : endpoint /health doit retourner 200.
+# Intervalle court (10s) pour détecter rapidement les pods unhealthy en K3s.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://localhost:${PORT:-3000}/health || exit 1
+
+# `tini` gère correctement les signaux SIGTERM (graceful shutdown NestJS).
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/src/main.js"]
+
+# Labels OCI standard — utiles pour Kubernetes annotations + traçabilité.
+LABEL org.opencontainers.image.title="NINA-AES — ${SERVICE}"
+LABEL org.opencontainers.image.vendor="CTDEC / Mali"
+LABEL org.opencontainers.image.licenses="UNLICENSED"
+LABEL org.opencontainers.image.source="https://github.com/your-org/nina-aes-platform"

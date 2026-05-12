@@ -1,0 +1,107 @@
+# ============================================================================
+# Dockerfile générique pour les microservices FastAPI NINA-AES
+# ============================================================================
+# Utilisation :
+#
+#   docker build \
+#     -f infrastructure/docker/Dockerfile.fastapi \
+#     --build-arg SERVICE=ai-service \
+#     -t nina-aes/ai-service:latest \
+#     .
+#
+# Multi-stage Python 3.14 slim + uv (gestionnaire de paquets rapide,
+# successeur de pip/poetry) :
+#   1. base    : Python 3.14 slim + uv 0.5+
+#   2. deps    : installation isolée via `uv pip sync requirements.txt`
+#   3. runner  : image finale minimale (~120 MB), utilisateur non-root,
+#                HEALTHCHECK curl /health, démarrage uvicorn
+#
+# Compatible avec les 2 services Python :
+#   ai-service (port 3003 — fuzzy + XGBoost + spaCy + Tesseract OCR)
+#   anticorruption-service (port 3009 — Isolation Forest + BERT-FR)
+#
+# Pourquoi `uv` plutôt que pip ? 10-100× plus rapide, lockfile déterministe,
+# pas de jit-resolver. Souverain (Rust, open-source, Astral).
+# ============================================================================
+
+ARG SERVICE
+ARG PYTHON_VERSION=3.14-slim-bookworm
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 1 — base : Python + uv + dépendances système minimales
+# ────────────────────────────────────────────────────────────────────────────
+FROM python:${PYTHON_VERSION} AS base
+
+# `uv` est distribué en binaire statique — image officielle Astral
+COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
+
+# Dépendances système pour les libs ML :
+#   - libgomp1   : OpenMP pour XGBoost / LightGBM
+#   - libstdc++  : Tesseract / spaCy
+#   - tesseract-ocr : OCR (uniquement pour ai-service mais inclus partout pour simplicité)
+#   - tesseract-ocr-fra : langue française
+#   - curl       : HEALTHCHECK
+# `apt-get clean` + suppression de /var/lib/apt/lists/* économise ~50 MB.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl \
+      libgomp1 \
+      libstdc++6 \
+      tesseract-ocr \
+      tesseract-ocr-fra \
+      tini \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR /app
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 2 — deps : installe les dépendances Python via uv
+# ────────────────────────────────────────────────────────────────────────────
+FROM base AS deps
+ARG SERVICE
+# On copie d'abord uniquement les fichiers de dépendances → cache Docker
+# n'invalidé que sur changement de requirements.txt / pyproject.toml.
+COPY services/${SERVICE}/pyproject.toml ./
+COPY services/${SERVICE}/requirements.txt ./
+# `uv pip sync` installe **exactement** ce qui est dans requirements.txt
+# (déterministe, idempotent). Crée un venv système (/usr/local).
+RUN uv pip install --system --no-cache -r requirements.txt
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 3 — runner : image finale
+# ────────────────────────────────────────────────────────────────────────────
+FROM base AS runner
+ARG SERVICE
+
+# Utilisateur non-root (UID 1001 cohérent avec le Dockerfile.nestjs).
+RUN groupadd -g 1001 nina && \
+    useradd -u 1001 -g nina -m -s /sbin/nologin nina
+
+# Récupère les packages Python installés au stage `deps`.
+COPY --from=deps /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
+
+# Copie le code source du service.
+COPY --chown=nina:nina services/${SERVICE}/app ./app
+# Variable d'environnement pour que le service puisse retrouver son nom.
+ENV NINA_SERVICE_NAME=${SERVICE}
+
+USER nina
+
+# HEALTHCHECK : FastAPI expose conventionnellement /health (cf. doc 11).
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -fsS http://localhost:${PORT:-3003}/health || exit 1
+
+# `tini` gère SIGTERM proprement pour les workers uvicorn.
+ENTRYPOINT ["/usr/bin/tini", "--"]
+# uvicorn workers : 1 worker / vCPU au démarrage, peut être augmenté via env.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-3003} --workers ${UVICORN_WORKERS:-1}"]
+
+LABEL org.opencontainers.image.title="NINA-AES — ${SERVICE}"
+LABEL org.opencontainers.image.vendor="CTDEC / Mali"
+LABEL org.opencontainers.image.licenses="UNLICENSED"

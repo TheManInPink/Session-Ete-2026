@@ -126,3 +126,58 @@ Impact maintenance:
 - Réduction du drift documentaire entre sessions.
 - Contrôles rapides intégrables en local, hook et CI.
 - Préparation à une gouvernance documentaire plus stricte sur les 250+ éléments du monorepo.
+
+## 9. Phase 2 — Infrastructure & DevOps (mai 2026)
+
+Conformément à **PROMPT 2.1**, l'infrastructure de développement a été
+consolidée :
+
+### 9.1 Dockerfiles génériques réutilisables
+
+- **`infrastructure/docker/Dockerfile.nestjs`** — Multi-stage Node 24-alpine
+  + pnpm 10 + Turborepo pruning (`turbo prune`). Réutilisable par les 9+
+  services NestJS via `--build-arg SERVICE=<nom>`. Utilisateur non-root UID
+  1001, HEALTHCHECK `/health`, `tini` pour SIGTERM, labels OCI.
+- **`infrastructure/docker/Dockerfile.fastapi`** — Multi-stage Python 3.14
+  slim + `uv` 0.5 (gestionnaire de paquets Rust, 10-100× plus rapide que
+  pip). Inclut Tesseract OCR + libgomp1 pour XGBoost. Réutilisable par
+  `ai-service` et `anticorruption-service`.
+
+Les Dockerfiles par-service (`services/<X>/Dockerfile`) restent disponibles
+en mode legacy mais ont été modernisés (Node 24, utilisateur non-root,
+HEALTHCHECK). Le build CI/CD doit privilégier le générique :
+
+```powershell
+make build-service SERVICE=identity-service
+```
+
+### 9.2 Pas de `seed-locations.sql` séparé (décision documentée)
+
+Le PROMPT 2.1 suggérait un script SQL exhaustif des 19 régions / 159
+cercles / 819 communes / 12 712 villages. **Décision : non créé** car le
+référentiel canonique est `data/mali/*.json` + Prisma seed. Détails dans
+`docs/data/mali-divisions.md` §3bis.
+
+### 9.3 Makefile enrichi (44 cibles)
+
+Cibles ajoutées au Makefile racine :
+
+- `verify` / `validate-data` / `validate-schemas` / `docs-sync` — chaîne
+  de vérification du repo
+- `build-service SERVICE=<X>` — paramétrable, utilise le Dockerfile
+  générique
+- `vault-init` / `vault-unseal` / `vault-status` — gestion des secrets
+- `certs-generate` / `certs-clean` — certificats mTLS dev pour les 3
+  pays AES (CA RSA 4096 + 3 certs clients RSA 2048 / 90 jours)
+- `db-validate` — `prisma validate` rapide
+- `dev-sigac` / `dev-governance` — services manquants
+- `clean-deep` — purge totale (.venv inclus)
+
+Validation : `make help` liste les 44 cibles documentées.
+
+### 9.4 Stack Docker Compose : état effectif
+
+`infrastructure/docker/docker-compose.dev.yml` reste la source de vérité
+pour les 9+ services d'infrastructure (PostgreSQL+PostGIS, Redis, RabbitMQ,
+MinIO, Elasticsearch, Kibana, Keycloak, Vault, MailDev). Corrections déjà
+appliquées (cf. §4 « Incidents résolus »).

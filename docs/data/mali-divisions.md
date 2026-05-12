@@ -138,6 +138,38 @@ pris dans le champ `firstNameAscii` du citoyen ou dans un champ texte libre.
 
 ---
 
+## 3bis. Choix de stockage : pas de `seed-locations.sql` séparé
+
+Le PROMPT 2.1 (Infrastructure & DevOps) suggérait un script
+`infrastructure/scripts/seed-locations.sql` contenant les 19 régions,
+159 cercles, 466 arrondissements, 819 communes et 12 712 villages en SQL brut.
+
+**Décision : ce script n'est PAS créé.** Raisons :
+
+1. **Source de vérité unique** : `data/mali/regions.json` + `cercles.json` +
+   `mali.geojson` sont la seule représentation canonique. Un SQL parallèle
+   créerait un risque de drift (déjà observé sur d'autres projets).
+2. **Le seed Prisma fait le travail** : `packages/database/prisma/seed.ts`
+   charge les fichiers JSON et upsert les 20 régions + 64 cercles + 290
+   communes échantillon via `prisma.location.upsert()`. Idempotent,
+   re-exécutable.
+3. **Validation automatique** : `pnpm run validate:data` + `validate:schemas`
+   vérifient la cohérence à chaque commit (pre-commit Husky bloquant).
+
+**Pour ingérer la base initiale**, utiliser :
+
+```powershell
+pnpm docker:up                                              # postgres up
+pnpm --filter @nina-aes/database exec prisma migrate deploy # schéma
+pnpm --filter @nina-aes/database db:seed                    # charge JSON → DB
+```
+
+L'unique fichier SQL d'init reste `scripts/init-db.sql` (chargement des
+extensions PostgreSQL : `uuid-ossp`, `pgcrypto`, `pg_trgm`, `unaccent`,
+`citext`, `postgis`).
+
+---
+
 ## 4. Hypothèses et corrections appliquées
 
 Liste des choix **non-triviaux** documentés explicitement (en complément des

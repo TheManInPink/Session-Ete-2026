@@ -3,74 +3,120 @@
 # ============================================================================
 # Raccourcis pour les commandes courantes
 # Usage : make <cible>
-# Exemples : make install, make dev, make dev-citizen, make lint, make db-migrate, etc.
+# Exemples : make install, make dev, make verify, make db-migrate, etc.
+#
+# Compatible Windows via Git Bash. Pour PowerShell, les commandes équivalentes
+# sont documentées dans `docs/03-SETUP-ENVIRONNEMENT-DEV.md`.
 # ═══════════════════════════════════════════════════
 
-.PHONY: help install dev dev-citizen dev-admin dev-governance dev-service build lint format test clean docker-up docker-down db-migrate db-seed db-studio ai-dev
+.PHONY: help install dev dev-citizen dev-admin dev-governance dev-services dev-gateway dev-ai \
+        build build-docker build-service \
+        lint lint-fix format format-check check-types \
+        test test-cov test-watch \
+        docker-up docker-down docker-logs docker-ps docker-down-v \
+        db-generate db-migrate db-seed db-studio db-reset db-validate \
+        vault-init vault-unseal vault-status \
+        certs-generate certs-clean \
+        verify validate-data validate-schemas docs-sync \
+        clean clean-deep init
 
-# Infrastructure Docker : même fichier `.env` à la racine que les apps (pas de valeurs éparpillées).
-# Alternative : copier `infrastructure/docker/.env.docker.example` vers `.env.docker` et passer
-#   --env-file infrastructure/docker/.env.docker à la place de `--env-file .env`.
+# Infrastructure Docker : même fichier `.env` à la racine que les apps.
+# Alternative : copier `infrastructure/docker/.env.docker.example` vers
+# `.env.docker` et passer `--env-file infrastructure/docker/.env.docker`.
 DOCKER_COMPOSE = docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml
 
-# Cible par défaut : affiche l'aide
+# Service par défaut pour les cibles paramétrées (ex. `make build-service SERVICE=identity-service`).
+SERVICE ?= identity-service
+
+# Conteneur Vault pour les cibles `vault-*`.
+VAULT_CONTAINER = nina-vault
+VAULT_ADDR = http://localhost:8200
+
+# Dossier de sortie des certificats mTLS dev.
+CERTS_DIR = secrets/aes
+
+# Cible par défaut : affiche l'aide.
 help: ## Affiche cette aide
 	@echo "═══════════════════════════════════════════════"
 	@echo " NINA-AES Platform — Commandes disponibles"
 	@echo "═══════════════════════════════════════════════"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
-# ── Installation ──
+# ── Installation ────────────────────────────────────────────────────────────
 install: ## Installe toutes les dépendances (pnpm + Python)
 	pnpm install
 	cd services/ai-service && pip install -r requirements.txt
 	cd services/anticorruption-service && pip install -r requirements.txt
 
-# ── Développement ──
-dev: ## Lance tous les services en mode développement (frontend + backend)
+# ── Développement ──────────────────────────────────────────────────────────
+dev: ## Lance tous les services en mode développement
 	pnpm run dev
 
-dev-citizen: ## Lance uniquement le portail citoyen (port 4000)
+dev-citizen: ## Lance uniquement le portail citoyen (port 4001)
 	pnpm run dev:citizen
 
-dev-admin: ## Lance uniquement le dashboard admin (port 4001)
+dev-admin: ## Lance uniquement le dashboard admin (port 4002)
 	pnpm run dev:admin
 
-dev-identity: ## Lance uniquement identity-service (port 3001)
+dev-governance: ## Lance uniquement le portail gouvernance (port 4003)
+	pnpm run dev:governance
+
+dev-identity: ## Lance identity-service (port 3001)
 	pnpm run dev:identity
 
-dev-ai: ## Lance le service IA FastAPI (port 3003)
+dev-ai: ## Lance ai-service FastAPI (port 3003)
 	cd services/ai-service && uvicorn app.main:app --reload --port 3003
 
-dev-services: ## Lancer tous les microservices backend
+dev-sigac: ## Lance anticorruption-service FastAPI (port 3009)
+	cd services/anticorruption-service && uvicorn app.main:app --reload --port 3009
+
+dev-services: ## Lance tous les microservices backend en parallèle
 	pnpm run dev:services
 
-dev-gateway: ## Start only API gateway
+dev-gateway: ## Lance uniquement l'API Gateway (port 3000)
 	pnpm run dev:gateway
 
-# ── Build ──
-build: ## Build tous les packages et applications
+# ── Build ──────────────────────────────────────────────────────────────────
+build: ## Build tous les packages et applications via Turborepo
 	pnpm run build
 
-build-docker: ## Build les images Docker
-	docker build -f services/identity-service/Dockerfile -t nina-aes/identity-service:latest .
-	docker build -f services/ai-service/Dockerfile -t nina-aes/ai-service:latest services/ai-service/
+build-docker: ## Build toutes les images Docker des microservices
+	$(MAKE) build-service SERVICE=identity-service
+	$(MAKE) build-service SERVICE=auth-service
+	$(MAKE) build-service SERVICE=ai-service
 
-# ── Tests ──
+build-service: ## Build l'image Docker d'un service (usage: make build-service SERVICE=xxx)
+	@echo "🐳 Build de l'image $(SERVICE)..."
+	@if echo "$(SERVICE)" | grep -qE "^(ai|anticorruption)-service$$"; then \
+		docker build -f infrastructure/docker/Dockerfile.fastapi \
+			--build-arg SERVICE=$(SERVICE) \
+			-t nina-aes/$(SERVICE):latest . ; \
+	else \
+		docker build -f infrastructure/docker/Dockerfile.nestjs \
+			--build-arg SERVICE=$(SERVICE) \
+			-t nina-aes/$(SERVICE):latest . ; \
+	fi
+	@echo "✅ Image nina-aes/$(SERVICE):latest construite"
+
+# ── Tests ──────────────────────────────────────────────────────────────────
 test: ## Lance tous les tests (Jest + Pytest)
 	pnpm run test
 	cd services/ai-service && pytest tests/ -v
 	cd services/anticorruption-service && pytest
 
-test-cov: ## Lancer les tests avec couverture de code
+test-cov: ## Lance les tests avec couverture de code
 	pnpm run test:cov
 
+test-watch: ## Lance les tests en mode watch (Jest)
+	pnpm run test -- --watch
+
+# ── Qualité ────────────────────────────────────────────────────────────────
 lint: ## Vérifie le code (ESLint + Ruff)
 	pnpm run lint
 	cd services/ai-service && ruff check .
 	cd services/anticorruption-service && ruff check .
 
-lint-fix: ## Corriger automatiquement les erreurs ESLint
+lint-fix: ## Corrige automatiquement les erreurs ESLint/Ruff
 	pnpm run lint:fix
 
 format: ## Formate le code (Prettier + Ruff)
@@ -78,13 +124,26 @@ format: ## Formate le code (Prettier + Ruff)
 	cd services/ai-service && ruff format .
 	cd services/anticorruption-service && ruff format .
 
-format-check: ## Vérifier le formatage sans modifier
-	pnpm run format:
-	
-check-types: ## Vérifier les types TypeScript
+format-check: ## Vérifie le formatage sans modifier
+	pnpm run format:check
+
+check-types: ## Vérifie les types TypeScript (turbo)
 	pnpm run check-types
 
-# ── Docker ──
+# ── Vérification du repo (chaîne data + schémas + docs) ────────────────────
+verify: ## Lance la chaîne complète de vérification (data + schémas + docs)
+	pnpm run verify:repo
+
+validate-data: ## Vérifie les invariants des données Mali
+	pnpm run validate:data
+
+validate-schemas: ## Vérifie les JSON Schemas (Ajv)
+	pnpm run validate:schemas
+
+docs-sync: ## Vérifie la cohérence des cross-références documentaires
+	pnpm run docs:sync:check
+
+# ── Docker ─────────────────────────────────────────────────────────────────
 docker-up: ## Démarre l'infrastructure Docker (PostgreSQL, Redis, RabbitMQ, etc.)
 	$(DOCKER_COMPOSE) up -d
 
@@ -97,31 +156,89 @@ docker-logs: ## Affiche les logs Docker en temps réel
 docker-ps: ## Liste les conteneurs en cours d'exécution
 	$(DOCKER_COMPOSE) ps
 
-docker-down-v: ## Arrêter ET supprimer les volumes (PERTE DE DONNÉES)
+docker-down-v: ## Arrête ET supprime les volumes (⚠️ PERTE DE DONNÉES)
 	$(DOCKER_COMPOSE) down -v
 
-# ── Base de données ──
+# ── Base de données ────────────────────────────────────────────────────────
 db-generate: ## Génère le client Prisma
 	cd packages/database && pnpm run db:generate
 
-db-migrate: ## Exécute les migrations Prisma
+db-migrate: ## Applique les migrations Prisma
 	cd packages/database && pnpm run db:migrate
 
-db-seed: ## Peuple la base avec les données initiales (géographie Mali)
+db-seed: ## Peuple la base avec les données initiales (référentiel Mali)
 	cd packages/database && pnpm run db:seed
 
 db-studio: ## Ouvre Prisma Studio (interface visuelle BDD)
 	cd packages/database && pnpm run db:studio
 
 db-reset: ## Remet la base à zéro (⚠️ supprime toutes les données)
-	cd packages/database && pnpm exec prisma migrate reset
+	cd packages/database && pnpm exec prisma migrate reset --force
 
-# ── Nettoyage ──
+db-validate: ## Valide le schéma Prisma
+	cd packages/database && pnpm exec prisma validate
+
+# ── Vault (gestion des secrets) ────────────────────────────────────────────
+vault-init: ## Initialise Vault (génère les 5 unseal keys + root token)
+	@echo "🔐 Initialisation de Vault..."
+	docker exec $(VAULT_CONTAINER) vault operator init -key-shares=5 -key-threshold=3 \
+		| tee secrets/vault-init.txt
+	@echo "⚠️  Les unseal keys sont sauvegardées dans secrets/vault-init.txt"
+	@echo "    Distribuez les 5 keys à 5 personnes différentes en production."
+
+vault-unseal: ## Déverrouille Vault (lit secrets/vault-init.txt)
+	@if [ ! -f secrets/vault-init.txt ]; then \
+		echo "❌ secrets/vault-init.txt introuvable. Lancez 'make vault-init' d'abord."; \
+		exit 1; \
+	fi
+	@echo "🔓 Unseal Vault avec 3 des 5 keys..."
+	@grep "Unseal Key" secrets/vault-init.txt | head -3 | awk '{print $$NF}' | \
+		xargs -I{} docker exec $(VAULT_CONTAINER) vault operator unseal {}
+
+vault-status: ## Affiche le statut de Vault
+	docker exec $(VAULT_CONTAINER) vault status
+
+# ── Certificats mTLS (interopérabilité AES) ────────────────────────────────
+certs-generate: ## Génère les certificats mTLS dev pour les 3 pays AES (Mali/BFA/Niger)
+	@mkdir -p $(CERTS_DIR)
+	@echo "🔏 Génération de la CA AES dev..."
+	openssl req -x509 -newkey rsa:4096 -nodes \
+		-keyout $(CERTS_DIR)/ca.key -out $(CERTS_DIR)/ca.pem \
+		-days 365 -subj "/CN=AES-DEV-CA/O=Alliance des Etats du Sahel/C=ML" \
+		-addext "basicConstraints=CA:TRUE"
+	@for COUNTRY in mli bfa ner; do \
+		echo "🔏 Génération du cert client $$COUNTRY..." ; \
+		openssl req -newkey rsa:2048 -nodes \
+			-keyout $(CERTS_DIR)/$$COUNTRY.key -out $(CERTS_DIR)/$$COUNTRY.csr \
+			-subj "/CN=AES-$$COUNTRY-GW-01/O=Gouvernement $$COUNTRY/C=ML" ; \
+		openssl x509 -req -in $(CERTS_DIR)/$$COUNTRY.csr \
+			-CA $(CERTS_DIR)/ca.pem -CAkey $(CERTS_DIR)/ca.key -CAcreateserial \
+			-out $(CERTS_DIR)/$$COUNTRY.pem -days 90 ; \
+		rm $(CERTS_DIR)/$$COUNTRY.csr ; \
+	done
+	@echo "✅ Certificats mTLS générés dans $(CERTS_DIR)/"
+	@echo "   ⚠️  Pour la PRODUCTION : utiliser Vault PKI engine (cf. doc 15)"
+
+certs-clean: ## Supprime les certificats mTLS dev
+	rm -rf $(CERTS_DIR)/*.key $(CERTS_DIR)/*.pem $(CERTS_DIR)/*.srl
+
+# ── Nettoyage ──────────────────────────────────────────────────────────────
 clean: ## Supprime node_modules, dist, .next, .turbo
 	pnpm run clean
-	rm -rf node_modules/.cache
-	rm -rf .turbo
+	rm -rf node_modules/.cache .turbo
 
-# ── Initialisation complète ──
-init: install docker-up db-migrate db-seed ## Setup complet : install + docker + migrations + seeds
+clean-deep: ## Nettoyage profond : tout supprimer (node_modules, .venv, dist, builds)
+	$(MAKE) clean
+	rm -rf node_modules .venv
+	find . -name "dist" -type d -exec rm -rf {} + 2>/dev/null || true
+	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# ── Initialisation complète ────────────────────────────────────────────────
+init: install docker-up db-migrate db-seed verify ## Setup complet : install + docker + migrations + seeds + verify
+	@echo "═══════════════════════════════════════════════"
 	@echo "✅ NINA-AES Platform initialisée avec succès"
+	@echo "═══════════════════════════════════════════════"
+	@echo "Prochaines étapes :"
+	@echo "  • make docker-ps    → vérifier les conteneurs"
+	@echo "  • make dev          → démarrer le développement"
+	@echo "  • make help         → lister toutes les cibles"
