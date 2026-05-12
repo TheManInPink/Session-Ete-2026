@@ -9,7 +9,7 @@
       "source_file": "commitlint.config.js",
       "source_location": "L1",
       "id": "commitlint_config_js",
-      "community": 24,
+      "community": 31,
       "norm_label": "commitlint.config.js"
     },
     {
@@ -18,7 +18,7 @@
       "source_file": "apps\\admin\\eslint.config.js",
       "source_location": "L1",
       "id": "apps_admin_eslint_config_js",
-      "community": 25,
+      "community": 32,
       "norm_label": "eslint.config.js"
     },
     {
@@ -27,7 +27,7 @@
       "source_file": "apps\\admin\\next-env.d.ts",
       "source_location": "L1",
       "id": "apps_admin_next_env_d_ts",
-      "community": 26,
+      "community": 33,
       "norm_label": "next-env.d.ts"
     },
     {
@@ -36,7 +36,7 @@
       "source_file": "apps\\admin\\next.config.js",
       "source_location": "L1",
       "id": "apps_admin_next_config_js",
-      "community": 27,
+      "community": 34,
       "norm_label": "next.config.js"
     },
     {
@@ -45,7 +45,7 @@
       "source_file": "apps\\admin\\app\\layout.tsx",
       "source_location": "L1",
       "id": "apps_admin_app_layout_tsx",
-      "community": 13,
+      "community": 15,
       "norm_label": "layout.tsx"
     },
     {
@@ -54,7 +54,7 @@
       "source_file": "apps\\governance\\app\\layout.tsx",
       "source_location": "L19",
       "id": "layout_rootlayout",
-      "community": 13,
+      "community": 15,
       "norm_label": "rootlayout()"
     },
     {
@@ -63,7 +63,7 @@
       "source_file": "apps\\admin\\app\\page.tsx",
       "source_location": "L1",
       "id": "apps_admin_app_page_tsx",
-      "community": 14,
+      "community": 16,
       "norm_label": "page.tsx"
     },
     {
@@ -72,7 +72,7 @@
       "source_file": "apps\\governance\\app\\page.tsx",
       "source_location": "L10",
       "id": "page_themeimage",
-      "community": 14,
+      "community": 16,
       "norm_label": "themeimage()"
     },
     {
@@ -81,7 +81,7 @@
       "source_file": "apps\\citizen\\eslint.config.js",
       "source_location": "L1",
       "id": "apps_citizen_eslint_config_js",
-      "community": 28,
+      "community": 35,
       "norm_label": "eslint.config.js"
     },
     {
@@ -90,7 +90,7 @@
       "source_file": "apps\\citizen\\next-env.d.ts",
       "source_location": "L1",
       "id": "apps_citizen_next_env_d_ts",
-      "community": 29,
+      "community": 36,
       "norm_label": "next-env.d.ts"
     },
     {
@@ -99,7 +99,7 @@
       "source_file": "apps\\citizen\\next.config.js",
       "source_location": "L1",
       "id": "apps_citizen_next_config_js",
-      "community": 30,
+      "community": 37,
       "norm_label": "next.config.js"
     },
     {
@@ -108,7 +108,7 @@
       "source_file": "apps\\citizen\\app\\layout.tsx",
       "source_location": "L1",
       "id": "apps_citizen_app_layout_tsx",
-      "community": 13,
+      "community": 15,
       "norm_label": "layout.tsx"
     },
     {
@@ -117,7 +117,7 @@
       "source_file": "apps\\citizen\\app\\page.tsx",
       "source_location": "L1",
       "id": "apps_citizen_app_page_tsx",
-      "community": 14,
+      "community": 16,
       "norm_label": "page.tsx"
     },
     {
@@ -126,7 +126,7 @@
       "source_file": "apps\\governance\\eslint.config.js",
       "source_location": "L1",
       "id": "apps_governance_eslint_config_js",
-      "community": 31,
+      "community": 38,
       "norm_label": "eslint.config.js"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "apps\\governance\\next-env.d.ts",
       "source_location": "L1",
       "id": "apps_governance_next_env_d_ts",
-      "community": 32,
+      "community": 39,
       "norm_label": "next-env.d.ts"
     },
     {
@@ -144,7 +144,7 @@
       "source_file": "apps\\governance\\next.config.js",
       "source_location": "L1",
       "id": "apps_governance_next_config_js",
-      "community": 33,
+      "community": 40,
       "norm_label": "next.config.js"
     },
     {
@@ -153,7 +153,7 @@
       "source_file": "apps\\governance\\app\\layout.tsx",
       "source_location": "L1",
       "id": "apps_governance_app_layout_tsx",
-      "community": 13,
+      "community": 15,
       "norm_label": "layout.tsx"
     },
     {
@@ -162,8 +162,17 @@
       "source_file": "apps\\governance\\app\\page.tsx",
       "source_location": "L1",
       "id": "apps_governance_app_page_tsx",
-      "community": 14,
+      "community": 16,
       "norm_label": "page.tsx"
+    },
+    {
+      "label": "jest.config.ts",
+      "file_type": "code",
+      "source_file": "packages\\config\\jest.config.ts",
+      "source_location": "L1",
+      "id": "packages_config_jest_config_ts",
+      "community": 41,
+      "norm_label": "jest.config.ts"
     },
     {
       "label": "index.ts",
@@ -171,44 +180,71 @@
       "source_file": "packages\\config\\src\\index.ts",
       "source_location": "L1",
       "id": "packages_config_src_index_ts",
-      "community": 10,
+      "community": 11,
       "norm_label": "index.ts"
     },
     {
       "label": "locateMonorepoEnv()",
       "file_type": "code",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L38",
+      "source_location": "L39",
       "id": "index_locatemonorepoenv",
-      "community": 10,
+      "community": 11,
       "norm_label": "locatemonorepoenv()"
     },
     {
       "label": "validateEnv()",
       "file_type": "code",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L160",
+      "source_location": "L173",
       "id": "index_validateenv",
-      "community": 10,
+      "community": 11,
       "norm_label": "validateenv()"
     },
     {
       "label": "getConfig()",
       "file_type": "code",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L184",
+      "source_location": "L197",
       "id": "index_getconfig",
-      "community": 10,
+      "community": 11,
       "norm_label": "getconfig()"
     },
     {
       "label": "resetConfig()",
       "file_type": "code",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L195",
+      "source_location": "L208",
       "id": "index_resetconfig",
-      "community": 10,
+      "community": 11,
       "norm_label": "resetconfig()"
+    },
+    {
+      "label": "index.test.ts",
+      "file_type": "code",
+      "source_file": "packages\\config\\src\\__tests__\\index.test.ts",
+      "source_location": "L1",
+      "id": "packages_config_src_tests_index_test_ts",
+      "community": 42,
+      "norm_label": "index.test.ts"
+    },
+    {
+      "label": "jest.setup.ts",
+      "file_type": "code",
+      "source_file": "packages\\config\\src\\__tests__\\jest.setup.ts",
+      "source_location": "L1",
+      "id": "packages_config_src_tests_jest_setup_ts",
+      "community": 21,
+      "norm_label": "jest.setup.ts"
+    },
+    {
+      "label": "globalSetup()",
+      "file_type": "code",
+      "source_file": "packages\\config\\src\\__tests__\\jest.setup.ts",
+      "source_location": "L9",
+      "id": "jest_setup_globalsetup",
+      "community": 21,
+      "norm_label": "globalsetup()"
     },
     {
       "label": "prisma.config.ts",
@@ -216,8 +252,17 @@
       "source_file": "packages\\database\\prisma.config.ts",
       "source_location": "L1",
       "id": "packages_database_prisma_config_ts",
-      "community": 34,
+      "community": 22,
       "norm_label": "prisma.config.ts"
+    },
+    {
+      "label": "locateMonorepoEnv()",
+      "file_type": "code",
+      "source_file": "packages\\database\\prisma.config.ts",
+      "source_location": "L38",
+      "id": "prisma_config_locatemonorepoenv",
+      "community": 22,
+      "norm_label": "locatemonorepoenv()"
     },
     {
       "label": "seed.ts",
@@ -225,34 +270,43 @@
       "source_file": "packages\\database\\prisma\\seed.ts",
       "source_location": "L1",
       "id": "packages_database_prisma_seed_ts",
-      "community": 15,
+      "community": 12,
       "norm_label": "seed.ts"
+    },
+    {
+      "label": "loadMaliJson()",
+      "file_type": "code",
+      "source_file": "packages\\database\\prisma\\seed.ts",
+      "source_location": "L71",
+      "id": "seed_loadmalijson",
+      "community": 12,
+      "norm_label": "loadmalijson()"
     },
     {
       "label": "toAscii()",
       "file_type": "code",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L31",
+      "source_location": "L87",
       "id": "seed_toascii",
-      "community": 15,
+      "community": 12,
       "norm_label": "toascii()"
     },
     {
       "label": "upsertLocation()",
       "file_type": "code",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L43",
+      "source_location": "L99",
       "id": "seed_upsertlocation",
-      "community": 15,
+      "community": 12,
       "norm_label": "upsertlocation()"
     },
     {
       "label": "main()",
       "file_type": "code",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L281",
+      "source_location": "L346",
       "id": "seed_main",
-      "community": 15,
+      "community": 12,
       "norm_label": "main()"
     },
     {
@@ -261,43 +315,43 @@
       "source_file": "packages\\database\\src\\index.ts",
       "source_location": "L1",
       "id": "packages_database_src_index_ts",
-      "community": 11,
+      "community": 13,
       "norm_label": "index.ts"
     },
     {
       "label": "createBareClient()",
       "file_type": "code",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L68",
+      "source_location": "L71",
       "id": "index_createbareclient",
-      "community": 11,
+      "community": 13,
       "norm_label": "createbareclient()"
     },
     {
       "label": "applyNotDeleted()",
       "file_type": "code",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L86",
+      "source_location": "L94",
       "id": "index_applynotdeleted",
-      "community": 11,
+      "community": 13,
       "norm_label": "applynotdeleted()"
     },
     {
       "label": "createExtendedClient()",
       "file_type": "code",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L177",
+      "source_location": "L185",
       "id": "index_createextendedclient",
-      "community": 11,
+      "community": 13,
       "norm_label": "createextendedclient()"
     },
     {
       "label": "disconnectPrisma()",
       "file_type": "code",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L212",
+      "source_location": "L220",
       "id": "index_disconnectprisma",
-      "community": 11,
+      "community": 13,
       "norm_label": "disconnectprisma()"
     },
     {
@@ -306,7 +360,7 @@
       "source_file": "packages\\eslint-config\\base.d.ts",
       "source_location": "L1",
       "id": "packages_eslint_config_base_d_ts",
-      "community": 35,
+      "community": 43,
       "norm_label": "base.d.ts"
     },
     {
@@ -315,7 +369,7 @@
       "source_file": "packages\\eslint-config\\base.js",
       "source_location": "L1",
       "id": "packages_eslint_config_base_js",
-      "community": 36,
+      "community": 44,
       "norm_label": "base.js"
     },
     {
@@ -324,7 +378,7 @@
       "source_file": "packages\\eslint-config\\next-js.d.ts",
       "source_location": "L1",
       "id": "packages_eslint_config_next_js_d_ts",
-      "community": 37,
+      "community": 45,
       "norm_label": "next-js.d.ts"
     },
     {
@@ -333,7 +387,7 @@
       "source_file": "packages\\eslint-config\\next.js",
       "source_location": "L1",
       "id": "packages_eslint_config_next_js",
-      "community": 38,
+      "community": 46,
       "norm_label": "next.js"
     },
     {
@@ -342,7 +396,7 @@
       "source_file": "packages\\eslint-config\\react-internal.d.ts",
       "source_location": "L1",
       "id": "packages_eslint_config_react_internal_d_ts",
-      "community": 39,
+      "community": 47,
       "norm_label": "react-internal.d.ts"
     },
     {
@@ -351,8 +405,26 @@
       "source_file": "packages\\eslint-config\\react-internal.js",
       "source_location": "L1",
       "id": "packages_eslint_config_react_internal_js",
-      "community": 40,
+      "community": 48,
       "norm_label": "react-internal.js"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "packages\\logger\\src\\index.ts",
+      "source_location": "L1",
+      "id": "packages_logger_src_index_ts",
+      "community": 23,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "createLogger()",
+      "file_type": "code",
+      "source_file": "packages\\logger\\src\\index.ts",
+      "source_location": "L37",
+      "id": "index_createlogger",
+      "community": 23,
+      "norm_label": "createlogger()"
     },
     {
       "label": "constants.ts",
@@ -360,7 +432,7 @@
       "source_file": "packages\\shared-types\\src\\constants.ts",
       "source_location": "L1",
       "id": "packages_shared_types_src_constants_ts",
-      "community": 18,
+      "community": 24,
       "norm_label": "constants.ts"
     },
     {
@@ -369,7 +441,7 @@
       "source_file": "packages\\shared-types\\src\\constants.ts",
       "source_location": "L25",
       "id": "constants_isvalidninaformat",
-      "community": 18,
+      "community": 24,
       "norm_label": "isvalidninaformat()"
     },
     {
@@ -378,7 +450,7 @@
       "source_file": "packages\\shared-types\\src\\dtos.ts",
       "source_location": "L1",
       "id": "packages_shared_types_src_dtos_ts",
-      "community": 41,
+      "community": 49,
       "norm_label": "dtos.ts"
     },
     {
@@ -387,7 +459,7 @@
       "source_file": "packages\\shared-types\\src\\enums.ts",
       "source_location": "L1",
       "id": "packages_shared_types_src_enums_ts",
-      "community": 42,
+      "community": 50,
       "norm_label": "enums.ts"
     },
     {
@@ -396,7 +468,7 @@
       "source_file": "packages\\shared-types\\src\\index.ts",
       "source_location": "L1",
       "id": "packages_shared_types_src_index_ts",
-      "community": 43,
+      "community": 51,
       "norm_label": "index.ts"
     },
     {
@@ -405,7 +477,7 @@
       "source_file": "packages\\shared-types\\src\\interfaces.ts",
       "source_location": "L1",
       "id": "packages_shared_types_src_interfaces_ts",
-      "community": 44,
+      "community": 52,
       "norm_label": "interfaces.ts"
     },
     {
@@ -414,7 +486,7 @@
       "source_file": "packages\\ui\\eslint.config.mjs",
       "source_location": "L1",
       "id": "packages_ui_eslint_config_mjs",
-      "community": 45,
+      "community": 53,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -423,7 +495,7 @@
       "source_file": "packages\\ui\\src\\button.tsx",
       "source_location": "L1",
       "id": "packages_ui_src_button_tsx",
-      "community": 19,
+      "community": 25,
       "norm_label": "button.tsx"
     },
     {
@@ -432,7 +504,7 @@
       "source_file": "packages\\ui\\src\\button.tsx",
       "source_location": "L11",
       "id": "button_button",
-      "community": 19,
+      "community": 25,
       "norm_label": "button()"
     },
     {
@@ -441,7 +513,7 @@
       "source_file": "packages\\ui\\src\\card.tsx",
       "source_location": "L1",
       "id": "packages_ui_src_card_tsx",
-      "community": 20,
+      "community": 26,
       "norm_label": "card.tsx"
     },
     {
@@ -450,7 +522,7 @@
       "source_file": "packages\\ui\\src\\card.tsx",
       "source_location": "L3",
       "id": "card_card",
-      "community": 20,
+      "community": 26,
       "norm_label": "card()"
     },
     {
@@ -459,7 +531,7 @@
       "source_file": "packages\\ui\\src\\code.tsx",
       "source_location": "L1",
       "id": "packages_ui_src_code_tsx",
-      "community": 21,
+      "community": 27,
       "norm_label": "code.tsx"
     },
     {
@@ -468,8 +540,17 @@
       "source_file": "packages\\ui\\src\\code.tsx",
       "source_location": "L3",
       "id": "code_code",
-      "community": 21,
+      "community": 27,
       "norm_label": "code()"
+    },
+    {
+      "label": "jest.config.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\jest.config.ts",
+      "source_location": "L1",
+      "id": "packages_utils_jest_config_ts",
+      "community": 54,
+      "norm_label": "jest.config.ts"
     },
     {
       "label": "cn.ts",
@@ -477,7 +558,7 @@
       "source_file": "packages\\utils\\src\\cn.ts",
       "source_location": "L1",
       "id": "packages_utils_src_cn_ts",
-      "community": 22,
+      "community": 28,
       "norm_label": "cn.ts"
     },
     {
@@ -486,8 +567,89 @@
       "source_file": "packages\\utils\\src\\cn.ts",
       "source_location": "L21",
       "id": "cn_cn",
-      "community": 22,
+      "community": 28,
       "norm_label": "cn()"
+    },
+    {
+      "label": "crypto.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_crypto_ts",
+      "community": 6,
+      "norm_label": "crypto.ts"
+    },
+    {
+      "label": "base64url()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L45",
+      "id": "crypto_base64url",
+      "community": 6,
+      "norm_label": "base64url()"
+    },
+    {
+      "label": "signWithRS256()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L68",
+      "id": "crypto_signwithrs256",
+      "community": 6,
+      "norm_label": "signwithrs256()"
+    },
+    {
+      "label": "verifyRS256()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L104",
+      "id": "crypto_verifyrs256",
+      "community": 6,
+      "norm_label": "verifyrs256()"
+    },
+    {
+      "label": "signWithEd25519()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L148",
+      "id": "crypto_signwithed25519",
+      "community": 6,
+      "norm_label": "signwithed25519()"
+    },
+    {
+      "label": "verifyEd25519()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L168",
+      "id": "crypto_verifyed25519",
+      "community": 6,
+      "norm_label": "verifyed25519()"
+    },
+    {
+      "label": "hashBiometric()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L194",
+      "id": "crypto_hashbiometric",
+      "community": 6,
+      "norm_label": "hashbiometric()"
+    },
+    {
+      "label": "date.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\date.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_date_ts",
+      "community": 29,
+      "norm_label": "date.ts"
+    },
+    {
+      "label": "calculateAge()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\date.ts",
+      "source_location": "L26",
+      "id": "date_calculateage",
+      "community": 29,
+      "norm_label": "calculateage()"
     },
     {
       "label": "index.ts",
@@ -495,7 +657,7 @@
       "source_file": "packages\\utils\\src\\index.ts",
       "source_location": "L1",
       "id": "packages_utils_src_index_ts",
-      "community": 46,
+      "community": 55,
       "norm_label": "index.ts"
     },
     {
@@ -504,7 +666,7 @@
       "source_file": "packages\\utils\\src\\merkle.ts",
       "source_location": "L1",
       "id": "packages_utils_src_merkle_ts",
-      "community": 1,
+      "community": 8,
       "norm_label": "merkle.ts"
     },
     {
@@ -513,7 +675,7 @@
       "source_file": "packages\\utils\\src\\merkle.ts",
       "source_location": "L21",
       "id": "merkle_computemerklehash",
-      "community": 1,
+      "community": 8,
       "norm_label": "computemerklehash()"
     },
     {
@@ -522,7 +684,7 @@
       "source_file": "packages\\utils\\src\\merkle.ts",
       "source_location": "L38",
       "id": "merkle_generatemerklehash",
-      "community": 1,
+      "community": 8,
       "norm_label": "generatemerklehash()"
     },
     {
@@ -531,7 +693,7 @@
       "source_file": "packages\\utils\\src\\merkle.ts",
       "source_location": "L50",
       "id": "merkle_verifymerklechain",
-      "community": 1,
+      "community": 8,
       "norm_label": "verifymerklechain()"
     },
     {
@@ -540,7 +702,7 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L1",
       "id": "packages_utils_src_nina_ts",
-      "community": 4,
+      "community": 3,
       "norm_label": "nina.ts"
     },
     {
@@ -549,7 +711,7 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L63",
       "id": "nina_normalizenina",
-      "community": 4,
+      "community": 3,
       "norm_label": "normalizenina()"
     },
     {
@@ -558,7 +720,7 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L74",
       "id": "nina_formatnina",
-      "community": 4,
+      "community": 3,
       "norm_label": "formatnina()"
     },
     {
@@ -567,7 +729,7 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L91",
       "id": "nina_masknina",
-      "community": 4,
+      "community": 3,
       "norm_label": "masknina()"
     },
     {
@@ -576,7 +738,7 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L115",
       "id": "nina_computecontrolletter",
-      "community": 4,
+      "community": 3,
       "norm_label": "computecontrolletter()"
     },
     {
@@ -585,7 +747,7 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L138",
       "id": "nina_validatenina",
-      "community": 4,
+      "community": 3,
       "norm_label": "validatenina()"
     },
     {
@@ -594,7 +756,7 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L151",
       "id": "nina_validateninachecksum",
-      "community": 4,
+      "community": 3,
       "norm_label": "validateninachecksum()"
     },
     {
@@ -603,8 +765,98 @@
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L162",
       "id": "nina_parsenina",
-      "community": 4,
+      "community": 3,
       "norm_label": "parsenina()"
+    },
+    {
+      "label": "sanitize.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_sanitize_ts",
+      "community": 17,
+      "norm_label": "sanitize.ts"
+    },
+    {
+      "label": "maskEmail()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L64",
+      "id": "sanitize_maskemail",
+      "community": 17,
+      "norm_label": "maskemail()"
+    },
+    {
+      "label": "maskPhone()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L79",
+      "id": "sanitize_maskphone",
+      "community": 17,
+      "norm_label": "maskphone()"
+    },
+    {
+      "label": "sanitizeForLog()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L100",
+      "id": "sanitize_sanitizeforlog",
+      "community": 17,
+      "norm_label": "sanitizeforlog()"
+    },
+    {
+      "label": "crypto.test.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\__tests__\\crypto.test.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_tests_crypto_test_ts",
+      "community": 56,
+      "norm_label": "crypto.test.ts"
+    },
+    {
+      "label": "date.test.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\__tests__\\date.test.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_tests_date_test_ts",
+      "community": 57,
+      "norm_label": "date.test.ts"
+    },
+    {
+      "label": "merkle.test.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\__tests__\\merkle.test.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_tests_merkle_test_ts",
+      "community": 8,
+      "norm_label": "merkle.test.ts"
+    },
+    {
+      "label": "buildChain()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\__tests__\\merkle.test.ts",
+      "source_location": "L14",
+      "id": "merkle_test_buildchain",
+      "community": 8,
+      "norm_label": "buildchain()"
+    },
+    {
+      "label": "nina.test.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\__tests__\\nina.test.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_tests_nina_test_ts",
+      "community": 58,
+      "norm_label": "nina.test.ts"
+    },
+    {
+      "label": "sanitize.test.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\__tests__\\sanitize.test.ts",
+      "source_location": "L1",
+      "id": "packages_utils_src_tests_sanitize_test_ts",
+      "community": 59,
+      "norm_label": "sanitize.test.ts"
     },
     {
       "label": "setup.ps1",
@@ -612,8 +864,53 @@
       "source_file": "scripts\\setup.ps1",
       "source_location": "L1",
       "id": "scripts_setup_ps1",
-      "community": 47,
+      "community": 60,
       "norm_label": "setup.ps1"
+    },
+    {
+      "label": "typecheck.ts",
+      "file_type": "code",
+      "source_file": "scripts\\typecheck.ts",
+      "source_location": "L1",
+      "id": "scripts_typecheck_ts",
+      "community": 61,
+      "norm_label": "typecheck.ts"
+    },
+    {
+      "label": "validate-mali-data.ts",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L1",
+      "id": "scripts_validate_mali_data_ts",
+      "community": 18,
+      "norm_label": "validate-mali-data.ts"
+    },
+    {
+      "label": "err()",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L84",
+      "id": "validate_mali_data_err",
+      "community": 18,
+      "norm_label": "err()"
+    },
+    {
+      "label": "load()",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L89",
+      "id": "validate_mali_data_load",
+      "community": 18,
+      "norm_label": "load()"
+    },
+    {
+      "label": "inBbox()",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L99",
+      "id": "validate_mali_data_inbbox",
+      "community": 18,
+      "norm_label": "inbbox()"
     },
     {
       "label": "config.py",
@@ -621,7 +918,7 @@
       "source_file": "services\\ai-service\\app\\config.py",
       "source_location": "L1",
       "id": "services_ai_service_app_config_py",
-      "community": 5,
+      "community": 4,
       "norm_label": "config.py"
     },
     {
@@ -630,7 +927,7 @@
       "source_file": "services\\ai-service\\app\\config.py",
       "source_location": "L10",
       "id": "config_aiservicesettings",
-      "community": 5,
+      "community": 4,
       "norm_label": "aiservicesettings"
     },
     {
@@ -639,7 +936,7 @@
       "source_file": "",
       "source_location": "",
       "id": "basesettings",
-      "community": 5,
+      "community": 4,
       "norm_label": "basesettings"
     },
     {
@@ -647,7 +944,7 @@
       "file_type": "rationale",
       "source_file": "services\\anticorruption-service\\app\\config.py",
       "source_location": "L1",
-      "community": 5,
+      "community": 4,
       "norm_label": "configuration du service sigac.",
       "id": "config_rationale_1"
     },
@@ -656,7 +953,7 @@
       "file_type": "rationale",
       "source_file": "services\\ai-service\\app\\config.py",
       "source_location": "L11",
-      "community": 5,
+      "community": 4,
       "norm_label": "configuration du service ia avec valeurs par defaut pour le developpement.",
       "id": "config_rationale_11"
     },
@@ -666,7 +963,7 @@
       "source_file": "services\\ai-service\\app\\main.py",
       "source_location": "L1",
       "id": "services_ai_service_app_main_py",
-      "community": 8,
+      "community": 9,
       "norm_label": "main.py"
     },
     {
@@ -675,7 +972,7 @@
       "source_file": "services\\anticorruption-service\\app\\main.py",
       "source_location": "L32",
       "id": "main_health_check",
-      "community": 8,
+      "community": 9,
       "norm_label": "health_check()"
     },
     {
@@ -683,7 +980,7 @@
       "file_type": "rationale",
       "source_file": "services\\anticorruption-service\\app\\main.py",
       "source_location": "L1",
-      "community": 8,
+      "community": 9,
       "norm_label": "point d'entree du sigac (anticorruption-service) \u2014 port 3009.  detection algor",
       "id": "main_rationale_1"
     },
@@ -692,7 +989,7 @@
       "file_type": "rationale",
       "source_file": "services\\ai-service\\app\\main.py",
       "source_location": "L38",
-      "community": 8,
+      "community": 9,
       "norm_label": "endpoint de sante \u2014 verifie que le service ia est operationnel.      returns:",
       "id": "main_rationale_38"
     },
@@ -702,7 +999,7 @@
       "source_file": "services\\ai-service\\app\\__init__.py",
       "source_location": "L1",
       "id": "services_ai_service_app_init_py",
-      "community": 17,
+      "community": 20,
       "norm_label": "__init__.py"
     },
     {
@@ -710,7 +1007,7 @@
       "file_type": "rationale",
       "source_file": "services\\anticorruption-service\\app\\__init__.py",
       "source_location": "L1",
-      "community": 17,
+      "community": 20,
       "norm_label": "sigac \u2014 systeme integre de gouvernance anti-corruption.",
       "id": "init_rationale_1"
     },
@@ -720,7 +1017,7 @@
       "source_file": "services\\ai-service\\src\\main.py",
       "source_location": "L1",
       "id": "services_ai_service_src_main_py",
-      "community": 48,
+      "community": 62,
       "norm_label": "main.py"
     },
     {
@@ -729,7 +1026,7 @@
       "source_file": "services\\ai-service\\src\\__init__.py",
       "source_location": "L1",
       "id": "services_ai_service_src_init_py",
-      "community": 49,
+      "community": 63,
       "norm_label": "__init__.py"
     },
     {
@@ -738,7 +1035,7 @@
       "source_file": "services\\ai-service\\tests\\conftest.py",
       "source_location": "L1",
       "id": "services_ai_service_tests_conftest_py",
-      "community": 50,
+      "community": 64,
       "norm_label": "conftest.py"
     },
     {
@@ -747,7 +1044,7 @@
       "source_file": "services\\ai-service\\tests\\test_health.py",
       "source_location": "L1",
       "id": "services_ai_service_tests_test_health_py",
-      "community": 16,
+      "community": 19,
       "norm_label": "test_health.py"
     },
     {
@@ -756,7 +1053,7 @@
       "source_file": "services\\ai-service\\tests\\test_health.py",
       "source_location": "L12",
       "id": "test_health_test_health_endpoint",
-      "community": 16,
+      "community": 19,
       "norm_label": "test_health_endpoint()"
     },
     {
@@ -764,7 +1061,7 @@
       "file_type": "rationale",
       "source_file": "services\\ai-service\\tests\\test_health.py",
       "source_location": "L1",
-      "community": 16,
+      "community": 19,
       "norm_label": "tests de base pour le service ia. ce fichier contient des tests simples pour ve",
       "id": "test_health_rationale_1"
     },
@@ -773,7 +1070,7 @@
       "file_type": "rationale",
       "source_file": "services\\ai-service\\tests\\test_health.py",
       "source_location": "L13",
-      "community": 16,
+      "community": 19,
       "norm_label": "verifie que l'endpoint de sante retourne un statut ok.",
       "id": "test_health_rationale_13"
     },
@@ -783,7 +1080,7 @@
       "source_file": "services\\ai-service\\tests\\__init__.py",
       "source_location": "L1",
       "id": "services_ai_service_tests_init_py",
-      "community": 51,
+      "community": 65,
       "norm_label": "__init__.py"
     },
     {
@@ -792,7 +1089,7 @@
       "source_file": "services\\anticorruption-service\\app\\config.py",
       "source_location": "L1",
       "id": "services_anticorruption_service_app_config_py",
-      "community": 5,
+      "community": 4,
       "norm_label": "config.py"
     },
     {
@@ -801,7 +1098,7 @@
       "source_file": "services\\anticorruption-service\\app\\config.py",
       "source_location": "L6",
       "id": "config_sigacsettings",
-      "community": 5,
+      "community": 4,
       "norm_label": "sigacsettings"
     },
     {
@@ -809,7 +1106,7 @@
       "file_type": "rationale",
       "source_file": "services\\anticorruption-service\\app\\config.py",
       "source_location": "L7",
-      "community": 5,
+      "community": 4,
       "norm_label": "configuration sigac avec valeurs par defaut.",
       "id": "config_rationale_7"
     },
@@ -819,7 +1116,7 @@
       "source_file": "services\\anticorruption-service\\app\\main.py",
       "source_location": "L1",
       "id": "services_anticorruption_service_app_main_py",
-      "community": 8,
+      "community": 9,
       "norm_label": "main.py"
     },
     {
@@ -827,7 +1124,7 @@
       "file_type": "rationale",
       "source_file": "services\\anticorruption-service\\app\\main.py",
       "source_location": "L33",
-      "community": 8,
+      "community": 9,
       "norm_label": "endpoint de sante du service sigac.",
       "id": "main_rationale_33"
     },
@@ -837,7 +1134,7 @@
       "source_file": "services\\anticorruption-service\\app\\__init__.py",
       "source_location": "L1",
       "id": "services_anticorruption_service_app_init_py",
-      "community": 17,
+      "community": 20,
       "norm_label": "__init__.py"
     },
     {
@@ -846,7 +1143,7 @@
       "source_file": "services\\anticorruption-service\\tests\\__init__.py",
       "source_location": "L1",
       "id": "services_anticorruption_service_tests_init_py",
-      "community": 52,
+      "community": 66,
       "norm_label": "__init__.py"
     },
     {
@@ -855,7 +1152,7 @@
       "source_file": "services\\api-gateway\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_api_gateway_eslint_config_mjs",
-      "community": 53,
+      "community": 67,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -864,7 +1161,7 @@
       "source_file": "services\\appointment-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_appointment_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -873,7 +1170,7 @@
       "source_file": "services\\vulnerability-service\\src\\app.controller.ts",
       "source_location": "L12",
       "id": "app_controller_appcontroller",
-      "community": 0,
+      "community": 1,
       "norm_label": "appcontroller"
     },
     {
@@ -882,7 +1179,7 @@
       "source_file": "services\\vulnerability-service\\src\\app.controller.ts",
       "source_location": "L18",
       "id": "app_controller_appcontroller_gethealth",
-      "community": 0,
+      "community": 1,
       "norm_label": ".gethealth()"
     },
     {
@@ -909,7 +1206,7 @@
       "source_file": "services\\appointment-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_appointment_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -918,7 +1215,7 @@
       "source_file": "services\\vulnerability-service\\src\\main.ts",
       "source_location": "L20",
       "id": "main_bootstrap",
-      "community": 3,
+      "community": 0,
       "norm_label": "bootstrap()"
     },
     {
@@ -927,7 +1224,7 @@
       "source_file": "services\\audit-service\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_audit_service_eslint_config_mjs",
-      "community": 54,
+      "community": 68,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -936,7 +1233,7 @@
       "source_file": "services\\audit-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_audit_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -954,7 +1251,7 @@
       "source_file": "services\\audit-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_audit_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -963,7 +1260,7 @@
       "source_file": "services\\audit-service\\src\\modules\\health\\health.controller.ts",
       "source_location": "L1",
       "id": "services_audit_service_src_modules_health_health_controller_ts",
-      "community": 9,
+      "community": 10,
       "norm_label": "health.controller.ts"
     },
     {
@@ -972,7 +1269,7 @@
       "source_file": "services\\notification-service\\src\\modules\\health\\health.controller.ts",
       "source_location": "L6",
       "id": "health_controller_healthcontroller",
-      "community": 9,
+      "community": 10,
       "norm_label": "healthcontroller"
     },
     {
@@ -981,7 +1278,7 @@
       "source_file": "services\\notification-service\\src\\modules\\health\\health.controller.ts",
       "source_location": "L9",
       "id": "health_controller_healthcontroller_check",
-      "community": 9,
+      "community": 10,
       "norm_label": ".check()"
     },
     {
@@ -990,7 +1287,7 @@
       "source_file": "services\\audit-service\\src\\modules\\health\\health.module.ts",
       "source_location": "L1",
       "id": "services_audit_service_src_modules_health_health_module_ts",
-      "community": 12,
+      "community": 14,
       "norm_label": "health.module.ts"
     },
     {
@@ -999,7 +1296,7 @@
       "source_file": "services\\notification-service\\src\\modules\\health\\health.module.ts",
       "source_location": "L7",
       "id": "health_module_healthmodule",
-      "community": 12,
+      "community": 14,
       "norm_label": "healthmodule"
     },
     {
@@ -1008,7 +1305,7 @@
       "source_file": "services\\audit-service\\test\\app.e2e-spec.ts",
       "source_location": "L1",
       "id": "services_audit_service_test_app_e2e_spec_ts",
-      "community": 55,
+      "community": 69,
       "norm_label": "app.e2e-spec.ts"
     },
     {
@@ -1017,7 +1314,7 @@
       "source_file": "services\\auth-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_auth_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -1035,7 +1332,7 @@
       "source_file": "services\\auth-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_auth_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -1044,7 +1341,7 @@
       "source_file": "services\\auth-service\\src\\jwks\\jwks.service.ts",
       "source_location": "L1",
       "id": "services_auth_service_src_jwks_jwks_service_ts",
-      "community": 6,
+      "community": 5,
       "norm_label": "jwks.service.ts"
     },
     {
@@ -1053,7 +1350,7 @@
       "source_file": "services\\auth-service\\src\\jwks\\jwks.service.ts",
       "source_location": "L15",
       "id": "jwks_service_jwksservice",
-      "community": 6,
+      "community": 5,
       "norm_label": "jwksservice"
     },
     {
@@ -1062,7 +1359,7 @@
       "source_file": "services\\auth-service\\src\\jwks\\jwks.service.ts",
       "source_location": "L24",
       "id": "jwks_service_jwksservice_constructor",
-      "community": 6,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -1071,7 +1368,7 @@
       "source_file": "services\\auth-service\\src\\jwks\\jwks.service.ts",
       "source_location": "L31",
       "id": "jwks_service_jwksservice_getkeycloakjwks",
-      "community": 6,
+      "community": 5,
       "norm_label": ".getkeycloakjwks()"
     },
     {
@@ -1080,7 +1377,7 @@
       "source_file": "services\\auth-service\\src\\well-known\\well-known.controller.ts",
       "source_location": "L1",
       "id": "services_auth_service_src_well_known_well_known_controller_ts",
-      "community": 6,
+      "community": 5,
       "norm_label": "well-known.controller.ts"
     },
     {
@@ -1089,7 +1386,7 @@
       "source_file": "services\\auth-service\\src\\well-known\\well-known.controller.ts",
       "source_location": "L13",
       "id": "well_known_controller_wellknowncontroller",
-      "community": 6,
+      "community": 5,
       "norm_label": "wellknowncontroller"
     },
     {
@@ -1098,7 +1395,7 @@
       "source_file": "services\\auth-service\\src\\well-known\\well-known.controller.ts",
       "source_location": "L14",
       "id": "well_known_controller_wellknowncontroller_constructor",
-      "community": 6,
+      "community": 5,
       "norm_label": ".constructor()"
     },
     {
@@ -1107,7 +1404,7 @@
       "source_file": "services\\auth-service\\src\\well-known\\well-known.controller.ts",
       "source_location": "L22",
       "id": "well_known_controller_wellknowncontroller_getjwks",
-      "community": 6,
+      "community": 5,
       "norm_label": ".getjwks()"
     },
     {
@@ -1116,8 +1413,35 @@
       "source_file": "services\\biometric-service\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_biometric_service_eslint_config_mjs",
-      "community": 56,
+      "community": 70,
       "norm_label": "eslint.config.mjs"
+    },
+    {
+      "label": "app.controller.ts",
+      "file_type": "code",
+      "source_file": "services\\biometric-service\\src\\app.controller.ts",
+      "source_location": "L1",
+      "id": "services_biometric_service_src_app_controller_ts",
+      "community": 1,
+      "norm_label": "app.controller.ts"
+    },
+    {
+      "label": "app.module.ts",
+      "file_type": "code",
+      "source_file": "services\\biometric-service\\src\\app.module.ts",
+      "source_location": "L1",
+      "id": "services_biometric_service_src_app_module_ts",
+      "community": 2,
+      "norm_label": "app.module.ts"
+    },
+    {
+      "label": "main.ts",
+      "file_type": "code",
+      "source_file": "services\\biometric-service\\src\\main.ts",
+      "source_location": "L1",
+      "id": "services_biometric_service_src_main_ts",
+      "community": 0,
+      "norm_label": "main.ts"
     },
     {
       "label": "eslint.config.mjs",
@@ -1125,7 +1449,7 @@
       "source_file": "services\\document-service\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_document_service_eslint_config_mjs",
-      "community": 57,
+      "community": 71,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -1134,7 +1458,7 @@
       "source_file": "services\\document-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_document_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -1152,7 +1476,7 @@
       "source_file": "services\\document-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_document_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -1161,7 +1485,7 @@
       "source_file": "services\\document-service\\src\\modules\\health\\health.controller.ts",
       "source_location": "L1",
       "id": "services_document_service_src_modules_health_health_controller_ts",
-      "community": 9,
+      "community": 10,
       "norm_label": "health.controller.ts"
     },
     {
@@ -1170,7 +1494,7 @@
       "source_file": "services\\document-service\\src\\modules\\health\\health.module.ts",
       "source_location": "L1",
       "id": "services_document_service_src_modules_health_health_module_ts",
-      "community": 12,
+      "community": 14,
       "norm_label": "health.module.ts"
     },
     {
@@ -1179,7 +1503,7 @@
       "source_file": "services\\document-service\\test\\app.e2e-spec.ts",
       "source_location": "L1",
       "id": "services_document_service_test_app_e2e_spec_ts",
-      "community": 58,
+      "community": 72,
       "norm_label": "app.e2e-spec.ts"
     },
     {
@@ -1188,7 +1512,7 @@
       "source_file": "services\\enrollment-service\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_enrollment_service_eslint_config_mjs",
-      "community": 59,
+      "community": 73,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -1197,7 +1521,7 @@
       "source_file": "services\\governance-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_governance_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -1215,7 +1539,7 @@
       "source_file": "services\\governance-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_governance_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -1224,7 +1548,7 @@
       "source_file": "services\\identity-service\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_identity_service_eslint_config_mjs",
-      "community": 60,
+      "community": 74,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -1233,7 +1557,7 @@
       "source_file": "services\\identity-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_identity_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -1251,7 +1575,7 @@
       "source_file": "services\\identity-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_identity_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -1323,7 +1647,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.module.ts",
       "source_location": "L1",
       "id": "services_identity_service_src_modules_citizen_citizen_module_ts",
-      "community": 23,
+      "community": 30,
       "norm_label": "citizen.module.ts"
     },
     {
@@ -1332,7 +1656,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.module.ts",
       "source_location": "L10",
       "id": "citizen_module_citizenmodule",
-      "community": 23,
+      "community": 30,
       "norm_label": "citizenmodule"
     },
     {
@@ -1341,7 +1665,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.service.ts",
       "source_location": "L1",
       "id": "services_identity_service_src_modules_citizen_citizen_service_ts",
-      "community": 1,
+      "community": 0,
       "norm_label": "citizen.service.ts"
     },
     {
@@ -1350,7 +1674,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.service.ts",
       "source_location": "L7",
       "id": "citizen_service_citizenservice",
-      "community": 1,
+      "community": 0,
       "norm_label": "citizenservice"
     },
     {
@@ -1359,7 +1683,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.service.ts",
       "source_location": "L8",
       "id": "citizen_service_citizenservice_findbynina",
-      "community": 1,
+      "community": 0,
       "norm_label": ".findbynina()"
     },
     {
@@ -1368,7 +1692,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.service.ts",
       "source_location": "L30",
       "id": "citizen_service_citizenservice_search",
-      "community": 1,
+      "community": 0,
       "norm_label": ".search()"
     },
     {
@@ -1377,7 +1701,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.service.ts",
       "source_location": "L61",
       "id": "citizen_service_citizenservice_create",
-      "community": 1,
+      "community": 0,
       "norm_label": ".create()"
     },
     {
@@ -1386,7 +1710,7 @@
       "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.service.ts",
       "source_location": "L66",
       "id": "citizen_service_citizenservice_update",
-      "community": 1,
+      "community": 6,
       "norm_label": ".update()"
     },
     {
@@ -1395,7 +1719,7 @@
       "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
       "source_location": "L1",
       "id": "services_identity_service_src_modules_health_health_controller_ts",
-      "community": 9,
+      "community": 10,
       "norm_label": "health.controller.ts"
     },
     {
@@ -1404,7 +1728,7 @@
       "source_file": "services\\identity-service\\src\\modules\\health\\health.module.ts",
       "source_location": "L1",
       "id": "services_identity_service_src_modules_health_health_module_ts",
-      "community": 12,
+      "community": 14,
       "norm_label": "health.module.ts"
     },
     {
@@ -1413,7 +1737,7 @@
       "source_file": "services\\identity-service\\test\\app.e2e-spec.ts",
       "source_location": "L1",
       "id": "services_identity_service_test_app_e2e_spec_ts",
-      "community": 61,
+      "community": 75,
       "norm_label": "app.e2e-spec.ts"
     },
     {
@@ -1422,7 +1746,7 @@
       "source_file": "services\\identity-service\\test\\citizen.controller.spec.ts",
       "source_location": "L1",
       "id": "services_identity_service_test_citizen_controller_spec_ts",
-      "community": 62,
+      "community": 76,
       "norm_label": "citizen.controller.spec.ts"
     },
     {
@@ -1431,7 +1755,7 @@
       "source_file": "services\\identity-service\\test\\citizen.service.spec.ts",
       "source_location": "L1",
       "id": "services_identity_service_test_citizen_service_spec_ts",
-      "community": 63,
+      "community": 77,
       "norm_label": "citizen.service.spec.ts"
     },
     {
@@ -1440,7 +1764,7 @@
       "source_file": "services\\identity-service\\test\\jest.config.ts",
       "source_location": "L1",
       "id": "services_identity_service_test_jest_config_ts",
-      "community": 64,
+      "community": 78,
       "norm_label": "jest.config.ts"
     },
     {
@@ -1449,7 +1773,7 @@
       "source_file": "services\\interop-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_interop_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -1467,7 +1791,7 @@
       "source_file": "services\\interop-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_interop_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -1476,7 +1800,7 @@
       "source_file": "services\\notification-service\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_notification_service_eslint_config_mjs",
-      "community": 65,
+      "community": 79,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -1485,7 +1809,7 @@
       "source_file": "services\\notification-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_notification_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -1503,7 +1827,7 @@
       "source_file": "services\\notification-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_notification_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     },
     {
@@ -1512,7 +1836,7 @@
       "source_file": "services\\notification-service\\src\\modules\\health\\health.controller.ts",
       "source_location": "L1",
       "id": "services_notification_service_src_modules_health_health_controller_ts",
-      "community": 9,
+      "community": 10,
       "norm_label": "health.controller.ts"
     },
     {
@@ -1521,7 +1845,7 @@
       "source_file": "services\\notification-service\\src\\modules\\health\\health.module.ts",
       "source_location": "L1",
       "id": "services_notification_service_src_modules_health_health_module_ts",
-      "community": 12,
+      "community": 14,
       "norm_label": "health.module.ts"
     },
     {
@@ -1530,7 +1854,7 @@
       "source_file": "services\\notification-service\\test\\app.e2e-spec.ts",
       "source_location": "L1",
       "id": "services_notification_service_test_app_e2e_spec_ts",
-      "community": 66,
+      "community": 80,
       "norm_label": "app.e2e-spec.ts"
     },
     {
@@ -1539,7 +1863,7 @@
       "source_file": "services\\ussd-service\\eslint.config.mjs",
       "source_location": "L1",
       "id": "services_ussd_service_eslint_config_mjs",
-      "community": 67,
+      "community": 81,
       "norm_label": "eslint.config.mjs"
     },
     {
@@ -1548,7 +1872,7 @@
       "source_file": "services\\vulnerability-service\\src\\app.controller.ts",
       "source_location": "L1",
       "id": "services_vulnerability_service_src_app_controller_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "app.controller.ts"
     },
     {
@@ -1566,7 +1890,7 @@
       "source_file": "services\\vulnerability-service\\src\\main.ts",
       "source_location": "L1",
       "id": "services_vulnerability_service_src_main_ts",
-      "community": 3,
+      "community": 0,
       "norm_label": "main.ts"
     }
   ],
@@ -1647,7 +1971,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1.0,
       "_src": "packages_config_src_index_ts",
       "_tgt": "index_locatemonorepoenv",
@@ -1659,7 +1983,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L160",
+      "source_location": "L173",
       "weight": 1.0,
       "_src": "packages_config_src_index_ts",
       "_tgt": "index_validateenv",
@@ -1671,7 +1995,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L184",
+      "source_location": "L197",
       "weight": 1.0,
       "_src": "packages_config_src_index_ts",
       "_tgt": "index_getconfig",
@@ -1683,7 +2007,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L195",
+      "source_location": "L208",
       "weight": 1.0,
       "_src": "packages_config_src_index_ts",
       "_tgt": "index_resetconfig",
@@ -1695,7 +2019,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages\\config\\src\\index.ts",
-      "source_location": "L186",
+      "source_location": "L199",
       "weight": 1.0,
       "_src": "index_getconfig",
       "_tgt": "index_validateenv",
@@ -1706,8 +2030,44 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "packages\\config\\src\\__tests__\\jest.setup.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "packages_config_src_tests_jest_setup_ts",
+      "_tgt": "jest_setup_globalsetup",
+      "source": "packages_config_src_tests_jest_setup_ts",
+      "target": "jest_setup_globalsetup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\database\\prisma.config.ts",
+      "source_location": "L38",
+      "weight": 1.0,
+      "_src": "packages_database_prisma_config_ts",
+      "_tgt": "prisma_config_locatemonorepoenv",
+      "source": "packages_database_prisma_config_ts",
+      "target": "prisma_config_locatemonorepoenv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L31",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_src": "packages_database_prisma_seed_ts",
+      "_tgt": "seed_loadmalijson",
+      "source": "packages_database_prisma_seed_ts",
+      "target": "seed_loadmalijson",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\database\\prisma\\seed.ts",
+      "source_location": "L87",
       "weight": 1.0,
       "_src": "packages_database_prisma_seed_ts",
       "_tgt": "seed_toascii",
@@ -1719,7 +2079,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L43",
+      "source_location": "L99",
       "weight": 1.0,
       "_src": "packages_database_prisma_seed_ts",
       "_tgt": "seed_upsertlocation",
@@ -1731,7 +2091,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L281",
+      "source_location": "L346",
       "weight": 1.0,
       "_src": "packages_database_prisma_seed_ts",
       "_tgt": "seed_main",
@@ -1743,7 +2103,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L70",
+      "source_location": "L126",
       "weight": 1.0,
       "_src": "seed_upsertlocation",
       "_tgt": "seed_toascii",
@@ -1755,7 +2115,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\prisma\\seed.ts",
-      "source_location": "L285",
+      "source_location": "L350",
       "weight": 1.0,
       "_src": "seed_main",
       "_tgt": "seed_upsertlocation",
@@ -1767,7 +2127,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L68",
+      "source_location": "L71",
       "weight": 1.0,
       "_src": "packages_database_src_index_ts",
       "_tgt": "index_createbareclient",
@@ -1779,7 +2139,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L86",
+      "source_location": "L94",
       "weight": 1.0,
       "_src": "packages_database_src_index_ts",
       "_tgt": "index_applynotdeleted",
@@ -1791,7 +2151,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L177",
+      "source_location": "L185",
       "weight": 1.0,
       "_src": "packages_database_src_index_ts",
       "_tgt": "index_createextendedclient",
@@ -1803,7 +2163,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L212",
+      "source_location": "L220",
       "weight": 1.0,
       "_src": "packages_database_src_index_ts",
       "_tgt": "index_disconnectprisma",
@@ -1815,12 +2175,24 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages\\database\\src\\index.ts",
-      "source_location": "L178",
+      "source_location": "L186",
       "weight": 1.0,
       "_src": "index_createextendedclient",
       "_tgt": "index_createbareclient",
       "source": "index_createbareclient",
       "target": "index_createextendedclient",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\logger\\src\\index.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "_src": "packages_logger_src_index_ts",
+      "_tgt": "index_createlogger",
+      "source": "packages_logger_src_index_ts",
+      "target": "index_createlogger",
       "confidence_score": 1.0
     },
     {
@@ -1881,6 +2253,150 @@
       "_tgt": "cn_cn",
       "source": "packages_utils_src_cn_ts",
       "target": "cn_cn",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_src": "packages_utils_src_crypto_ts",
+      "_tgt": "crypto_base64url",
+      "source": "packages_utils_src_crypto_ts",
+      "target": "crypto_base64url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_src": "packages_utils_src_crypto_ts",
+      "_tgt": "crypto_signwithrs256",
+      "source": "packages_utils_src_crypto_ts",
+      "target": "crypto_signwithrs256",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L104",
+      "weight": 1.0,
+      "_src": "packages_utils_src_crypto_ts",
+      "_tgt": "crypto_verifyrs256",
+      "source": "packages_utils_src_crypto_ts",
+      "target": "crypto_verifyrs256",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L148",
+      "weight": 1.0,
+      "_src": "packages_utils_src_crypto_ts",
+      "_tgt": "crypto_signwithed25519",
+      "source": "packages_utils_src_crypto_ts",
+      "target": "crypto_signwithed25519",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L168",
+      "weight": 1.0,
+      "_src": "packages_utils_src_crypto_ts",
+      "_tgt": "crypto_verifyed25519",
+      "source": "packages_utils_src_crypto_ts",
+      "target": "crypto_verifyed25519",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L194",
+      "weight": 1.0,
+      "_src": "packages_utils_src_crypto_ts",
+      "_tgt": "crypto_hashbiometric",
+      "source": "packages_utils_src_crypto_ts",
+      "target": "crypto_hashbiometric",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L81",
+      "weight": 1.0,
+      "_src": "crypto_signwithrs256",
+      "_tgt": "crypto_base64url",
+      "source": "crypto_base64url",
+      "target": "crypto_signwithrs256",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L157",
+      "weight": 1.0,
+      "_src": "crypto_signwithed25519",
+      "_tgt": "crypto_base64url",
+      "source": "crypto_base64url",
+      "target": "crypto_signwithed25519",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L88",
+      "weight": 1.0,
+      "_src": "crypto_signwithrs256",
+      "_tgt": "citizen_service_citizenservice_update",
+      "source": "crypto_signwithrs256",
+      "target": "citizen_service_citizenservice_update"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L115",
+      "weight": 1.0,
+      "_src": "crypto_verifyrs256",
+      "_tgt": "citizen_service_citizenservice_update",
+      "source": "crypto_verifyrs256",
+      "target": "citizen_service_citizenservice_update"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "packages\\utils\\src\\crypto.ts",
+      "source_location": "L197",
+      "weight": 1.0,
+      "_src": "crypto_hashbiometric",
+      "_tgt": "citizen_service_citizenservice_update",
+      "source": "crypto_hashbiometric",
+      "target": "citizen_service_citizenservice_update"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\date.ts",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_src": "packages_utils_src_date_ts",
+      "_tgt": "date_calculateage",
+      "source": "packages_utils_src_date_ts",
+      "target": "date_calculateage",
       "confidence_score": 1.0
     },
     {
@@ -1954,6 +2470,18 @@
       "_tgt": "citizen_service_citizenservice_update",
       "source": "merkle_computemerklehash",
       "target": "citizen_service_citizenservice_update"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "packages\\utils\\src\\__tests__\\merkle.test.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "_src": "merkle_test_buildchain",
+      "_tgt": "merkle_computemerklehash",
+      "source": "merkle_computemerklehash",
+      "target": "merkle_test_buildchain"
     },
     {
       "relation": "contains",
@@ -2101,6 +2629,18 @@
     },
     {
       "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L115",
+      "weight": 1.0,
+      "_src": "sanitize_sanitizeforlog",
+      "_tgt": "nina_masknina",
+      "source": "nina_masknina",
+      "target": "sanitize_sanitizeforlog"
+    },
+    {
+      "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "packages\\utils\\src\\nina.ts",
       "source_location": "L141",
@@ -2121,6 +2661,126 @@
       "_tgt": "nina_validatenina",
       "source": "nina_validatenina",
       "target": "nina_validateninachecksum",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L64",
+      "weight": 1.0,
+      "_src": "packages_utils_src_sanitize_ts",
+      "_tgt": "sanitize_maskemail",
+      "source": "packages_utils_src_sanitize_ts",
+      "target": "sanitize_maskemail",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L79",
+      "weight": 1.0,
+      "_src": "packages_utils_src_sanitize_ts",
+      "_tgt": "sanitize_maskphone",
+      "source": "packages_utils_src_sanitize_ts",
+      "target": "sanitize_maskphone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L100",
+      "weight": 1.0,
+      "_src": "packages_utils_src_sanitize_ts",
+      "_tgt": "sanitize_sanitizeforlog",
+      "source": "packages_utils_src_sanitize_ts",
+      "target": "sanitize_sanitizeforlog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L119",
+      "weight": 1.0,
+      "_src": "sanitize_sanitizeforlog",
+      "_tgt": "sanitize_maskemail",
+      "source": "sanitize_maskemail",
+      "target": "sanitize_sanitizeforlog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\sanitize.ts",
+      "source_location": "L123",
+      "weight": 1.0,
+      "_src": "sanitize_sanitizeforlog",
+      "_tgt": "sanitize_maskphone",
+      "source": "sanitize_maskphone",
+      "target": "sanitize_sanitizeforlog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\__tests__\\merkle.test.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_src": "packages_utils_src_tests_merkle_test_ts",
+      "_tgt": "merkle_test_buildchain",
+      "source": "packages_utils_src_tests_merkle_test_ts",
+      "target": "merkle_test_buildchain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L84",
+      "weight": 1.0,
+      "_src": "scripts_validate_mali_data_ts",
+      "_tgt": "validate_mali_data_err",
+      "source": "scripts_validate_mali_data_ts",
+      "target": "validate_mali_data_err",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L89",
+      "weight": 1.0,
+      "_src": "scripts_validate_mali_data_ts",
+      "_tgt": "validate_mali_data_load",
+      "source": "scripts_validate_mali_data_ts",
+      "target": "validate_mali_data_load",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L99",
+      "weight": 1.0,
+      "_src": "scripts_validate_mali_data_ts",
+      "_tgt": "validate_mali_data_inbbox",
+      "source": "scripts_validate_mali_data_ts",
+      "target": "validate_mali_data_inbbox",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.ts",
+      "source_location": "L92",
+      "weight": 1.0,
+      "_src": "validate_mali_data_load",
+      "_tgt": "validate_mali_data_err",
+      "source": "validate_mali_data_err",
+      "target": "validate_mali_data_load",
       "confidence_score": 1.0
     },
     {
@@ -2402,6 +3062,18 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "services\\biometric-service\\src\\app.controller.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_src": "services_biometric_service_src_app_controller_ts",
+      "_tgt": "app_controller_appcontroller",
+      "source": "app_controller_appcontroller",
+      "target": "services_biometric_service_src_app_controller_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "services\\document-service\\src\\app.controller.ts",
       "source_location": "L12",
       "weight": 1.0,
@@ -2510,6 +3182,18 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "services\\biometric-service\\src\\app.module.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "services_biometric_service_src_app_module_ts",
+      "_tgt": "app_module_appmodule",
+      "source": "app_module_appmodule",
+      "target": "services_biometric_service_src_app_module_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "services\\document-service\\src\\app.module.ts",
       "source_location": "L18",
       "weight": 1.0,
@@ -2613,6 +3297,18 @@
       "_tgt": "main_bootstrap",
       "source": "main_bootstrap",
       "target": "services_auth_service_src_main_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\biometric-service\\src\\main.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_src": "services_biometric_service_src_main_ts",
+      "_tgt": "main_bootstrap",
+      "source": "main_bootstrap",
+      "target": "services_biometric_service_src_main_ts",
       "confidence_score": 1.0
     },
     {

@@ -100,3 +100,29 @@ CHANGELOG renvoie à la commande / au fichier qui matérialise la décision.
 | Service IA Python | `11-AI-SERVICE-FASTAPI.md` |
 | Frontend → API | `12-FRONTEND-INTEGRATION-API.md` |
 | ADR (Architecture Decision Records) | `adr/ADR-001` → `ADR-015` |
+
+## 8. Gouvernance assistants IA et maintenance (mai 2026)
+
+Objectif: rendre les conventions persistantes et homogènes entre Cursor, Claude et Copilot.
+
+- Ajout de `AGENTS.md` (règles transversales de collaboration et synchronisation docs/code).
+- Ajout de `CLAUDE.md` (bootstrap session + commandes de validation).
+- Renforcement de `.github/copilot-instructions.md` pour aligner Copilot sur les conventions réelles du projet.
+- Ajout d'une règle Cursor persistante: `.cursor/rules/ai-governance.mdc`.
+- Remplacement du `README.md` template par une version projet orientée exploitation.
+
+Validation automatique ajoutée:
+
+- Schémas JSON sous `schemas/` pour `data/mali/regions.json` et `data/mali/cercles.json`.
+- Script `scripts/validate-json-schemas.mjs` (validation via Ajv).
+- Script `scripts/docs-sync-check.mjs` (contrôle de cross-références critiques docs/README/changelog).
+- Scripts `package.json`:
+  - `validate:schemas`
+  - `docs:sync:check`
+  - `verify:repo`
+
+Impact maintenance:
+
+- Réduction du drift documentaire entre sessions.
+- Contrôles rapides intégrables en local, hook et CI.
+- Préparation à une gouvernance documentaire plus stricte sur les 250+ éléments du monorepo.

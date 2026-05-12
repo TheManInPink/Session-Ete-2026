@@ -1,0 +1,25 @@
+---
+description: persistent ai governance and docs sync
+alwaysApply: true
+---
+
+Follow these repository rules for every code or documentation change:
+
+1) Read source-of-truth docs first:
+- docs/CHANGELOG.md
+- docs/00-README-INDEX.md
+
+2) Keep references synchronized:
+- If scripts, commands, data contracts, or architecture behavior change, update docs in same change set.
+
+3) Validate data and schemas:
+- Run `pnpm run validate:data`
+- Run `pnpm run validate:schemas`
+
+4) Tooling conventions:
+- Use pnpm only.
+- Prefer workspace-scoped command execution.
+
+5) Security posture:
+- Never commit secrets.
+- Preserve auditability and integrity controls.

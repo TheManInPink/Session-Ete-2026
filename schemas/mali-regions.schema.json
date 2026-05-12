@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nina-aes.local/schemas/mali-regions.schema.json",
+  "title": "Mali regions data",
+  "type": "object",
+  "required": [
+    "metadata",
+    "regions",
+    "totaux"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "nom_officiel",
+          "nom_court",
+          "chef_lieu",
+          "centroide"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^ML-[0-9]{2}$"
+          },
+          "nom_officiel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nom_court": {
+            "type": "string",
+            "minLength": 1
+          },
+          "chef_lieu": {
+            "type": "string",
+            "minLength": 1
+          },
+          "centroide": {
+            "type": "object",
+            "required": [
+              "lat",
+              "lng",
+              "estime"
+            ],
+            "properties": {
+              "lat": {
+                "type": "number",
+                "minimum": 10.0,
+                "maximum": 25.1
+              },
+              "lng": {
+                "type": "number",
+                "minimum": -12.3,
+                "maximum": 4.3
+              },
+              "estime": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "totaux": {
+      "type": "object",
+      "required": [
+        "regions",
+        "district",
+        "total_niveau_1"
+      ],
+      "properties": {
+        "regions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "district": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_niveau_1": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

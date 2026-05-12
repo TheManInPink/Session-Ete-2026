@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nina-aes.local/schemas/mali-cercles.schema.json",
+  "title": "Mali cercles data",
+  "type": "object",
+  "required": [
+    "metadata",
+    "cercles"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "cercles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "nom",
+          "region_code",
+          "centroide",
+          "confiance"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^ML-[0-9]{2}-[0-9]{2}$"
+          },
+          "nom": {
+            "type": "string",
+            "minLength": 1
+          },
+          "region_code": {
+            "type": "string",
+            "pattern": "^ML-[0-9]{2}$"
+          },
+          "centroide": {
+            "type": "object",
+            "required": [
+              "lat",
+              "lng",
+              "estime"
+            ],
+            "properties": {
+              "lat": {
+                "type": "number",
+                "minimum": 10.0,
+                "maximum": 25.1
+              },
+              "lng": {
+                "type": "number",
+                "minimum": -12.3,
+                "maximum": 4.3
+              },
+              "estime": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          },
+          "confiance": {
+            "type": "string",
+            "enum": [
+              "haute",
+              "moyenne",
+              "basse"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

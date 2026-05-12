@@ -469,4 +469,21 @@ Ce tableau sert de **référence unique** pour les versions utilisées dans tous
 
 ---
 
-_Document 00 — Version 1.0 — Avril 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_
+---
+
+## 11. Gouvernance IA et maintenance continue
+
+Pour assurer la continuité entre sessions d'assistants IA:
+
+- `AGENTS.md` : règles transversales de travail et de synchronisation docs/code
+- `CLAUDE.md` : bootstrap et commandes de vérification
+- `.github/copilot-instructions.md` : règles Copilot alignées sur le repo
+- `.cursor/rules/graphify.mdc` + `.cursor/rules/ai-governance.mdc` : garde-fous Cursor persistants
+
+Validation minimale avant PR:
+
+- `pnpm run validate:data`
+- `pnpm run validate:schemas`
+- `pnpm run docs:sync:check`
+
+_Document 00 — Version 1.1 — Mai 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_

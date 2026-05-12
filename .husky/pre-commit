@@ -14,3 +14,9 @@ pnpm run lint || {
   echo "❌ Erreurs de lint. Corrigez-les avant de commiter."
   exit 1
 }
+
+# Validation de cohérence documentaire minimale
+pnpm run docs:sync:check || {
+  echo "❌ Références docs non synchronisées."
+  exit 1
+}

@@ -17,6 +17,9 @@ importers:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      ajv:
+        specifier: ^8.17.1
+        version: 8.18.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7

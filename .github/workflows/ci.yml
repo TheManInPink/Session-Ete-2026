@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
-  PNPM_VERSION: "9.15.0"
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10.12.1"
   PYTHON_VERSION: "3.12"
 
 jobs:
@@ -40,6 +40,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
+      - run: pnpm run verify:repo
       - run: pnpm run build --filter=@nina-aes/shared-types --filter=@nina-aes/utils --filter=@nina-aes/config
 
       - name: Lint

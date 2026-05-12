@@ -12,23 +12,23 @@
 ## 1. Principes directeurs
 
 1. **Identité distinctive AES, pas du Bootstrap admin** — la palette primary (bleu profond
-   `213°`) + accent (turquoise lumineux `180°`) signe visuellement le projet ; pas un seul
+  `213°`) + accent (turquoise lumineux `180°`) signe visuellement le projet ; pas un seul
    gris neutre froid (saturation 4–10 % pour adoucir).
 2. **Mobile-first vrai** — chaque écran est conçu d'abord à `360 px` de large (cible :
-   téléphone Android bas de gamme malien), puis enrichi vers les breakpoints supérieurs.
+  téléphone Android bas de gamme malien), puis enrichi vers les breakpoints supérieurs.
 3. **Accessibilité WCAG 2.2 AA dès la conception** — contraste ≥ 4.5:1 sur texte, 3:1 sur
-   gros texte et icônes ; focus ring visible (`shadow.focus` token) ; tab order linéaire ;
+  gros texte et icônes ; focus ring visible (`shadow.focus` token) ; tab order linéaire ;
    skip-links sur chaque `<main>` ; tous les composants pilotables au clavier.
 4. **API-aware par défaut** — chaque composant data-aware expose des states standardisés :
-   `loading` (skeleton) · `error` (message + retry) · `empty` (illustration + CTA) ·
+  `loading` (skeleton) · `error` (message + retry) · `empty` (illustration + CTA) ·
    `success` (donnée). Les `optimistic updates` sont supportés via TanStack Query mutations.
 5. **Internationalisation 8 langues** anticipée : largeur fluide, pas de truncate dur,
-   pas de texte dans les images, RTL prêt (même si aucune des 8 langues nationales n'est
+  pas de texte dans les images, RTL prêt (même si aucune des 8 langues nationales n'est
    RTL — on garde la propriété pour compatibilité future arabe / tifinagh).
 6. **Mode sombre natif, pas un afterthought** — toutes les couleurs en HSL avec variables
-   CSS ; `dark:` Tailwind = swap des nuances 50↔950 + ajustement neutre.
+  CSS ; `dark:` Tailwind = swap des nuances 50↔950 + ajustement neutre.
 7. **Souveraineté visuelle** — aucune icône/illustration hébergée chez un tiers commercial ;
-   Lucide React (open-source) + 5 icônes custom maliennes (kola, baobab, calao, masque,
+  Lucide React (open-source) + 5 icônes custom maliennes (kola, baobab, calao, masque,
    étoile noire) dessinées en SVG inline.
 
 ---
@@ -54,6 +54,7 @@ Chaque couleur sémantique (`primary`, `accent`, `neutral`, `success`, `warning`
 3 couleurs officielles du drapeau correspondant (cf. `tokens.json` → `color.aes.*`).
 
 **Règles d'usage** :
+
 - Texte body sur fond clair → `neutral.900` (contraste 17:1 sur `neutral.50`)
 - Texte body sur fond sombre → `neutral.100` (contraste 16:1 sur `neutral.900`)
 - CTA principal → fond `accent.500` + texte `neutral.50` (contraste 4.6:1)
@@ -63,11 +64,13 @@ Chaque couleur sémantique (`primary`, `accent`, `neutral`, `success`, `warning`
 
 ### 2.2 Typographie
 
-| Token         | Famille                          | Usage                                |
-| ------------- | -------------------------------- | ------------------------------------ |
-| `family.sans` | Inter Variable                   | UI, body, labels                     |
-| `family.display` | Bricolage Grotesque           | Hero, H1/H2 marquants                |
-| `family.mono` | JetBrains Mono Variable          | NINA, code, IDs techniques           |
+
+| Token            | Famille                 | Usage                      |
+| ---------------- | ----------------------- | -------------------------- |
+| `family.sans`    | Inter Variable          | UI, body, labels           |
+| `family.display` | Bricolage Grotesque     | Hero, H1/H2 marquants      |
+| `family.mono`    | JetBrains Mono Variable | NINA, code, IDs techniques |
+
 
 **Échelle modulaire** (Perfect Fourth, ratio 1.25) — 12 tailles de 12 à 96 px ; voir
 `tokens.json` → `typography.size`. Hauteurs de ligne par défaut : `relaxed` (1.75) sur
@@ -125,54 +128,62 @@ keyboard nav).
 
 ### 3.1 Atomes
 
-| Composant   | Variants                                                       | Tailles                          | A11y notes |
-|-------------|----------------------------------------------------------------|----------------------------------|------------|
-| **Button**  | `solid · soft · outline · ghost · link`                        | `xs · sm · md · lg · xl`         | `role="button"`, `aria-busy` si `loading`, `aria-disabled` |
-| **Input**   | `default · error · success`                                    | `sm · md · lg`                   | label associé via `htmlFor`, `aria-invalid`, `aria-describedby` |
-| **Select**  | (Radix Select) — single                                        | `sm · md · lg`                   | navigation flèches haut/bas, `Esc` ferme, focus trap |
-| **Combobox**| async / sync, multi                                            | `sm · md · lg`                   | `role="combobox"`, `aria-expanded`, annonce vocale du résultat |
-| **Datepicker** | range / single                                              | `md`                             | navigation calendrier au clavier, `aria-label` sur cellules |
-| **Checkbox**| `default · indeterminate`                                      | `sm · md`                        | `role="checkbox"`, `aria-checked` (true / false / mixed) |
-| **Radio**   | (groupe)                                                       | `sm · md`                        | `role="radiogroup"`, navigation flèches |
-| **Switch**  |                                                                | `sm · md`                        | `role="switch"`, `aria-checked`, label cliquable |
-| **Slider**  | range                                                          | `sm · md`                        | flèches gauche/droite, Page Up/Down, Home/End, `aria-valuetext` |
-| **Textarea**| auto-resize                                                    | `sm · md · lg`                   | comme Input ; `maxLength` annoncé en compte à rebours |
-| **Avatar**  | image / fallback initiales / icône                             | `xs · sm · md · lg · xl · 2xl`   | `alt` obligatoire, fallback texte si image échoue |
-| **Badge**   | `solid · soft · outline · dot`                                 | `xs · sm · md`                   | `role="status"` si dynamique, sinon décoratif |
-| **Spinner** | (animation rotate)                                             | `sm · md · lg`                   | `role="status"`, `aria-label` traduisible |
+
+| Composant      | Variants                                | Tailles                        | A11y notes                                                      |
+| -------------- | --------------------------------------- | ------------------------------ | --------------------------------------------------------------- |
+| **Button**     | `solid · soft · outline · ghost · link` | `xs · sm · md · lg · xl`       | `role="button"`, `aria-busy` si `loading`, `aria-disabled`      |
+| **Input**      | `default · error · success`             | `sm · md · lg`                 | label associé via `htmlFor`, `aria-invalid`, `aria-describedby` |
+| **Select**     | (Radix Select) — single                 | `sm · md · lg`                 | navigation flèches haut/bas, `Esc` ferme, focus trap            |
+| **Combobox**   | async / sync, multi                     | `sm · md · lg`                 | `role="combobox"`, `aria-expanded`, annonce vocale du résultat  |
+| **Datepicker** | range / single                          | `md`                           | navigation calendrier au clavier, `aria-label` sur cellules     |
+| **Checkbox**   | `default · indeterminate`               | `sm · md`                      | `role="checkbox"`, `aria-checked` (true / false / mixed)        |
+| **Radio**      | (groupe)                                | `sm · md`                      | `role="radiogroup"`, navigation flèches                         |
+| **Switch**     |                                         | `sm · md`                      | `role="switch"`, `aria-checked`, label cliquable                |
+| **Slider**     | range                                   | `sm · md`                      | flèches gauche/droite, Page Up/Down, Home/End, `aria-valuetext` |
+| **Textarea**   | auto-resize                             | `sm · md · lg`                 | comme Input ; `maxLength` annoncé en compte à rebours           |
+| **Avatar**     | image / fallback initiales / icône      | `xs · sm · md · lg · xl · 2xl` | `alt` obligatoire, fallback texte si image échoue               |
+| **Badge**      | `solid · soft · outline · dot`          | `xs · sm · md`                 | `role="status"` si dynamique, sinon décoratif                   |
+| **Spinner**    | (animation rotate)                      | `sm · md · lg`                 | `role="status"`, `aria-label` traduisible                       |
+
 
 ### 3.2 Affichage
 
-| Composant         | Variants                                  | A11y notes |
-|-------------------|-------------------------------------------|------------|
-| **Card**          | `flat · outlined · elevated`              | structure sémantique : `<article>` ou `<section>` |
-| **Alert**         | `info · success · warning · danger`       | `role="alert"` si dynamique, sinon `role="status"` |
-| **Toast**         | (Sonner / Radix Toast)                    | `role="status"` (info/success) ou `role="alert"` (danger), auto-dismiss désactivable |
-| **Tooltip**       | (Radix Tooltip)                           | apparaît au focus clavier (pas seulement hover), Esc ferme |
-| **Popover**       | (Radix Popover)                           | focus trap, restitué à l'élément déclencheur à la fermeture |
-| **Skeleton**      | `text · circle · rectangle · card`        | `aria-busy="true"`, masqué aux lecteurs d'écran (`aria-hidden`) |
-| **Progress**      | `bar · circle`                            | `role="progressbar"`, `aria-valuenow`, `aria-valuemin/max` |
-| **EmptyState**    | (illustration + titre + CTA)              | titre H2/H3 selon contexte, CTA focusable |
-| **ErrorBoundary** | (capture React errors)                    | retry button focus auto, message lisible, `aria-live="polite"` |
+
+| Composant         | Variants                            | A11y notes                                                                           |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------------------------------ |
+| **Card**          | `flat · outlined · elevated`        | structure sémantique : `<article>` ou `<section>`                                    |
+| **Alert**         | `info · success · warning · danger` | `role="alert"` si dynamique, sinon `role="status"`                                   |
+| **Toast**         | (Sonner / Radix Toast)              | `role="status"` (info/success) ou `role="alert"` (danger), auto-dismiss désactivable |
+| **Tooltip**       | (Radix Tooltip)                     | apparaît au focus clavier (pas seulement hover), Esc ferme                           |
+| **Popover**       | (Radix Popover)                     | focus trap, restitué à l'élément déclencheur à la fermeture                          |
+| **Skeleton**      | `text · circle · rectangle · card`  | `aria-busy="true"`, masqué aux lecteurs d'écran (`aria-hidden`)                      |
+| **Progress**      | `bar · circle`                      | `role="progressbar"`, `aria-valuenow`, `aria-valuemin/max`                           |
+| **EmptyState**    | (illustration + titre + CTA)        | titre H2/H3 selon contexte, CTA focusable                                            |
+| **ErrorBoundary** | (capture React errors)              | retry button focus auto, message lisible, `aria-live="polite"`                       |
+
 
 ### 3.3 Conteneurs / navigation
 
-| Composant     | Variants                                    | A11y notes |
-|---------------|---------------------------------------------|------------|
-| **Dialog**    | `sm · md · lg · xl · fullscreen`            | focus trap, restoration focus, `Esc`, scroll lock body |
-| **Drawer**    | `left · right · top · bottom`               | focus trap, swipe close mobile |
-| **Tabs**      | `default · pills · underline`               | flèches gauche/droite, Home/End, `role="tab"` |
-| **Accordion** | single / multiple                           | flèches haut/bas, `aria-expanded` |
-| **Breadcrumb**| (séparateur custom)                         | `nav aria-label="breadcrumb"`, `aria-current="page"` sur le dernier |
-| **Stepper**   | linéaire / non-linéaire                     | `role="list"`, étape courante via `aria-current="step"` |
-| **Pagination**| classique / cursor                          | flèches gauche/droite, Page Up/Down |
+
+| Composant      | Variants                         | A11y notes                                                          |
+| -------------- | -------------------------------- | ------------------------------------------------------------------- |
+| **Dialog**     | `sm · md · lg · xl · fullscreen` | focus trap, restoration focus, `Esc`, scroll lock body              |
+| **Drawer**     | `left · right · top · bottom`    | focus trap, swipe close mobile                                      |
+| **Tabs**       | `default · pills · underline`    | flèches gauche/droite, Home/End, `role="tab"`                       |
+| **Accordion**  | single / multiple                | flèches haut/bas, `aria-expanded`                                   |
+| **Breadcrumb** | (séparateur custom)              | `nav aria-label="breadcrumb"`, `aria-current="page"` sur le dernier |
+| **Stepper**    | linéaire / non-linéaire          | `role="list"`, étape courante via `aria-current="step"`             |
+| **Pagination** | classique / cursor               | flèches gauche/droite, Page Up/Down                                 |
+
 
 ### 3.4 Données tabulaires
 
-| Composant   | Features                                                             | A11y notes |
-|-------------|----------------------------------------------------------------------|------------|
-| **Table**   | tri colonnes, sticky header, zebra optionnel                         | `<th scope="col">`, `aria-sort` sur colonnes triables |
-| **DataGrid**| filtres avancés, sélection multi, actions en lot, pagination, virtuel| navigation cellules au clavier (flèches), `role="grid"`, copy/paste |
+
+| Composant    | Features                                                              | A11y notes                                                          |
+| ------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Table**    | tri colonnes, sticky header, zebra optionnel                          | `<th scope="col">`, `aria-sort` sur colonnes triables               |
+| **DataGrid** | filtres avancés, sélection multi, actions en lot, pagination, virtuel | navigation cellules au clavier (flèches), `role="grid"`, copy/paste |
+
 
 > **DataGrid** est plus puissant et plus coûteux que **Table** — ne l'utiliser que pour
 > les écrans admin (AD-02 corrections, AD-03 SIGAC). Préférer `Table` pour les listes
@@ -200,11 +211,12 @@ keyboard nav).
 ```
 
 Comportement :
+
 - Masque dynamique `_ __ __ _ __ ___ ___ _` qui se remplit à mesure de la frappe
 - Validation live (`validateNina`) — feedback rouge instantané dès le 15e caractère
 - Auto-uppercase, supprime espaces / tirets via `normalizeNina`
 - Accessibilité : `aria-invalid` quand format invalide, `aria-describedby` pointant
-  vers le message d'erreur en bambara/français/etc.
+vers le message d'erreur en bambara/français/etc.
 
 ### 4.2 NinaDisplay
 
@@ -225,6 +237,7 @@ Carte profil large avec photo (Avatar), infos formatées, badge IA "Document vé
 ### 4.4 AiScorePanel
 
 Jauge circulaire 0-100 + breakdown 5 facteurs (barres horizontales). Couleurs :
+
 - ≥ 85 → vert (`success.500`)
 - 60–84 → orange (`warning.500`)
 - < 60 → rouge (`danger.500`)
@@ -254,6 +267,7 @@ Jauge circulaire 0-100, mêmes seuils que `AiScorePanel`. Utilisée dans AD-03 (
 ### 4.10 AlertSeverityBadge
 
 Badge coloré par enum `AlertSeverity` :
+
 - INFO → `info.500` soft
 - LOW → `neutral.500` soft
 - MEDIUM → `warning.500` soft
@@ -273,6 +287,7 @@ Switch 3 positions Mali / Burkina / Niger avec icône drapeau. Accessibilité :
 ### 4.13 PrioritySlot
 
 Composant créneau de RDV affichant heure + indicateur priorité (P1/P2/P3) avec couleur :
+
 - P1 → bordure `danger.500` 2px (urgent)
 - P2 → bordure `warning.500`
 - P3 → bordure `neutral.300` (standard)
@@ -284,8 +299,7 @@ Couleur de bordure passe à `danger.500` si `deadline < now`.
 
 ### 4.15 SignedMessageBubble
 
-Bulle de message (style chat) avec badge `<ShieldCheckIcon />` + `Signature Ed25519
-vérifiée` si `verifySignature() === true`. Tooltip au hover/focus affiche le
+Bulle de message (style chat) avec badge `<ShieldCheckIcon />` + `Signature Ed25519 vérifiée` si `verifySignature() === true`. Tooltip au hover/focus affiche le
 fingerprint clé publique (8 derniers chars).
 
 ### 4.16 WhistleblowerForm
@@ -313,24 +327,24 @@ Redis et le `text` accumulé.
 - **Validation client** : Zod schema partagé (`@nina-aes/shared-types/dtos`).
 - **Validation serveur** : même Zod schema sur l'API NestJS — single source of truth.
 - **Pattern UX** : pas de validation au `onChange` (irritant), au `onBlur` du champ + au
-  submit. Erreurs : `aria-invalid` + message en dessous du champ.
+submit. Erreurs : `aria-invalid` + message en dessous du champ.
 - **Inline help** : tooltip `i` à côté du label pour les règles complexes (NINA, mot de
-  passe).
+passe).
 
 ### 5.2 Loading
 
 - **Initial load** : `Skeleton` mimant la forme finale (pas un spinner centré).
 - **Refresh** : indicateur `<Spinner size="sm" />` discret en haut à droite, pas de
-  blocage UI.
+blocage UI.
 - **Mutation** : `Button` passe en `loading` (icône remplacée par spinner, label inchangé).
 
 ### 5.3 Error handling
 
 - **Erreur API** : Alert `danger` en haut du contenu + bouton retry. Message en français
-  + code d'erreur traduisible.
+  - code d'erreur traduisible.
 - **Erreur réseau** : Toast persistant tant que offline (`navigator.onLine`).
 - **Erreur fatale** : `<ErrorBoundary>` avec illustration + bouton « Recharger » +
-  ID de corrélation pour le support.
+ID de corrélation pour le support.
 
 ### 5.4 Optimistic updates
 
@@ -360,17 +374,17 @@ proéminent. Exemple : "Aucune correction en attente — Vous êtes à jour 🎉
 
 ## 6. Accessibility checklist (WCAG 2.2 AA)
 
-- [ ] Contraste texte ≥ 4.5:1 (≥ 3:1 sur gros texte > 18pt)
-- [ ] Focus ring visible sur tous les éléments interactifs (`shadow.focus`)
-- [ ] Tab order linéaire et logique, sans `tabindex` > 0
-- [ ] Skip link `<a href="#main">Aller au contenu</a>` en début de chaque page
-- [ ] Tous les `<img>` ont un `alt` (ou `alt=""` si décoratif)
-- [ ] Tous les boutons icône ont un `aria-label`
-- [ ] Formulaires : `<label>` associé à chaque `<input>` via `htmlFor`
-- [ ] Erreurs annoncées via `aria-live="polite"` ou `role="alert"`
-- [ ] Animations respectent `prefers-reduced-motion: reduce`
-- [ ] Texte zoomable jusqu'à 200 % sans casse de layout
-- [ ] Lecteur d'écran NVDA + VoiceOver iOS testés sur les 12 écrans
+- Contraste texte ≥ 4.5:1 (≥ 3:1 sur gros texte > 18pt)
+- Focus ring visible sur tous les éléments interactifs (`shadow.focus`)
+- Tab order linéaire et logique, sans `tabindex` > 0
+- Skip link `<a href="#main">Aller au contenu</a>` en début de chaque page
+- Tous les `<img>` ont un `alt` (ou `alt=""` si décoratif)
+- Tous les boutons icône ont un `aria-label`
+- Formulaires : `<label>` associé à chaque `<input>` via `htmlFor`
+- Erreurs annoncées via `aria-live="polite"` ou `role="alert"`
+- Animations respectent `prefers-reduced-motion: reduce`
+- Texte zoomable jusqu'à 200 % sans casse de layout
+- Lecteur d'écran NVDA + VoiceOver iOS testés sur les 12 écrans
 
 Outillage : `eslint-plugin-jsx-a11y` (CI) + `axe-core` (Playwright tests).
 
@@ -378,14 +392,16 @@ Outillage : `eslint-plugin-jsx-a11y` (CI) + `axe-core` (Playwright tests).
 
 ## 7. Responsive breakpoints
 
-| Token | Largeur min | Contexte                                   |
-|-------|-------------|--------------------------------------------|
+
+| Token | Largeur min | Contexte                                    |
+| ----- | ----------- | ------------------------------------------- |
 | `xs`  | 360 px      | Téléphone bas de gamme malien (Tecno, Itel) |
-| `sm`  | 640 px      | Téléphone milieu de gamme                  |
-| `md`  | 768 px      | Tablette portrait                          |
-| `lg`  | 1024 px     | Tablette paysage / petit laptop            |
-| `xl`  | 1280 px     | Desktop standard                           |
-| `2xl` | 1536 px     | Desktop large                              |
+| `sm`  | 640 px      | Téléphone milieu de gamme                   |
+| `md`  | 768 px      | Tablette portrait                           |
+| `lg`  | 1024 px     | Tablette paysage / petit laptop             |
+| `xl`  | 1280 px     | Desktop standard                            |
+| `2xl` | 1536 px     | Desktop large                               |
+
 
 Convention : on **commence** à `xs`, on **ajoute** des règles `sm:`, `md:`, etc. — jamais
 l'inverse (`max-md:` interdit hors cas exceptionnel).
@@ -425,15 +441,15 @@ Les 8 langues nationales (FR, BM, SNK, FF, TMQ, HAU, MOS, DJE) provoquent des **
 de texte de +30 % à +80 %** par rapport au français. Règles :
 
 1. **Pas de truncate dur** sauf cas exceptionnel — préférer `flex-wrap`, `min-width: 0`
-   pour permettre le retour à la ligne.
+  pour permettre le retour à la ligne.
 2. **Pas de texte gravé dans des images** — utiliser SVG avec `<text>` ou couches
-   séparées.
+  séparées.
 3. **Pas de calcul de largeur en JS basé sur le contenu texte** — toujours laisser le
-   navigateur mesurer.
+  navigateur mesurer.
 4. **Contextualisation des plurals** : utiliser ICU MessageFormat via `next-intl` (pas de
-   `${count} item${count > 1 ? 's' : ''}`).
+  `${count} item${count > 1 ? 's' : ''}`).
 5. **Test obligatoire en bambara avant merge** — c'est la langue qui expansionne le plus
-   (jusqu'à +80 % en moyenne).
+  (jusqu'à +80 % en moyenne).
 
 Configuration `next-intl` :
 
@@ -470,24 +486,26 @@ notre `cva` partagé.
 
 ## 11. Charte graphique — récap exécutif
 
-| Élément              | Valeur                                                                  |
-|----------------------|-------------------------------------------------------------------------|
-| **Primary**          | `hsl(213, 60%, 42%)` — bleu profond AES                                 |
-| **Accent**           | `hsl(180, 75%, 42%)` — turquoise lumineux                               |
-| **Success**          | `hsl(142, 71%, 45%)`                                                    |
-| **Warning**          | `hsl(38, 92%, 50%)`                                                     |
-| **Danger**           | `hsl(0, 84%, 60%)`                                                      |
-| **Sans**             | Inter Variable                                                          |
-| **Display**          | Bricolage Grotesque                                                     |
-| **Mono**             | JetBrains Mono Variable                                                 |
-| **Échelle taille**   | 1.250 (Perfect Fourth)                                                  |
-| **Espacement base**  | 4 px                                                                    |
-| **Rayon par défaut** | 8 px (`radius.base`)                                                    |
-| **Ombre par défaut** | `shadow.sm`                                                             |
-| **Durée hover**      | 150 ms                                                                  |
-| **Bibliothèque UI**  | shadcn/ui (Radix + Tailwind) + 18 composants métier custom              |
-| **Icônes**           | Lucide React + 5 maliennes custom                                       |
-| **Mobile-first**     | Breakpoint racine 360 px                                                |
+
+| Élément              | Valeur                                                     |
+| -------------------- | ---------------------------------------------------------- |
+| **Primary**          | `hsl(213, 60%, 42%)` — bleu profond AES                    |
+| **Accent**           | `hsl(180, 75%, 42%)` — turquoise lumineux                  |
+| **Success**          | `hsl(142, 71%, 45%)`                                       |
+| **Warning**          | `hsl(38, 92%, 50%)`                                        |
+| **Danger**           | `hsl(0, 84%, 60%)`                                         |
+| **Sans**             | Inter Variable                                             |
+| **Display**          | Bricolage Grotesque                                        |
+| **Mono**             | JetBrains Mono Variable                                    |
+| **Échelle taille**   | 1.250 (Perfect Fourth)                                     |
+| **Espacement base**  | 4 px                                                       |
+| **Rayon par défaut** | 8 px (`radius.base`)                                       |
+| **Ombre par défaut** | `shadow.sm`                                                |
+| **Durée hover**      | 150 ms                                                     |
+| **Bibliothèque UI**  | shadcn/ui (Radix + Tailwind) + 18 composants métier custom |
+| **Icônes**           | Lucide React + 5 maliennes custom                          |
+| **Mobile-first**     | Breakpoint racine 360 px                                   |
+
 
 ---
 
@@ -497,9 +515,10 @@ notre `cva` partagé.
 - **Visual regression** : Chromatic ou Loki — capturer les 18 composants métier en 5 états
 - **Storybook** : isoler chaque composant pour développement + documentation auto
 - **Style Dictionary build** : générer aussi `tokens.swift` (Swift) et `tokens.kt` (Kotlin)
-  pour si on passe en RN bare un jour
+pour si on passe en RN bare un jour
 - **Lectures recommandées** :
-  - https://refactoringui.com/ — bases UI design
-  - https://www.w3.org/WAI/WCAG22/quickref/ — référence WCAG 2.2
-  - https://www.styledictionary.com/ — Style Dictionary 4
-  - https://ui.shadcn.com/docs — composants Radix utilisés
+  - [https://refactoringui.com/](https://refactoringui.com/) — bases UI design
+  - [https://www.w3.org/WAI/WCAG22/quickref/](https://www.w3.org/WAI/WCAG22/quickref/) — référence WCAG 2.2
+  - [https://www.styledictionary.com/](https://www.styledictionary.com/) — Style Dictionary 4
+  - [https://ui.shadcn.com/docs](https://ui.shadcn.com/docs) — composants Radix utilisés
+

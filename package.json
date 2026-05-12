@@ -28,6 +28,10 @@
     "test": "turbo run test",
     "test:cov": "turbo run test:cov",
     "check-types": "turbo run check-types",
+    "validate:data": "node scripts/validate-mali-data.mjs",
+    "validate:schemas": "node scripts/validate-json-schemas.mjs",
+    "docs:sync:check": "node scripts/docs-sync-check.mjs",
+    "verify:repo": "pnpm run validate:data && pnpm run validate:schemas && pnpm run docs:sync:check",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
@@ -47,6 +51,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
+    "ajv": "^8.17.1",
     "turbo": "^2.9.8",
     "typescript": "6.0.2"
   },
