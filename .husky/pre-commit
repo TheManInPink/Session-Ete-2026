@@ -1,22 +1,38 @@
 #!/usr/bin/env sh
 
+# Hook pre-commit NINA-AES — bloque le commit si une dérive est détectée.
+# Voir MAINTENANCE.md §2 pour la chaîne complète des contrôles.
+
 # Changer vers le répertoire du monorepo
 cd nina-aes-platform || exit 0
 
-# Vérifier le formatage
+# 1) Formatage Prettier
 pnpm run format:check || {
   echo "❌ Formatage incorrect. Exécutez : pnpm run format"
   exit 1
 }
 
-# Linter
+# 2) Linter (turbo)
 pnpm run lint || {
   echo "❌ Erreurs de lint. Corrigez-les avant de commiter."
   exit 1
 }
 
-# Validation de cohérence documentaire minimale
+# 3) Chaîne de vérification du repo (data + schémas + cross-refs docs)
+#    — équivaut à `pnpm run verify:repo` mais détaillé pour la lisibilité
+#    des messages d'erreur.
+pnpm run validate:data || {
+  echo "❌ Invariants Mali violés. Voir scripts/validate-mali-data.mjs"
+  exit 1
+}
+
+pnpm run validate:schemas || {
+  echo "❌ JSON Schemas non respectés. Voir schemas/ et data/mali/"
+  exit 1
+}
+
 pnpm run docs:sync:check || {
-  echo "❌ Références docs non synchronisées."
+  echo "❌ Références docs non synchronisées (README ↔ CHANGELOG ↔ index)."
+  echo "   → Mettre à jour AGENTS.md / CLAUDE.md / MAINTENANCE.md si une convention a changé."
   exit 1
 }

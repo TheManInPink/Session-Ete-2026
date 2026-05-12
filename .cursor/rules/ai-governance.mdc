@@ -8,13 +8,15 @@ Follow these repository rules for every code or documentation change:
 1) Read source-of-truth docs first:
 - docs/CHANGELOG.md
 - docs/00-README-INDEX.md
+- MAINTENANCE.md (operational mapping)
 
 2) Keep references synchronized:
 - If scripts, commands, data contracts, or architecture behavior change, update docs in same change set.
+- Cross-check MAINTENANCE.md §3 ("Quand modifier quoi") for the mapping rule.
 
 3) Validate data and schemas:
-- Run `pnpm run validate:data`
-- Run `pnpm run validate:schemas`
+- Prefer `pnpm run verify:repo` (runs validate:data + validate:schemas + docs:sync:check)
+- Or individually: `pnpm run validate:data` / `pnpm run validate:schemas` / `pnpm run docs:sync:check`
 
 4) Tooling conventions:
 - Use pnpm only.
