@@ -41,7 +41,10 @@ Le parcours suit trois principes :
 | Monorepo Turborepo 2.9.5         | ✅ Initialisé                                                                        |
 | pnpm                             | ✅ v10.12.1                                                                          |
 | `apps/web` + `apps/docs`         | ⚠️ Scaffolds par défaut Turborepo — à remplacer par `citizen`, `admin`, `governance` |
-| `packages/ui`                    | ⚠️ Stub par défaut — à enrichir avec le design system AES                            |
+| `apps/citizen` (port 4001)       | ✅ **Sessions 1+2 livrées** — PC-01 à PC-06 + auth Keycloak BFF (mock mode actif)    |
+| `packages/ui`                    | ✅ **Livré (Session 1)** — design system AES (Button/Card/Input/Alert/…)             |
+| `packages/api-client`            | ✅ **Livré (Sessions 1+2)** — identity + correction + appointment + sigac (Zod)      |
+| `packages/i18n`                  | ✅ **Livré (Session 1, FR complet)** — bambara fallback FR ; 6 autres langues à venir |
 | `packages/eslint-config`         | ✅ Présent                                                                           |
 | `packages/typescript-config`     | ✅ Présent                                                                           |
 | `packages/shared-types`          | ✅ **Livré (PROMPT 1.2)** — 11 enums, 16 interfaces, DTOs Zod                        |

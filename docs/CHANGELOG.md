@@ -181,3 +181,120 @@ Validation : `make help` liste les 44 cibles documentées.
 pour les 9+ services d'infrastructure (PostgreSQL+PostGIS, Redis, RabbitMQ,
 MinIO, Elasticsearch, Kibana, Keycloak, Vault, MailDev). Corrections déjà
 appliquées (cf. §4 « Incidents résolus »).
+
+## 10. Frontend Citoyen — Session 2 : PC-03 à PC-06 + auth Keycloak BFF (mai 2026)
+
+Session 2 du chantier frontend `apps/citizen` (port 4001). Construit
+au-dessus de la fondation Session 1 (packages `@nina-aes/ui`,
+`@nina-aes/api-client`, `@nina-aes/i18n` ; PC-01 et PC-02 livrés).
+
+### 10.1 Auth Keycloak — pattern BFF (Backend-for-Frontend)
+
+Routes API internes `apps/citizen/app/api/auth/*` :
+
+- **`/api/auth/login`** — initie OIDC Authorization Code + PKCE
+  (`code_verifier` SHA-256, `state`, `nonce` ; cookies signés
+  `oidc_state`/`oidc_nonce`/`oidc_code_verifier` httpOnly).
+- **`/api/auth/callback`** — échange du code contre `access_token` +
+  `id_token` + `refresh_token`. Vérification ID token via JWKS
+  (`createRemoteJWKSet`, lib `jose@6.2.3`) : `iss`, `aud`, `exp`,
+  `nonce`. Tokens posés en cookies `httpOnly + Secure + SameSite=Lax`,
+  jamais exposés au JS navigateur.
+- **`/api/auth/refresh`** — refresh silencieux (POST). En cas
+  d'échec, suppression atomique des cookies pour forcer un re-login
+  propre.
+- **`/api/auth/logout`** — révoque le refresh token côté Keycloak
+  (backchannel) puis redirige sur l'endpoint `end_session` (frontchannel).
+
+**Mode mock** : `NINA_AUTH_MODE=mock` (défaut dev) renvoie une session
+déterministe « Fatoumata Diallo » sans dépendance Keycloak — débloque
+les écrans tant que `keycloak-realm-aes.json` n'est pas chargé.
+
+`apps/citizen/lib/auth/session.ts` expose `getSession()`,
+`requireSession()`, `isOwnerOf(nina)`, `isAgent()` — utilisables en
+RSC (Server Components) comme en Server Actions.
+
+### 10.2 `apps/citizen/middleware.ts` — i18n + auth guard
+
+Middleware combiné next-intl + auth. Routes publiques (regex
+`PUBLIC_PATTERNS`) : racine `/`, `/[locale]`, `/[locale]/login`,
+`/[locale]/signalement/*`. Tout autre `/[locale]/...` exige une
+session ; sinon redirection `/[locale]/login?return_to=…`.
+
+### 10.3 Extensions `@nina-aes/api-client`
+
+Trois nouveaux sous-clients (le réexport racine devient
+`{ identity, correction, appointment, sigac }`) :
+
+- **`CorrectionClient`** — soumission + liste + détail + annulation
+  d'une demande de correction (9 champs corrigeables : `firstName`,
+  `lastName`, `birthDate`, `birthPlace`, `residence_cercle`,
+  `residence_commune`, `fatherName`, `motherName`, `profession`).
+  Idempotency-key `corr-{nina}-{field}-{ts}`.
+- **`AppointmentClient`** — créneaux disponibles, création RDV, liste
+  de mes RDV, annulation. Supporte priorité P1/P2/P3 (file
+  prioritaire pour citoyens vulnérables).
+- **`SigacClient`** — signalement anonyme. **`skipAuth: true` sur
+  tous les appels** : aucun header `Authorization`, aucun cookie
+  envoyé. Soumission + consultation par `trackingToken` opaque
+  (format `vault:v3:…`).
+
+Tous les DTO et réponses sont validés par des schémas Zod
+co-localisés (`*.schema.ts`), réexportés côté package racine.
+
+### 10.4 Écrans citoyens livrés (PC-03 → PC-06)
+
+- **PC-03 — Wizard correction** (`/[locale]/nina/[nina]/correction`).
+  4 étapes (champ → valeur → justificatif placeholder → confirmation),
+  stepper visuel, contrôle de rôle `isOwner || isAgent`.
+- **PC-04 — Prise de RDV** (`/[locale]/appointments/new`).
+  Sélection centre (CTDEC Bamako, RAVEC Kayes/Sikasso/Mopti — mocks
+  en attendant l'API), créneau, motif libre. Badge « file prioritaire »
+  affiché si la session est marquée vulnérable.
+- **PC-05 — Dashboard citoyen** (`/[locale]/dashboard`).
+  Salutation localisée, 3 actions (fiche / correction / RDV), liste
+  des corrections en cours avec score IA, liste des RDV à venir,
+  composant `StatusBadge` réutilisable.
+- **PC-06 — Signalement anonyme** (`/[locale]/signalement`). Route
+  **publique** (pas de cookie d'auth). Formulaire 6 catégories
+  (BRIBERY / FORGERY / FAVORITISM / ABUSE_OF_POWER / PROCUREMENT /
+  OTHER), description ≥ 50 caractères, localisation optionnelle,
+  consentement. Aucune écriture localStorage/sessionStorage, aucun
+  fingerprint navigateur. Reçu post-soumission avec token copiable.
+
+### 10.5 i18n — `packages/i18n/messages/fr.json` enrichi
+
+Ajout des namespaces `login`, `correction`, `appointments`,
+`dashboard`, `signalement`. La traduction `bm.json` (bambara) reste
+le périmètre Session 1 ; next-intl applique le fallback FR
+automatiquement pour les clés manquantes (décision documentée :
+ne pas fabriquer de traductions bambara sans relecture native).
+
+### 10.6 Corrections de configuration
+
+- **`next.config.ts`** — `experimental.ppr` fusionné dans
+  `cacheComponents: true` (changement Next 16).
+- **`tsconfig.json`** — suppression de `baseUrl` (déprécié TS 6.0,
+  remplacé par `paths` relatifs `./*`).
+- **`packages/api-client`** — override local du `tsconfig.json` :
+  `module: ESNext` + `moduleResolution: Bundler`. Le package est
+  consommé en source via `transpilePackages` côté Next, jamais publié
+  comme ESM standalone — la résolution « bundler » évite d'avoir à
+  écrire des extensions `.js` explicites dans les imports relatifs
+  (que Turbopack ne sait pas remapper vers `.ts`).
+
+### 10.7 Validation
+
+- `pnpm --filter @nina-aes/api-client check-types` : 0 erreur.
+- `pnpm --filter @nina-aes/citizen check-types` : 0 erreur
+  (`next typegen` + `tsc --noEmit`).
+- `pnpm run verify:repo` : ✅ validate-data + validate-schemas + docs-sync.
+
+### 10.8 Reste à faire (Session 3+)
+
+- Câblage `keycloak-realm-aes.json` réel + suppression du mode mock
+  pour la pré-prod.
+- Composant `LanguageSwitcher` (8 langues, accessible clavier).
+- Traductions bambara/sonninké/peul/tamasheq/haoussa/mossi/zarma.
+- Upload de justificatifs PC-03 — bloqué tant que `document-service`
+  (port 3004) n'est pas livré (cf. doc 10).
