@@ -1,8 +1,13 @@
 /**
  * @file        [locale]/layout.tsx
- * @description Layout par locale — fournit la balise `<html lang="…">` et le
- *              provider next-intl qui rend `useTranslations()` accessible dans
- *              tout l'arbre client/serveur.
+ * @description Layout par locale — valide la locale du segment URL, active
+ *              `setRequestLocale()` pour les Server Components imbriqués,
+ *              et installe les providers globaux (next-intl + TanStack Query)
+ *              via `<IntlBoundary>` enveloppé dans `<Suspense>`.
+ *
+ *              `<html>` et `<body>` sont définis dans le root layout
+ *              `app/layout.tsx` (Next 16 l'exige) — `lang={locale}` y est
+ *              résolu via `getLocale()`.
  *
  * @module      @nina-aes/citizen
  */
@@ -39,17 +44,13 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   // Active la locale pour les Server Components imbriqués
   setRequestLocale(locale);
 
+  // Suspense exigé par Next 16 + cacheComponents : `getMessages()` est une
+  // lecture dynamique (Request-scoped) qui bloquerait sinon le stream complet
+  // de la coque statique.
   return (
-    <html lang={locale} data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className="min-h-screen bg-bg text-fg antialiased">
-        {/* Suspense exigé par Next 16 + cacheComponents : `getMessages()` est
-            une lecture dynamique (Request-scoped) qui bloquerait sinon le
-            stream complet de la coque statique. */}
-        <Suspense fallback={null}>
-          <IntlBoundary locale={locale}>{children}</IntlBoundary>
-        </Suspense>
-      </body>
-    </html>
+    <Suspense fallback={null}>
+      <IntlBoundary locale={locale}>{children}</IntlBoundary>
+    </Suspense>
   );
 }
 
