@@ -24,7 +24,23 @@ const MOCK_CENTERS = [
   { id: 'ravec-mopti', name: 'Antenne RAVEC Mopti', region: 'Mopti' },
 ];
 
-/** Génère 6 créneaux fictifs sur les 3 prochains jours ouvrés. */
+/**
+ * Génère 6 créneaux fictifs sur les 3 prochains jours ouvrés.
+ *
+ * TODO Session 3+ — Migration appointment-service :
+ *   Quand `appointment-service` (port 3008, cf. doc 09) sera livré,
+ *   remplacer cette fonction par un appel server-side :
+ *
+ *     const slots = await api.appointment.getAvailableSlots({
+ *       fromDate, toDate, centerId, isPriority,
+ *     });
+ *
+ *   Faire le fetch dans le Server Component parent (`page.tsx`), passer
+ *   `slots` en prop à `<AppointmentForm>`. La `<Suspense>` côté page
+ *   restera utile comme frontière de streaming pour le fetch lui-même.
+ *   Supprimer le `'use client'` de ce composant si possible (déléguer
+ *   la sélection à un sous-composant client minimal).
+ */
 function generateMockSlots(isPriority: boolean) {
   const now = new Date();
   const slots: Array<{ id: string; date: string; time: string; priority: 'P1' | 'P2' | 'P3' }> = [];

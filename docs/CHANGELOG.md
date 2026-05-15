@@ -294,7 +294,27 @@ ne pas fabriquer de traductions bambara sans relecture native).
 
 - Câblage `keycloak-realm-aes.json` réel + suppression du mode mock
   pour la pré-prod.
-- Composant `LanguageSwitcher` (8 langues, accessible clavier).
-- Traductions bambara/sonninké/peul/tamasheq/haoussa/mossi/zarma.
+- ~~Composant `LanguageSwitcher` (8 langues, accessible clavier)~~ →
+  livré commit `b7c1f5c` (dropdown autonyme + drapeau dans le header
+  d'accueil, fallback FR par-clé via `deepMerge`).
+- Relecture native des 6 skeletons i18n (SNK/FF/TMQ/HAU/MOS/DJE) ;
+  bambara `bm.json` déjà fourni Session 1. À faire valider par
+  CTDEC/DNEC avant production.
 - Upload de justificatifs PC-03 — bloqué tant que `document-service`
   (port 3004) n'est pas livré (cf. doc 10).
+- **Migration PC-04 slots → appointment-service** : quand
+  `appointment-service` (port 3008, doc 09) sera livré, remplacer
+  `generateMockSlots()` dans `apps/citizen/app/[locale]/appointments/
+  new/_components/appointment-form.tsx` par un appel server-side
+  `api.appointment.getAvailableSlots({ fromDate, toDate, centerId,
+  isPriority })` exécuté dans le Server Component parent. Passer les
+  slots en prop. La `<Suspense>` côté page reste pertinente comme
+  frontière de streaming pour le fetch. Idéalement, déléguer
+  uniquement la sélection à un sous-composant client minimal et
+  retirer le `'use client'` du form principal.
+- **Migration PC-04 centres → identity ou location service** :
+  `MOCK_CENTERS` dans le même fichier doit être remplacé par un
+  fetch `/api/v1/centers` (cercles/communes filtrables selon la
+  région du citoyen via `session.user.residence_cercle`).
+- Rename `middleware.ts → proxy.ts` (changement Next 16, warning
+  actuel non-bloquant mais le convention sera obligatoire en Next 17).
