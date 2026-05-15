@@ -312,12 +312,15 @@ PublishScripts/
 *.nupkg
 # NuGet Symbol Packages
 *.snupkg
-# The packages folder can be ignored because of Package Restore
-**/[Pp]ackages/*
-# except build/, which is used as an MSBuild target.
-!**/[Pp]ackages/build/
-# Uncomment if necessary however generally it will be regenerated when needed
-#!**/[Pp]ackages/repositories.config
+# NuGet Package Restore (.NET) — neutralisé : ce monorepo Turborepo utilise
+# `packages/` comme workspace TypeScript (Pp]ackages/[A-Z]/src/**). La règle
+# NuGet d'origine `**/[Pp]ackages/*` masquait silencieusement tout le code
+# source des workspace packages (@nina-aes/ui, api-client, i18n, utils, …).
+# Si un jour on intègre du .NET, ré-ignorer explicitement le sous-dossier
+# concerné (par exemple `services/dotnet-x/packages/`).
+# **/[Pp]ackages/*
+# !**/[Pp]ackages/build/
+# #!**/[Pp]ackages/repositories.config
 # NuGet v3's project.json files produces more ignorable files
 *.nuget.props
 *.nuget.targets
