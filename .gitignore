@@ -26,7 +26,14 @@ dist/
 *.tsbuildinfo
 
 # ── Turbo ──
-.turbo/.turbo/
+# L'ancienne règle `.turbo/.turbo/` était invalide (matche un dossier .turbo
+# imbriqué dans .turbo, ce qui n'existe pas) et laissait passer le cache
+# binaire Turborepo (.turbo/cache/*.tar.zst + manifests + meta). Allowlist :
+# on ignore tout `.turbo/` puis on ré-inclut `preferences/` qui est partagé
+# en équipe (tui.json déjà tracké historiquement).
+.turbo/
+!.turbo/preferences/
+!.turbo/preferences/**
 
 # ── Python ──
 __pycache__/
