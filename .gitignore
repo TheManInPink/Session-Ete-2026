@@ -2,6 +2,11 @@
 # NINA-AES Platform — .gitignore
 # ═══════════════════════════════════════════════════
 
+# ── Claude Code (worktrees, métadata agent) ──
+# Les worktrees sont créés par Claude Code lors de l'activation des
+# tâches spawnées (chips) et ne doivent jamais être versionnés.
+.claude/
+
 # ── Dépendances ──
 node_modules/
 .pnp
