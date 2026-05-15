@@ -316,5 +316,8 @@ ne pas fabriquer de traductions bambara sans relecture native).
   `MOCK_CENTERS` dans le même fichier doit être remplacé par un
   fetch `/api/v1/centers` (cercles/communes filtrables selon la
   région du citoyen via `session.user.residence_cercle`).
-- Rename `middleware.ts → proxy.ts` (changement Next 16, warning
-  actuel non-bloquant mais le convention sera obligatoire en Next 17).
+- ~~Rename `middleware.ts → proxy.ts`~~ → fait. API identique
+  (`NextRequest`/`NextResponse`/`config.matcher` inchangés), seul le
+  nom de fichier et la fonction par défaut sont renommés (`middleware`
+  → `proxy`). L'import `next-intl/middleware` reste valide (next-intl
+  garde son propre nom).

@@ -1,7 +1,12 @@
 /**
- * @file        middleware.ts
- * @description Middleware Next.js — combine routage i18n (next-intl) et
- *              auth guard sur les routes du segment `(authenticated)/`.
+ * @file        proxy.ts
+ * @description Proxy Next.js 16 (anciennement `middleware.ts`, renommé pour
+ *              clarifier que le code tourne en frontière réseau Edge avant
+ *              l'application — cf. https://nextjs.org/docs/messages/middleware-to-proxy).
+ *              L'API (NextRequest/NextResponse, `config.matcher`) est identique.
+ *
+ *              Combine routage i18n (next-intl) et auth guard sur les routes
+ *              du segment `(authenticated)/`.
  *
  *              Routes publiques (accessibles sans `access_token`) :
  *                - /[locale]/              (page d'accueil)
@@ -31,13 +36,15 @@ const PUBLIC_PATTERNS: RegExp[] = [
 
 const AUTH_MODE = (process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak';
 
+// `next-intl` n'a pas (encore) renommé son sous-export `middleware` — on
+// conserve donc le nom local `intlMiddleware` pour la délégation i18n.
 const intlMiddleware = createIntlMiddleware({
   locales: [...locales],
   defaultLocale,
   localePrefix: 'always',
 });
 
-export default function middleware(req: NextRequest): NextResponse {
+export default function proxy(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl;
 
   // 1) Vérifier l'authentification AVANT le routing i18n
