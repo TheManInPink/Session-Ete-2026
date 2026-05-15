@@ -26,7 +26,16 @@ dist/
 *.tsbuildinfo
 
 # ── Turbo ──
-.turbo/.turbo/
+# Le cache Turborepo (.turbo/cache/*.tar.zst + manifests) est entièrement
+# régénéré localement et ne doit jamais être versionné. L'ancienne règle
+# `.turbo/.turbo/` était invalide (matche un dossier `.turbo` imbriqué
+# dans `.turbo`, ce qui n'existe pas) et laissait passer 169 fichiers de
+# cache binaire dans l'historique.
+# `.turbo/preferences/` (notamment `tui.json`) reste explicitement tracké
+# car partagé en équipe.
+.turbo/cache/
+.turbo/daemon/
+.turbo/runs/
 
 # ── Python ──
 __pycache__/
