@@ -7,11 +7,13 @@
  * @module      @nina-aes/citizen
  */
 
+import { Suspense } from 'react';
 import { defaultLocale, locales, type Locale } from '@nina-aes/i18n';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { Providers } from '../../lib/providers';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -37,15 +39,32 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   // Active la locale pour les Server Components imbriqués
   setRequestLocale(locale);
 
-  const messages = await getMessages({ locale: locale ?? defaultLocale });
-
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-screen bg-bg text-fg antialiased">
-        <NextIntlClientProvider locale={locale} messages={messages} timeZone="Africa/Bamako">
-          {children}
-        </NextIntlClientProvider>
+        {/* Suspense exigé par Next 16 + cacheComponents : `getMessages()` est
+            une lecture dynamique (Request-scoped) qui bloquerait sinon le
+            stream complet de la coque statique. */}
+        <Suspense fallback={null}>
+          <IntlBoundary locale={locale}>{children}</IntlBoundary>
+        </Suspense>
       </body>
     </html>
+  );
+}
+
+/** Frontière async qui charge les messages et installe les providers globaux. */
+async function IntlBoundary({
+  locale,
+  children,
+}: {
+  locale: Locale;
+  children: React.ReactNode;
+}) {
+  const messages = await getMessages({ locale: locale ?? defaultLocale });
+  return (
+    <NextIntlClientProvider locale={locale} messages={messages} timeZone="Africa/Bamako">
+      <Providers>{children}</Providers>
+    </NextIntlClientProvider>
   );
 }

@@ -1,22 +1,64 @@
 /**
  * @file        middleware.ts
- * @description Middleware Next.js — routage i18n avec next-intl.
- *              Préfixe systématique `/fr/`, `/bm/`, … et redirection automatique
- *              vers la locale par défaut si l'URL n'en contient pas.
+ * @description Middleware Next.js — combine routage i18n (next-intl) et
+ *              auth guard sur les routes du segment `(authenticated)/`.
+ *
+ *              Routes publiques (accessibles sans `access_token`) :
+ *                - /[locale]/              (page d'accueil)
+ *                - /[locale]/login          (page de connexion)
+ *                - /[locale]/signalement    (PC-06 — anonyme)
+ *                - /api/auth/*              (route handlers OIDC)
+ *
+ *              Routes protégées (redirection vers /login si non-connecté) :
+ *                - /[locale]/dashboard
+ *                - /[locale]/nina/...
+ *                - /[locale]/appointments/...
  *
  * @module      @nina-aes/citizen
  */
 
 import createIntlMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
 import { defaultLocale, locales } from '@nina-aes/i18n';
 
-export default createIntlMiddleware({
+/** Pages publiques (préfixe locale optionnel). */
+const PUBLIC_PATTERNS: RegExp[] = [
+  /^\/$/, // racine → next-intl redirigera vers /fr/
+  /^\/(?:fr|bm|snk|ff|tmq|hau|mos|dje)\/?$/,
+  /^\/(?:fr|bm|snk|ff|tmq|hau|mos|dje)\/login\/?$/,
+  /^\/(?:fr|bm|snk|ff|tmq|hau|mos|dje)\/signalement(\/.*)?$/,
+];
+
+const AUTH_MODE = (process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak';
+
+const intlMiddleware = createIntlMiddleware({
   locales: [...locales],
   defaultLocale,
   localePrefix: 'always',
 });
 
+export default function middleware(req: NextRequest): NextResponse {
+  const { pathname } = req.nextUrl;
+
+  // 1) Vérifier l'authentification AVANT le routing i18n
+  const isPublic = PUBLIC_PATTERNS.some((re) => re.test(pathname));
+  const hasToken = req.cookies.has('access_token') || AUTH_MODE === 'mock';
+
+  if (!isPublic && !hasToken) {
+    // Détecter la locale courante depuis l'URL (ou fallback FR)
+    const match = pathname.match(/^\/(fr|bm|snk|ff|tmq|hau|mos|dje)/);
+    const locale = match?.[1] ?? defaultLocale;
+
+    const loginUrl = new URL(`/${locale}/login`, req.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // 2) Routing i18n
+  return intlMiddleware(req) as NextResponse;
+}
+
 export const config = {
-  // Inclut toutes les routes sauf les assets statiques et l'API auth.
+  // Exclut les assets statiques et les route handlers API.
   matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 };

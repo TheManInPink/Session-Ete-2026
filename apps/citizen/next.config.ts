@@ -27,10 +27,9 @@ const nextConfig: NextConfig = {
     '@nina-aes/shared-types',
     '@nina-aes/utils',
   ],
-  experimental: {
-    // PPR (Partial Prerendering) — coque statique + données streamées
-    ppr: 'incremental',
-  },
+  // Partial Prerendering — coque statique + données streamées
+  // (Next 16 a fusionné `experimental.ppr` dans `cacheComponents`)
+  cacheComponents: true,
   async headers() {
     return [
       {
