@@ -1,0 +1,71 @@
+{
+  "common": {
+    "yes": "Ɔwɔ",
+    "no": "Ayi",
+    "cancel": "A dabila",
+    "save": "A mara",
+    "submit": "A ci",
+    "back": "Kɔsegin",
+    "continue": "Taa ɲɛ",
+    "loading": "A bɛ yɛlɛn…",
+    "signIn": "Don",
+    "signOut": "Bɔ",
+    "language": "Kan",
+    "search": "Ɲini",
+    "appName": "NINA-AES"
+  },
+  "citizen": {
+    "home": {
+      "title": "Ne ka NINA, ne ka kɛnɛ, AES",
+      "subtitle": "Sahel Jamana Lakanananaw ka kunnafoni-kɛnɛ",
+      "searchCta": "N ka NINA ɲinini",
+      "actions": {
+        "viewCard": "Ne ka sɛbɛn lajɛ",
+        "requestCorrection": "Latilenni ɲini",
+        "bookAppointment": "Lajɛn dilan",
+        "reportCorruption": "Ɲɔgɔnsɔrɔn fɔ"
+      }
+    },
+    "search": {
+      "title": "Ne ka NINA ɲinini",
+      "help": "I ka NINA Sɛbɛn (walawala 14 ni siginidɛn 1).",
+      "ninaLabel": "NINA nimɔrɔ",
+      "submit": "Ɲini",
+      "examplePlaceholder": "18903102015042Z"
+    },
+    "view": {
+      "photoOk": "Ja bɛ yen",
+      "noPhoto": "Ja tɛ yen",
+      "birthDate": "Wolo don",
+      "sex": "Cɛya wala muso",
+      "birthPlace": "Wolo yɔrɔ",
+      "residence": "Sigi yɔrɔ",
+      "father": "Faa",
+      "mother": "Baa",
+      "profession": "Baara",
+      "maritalStatus": "Furu kɔ",
+      "downloadPdf": "Sɛbɛn (PDF) ladon",
+      "requestCorrection": "Fili fɔ",
+      "notFound": "Tɔgɔ tɛ sɔrɔ"
+    }
+  },
+  "errors": {
+    "genericTitle": "Filiya dɔ kɛra",
+    "genericHelp": "I ka segin a kan. Ni kɛlɛya tɛmɛnen don, ID ye fɔ dɛmɛbaaw ye.",
+    "retry": "Segin a kan",
+    "supportId": "Dɛmɛni ID",
+    "network": {
+      "title": "Telefoni gɛrɛ tɛ yen",
+      "help": "I ka i ka telefoni jateminɛ ka segin a kan."
+    },
+    "userError": {
+      "title": "Sɛbɛnni tɛ ɲɛ"
+    },
+    "serverError": {
+      "title": "Serveur ka filiya",
+      "help": "An ye a faamu. I ka segin a kan miniti damaden kɔnɔ."
+    },
+    "notFound": "Foyi tɛ sɔrɔ",
+    "unauthorized": "I ka don fɔlɔ walisa ka don nin yɔrɔ in na."
+  }
+}

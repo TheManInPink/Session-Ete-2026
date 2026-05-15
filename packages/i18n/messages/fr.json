@@ -1,0 +1,234 @@
+{
+  "common": {
+    "yes": "Oui",
+    "no": "Non",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "submit": "Envoyer",
+    "back": "Retour",
+    "continue": "Continuer",
+    "loading": "Chargement…",
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "language": "Langue",
+    "search": "Rechercher",
+    "appName": "NINA-AES"
+  },
+  "citizen": {
+    "home": {
+      "title": "Mon identité, mon NINA, mon AES",
+      "subtitle": "Le portail numérique souverain de l'Alliance des États du Sahel",
+      "searchCta": "Rechercher mon NINA",
+      "actions": {
+        "viewCard": "Voir ma fiche",
+        "requestCorrection": "Demander une correction",
+        "bookAppointment": "Prendre un rendez-vous",
+        "reportCorruption": "Signaler une corruption"
+      }
+    },
+    "search": {
+      "title": "Rechercher mon NINA",
+      "help": "Saisissez votre numéro d'identité (15 caractères : 14 chiffres + 1 lettre de contrôle).",
+      "ninaLabel": "Numéro NINA",
+      "submit": "Rechercher",
+      "examplePlaceholder": "18903102015042Z"
+    },
+    "view": {
+      "photoOk": "Photo disponible",
+      "noPhoto": "Sans photo",
+      "birthDate": "Date de naissance",
+      "sex": "Sexe",
+      "birthPlace": "Lieu de naissance",
+      "residence": "Résidence",
+      "father": "Père",
+      "mother": "Mère",
+      "profession": "Profession",
+      "maritalStatus": "Situation matrimoniale",
+      "downloadPdf": "Télécharger ma fiche PDF",
+      "requestCorrection": "Signaler une erreur",
+      "notFound": "Identité introuvable"
+    }
+  },
+  "login": {
+    "heading": "Connexion",
+    "subheading": "Authentifiez-vous pour accéder à votre fiche NINA et vos demandes.",
+    "cta": {
+      "title": "Se connecter avec Keycloak",
+      "help": "Vous serez redirigé(e) vers le service d'authentification du CTDEC, puis ramené(e) sur cette page.",
+      "button": "Continuer vers Keycloak"
+    },
+    "privacyNotice": "Pas de compte ? Vous pouvez toujours",
+    "anonymousLink": "signaler anonymement un fait de corruption",
+    "error": {
+      "title": "La connexion a échoué",
+      "codes": {
+        "missing_code": "Code d'autorisation manquant dans la réponse de Keycloak.",
+        "no_session": "Aucune session OIDC en cours — relancez la connexion.",
+        "state_mismatch": "Anomalie de sécurité détectée (state mismatch).",
+        "token_exchange_failed": "Échange du code contre les tokens refusé par Keycloak.",
+        "id_token_invalid": "ID token invalide — la signature ne correspond pas.",
+        "nonce_mismatch": "Anomalie de sécurité détectée (nonce mismatch)."
+      }
+    }
+  },
+  "correction": {
+    "breadcrumb": "Demande de correction",
+    "pageTitle": "Demander une correction",
+    "pageSubtitle": "NINA concerné :",
+    "unauthorized": {
+      "title": "Action non autorisée",
+      "message": "Vous ne pouvez modifier que votre propre fiche, sauf si vous êtes un agent CTDEC."
+    },
+    "steps": {
+      "ariaLabel": "Étapes du formulaire",
+      "1": { "title": "Choisissez le champ à corriger" },
+      "2": {
+        "title": "Indiquez la nouvelle valeur",
+        "subtitle": "Champ sélectionné : {field}",
+        "proposedValue": "Nouvelle valeur",
+        "reason": "Motif de la correction",
+        "reasonHelp": "Décrivez précisément l'erreur observée (minimum 10 caractères)."
+      },
+      "3": {
+        "title": "Justificatif (facultatif)",
+        "subtitle": "Téléversez une pièce justificative pour accélérer le traitement.",
+        "placeholderTitle": "Upload de fichiers à venir",
+        "placeholderBody": "Cette étape sera complète quand `document-service` (port 3004) sera livré (cf. doc 10). Vous pouvez sauter cette étape pour l'instant."
+      },
+      "4": { "title": "Confirmez votre demande" }
+    },
+    "fields": {
+      "firstName": { "label": "Prénom", "help": "Tel qu'inscrit sur votre acte de naissance" },
+      "lastName": { "label": "Nom de famille", "help": "Nom patronymique" },
+      "birthDate": { "label": "Date de naissance", "help": "Format JJ/MM/AAAA" },
+      "birthPlace": { "label": "Lieu de naissance", "help": "Ville ou village de naissance" },
+      "residence_cercle": { "label": "Cercle de résidence", "help": "Subdivision administrative" },
+      "residence_commune": { "label": "Commune de résidence", "help": "Commune actuelle" },
+      "fatherName": { "label": "Nom du père", "help": "Tel qu'inscrit sur votre acte de naissance" },
+      "motherName": { "label": "Nom de la mère", "help": "Tel qu'inscrit sur votre acte de naissance" },
+      "profession": { "label": "Profession", "help": "Activité principale actuelle" }
+    },
+    "summary": {
+      "nina": "NINA",
+      "field": "Champ corrigé",
+      "newValue": "Nouvelle valeur",
+      "reason": "Motif",
+      "processingTitle": "Traitement de votre demande",
+      "processingBody": "Votre demande sera analysée par le module IA puis validée par un agent CTDEC. Délai habituel : 24-48 h.",
+      "error": "La soumission a échoué"
+    },
+    "nav": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "submit": "Soumettre la demande"
+    }
+  },
+  "appointments": {
+    "new": {
+      "title": "Prendre un rendez-vous",
+      "subtitle": "Choisissez un centre CTDEC ou une antenne mobile RAVEC.",
+      "priorityBadge": "🟢 File prioritaire activée (vulnérabilité)",
+      "formTitle": "Détails du rendez-vous",
+      "formHelp": "Sélectionnez un centre, un créneau et précisez le motif."
+    },
+    "form": {
+      "center": "Centre",
+      "slot": "Créneau",
+      "reason": "Motif de la visite",
+      "reasonPlaceholder": "Ex. : récupération de ma FDI signée, rectification d'erreur, …",
+      "submit": "Confirmer le rendez-vous",
+      "error": "La création du rendez-vous a échoué"
+    }
+  },
+  "dashboard": {
+    "greeting": "Bonjour {name}",
+    "subtitle": "Suivi de vos demandes et rendez-vous en cours.",
+    "actions": {
+      "viewFile": "Voir ma fiche NINA",
+      "requestCorrection": "Demander une correction",
+      "bookAppointment": "Prendre un rendez-vous"
+    },
+    "corrections": {
+      "title": "Corrections en cours",
+      "empty": "Aucune correction en cours. Vous êtes à jour 🎉",
+      "submittedAt": "Soumise le {date}",
+      "aiScore": "Score IA : {score}/100"
+    },
+    "appointments": {
+      "title": "Rendez-vous à venir",
+      "empty": "Aucun rendez-vous planifié."
+    },
+    "fields": {
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "birthDate": "Date de naissance",
+      "birthPlace": "Lieu de naissance",
+      "residence_cercle": "Cercle de résidence",
+      "residence_commune": "Commune de résidence",
+      "fatherName": "Nom du père",
+      "motherName": "Nom de la mère",
+      "profession": "Profession"
+    },
+    "toast": {
+      "correctionTitle": "Demande envoyée",
+      "correctionBody": "Votre demande de correction a bien été enregistrée et est en cours de traitement.",
+      "appointmentTitle": "Rendez-vous confirmé",
+      "appointmentBody": "Votre rendez-vous a été planifié. Vous recevrez un rappel par SMS."
+    }
+  },
+  "signalement": {
+    "title": "Signaler un fait de corruption",
+    "subtitle": "Votre signalement est strictement anonyme.",
+    "anonymousBanner": {
+      "title": "🛡 Mode anonyme actif",
+      "body": "Aucune adresse IP, aucun cookie d'identification, aucun fingerprint navigateur n'est enregistré. Nous ne pouvons pas remonter à vous."
+    },
+    "form": {
+      "title": "Formulaire de signalement",
+      "help": "Décrivez les faits avec précision. Plus le signalement est détaillé, plus l'instruction sera efficace.",
+      "category": "Catégorie du fait signalé",
+      "categories": {
+        "BRIBERY": "Pot-de-vin / corruption financière",
+        "FORGERY": "Falsification de document",
+        "FAVORITISM": "Favoritisme / passe-droit",
+        "ABUSE_OF_POWER": "Abus de pouvoir",
+        "PROCUREMENT": "Marchés publics truqués",
+        "OTHER": "Autre"
+      },
+      "description": "Description détaillée",
+      "descriptionPlaceholder": "Décrivez ce qui s'est passé, où, quand, et comment vous en avez été témoin.",
+      "descriptionHelp": "Minimum 50 caractères. Ne mentionnez pas vos propres informations.",
+      "region": "Région concernée (facultatif)",
+      "cercle": "Cercle concerné (facultatif)",
+      "consent": "Je certifie sur l'honneur que les faits décrits sont véridiques et que je ne cherche pas à nuire arbitrairement à un agent.",
+      "submit": "Soumettre le signalement",
+      "error": "L'envoi a échoué"
+    },
+    "receipt": {
+      "title": "Signalement enregistré ✓",
+      "body": "Votre signalement a bien été reçu. L'auditeur SIGAC en charge de l'instruction sera notifié.",
+      "tokenLabel": "Token de suivi anonyme",
+      "copy": "Copier le token",
+      "warningTitle": "⚠ Conservez ce token précieusement",
+      "warningBody": "Il vous permet de suivre l'instruction sans révéler votre identité. Si vous le perdez, vous ne pourrez plus consulter le statut de votre signalement."
+    },
+    "footnote": "La loi malienne protège les lanceurs d'alerte (loi N°2018-049). Aucune mesure de représailles n'est tolérée."
+  },
+  "errors": {
+    "genericTitle": "Une erreur est survenue",
+    "genericHelp": "Veuillez réessayer. Si le problème persiste, contactez le support en mentionnant l'ID ci-dessous.",
+    "retry": "Réessayer",
+    "supportId": "ID de support",
+    "network": {
+      "title": "Problème de connexion",
+      "help": "Vérifiez votre connexion Internet et réessayez."
+    },
+    "userError": { "title": "Requête invalide" },
+    "serverError": {
+      "title": "Erreur serveur",
+      "help": "Nos équipes ont été informées. Veuillez réessayer dans quelques minutes."
+    },
+    "notFound": "Ressource introuvable",
+    "unauthorized": "Vous devez être connecté pour accéder à cette page."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@nina-aes/logger",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Stub temporaire — le logger structuré sera implémenté au document 17 (monitoring).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2"
+  }
+}

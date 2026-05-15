@@ -1,0 +1,85 @@
+/**
+ * globals.css — Styles globaux NINA-AES (importé par chaque app Next.js)
+ *
+ * Charge dans l'ordre :
+ *   1. Variables CSS (tokens.css)
+ *   2. Tailwind v4 (via @import "tailwindcss")
+ *   3. Theme mapping (@theme inline) qui rend les variables disponibles
+ *      via les utilitaires Tailwind (bg-primary, text-fg-muted, etc.)
+ *   4. Reset / styles de base (focus ring, scroll behavior, font-smoothing)
+ */
+
+@import './tokens.css';
+@import 'tailwindcss';
+
+/**
+ * @theme inline — expose nos variables aux utility classes Tailwind v4.
+ * Ex. `class="bg-primary text-primary-fg"` consomme --primary / --primary-fg.
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-card: var(--bg-card);
+  --color-bg-muted: var(--bg-muted);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-destructive: var(--destructive);
+  --color-destructive-fg: var(--destructive-fg);
+
+  --color-success: var(--color-success-500);
+  --color-warning: var(--color-warning-500);
+  --color-info: var(--color-info-500);
+
+  --radius: var(--radius-base);
+  --font-sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --font-display: 'Bricolage Grotesque', 'Inter Variable', sans-serif;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+  }
+
+  /* Focus visible — règle accessibilité WCAG 2.2 AA */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Respect des préférences utilisateur */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Sélection : couleurs cohérentes avec primary */
+  ::selection {
+    background-color: var(--color-primary-200);
+    color: var(--color-primary-900);
+  }
+}

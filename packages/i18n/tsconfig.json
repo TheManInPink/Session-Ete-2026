@@ -1,0 +1,15 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["node"],
+    // Package consommé en source par Next via transpilePackages — Bundler
+    // évite d'avoir à écrire des extensions `.js` que Turbopack ne sait pas
+    // remapper vers les fichiers `.ts`.
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

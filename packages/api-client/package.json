@@ -1,0 +1,32 @@
+{
+  "name": "@nina-aes/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Client HTTP typé NINA-AES (Zod-validated). Consommé par les 3 apps Next.js + mobile.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": ["src"],
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@nina-aes/shared-types": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.2",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
+    "typescript": "^6.0.2"
+  }
+}

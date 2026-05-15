@@ -1,0 +1,15 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["node"],
+    // Ce package est consommé en source par Next (transpilePackages) et n'est
+    // pas publié comme ESM standalone — on utilise donc la résolution
+    // « bundler » qui n'exige pas d'extensions `.js` explicites.
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
