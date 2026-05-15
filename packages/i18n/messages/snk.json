@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "locale": "snk",
+    "language": "Soninké (Sooninkanxannen)",
+    "status": "skeleton",
+    "todo": "Toutes les clés non-listées ci-dessous tombent en fallback FR via packages/i18n/src/request.ts. À faire relire par un·e locuteur·rice natif·ve avant production. Mettre `_meta.status` à `complete` quand 100 % des clés sont validées.",
+    "completeness": "0/200"
+  },
+  "common": {
+    "appName": "NINA-AES",
+    "language": "Sooninkanxannen"
+  }
+}

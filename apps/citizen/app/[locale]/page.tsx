@@ -14,7 +14,9 @@ import { Calendar, FileSearch, MessageSquareWarning, PencilLine } from 'lucide-r
 import { useTranslations } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
+import { normalizeLocale } from '@nina-aes/i18n';
 import { NinaHeroSearch } from './_components/nina-hero-search';
+import { LanguageSwitcher } from './_components/language-switcher';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -23,10 +25,10 @@ interface PageProps {
 export default async function HomePage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <HomeContent />;
+  return <HomeContent locale={normalizeLocale(locale)} />;
 }
 
-function HomeContent() {
+function HomeContent({ locale }: { locale: ReturnType<typeof normalizeLocale> }) {
   const t = useTranslations('citizen.home');
   const tCommon = useTranslations('common');
 
@@ -47,14 +49,17 @@ function HomeContent() {
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="citizen-hero-bg border-b border-border">
         <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
             <AesLogo size="md" />
-            <Link
-              href="#actions"
-              className="rounded-base bg-primary px-4 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90"
-            >
-              {tCommon('signIn')}
-            </Link>
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher currentLocale={locale} />
+              <Link
+                href="#actions"
+                className="rounded-base bg-primary px-4 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90"
+              >
+                {tCommon('signIn')}
+              </Link>
+            </div>
           </div>
 
           <h1 className="font-display text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
