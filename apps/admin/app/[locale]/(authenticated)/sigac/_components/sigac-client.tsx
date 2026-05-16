@@ -51,9 +51,12 @@ const PERIOD_HOURS: Record<Period, number> = {
 export function SigacClient({
   initialAlerts,
   locale,
+  now,
 }: {
   initialAlerts: readonly AlertEntry[];
   locale: string;
+  /** Référence temporelle stable (ISO) — voir AlertsFeed pour le pourquoi. */
+  now: string;
 }) {
   const t = useTranslations('admin.sigac');
   const tSeverity = useTranslations('admin.sigac.severity');
@@ -227,7 +230,7 @@ export function SigacClient({
                       </p>
                       <p className="mt-1 text-sm">{a.shortDescription}</p>
                       <p className="mt-1 text-xs text-fg-muted">
-                        <time dateTime={a.receivedAt}>{format.relativeTime(new Date(a.receivedAt))}</time>
+                        <time dateTime={a.receivedAt}>{format.relativeTime(new Date(a.receivedAt), new Date(now))}</time>
                         <span className="mx-1.5">·</span>
                         {a.location}
                       </p>

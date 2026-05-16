@@ -144,9 +144,7 @@ export function AreaChart({
             strokeWidth="1.2"
             className="transition-all"
           />
-          <title>
-            {p.raw.x} : {p.raw.y}
-          </title>
+          <title>{`${p.raw.x} : ${p.raw.y}`}</title>
         </g>
       ))}
 

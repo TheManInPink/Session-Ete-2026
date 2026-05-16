@@ -38,6 +38,11 @@ export default async function DashboardPage({ params }: PageProps) {
 
   const session = await requireRole(['AGENT', 'SUPERVISOR', 'AUDITOR', 'ADMIN']);
   const t = await getTranslations('admin.dashboard');
+  // Référence temporelle stable pour les feeds — figée côté serveur, passée
+  // aux client components pour éviter les hydration mismatch sur les
+  // formatages relatifs (next-intl format.relativeTime). Cf. doc next-intl :
+  // https://next-intl.dev/docs/usage/dates-times#relative-times-usenow
+  const now = new Date().toISOString();
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8 space-y-6">
@@ -77,7 +82,7 @@ export default async function DashboardPage({ params }: PageProps) {
         </Card>
 
         <Suspense fallback={<Skeleton className="h-80 w-full" />}>
-          <AlertsFeed initialAlerts={INITIAL_ALERTS} locale={locale} />
+          <AlertsFeed initialAlerts={INITIAL_ALERTS} locale={locale} now={now} />
         </Suspense>
       </section>
 

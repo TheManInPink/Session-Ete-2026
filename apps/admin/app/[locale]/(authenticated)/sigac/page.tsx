@@ -35,6 +35,8 @@ export default async function SigacPage({ params }: PageProps) {
 
   await requireRole(['SUPERVISOR', 'AUDITOR', 'ADMIN']);
   const t = await getTranslations('admin.sigac');
+  // Référence temporelle stable pour le feed (voir dashboard/page.tsx).
+  const now = new Date().toISOString();
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8 space-y-6">
@@ -90,7 +92,7 @@ export default async function SigacPage({ params }: PageProps) {
       </section>
 
       {/* ── Feed filtrable temps réel ─────────────────────────────────── */}
-      <SigacClient initialAlerts={INITIAL_ALERTS} locale={locale} />
+      <SigacClient initialAlerts={INITIAL_ALERTS} locale={locale} now={now} />
     </div>
   );
 }

@@ -31,10 +31,15 @@ const SEVERITY_TONES: Record<AlertSeverity, string> = {
 export function AlertsFeed({
   initialAlerts,
   locale,
+  now,
   maxItems = 12,
 }: {
   initialAlerts: readonly AlertEntry[];
   locale: string;
+  /** Référence temporelle stable (ISO ou Date). Passée par le server pour
+   *  éviter le hydration mismatch sur `format.relativeTime` qui sinon
+   *  appellerait `new Date()` au render — différent server/client. */
+  now: string;
   maxItems?: number;
 }) {
   const t = useTranslations('admin.dashboard');
@@ -107,7 +112,7 @@ export function AlertsFeed({
                     </p>
                     <p className="mt-1 line-clamp-2 text-sm">{a.shortDescription}</p>
                     <p className="mt-1 text-xs text-fg-muted">
-                      <time dateTime={a.receivedAt}>{format.relativeTime(new Date(a.receivedAt))}</time>
+                      <time dateTime={a.receivedAt}>{format.relativeTime(new Date(a.receivedAt), new Date(now))}</time>
                       <span className="mx-1.5">·</span>
                       {a.location}
                     </p>
