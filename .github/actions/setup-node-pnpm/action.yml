@@ -1,0 +1,41 @@
+name: Setup Node + pnpm
+description: |
+  Composite action factorisant la séquence checkout + pnpm + node + install
+  utilisée dans la plupart des workflows NINA-AES.
+  Cf. docs/16-CICD-GITHUB-ACTIONS.md §4.1 + ADR-016.
+
+inputs:
+  install:
+    description: 'Exécuter pnpm install --frozen-lockfile (true par défaut)'
+    required: false
+    default: 'true'
+  prisma-generate:
+    description: 'Exécuter pnpm db:generate après l\'install (false par défaut)'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    # pnpm version lue depuis package.json → packageManager (déjà pinné v10.12.1)
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    # Node version lue depuis .nvmrc (= 24)
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      if: inputs.install == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Generate Prisma client
+      if: inputs.prisma-generate == 'true'
+      shell: bash
+      run: pnpm --filter @nina-aes/database db:generate

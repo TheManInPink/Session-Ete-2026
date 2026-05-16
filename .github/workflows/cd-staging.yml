@@ -1,0 +1,124 @@
+# ═══════════════════════════════════════════════════════════════════
+# NINA-AES Platform — Déploiement staging (auto sur push main)
+# ═══════════════════════════════════════════════════════════════════
+# Déclenché après un push sur main (les images Docker des 11 services
+# ont été construites + poussées vers GHCR par ci.yml job `build`).
+#
+# Flow :
+#   1. Wait CI vert (workflow_run dependency)
+#   2. Helm upgrade --install sur K3s staging (ServiceAccount restreint
+#      au namespace nina-aes-staging)
+#   3. Smoke test HTTP /api/health post-deploy
+#
+# Secrets requis (configurer dans Settings → Environments → staging) :
+#   - K3S_STAGING_KUBECONFIG : kubeconfig YAML avec SA limité
+#   - STAGING_DOMAIN         : staging.nina-aes.uqar.ca (ou équiv.)
+#
+# Cf. docs/16-CICD-GITHUB-ACTIONS.md §4.7 + docs/20-DEPLOYMENT-K3S-PRODUCTION.md
+# ═══════════════════════════════════════════════════════════════════
+
+name: cd-staging
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+# Sérialisation : jamais 2 déploiements staging en parallèle
+concurrency:
+  group: cd-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    name: Helm upgrade staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Bloque si le CI n'est pas vert
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: staging
+      url: https://${{ vars.STAGING_DOMAIN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm 3.16
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.16.4'
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.33.4'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          printf '%s' "${{ secrets.K3S_STAGING_KUBECONFIG }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl version --client
+
+      - name: Vérifier l'accès au cluster + namespace
+        run: |
+          kubectl cluster-info
+          kubectl get ns nina-aes-staging || kubectl create namespace nina-aes-staging
+
+      - name: Helm dependency build
+        run: |
+          if [ -f infrastructure/helm/nina-aes/Chart.yaml ]; then
+            helm dependency build infrastructure/helm/nina-aes/
+          else
+            echo "⚠️  Chart Helm absent (à livrer doc 20) — skip dependency build"
+          fi
+
+      - name: Helm upgrade --install
+        run: |
+          if [ ! -f infrastructure/helm/nina-aes/Chart.yaml ]; then
+            echo "❌ Chart Helm absent — déploiement K3s pas encore implémenté"
+            echo "    Cf. docs/20-DEPLOYMENT-K3S-PRODUCTION.md §4.3"
+            exit 1
+          fi
+
+          helm upgrade --install nina-aes infrastructure/helm/nina-aes/ \
+            --namespace nina-aes-staging \
+            --create-namespace \
+            --values infrastructure/helm/nina-aes/values-staging.yaml \
+            --set image.tag=${{ github.event.workflow_run.head_sha }} \
+            --set ingress.host=${{ vars.STAGING_DOMAIN }} \
+            --atomic \
+            --wait \
+            --timeout 15m
+
+      - name: Smoke test /api/health
+        run: |
+          for i in {1..10}; do
+            HTTP=$(curl -sS -o /tmp/health.json -w "%{http_code}" \
+              "https://${{ vars.STAGING_DOMAIN }}/api/health" || true)
+            if [ "$HTTP" = "200" ]; then
+              echo "✅ Smoke test OK"
+              cat /tmp/health.json
+              exit 0
+            fi
+            echo "Attempt $i/10 → HTTP $HTTP, retry dans 15s..."
+            sleep 15
+          done
+          echo "❌ Smoke test FAIL"
+          exit 1
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" = "success" ]; then
+            echo "✅ Déploiement staging OK — sha=${{ github.event.workflow_run.head_sha }}"
+          else
+            echo "❌ Déploiement staging FAIL — sha=${{ github.event.workflow_run.head_sha }}"
+          fi

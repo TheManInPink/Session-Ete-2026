@@ -1,0 +1,196 @@
+# ═══════════════════════════════════════════════════════════════════
+# NINA-AES Platform — Release sur tag v*.*.*
+# ═══════════════════════════════════════════════════════════════════
+# Déclenché par la création d'un tag SemVer (`git tag v1.0.0 && git push origin v1.0.0`).
+#
+# Actions :
+#   1. Build images Docker des 11 services taguées avec la version
+#   2. Push vers ghcr.io avec tag = version SemVer
+#   3. Génération CHANGELOG depuis les commits depuis le tag précédent
+#   4. Création GitHub Release avec assets + body markdown
+#
+# Convention SemVer 2.0.0 :
+#   - v0.X.Y : alpha (phase d'amorçage)
+#   - v1.0.0 : premier MVP soutenance (Bloc A complet)
+#   - v2.0.0 : ajout Bloc B Interop AES, etc.
+#
+# Cf. MAINTENANCE.md §8 + docs/16-CICD-GITHUB-ACTIONS.md §10.
+# ═══════════════════════════════════════════════════════════════════
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write    # nécessaire pour gh release create
+  packages: write    # push GHCR
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────
+  # Job 1 — Build + push images taguées version
+  # ─────────────────────────────────────────────────────────────────
+  build-tagged:
+    name: Build · ${{ matrix.service }} · ${{ github.ref_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - identity-service
+          - auth-service
+          - ai-service
+          - document-service
+          - notification-service
+          - interop-service
+          - audit-service
+          - appointment-service
+          - anticorruption-service
+          - governance-service
+          - vulnerability-service
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine Dockerfile
+        id: dockerfile
+        run: |
+          case "${{ matrix.service }}" in
+            ai-service|anticorruption-service)
+              echo "path=infrastructure/docker/Dockerfile.fastapi" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "path=infrastructure/docker/Dockerfile.nestjs" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=stable
+
+      - name: Build and push (versioned)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.dockerfile.outputs.path }}
+          build-args: |
+            SERVICE=${{ matrix.service }}
+            VERSION=${{ github.ref_name }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 2 — Générer CHANGELOG + GitHub Release
+  # ─────────────────────────────────────────────────────────────────
+  github-release:
+    name: GitHub Release ${{ github.ref_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: build-tagged
+
+    steps:
+      - name: Checkout (avec historique complet)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node + pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          install: 'false'
+
+      - name: Identifier le tag précédent
+        id: previous
+        run: |
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v '^${{ github.ref_name }}$' | head -1 || echo "")
+          echo "tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Tag précédent : ${PREV_TAG:-(aucun, première release)}"
+
+      - name: Générer CHANGELOG depuis ${{ steps.previous.outputs.tag }}
+        id: changelog
+        run: |
+          {
+            echo "## ${{ github.ref_name }} — $(date -u +%Y-%m-%d)"
+            echo ""
+            if [ -n "${{ steps.previous.outputs.tag }}" ]; then
+              echo "### Commits depuis ${{ steps.previous.outputs.tag }}"
+              echo ""
+              git log "${{ steps.previous.outputs.tag }}..HEAD" \
+                --pretty=format:"- %s (%h) — %an" \
+                --no-merges
+              echo ""
+              echo ""
+              echo "### Statistiques"
+              echo ""
+              git diff --shortstat "${{ steps.previous.outputs.tag }}..HEAD"
+            else
+              echo "### Première release"
+              echo ""
+              git log --pretty=format:"- %s (%h) — %an" --no-merges | head -50
+            fi
+            echo ""
+            echo "### Images Docker publiées"
+            echo ""
+            echo "Tag : \`${{ github.ref_name }}\`"
+            echo ""
+            echo "11 services : identity, auth, ai, document, notification, interop, audit, appointment, anticorruption, governance, vulnerability."
+            echo ""
+            echo "\`\`\`"
+            echo "docker pull ghcr.io/${{ github.repository_owner }}/nina-aes-identity-service:${{ github.ref_name }}"
+            echo "\`\`\`"
+            echo ""
+            echo "### Documentation"
+            echo ""
+            echo "- État réel : [\`docs/CHANGELOG.md\`](./docs/CHANGELOG.md)"
+            echo "- Carte doc : [\`docs/DOCUMENTATION-MAP.md\`](./docs/DOCUMENTATION-MAP.md)"
+            echo "- Index : [\`docs/00-README-INDEX.md\`](./docs/00-README-INDEX.md)"
+          } > /tmp/RELEASE_NOTES.md
+
+          cat /tmp/RELEASE_NOTES.md
+
+      - name: Créer la GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Détecter si pré-release (v0.x.x ou contient -alpha/-beta/-rc)
+          if [[ "${{ github.ref_name }}" =~ ^v0\. || "${{ github.ref_name }}" =~ -(alpha|beta|rc) ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          else
+            PRERELEASE_FLAG=""
+          fi
+
+          gh release create "${{ github.ref_name }}" \
+            --title "NINA-AES ${{ github.ref_name }}" \
+            --notes-file /tmp/RELEASE_NOTES.md \
+            $PRERELEASE_FLAG
+
+      - name: Notification post-release
+        run: |
+          echo "✅ Release ${{ github.ref_name }} créée"
+          echo "URL : https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"

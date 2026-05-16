@@ -1817,3 +1817,165 @@ pour la chaîne verify:repo.
   MAINTENANCE, AGENTS, et lui-même).
 
 `pnpm run verify:repo` ✅ vert.
+
+## 27. CI/CD — Implémentation effective des workflows (PROMPT 2.2, mai 2026)
+
+Première **implémentation YAML** de la spec CI/CD documentée doc 16
++ ADR-016. Les 13 corrections identifiées au CHANGELOG §14.2 sont
+appliquées, et 4 nouveaux workflows livrés en complément de `ci.yml`.
+
+### 27.1 Livrables
+
+| Fichier | Type | Rôle |
+|---|---|---|
+| `.nvmrc` | racine | Pin Node 24 (lu par setup-node-pnpm) |
+| `.github/actions/setup-node-pnpm/action.yml` | composite action | Factorisation checkout+pnpm+node+install (40 lignes) |
+| `.github/workflows/ci.yml` | workflow | **Pipeline principal — 7 jobs parallèles** (rewrite complet) |
+| `.github/workflows/cd-staging.yml` | workflow | Déploiement K3s staging (sur succès CI sur main) |
+| `.github/workflows/release.yml` | workflow | Build + GitHub Release sur tag v*.*.* |
+| `.github/workflows/codeql.yml` | workflow | Analyse statique CodeQL TS/JS + Python |
+| `.github/dependabot.yml` | config | 7 écosystèmes (npm/pip×3/docker/gh-actions×2) |
+
+### 27.2 ci.yml — 7 jobs parallèles
+
+1. **`lint`** — ESLint + Prettier + Typecheck + `verify:repo` (10 min)
+2. **`test-backend`** — Jest + services `postgis/postgis:18-3.6`,
+   `redis:8.6-alpine`, `rabbitmq:4.2-management-alpine` (15 min)
+3. **`test-ai`** — Pytest matrix [ai-service, anticorruption-service],
+   Python 3.14 (10 min)
+4. **`test-frontend`** — Jest + RTL sur citizen + admin + governance +
+   packages/ui (12 min)
+5. **`test-e2e`** — Playwright mock auth, cache browsers, build citizen
+   + admin avant tests (20 min)
+6. **`build`** — Docker matrix 11 services → GHCR (push main uniquement,
+   20 min)
+7. **`security`** — Trivy + Semgrep + gitleaks + pnpm audit + Bandit
+   (15 min)
+
+**Cache multi-niveaux** : pnpm store (natif setup-node), Playwright
+browsers (actions/cache keyed pnpm-lock), pip wheels (natif
+setup-python), Docker buildx (`cache-from: type=gha`).
+
+### 27.3 Décision souveraineté : pas de Snyk
+
+Le PROMPT 2.2 initial mentionnait « Snyk packages » dans le job
+security. **Remplacé par stack open-source équivalente** conforme
+à ADR-016 (qui interdit explicitement Snyk SaaS US) :
+
+| Couverture | Outil retenu | Remplace |
+|---|---|---|
+| CVEs filesystem | Trivy (Aqua, Apache 2.0) | Snyk Code |
+| Static analysis OWASP | Semgrep (returntocorp, LGPL 2.1) | Snyk Code |
+| Secrets git history | gitleaks (MIT) | Snyk Code |
+| CVEs npm deps | `pnpm audit` (built-in) | Snyk Open Source |
+| CVEs pip deps | Bandit + (pip-audit dans workflow security) | Snyk Open Source |
+
+Couverture équivalente, 0 dépendance SaaS US, 0 coût.
+
+### 27.4 13 corrections appliquées (cf. CHANGELOG §14.2)
+
+| # | Avant | Après |
+|---:|---|---|
+| 1 | `postgres:16-alpine` | `postgis/postgis:18-3.6` |
+| 2 | `redis:7-alpine` | `redis:8.6-alpine` |
+| 3 | `rabbitmq:3.13-alpine` | `rabbitmq:4.2-management-alpine` |
+| 4 | `PYTHON_VERSION: "3.12"` | Python 3.14 |
+| 5 | `POSTGRES_USER: nina_user` | `nina_admin` (aligné `init-db.sql`) |
+| 6 | `pnpm db:push` | `prisma migrate deploy` |
+| 7 | Tests Python : ai-service seul | + anticorruption-service (matrix) |
+| 8 | 0 cache Playwright | `actions/cache@v4` keyed pnpm-lock |
+| 9 | 0 SARIF upload | `github/codeql-action/upload-sarif` |
+| 10 | 1 fichier `ci.yml` monolithique | 7 jobs propres + 4 workflows annexes |
+| 11 | 0 Dependabot | `.github/dependabot.yml` 7 écosystèmes + grouping |
+| 12 | 0 composite action (duplication × 4) | `.github/actions/setup-node-pnpm` |
+| 13 | 0 CodeQL | `.github/workflows/codeql.yml` (TS + Python) |
+
+### 27.5 cd-staging.yml — déploiement K3s
+
+- Déclencheur : `workflow_run` succès du CI sur `main`
+- Concurrence : `cancel-in-progress: false` (jamais annuler un déploiement)
+- Environnement GitHub : `staging` avec URL `vars.STAGING_DOMAIN`
+- Helm upgrade `--install` `nina-aes/values-staging.yaml` (atomic, wait, 15 min timeout)
+- Smoke test `/api/health` avec retry 10× 15s
+- Détection automatique « chart absent » → message d'erreur explicite vers doc 20
+
+### 27.6 release.yml — SemVer automatisé
+
+- Déclencheur : `push` tag `v*.*.*`
+- Job 1 : build matrix 11 services → ghcr.io avec tags
+  `version + version-major.minor + major + stable`
+- Job 2 : génération CHANGELOG depuis le tag précédent (git log
+  oneline) + création GitHub Release via `gh release create`
+- Détection auto pré-release pour `v0.*` ou `-alpha/-beta/-rc`
+
+### 27.7 codeql.yml — analyse sémantique
+
+- Déclencheurs : push main + PR main + cron hebdomadaire (lundi 03:00 UTC)
+- Matrix : `javascript-typescript` + `python`
+- Querysets : `security-extended` + `security-and-quality`
+- Paths-ignore : node_modules, .turbo, dist, build, coverage,
+  playwright-report, graphify-out, data/_raw, docs
+- Upload SARIF vers Security tab GitHub (require Advanced Security
+  payant pour les repos privés — fallback artefact sinon)
+
+### 27.8 dependabot.yml — 7 écosystèmes
+
+| Eco | Path | Limit | Groupes |
+|---|---|---:|---|
+| npm | `/` | 8 | prisma, next-react, nestjs, opentelemetry, dev-tooling |
+| pip | `/services/ai-service` | 4 | ml-stack, fastapi-stack |
+| pip | `/services/anticorruption-service` | 4 | — |
+| pip | `/scripts` | 2 | — |
+| docker | `/infrastructure/docker` | 4 | — |
+| github-actions | `/` | 4 | actions-core, docker-actions, security-actions |
+| github-actions | `/.github/actions/setup-node-pnpm` | 2 | — |
+
+- Schedule weekly lundi 06:00 `Africa/Bamako`
+- Ignore majeurs Prisma + Next/React + PostGIS (review manuelle)
+- Commit prefix `deps(scope)`
+- Labels automatiques `dependencies` + écosystème
+
+### 27.9 Validation locale
+
+```powershell
+# Linter les workflows
+docker run --rm -v ${PWD}:/repo rhysd/actionlint -color
+
+# Rejouer un workflow en local via act
+act -W .github/workflows/ci.yml pull_request
+
+# Vérifier le yaml de dependabot
+docker run --rm -v ${PWD}:/repo node:24-alpine \
+  sh -c "npm i -g yaml && yaml /repo/.github/dependabot.yml"
+```
+
+### 27.10 Reste à faire (gating réel)
+
+L'implémentation est livrée mais le **gating effectif** demande :
+
+- ⏳ Provisionner les secrets GitHub `K3S_STAGING_KUBECONFIG` +
+  variable `STAGING_DOMAIN`
+- ⏳ Créer environnement `staging` dans Settings → Environments
+- ⏳ Activer branch protection main avec required checks (lint,
+  test-backend, test-ai, test-frontend, security)
+- ⏳ Activer GitHub Advanced Security pour upload SARIF (repo
+  privé) OU fallback artefact (repo public)
+- ⏳ Premier déploiement K3s staging nécessite le Helm chart (doc 20)
+- ⏳ Activer Dependabot dans Settings → Security → Code security
+
+### 27.11 Validation
+
+- `pnpm run verify:repo` : ✅ data + schemas + docs sync.
+- `actionlint` : à exécuter avant merge (pas dans `verify:repo`).
+- `.github/workflows/ci.yml` ancien (200+ lignes monolithiques) :
+  remplacé in-place.
+
+### 27.12 Cross-références
+
+- `docs/16-CICD-GITHUB-ACTIONS.md` reste la spec architecturale ;
+  ce commit livre l'implémentation correspondante.
+- `docs/adr/ADR-016-cicd-github-actions.md` reste la décision ;
+  aucune modification (souveraineté Snyk → Trivy+Semgrep+gitleaks
+  déjà actée).
+- `docs/CHANGELOG.md §14.2` : les 13 écarts ci.yml historique sont
+  désormais corrigés (tableau §27.4 ci-dessus).

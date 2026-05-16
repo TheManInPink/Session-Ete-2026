@@ -1,0 +1,265 @@
+# ═══════════════════════════════════════════════════════════════════
+# NINA-AES Platform — Dependabot configuration
+# ═══════════════════════════════════════════════════════════════════
+# Mises à jour automatiques des dépendances pour 5 écosystèmes :
+#   - npm (pnpm-lock.yaml)
+#   - pip (requirements.txt des 2 FastAPI services + scripts)
+#   - docker (Dockerfiles)
+#   - github-actions (workflows + composite actions)
+#   - dans le futur : terraform si infrastructure/terraform/ activé
+#
+# Stratégie :
+#   - Auto-merge possible pour PATCH (minor en review manuelle)
+#   - Grouping pour réduire la pollution PR (Prisma, Next/React, OTel)
+#   - Schedule weekly lundi 06:00 Africa/Bamako (= 07:00 UTC d'hiver)
+#
+# NB : ADR-016 documente Renovate comme alternative préférée
+# (config plus riche). Dependabot est conservé en V1 car (a) natif
+# GitHub, (b) compétences moindres pour étudiant solo. Migration
+# Renovate envisagée V2.
+#
+# Cf. docs/16-CICD-GITHUB-ACTIONS.md §4.9.
+# ═══════════════════════════════════════════════════════════════════
+
+version: 2
+
+updates:
+  # ─────────────────────────────────────────────────────────────────
+  # 1. npm (pnpm) — root + workspaces
+  # ─────────────────────────────────────────────────────────────────
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Bamako'
+    open-pull-requests-limit: 8
+    versioning-strategy: 'increase-if-necessary'
+    labels:
+      - 'dependencies'
+      - 'npm'
+    commit-message:
+      prefix: 'deps'
+      include: 'scope'
+    groups:
+      # Grouper Prisma : prisma + @prisma/* doivent monter ensemble
+      prisma:
+        patterns:
+          - 'prisma'
+          - '@prisma/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Grouper Next/React (cohérence frontend)
+      next-react:
+        patterns:
+          - 'next'
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Grouper NestJS (cohérence backend)
+      nestjs:
+        patterns:
+          - '@nestjs/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Grouper OpenTelemetry (instrumentation cohérente)
+      opentelemetry:
+        patterns:
+          - '@opentelemetry/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Outils dev en bulk
+      dev-tooling:
+        patterns:
+          - 'eslint*'
+          - 'prettier*'
+          - 'typescript'
+          - '@types/*'
+          - 'jest*'
+          - 'vitest'
+          - 'turbo'
+        update-types:
+          - 'minor'
+          - 'patch'
+    ignore:
+      # Majeurs Prisma : review manuelle (migrations breaking possible)
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/client'
+        update-types: ['version-update:semver-major']
+      # Majeurs Next/React : review manuelle (Next 16+ App Router migrations)
+      - dependency-name: 'next'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+
+  # ─────────────────────────────────────────────────────────────────
+  # 2. pip — ai-service
+  # ─────────────────────────────────────────────────────────────────
+  - package-ecosystem: 'pip'
+    directory: '/services/ai-service'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Bamako'
+    open-pull-requests-limit: 4
+    labels:
+      - 'dependencies'
+      - 'pip'
+      - 'ai-service'
+    commit-message:
+      prefix: 'deps(ai-service)'
+      include: 'scope'
+    groups:
+      ml-stack:
+        patterns:
+          - 'scikit-learn'
+          - 'xgboost'
+          - 'pandas'
+          - 'numpy'
+          - 'rapidfuzz'
+          - 'jellyfish'
+          - 'spacy'
+        update-types:
+          - 'minor'
+          - 'patch'
+      fastapi-stack:
+        patterns:
+          - 'fastapi'
+          - 'uvicorn'
+          - 'pydantic*'
+          - 'httpx'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  # ─────────────────────────────────────────────────────────────────
+  # 3. pip — anticorruption-service
+  # ─────────────────────────────────────────────────────────────────
+  - package-ecosystem: 'pip'
+    directory: '/services/anticorruption-service'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Bamako'
+    open-pull-requests-limit: 4
+    labels:
+      - 'dependencies'
+      - 'pip'
+      - 'anticorruption-service'
+    commit-message:
+      prefix: 'deps(sigac)'
+      include: 'scope'
+
+  # ─────────────────────────────────────────────────────────────────
+  # 4. pip — scripts d'enrichissement (Wikipedia scraper)
+  # ─────────────────────────────────────────────────────────────────
+  - package-ecosystem: 'pip'
+    directory: '/scripts'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Bamako'
+    open-pull-requests-limit: 2
+    labels:
+      - 'dependencies'
+      - 'pip'
+      - 'scripts'
+    commit-message:
+      prefix: 'deps(scripts)'
+    # Volume très faible — pas de grouping nécessaire
+
+  # ─────────────────────────────────────────────────────────────────
+  # 5. Docker — Dockerfiles infrastructure
+  # ─────────────────────────────────────────────────────────────────
+  - package-ecosystem: 'docker'
+    directory: '/infrastructure/docker'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Bamako'
+    open-pull-requests-limit: 4
+    labels:
+      - 'dependencies'
+      - 'docker'
+      - 'infrastructure'
+    commit-message:
+      prefix: 'deps(docker)'
+      include: 'scope'
+    ignore:
+      # Postgres major bumps = breaking, review manuelle
+      - dependency-name: 'postgis/postgis'
+        update-types: ['version-update:semver-major']
+      # PostgreSQL bumps majeurs idem
+      - dependency-name: 'postgres'
+        update-types: ['version-update:semver-major']
+
+  # ─────────────────────────────────────────────────────────────────
+  # 6. GitHub Actions (workflows + composite actions)
+  # ─────────────────────────────────────────────────────────────────
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Bamako'
+    open-pull-requests-limit: 4
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+      - 'ci'
+    commit-message:
+      prefix: 'deps(ci)'
+      include: 'scope'
+    groups:
+      actions-core:
+        patterns:
+          - 'actions/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      docker-actions:
+        patterns:
+          - 'docker/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      security-actions:
+        patterns:
+          - 'aquasecurity/*'
+          - 'gitleaks/*'
+          - 'github/codeql-action'
+          - 'returntocorp/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  # ─────────────────────────────────────────────────────────────────
+  # 7. GitHub Actions sur composite action locale
+  # ─────────────────────────────────────────────────────────────────
+  - package-ecosystem: 'github-actions'
+    directory: '/.github/actions/setup-node-pnpm'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Bamako'
+    open-pull-requests-limit: 2
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    commit-message:
+      prefix: 'deps(ci)'

@@ -1,0 +1,112 @@
+# ═══════════════════════════════════════════════════════════════════
+# NINA-AES Platform — Analyse statique CodeQL
+# ═══════════════════════════════════════════════════════════════════
+# CodeQL = analyse sémantique avancée de GitHub (open-source, MIT) qui
+# détecte les vulnérabilités structurelles (SQLi, XSS, path traversal,
+# crypto faible, deserialization unsafe, etc.).
+#
+# Complète Semgrep (cf. ci.yml job `security`) qui fait du pattern
+# matching syntaxique. CodeQL fait du flow analysis (taint tracking).
+#
+# Déclencheurs :
+#   - Hebdomadaire (lundi 03:00 UTC) → capter les nouvelles règles CWE
+#   - Pull requests vers main → bloquer si nouvelle finding HIGH+
+#   - Push main → ré-analyser le main après merge
+#
+# Findings exposés dans Settings → Security → Code scanning alerts.
+# ═══════════════════════════════════════════════════════════════════
+
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 1'   # lundi 03:00 UTC
+
+# Annuler les runs précédents sur la même branche
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  packages: read
+
+jobs:
+  analyze:
+    name: CodeQL · ${{ matrix.language }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, python]
+        # 'javascript-typescript' couvre tous nos .ts/.tsx (NestJS + Next.js + scripts)
+        # 'python' couvre ai-service + anticorruption-service + scripts/enrich-cercles.py
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Setup spécifique pour permettre à CodeQL de comprendre nos workspaces pnpm
+      - name: Setup Node + pnpm (pour CodeQL TS/JS)
+        if: matrix.language == 'javascript-typescript'
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Setup Python (pour CodeQL Python)
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install Python deps (si Python)
+        if: matrix.language == 'python'
+        run: |
+          for svc in ai-service anticorruption-service; do
+            if [ -f services/$svc/requirements.txt ]; then
+              pip install -r services/$svc/requirements.txt || true
+            fi
+          done
+
+      # ─── Initialiser CodeQL ───────────────────────────────────────
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # Querysets sécurité étendus (en plus du default)
+          queries: security-extended,security-and-quality
+          config: |
+            paths-ignore:
+              - 'node_modules/**'
+              - '.turbo/**'
+              - '.next/**'
+              - 'dist/**'
+              - 'build/**'
+              - 'coverage/**'
+              - 'playwright-report/**'
+              - 'graphify-out/**'
+              - 'data/_raw/**'
+              - 'docs/**'
+
+      # ─── Compiler pour analyse (TS) ───────────────────────────────
+      - name: Compile TypeScript packages
+        if: matrix.language == 'javascript-typescript'
+        run: |
+          pnpm run build --filter=@nina-aes/shared-types \
+                        --filter=@nina-aes/utils \
+                        --filter=@nina-aes/config || true
+
+      # ─── Analyse CodeQL ───────────────────────────────────────────
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          # Upload SARIF vers Security tab GitHub
+          upload: true
