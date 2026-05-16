@@ -254,6 +254,7 @@ git push origin v0.5.0-bloc-A-data-seed
 | Sécurité / hardening                | `docs/15-SECURITY-HARDENING.md`                  |
 | CI/CD GitHub Actions                | `docs/16-CICD-GITHUB-ACTIONS.md`                 |
 | Monitoring & observabilité          | `docs/17-MONITORING-OBSERVABILITY.md`            |
+| Stratégie de tests                  | `docs/18-TESTING-STRATEGY.md`                    |
 
 ---
 

@@ -1183,3 +1183,99 @@ L'implémentation pratique est planifiée comme Phase 3 post-doc-15 :
 - `docs/00-README-INDEX.md §2` : doc 17 conserve son entrée originale ;
   l'estimation est révisée à 16-22 h (vs 8-12 h initial — la stack LGTM
   + instrumentation OTel sur 11 services demande plus que prévu).
+
+## 16. Stratégie de tests — Doc 18 + ADR-018 (mai 2026)
+
+Troisième livraison documentaire de la phase transversale (docs 15 →
+20). La doc 18 et l'ADR-018 formalisent la pyramide de tests à 4
+niveaux et les conventions associées.
+
+### 16.1 Livrables documentaires
+
+- `docs/18-TESTING-STRATEGY.md` (~960 lignes) : guide d'implémentation
+  complet — conventions nommage/AAA, factories Faker centralisées dans
+  `packages/test-fixtures`, Jest unitaires NestJS + Pytest unitaires
+  FastAPI, intégration Supertest + Testcontainers, extension Playwright
+  (Session 5 → 30 tests), 4 scénarios k6 avec output Prometheus,
+  configuration coverage threshold 80 %, Stryker P2 manuel sur
+  `@nina-aes/utils`.
+
+- `docs/adr/ADR-018-strategie-tests-pyramide.md` (~215 lignes) :
+  décision pyramide 4-niveaux vs 8 alternatives (tout-en-E2E,
+  mock-driven, Cypress+Cloud, Vitest partout, JMeter, Locust, SonarQube,
+  SaaS synthetic), note souveraineté (interdiction Cypress Cloud / Sauce
+  Labs / BrowserStack / Datadog Synthetics / Codecov), 10 métriques de
+  suivi chiffrées.
+
+### 16.2 Pyramide cible
+
+| Niveau         | Volume       | Outils                                    | Couverture       |
+| -------------- | ------------ | ----------------------------------------- | ---------------- |
+| **Unitaires**  | ~800 tests   | Jest 30 (TS) · Pytest 8 (Py) · Vitest 4   | **≥ 80 %**       |
+| **Intégration**| ~150 tests   | Supertest 7 + Testcontainers 10 · httpx + pytest-asyncio | ≥ 60 % services |
+| **E2E**        | ~30 tests    | Playwright 1.50 (mock auth)               | parcours critiques |
+| **Charge**     | 4 scénarios  | k6 0.55 + output Prometheus (cf. doc 17)  | SLO validation   |
+
+### 16.3 Décisions structurelles
+
+- **Pyramide stricte, pas glace au chocolat** : ratio ~800/150/30/4. PR
+  qui livre 1 E2E sans unitaires = rejeté.
+- **Factories Faker centralisées** : nouveau package
+  `packages/test-fixtures` (factory `make<Entity>(overrides?)`). Aucune
+  donnée de test à la main.
+- **Testcontainers pour intégration** : chaque suite spin-up son propre
+  `postgis/postgis:18-3.6`, applique migrations Prisma, exécute, nettoie.
+  Coût ~30 s warmup × N suites — acceptable jusqu'à ~10 suites.
+- **MSW pour tests frontend** : pas de `jest.mock('fetch')`. Handlers
+  réutilisés en E2E et unitaires, compatibles Server Components Next.js
+  16.
+- **k6 contre staging uniquement** : output Prometheus remote-write vers
+  doc 17, dashboards Grafana réutilisables. Manuel + nightly CI.
+- **Stryker P2 manuel** : score mutation seulement sur
+  `@nina-aes/utils`, exécuté avant chaque release majeure. Pas en CI
+  bloquante.
+- **Coverage 80 % bloquante en CI** : `jest --coverage` +
+  `pytest --cov-fail-under=80` retournent exit 1 si seuil non respecté.
+
+### 16.4 Souveraineté
+
+Interdiction explicite dans ADR-018 :
+
+- Cypress Cloud (SaaS US)
+- Sauce Labs / BrowserStack (SaaS US)
+- Datadog Synthetics (SaaS US)
+- Codecov (SaaS US) — fallback artefact `coverage-final.json` Actions
+- Grafana Cloud Synthetic Monitoring
+
+Stack 100 % open-source self-hostable : Jest/Pytest/Playwright/
+Testcontainers/k6/Stryker/Faker/MSW (MIT/Apache 2.0).
+
+### 16.5 Reste à faire (implémentation effective)
+
+L'implémentation pratique est planifiée comme Phase 4 post-doc-17.
+Doc 18 livre la spec ; le code suit :
+
+  - Créer `packages/test-fixtures` (workspace pnpm)
+  - Factories : `makeCitizen`, `makeNina`, `makeFdi`, `makeAppointment`,
+    `makeSigacReport`, `makeAuditLog`
+  - Étendre Jest sur 6 services NestJS Bloc A (controller.spec.ts +
+    e2e-spec.ts avec Testcontainers)
+  - Étendre Pytest unitaires + intégration sur 2 FastAPI services
+  - Étendre Playwright de 11 → 30 tests (correction, RDV, USSD mock,
+    GOV-01..03 quand `apps/governance` livré)
+  - Créer 4 scénarios k6 dans `tests/load/scenarios/`
+  - Intégrer MSW dans `apps/citizen` + `apps/admin`
+  - Activer `coverageThreshold: 80%` dans tous les `jest.config.cjs`
+  - Documenter exclusions légitimes dans `docs/testing/COVERAGE-MATRIX.md`
+  - Rédiger `docs/testing/TEST-CHARTER.md`
+  - Tagger `testing-mvp` après validation tutorat
+
+### 16.6 Cross-références
+
+- `MAINTENANCE.md §9` : ligne « Stratégie de tests » ajoutée aux liens
+  canoniques.
+- `docs/00-README-INDEX.md §2` : doc 18 conserve son entrée ;
+  l'estimation reste 12-16 h (spec) + ~6 h (implémentation factories
+  + premiers tests).
+- `docs/16-CICD-GITHUB-ACTIONS.md §4.3` : seuil `--cov-fail-under=80`
+  documenté (référence circulaire entre doc 16 et doc 18 — assumée).
