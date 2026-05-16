@@ -45,6 +45,8 @@ Le parcours suit trois principes :
 | `apps/admin` (port 4002)         | ✅ **Sessions 3+4 — foundation + AD-01/02/03** — Dashboard + DataGrid + SIGAC (mock)  |
 | `apps/governance` (port 4003)    | ❌ Scaffold Turborepo — prévu Session 5+                                              |
 | `packages/ui`                    | ✅ **Sessions 1+3+4** — design system + Sheet/Checkbox/DropdownMenu + 4 charts SVG  |
+| `packages/auth`                  | ✅ **Session 5 — BFF auth partagé** — session helpers + 4 OIDC handlers factory     |
+| Tests E2E (Playwright)           | ✅ **Session 5** — 11 tests dans `e2e/`, multi-app, mode mock NINA_AUTH_MODE       |
 | `packages/api-client`            | ✅ **Livré (Sessions 1+2)** — identity + correction + appointment + sigac (Zod)      |
 | `packages/i18n`                  | ✅ **Livré (Sessions 1+3, FR complet + namespace admin)** — fallback FR par-clé      |
 | `packages/eslint-config`         | ✅ Présent                                                                           |
@@ -65,7 +67,6 @@ Le parcours suit trois principes :
 | Schéma Prisma                    | ✅ 16 modèles, migration `init_v1` appliquée                                         |
 | Tests Jest (utils + config)      | ✅ **53 tests passants** (44 utils + 9 config)                                       |
 | Tests Vitest (database)          | ⚠️ Vitest 4.1.5 installé, suites à écrire                                            |
-| Tests E2E (Playwright)           | ❌ Inexistant                                                                        |
 
 ---
 

@@ -690,3 +690,121 @@ choroplèthe** avec polygones réels :
   polygone propre — affichées comme marqueurs centroïdes. Pour
   upgrader aux 20 régions actuelles, sourcer un dataset plus récent
   (INSTAT Mali ou OCHA HDX).
+
+## 13. Refactor — Session 5 : `@nina-aes/auth` + tests E2E Playwright (mai 2026)
+
+Session de **refactor + qualité** : élimination de la duplication d'auth
+entre les apps (citizen + admin, futur governance) et mise en place
+d'une suite Playwright E2E sur les parcours critiques. Pas de nouvelle
+feature utilisateur — gain pur en maintenabilité + confiance.
+
+### 13.1 Extraction `@nina-aes/auth` (Phase 1+2)
+
+**Avant** : 884 lignes dupliquées entre `apps/citizen/lib/auth/` et
+`apps/admin/lib/auth/` (8 fichiers × 2 copies : session.ts +
+login/callback/refresh/logout route handlers). Différences réelles
+entre les 2 copies : 3 strings (`clientId`, `appPublicUrl`,
+`mockProfile`).
+
+**Après** : 757 lignes dans `packages/auth/src/` + 2 wrappers app de
+~50 lignes chacun = 757 + 100 = 857 lignes au total (économie de 27
+LOC nettes, mais surtout **un seul endroit pour évoluer le flow OIDC**,
+un seul cycle de revue sécurité, et le 3ème consommateur
+(`apps/governance`) Session 6+ aura un coût d'intégration ~zéro).
+
+  packages/auth — Structure :
+    src/types.ts       Role union (CITIZEN, AGENT, AUDITOR, MINISTER, ...),
+                       UserProfile superset (NINA + matricule + centerId),
+                       Session, AuthMode, AuthConfig (clientId +
+                       appPublicUrl + mockProfile).
+
+    src/session.ts     getSession / requireSession / requireRole /
+                       hasRole / isOwnerOf — tous paramétrés par
+                       AuthConfig. JWKS caché module-level par issuer.
+                       `cookies()` lu inconditionnellement en première
+                       instruction (cacheComponents requirement Next 16).
+
+    src/handlers/      Factories pour les 4 route handlers OIDC PKCE :
+                       buildLoginHandler, buildCallbackHandler,
+                       buildRefreshHandler, buildLogoutHandler.
+
+    package.json       Deps : jose ^6.2.3, zod ^4.3.6. Peer : next ^16.
+                       Bundler resolution.
+
+  apps/citizen + apps/admin — Migrations :
+    lib/auth/session.ts (wrappers) : définissent AUTH_CONFIG (client
+                       `nina-citizen` vs `nina-admin`, mock Fatoumata
+                       Diallo vs Modibo Konaté) et ré-exportent les
+                       helpers déjà paramétrés. Aucun changement d'API
+                       pour les consommateurs (Server Components +
+                       Server Actions).
+
+    app/api/auth/*/route.ts : devenus des shims one-liner :
+                         import + factory + export.
+
+    next.config.ts : `@nina-aes/auth` ajouté à `transpilePackages`.
+    package.json   : workspace dep ajoutée.
+
+### 13.2 Tests Playwright E2E (Phase 3)
+
+Setup multi-app au niveau root (config unique pilotant 2 projets) +
+11 tests couvrant les parcours critiques de chaque app.
+
+  playwright.config.ts — Multi-projects :
+    - Projects `citizen` (port 4001) + `admin` (port 4002), un par
+      app Next. testMatch par regex pour isolation.
+    - 2 webServers démarrés par Playwright (mode dev), réutilisés s'ils
+      tournent déjà en local (`reuseExistingServer`).
+    - Trace + screenshots + video au premier retry (debug-friendly).
+    - Mode CI : retries=2, workers=1, reporter github+list (prêt pour
+      GitHub Actions Session 6+).
+
+  e2e/ — 11 tests dans 4 fichiers :
+    citizen/home.spec.ts (3 tests) : PC-01 home charge,
+      `/` → `/fr` redirect, LanguageSwitcher change URL.
+    citizen/nina-flow.spec.ts (3 tests) : PC-02 fiche pour NINA mock,
+      not-found gracieux, PC-03 wizard étape 1 avec 9 champs radio.
+    admin/dashboard.spec.ts (2 tests) : AD-01 greeting agent +
+      sidebar 5 nav items.
+    admin/corrections.spec.ts (3 tests) : AD-02 datagrid ≥1 ligne,
+      filtre statut, click ligne → drawer avec AiScorePanel +
+      Approuver/Rejeter.
+
+  e2e/README.md — Documentation usage (commandes, env vars, filtrage,
+    limites connues : pas de tests data API, pas de snapshots, pas
+    encore de CI GitHub Actions).
+
+  Root package.json — Scripts :
+    pnpm run test:e2e         # lance les 11 tests
+    pnpm run test:e2e:ui      # mode interactif Playwright UI
+    pnpm run test:e2e:install # télécharge Chromium (~150 MB, une fois)
+
+  Dev dep : @playwright/test ^1.50 → 1.60.0 effectif.
+  .gitignore : test-results/, playwright-report/, playwright/.cache/.
+
+### 13.3 Validation
+
+  - `pnpm --filter @nina-aes/auth check-types` : ✅
+  - `pnpm --filter @nina-aes/citizen check-types` : ✅
+  - `pnpm --filter @nina-aes/admin check-types` : ✅
+  - `npx playwright test --list` : 11 tests dans 4 fichiers, config
+    Playwright valide.
+
+  Tests pas exécutés dans la session car nécessitent les browsers
+  Chromium téléchargés (`pnpm run test:e2e:install`). Le code est
+  prêt — à lancer quand on veut valider.
+
+### 13.4 Reste à faire (Session 6+)
+
+  - **Lancer les 11 tests E2E une première fois** : valider qu'ils
+    passent, corriger les sélecteurs si écart avec le DOM réel.
+  - **CI GitHub Actions** : workflow `.github/workflows/e2e.yml` qui
+    lance `pnpm run test:e2e:install && pnpm run test:e2e` sur chaque PR.
+    Cache des browsers Playwright pour gagner du temps.
+  - **GOV-01 à GOV-03** (apps/governance) : 3ème consommateur de
+    `@nina-aes/auth` (validation du design factory).
+  - **Tests data API** : quand les services backend NestJS seront
+    réels, ajouter des tests qui frappent les vraies APIs (séparation
+    `e2e/integration/` vs `e2e/ui/`).
+  - **Snapshots visuels** : Playwright `expect.toHaveScreenshot()` une
+    fois les écrans stabilisés (Session 7+).
