@@ -1279,3 +1279,108 @@ Doc 18 livre la spec ; le code suit :
   + premiers tests).
 - `docs/16-CICD-GITHUB-ACTIONS.md §4.3` : seuil `--cov-fail-under=80`
   documenté (référence circulaire entre doc 16 et doc 18 — assumée).
+
+## 17. Backup & DRP — Doc 19 + ADR-019 (mai 2026)
+
+Quatrième livraison documentaire de la phase transversale (docs 15 →
+20). La doc 19 et l'ADR-019 formalisent la stratégie de sauvegarde
+3-2-1 et le plan de reprise après sinistre avec cibles RTO/RPO
+chiffrées.
+
+### 17.1 Livrables documentaires
+
+- `docs/19-BACKUP-RECOVERY.md` (~870 lignes) : guide d'implémentation
+  complet — pgBackRest 2.55 (full quotidien + diff hebdo + WAL archive
+  flush 60s), Redis RDB+AOF, MinIO replication active-passive, cold
+  storage chiffré age (XChaCha20) vers Scaleway/OVH souverain, script
+  `restore-test.sh` testé mensuellement via CronJob K3s, DRP-RUNBOOK
+  avec 4 scénarios, DRP-DRILL trimestriel + chaos engineering,
+  section dépannage 12 pièges.
+
+- `docs/adr/ADR-019-backup-recovery-strategy.md` (~225 lignes) :
+  décision pgBackRest + MinIO replication + age cold storage vs 9
+  alternatives (AWS RDS, Backblaze, Wasabi, Veeam, Bareos, pg_dump
+  simple, Restic seul, snapshots LVM/ZFS, no off-site), note
+  souveraineté avec liste blanche cold storage (Scaleway Paris / OVH
+  Strasbourg / Cellar / MinIO secondaire AES), 10 métriques de suivi
+  chiffrées.
+
+### 17.2 Cibles chiffrées
+
+- **RTO** (Recovery Time Objective) : **< 4 h** (testé mensuellement)
+- **RPO** (Recovery Point Objective) : **< 1 h** (WAL archive flush 60s)
+- **Rétention** : 7 daily + 4 weekly + 12 monthly + 7 yearly
+  (grand-père/père/fils)
+- **Lag réplication MinIO** : < 5 min p95
+- **Restore test mensuel** : RTO mesuré < 30 min sur staging
+
+### 17.3 Stack cible
+
+| Composant            | Version        | Rôle                                     |
+| -------------------- | -------------- | ---------------------------------------- |
+| pgBackRest           | 2.55.x         | Backup Postgres full+diff+WAL            |
+| MinIO                | 2025-09-07     | Object storage S3-compat + replication   |
+| Redis                | 8.6            | RDB snapshot + AOF append-only           |
+| HashiCorp Vault      | 1.20           | Transit pour clé chiffrement (rotation 90j) |
+| age                  | 1.2.0          | Chiffrement XChaCha20 cold storage       |
+| K3s CronJob          | 1.33           | Orchestration jobs backup quotidiens     |
+
+### 17.4 Souveraineté (interdictions explicites ADR-019)
+
+- AWS S3 / RDS (US, CLOUD Act)
+- Backblaze B2 (US Californie)
+- Wasabi (US)
+- Veeam Backup SaaS (éditeur US)
+- Acronis Cyber Backup (US)
+- Google Cloud Storage / Azure Blob (US)
+
+Liste blanche autorisée : **Scaleway Paris (FR), OVH Strasbourg (FR),
+Cellar Clever Cloud (FR), MinIO secondaire AES (BFA/NER)**.
+Chiffrement double-couche (pgBackRest AES-256-CBC + age XChaCha20) +
+clé privée distribuée en Shamir 3/5 aux admins CTDEC.
+
+### 17.5 Décisions structurelles
+
+- **3-2-1 rule stricte** : 3 copies, 2 supports, 1 off-site.
+- **pgBackRest plutôt que pg_dump simple** : full+diff+WAL + PITR fin
+  natif → RPO < 1h impossible avec pg_dump nightly seul.
+- **MinIO replication active-passive** : écritures sur DC primaire,
+  miroir async sur DC secondaire AES (Ouagadougou/Niamey).
+- **age plutôt que GPG** : crypto moderne X25519 + UX simple (1
+  fichier de clé). GPG trop complexe pour Shamir + rotation.
+- **Test restore mensuel automatique** : un backup non testé n'est pas
+  un backup. CronJob `restore-test.sh` exit ≠ 0 → alerte critique.
+- **DRP drill trimestriel chaos engineering** : 4 scénarios par an
+  (crash node Postgres, corruption WAL, perte MinIO, perte cluster
+  K3s entière) avec RTO mesuré et consigné.
+
+### 17.6 Alertes Prometheus ajoutées (extension doc 17)
+
+3 nouvelles règles à ajouter dans `rules/nina-aes-slo.yml` :
+
+- `BackupJobFailed` (severity: critical)
+- `RestoreTestFailed` (severity: critical)
+- `MinIOReplicationLag` (severity: warning, threshold > 5 min)
+
+### 17.7 Reste à faire (implémentation effective)
+
+- Activer WAL archive Postgres (`postgresql.conf` ajouts)
+- Configurer pgBackRest 2 repos (local + MinIO interne)
+- Créer 3 CronJobs K3s : backup-postgres-daily,
+  backup-postgres-weekly, backup-redis-snapshot, restore-test-monthly
+- Provisionner buckets MinIO + activer replication active-passive
+- Sélectionner cold storage souverain + bucket
+- Générer clé age + distribuer Shamir 3/5
+- Rédiger `docs/observability/DRP-RUNBOOK.md` (4 scénarios)
+- Initialiser `docs/observability/DRP-DRILL-LOG.md`
+- Exécuter 1er drill trimestriel (crash node Postgres)
+- Tagger `backup-mvp` après validation tutorat
+
+### 17.8 Cross-références
+
+- `MAINTENANCE.md §9` : ligne « Backup & DRP » ajoutée aux liens canoniques.
+- `docs/00-README-INDEX.md §2` : doc 19 conserve son entrée originale ;
+  l'estimation est révisée à 10-14 h (vs 6-8 h initial — pgBackRest +
+  Shamir + drill trimestriel demandent plus que prévu).
+- `docs/17-MONITORING-OBSERVABILITY.md §4.6` : 3 nouvelles règles
+  d'alerting backup à ajouter à `rules/nina-aes-slo.yml`.
