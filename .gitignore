@@ -30,6 +30,11 @@ build/
 dist/
 *.tsbuildinfo
 
+# ── Playwright ──
+test-results/
+playwright-report/
+playwright/.cache/
+
 # ── Turbo ──
 # Le cache Turborepo (.turbo/cache/*.tar.zst + manifests) est entièrement
 # régénéré localement et ne doit jamais être versionné. L'ancienne règle
