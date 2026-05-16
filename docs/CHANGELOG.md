@@ -1384,3 +1384,122 @@ clé privée distribuée en Shamir 3/5 aux admins CTDEC.
   Shamir + drill trimestriel demandent plus que prévu).
 - `docs/17-MONITORING-OBSERVABILITY.md §4.6` : 3 nouvelles règles
   d'alerting backup à ajouter à `rules/nina-aes-slo.yml`.
+
+## 18. Déploiement K3s — Doc 20 + ADR-020 (mai 2026) — CLÔTURE PHASE TRANSVERSALE
+
+Cinquième et dernière livraison documentaire de la phase transversale
+**Qualité / Sécurité / Déploiement** (docs 15 → 20). La doc 20 et
+l'ADR-020 formalisent le passage de `docker compose` (dev) à K3s
+(production), bouclant la chaîne de docs nécessaires au déploiement
+réel du Bloc A.
+
+### 18.1 Livrables documentaires
+
+- `docs/20-DEPLOYMENT-K3S-PRODUCTION.md` (~1080 lignes) : guide
+  d'implémentation complet — installation K3s 1.33 (control-plane +
+  agents), Ingress Nginx 4.12 en DaemonSet hostNetwork, cert-manager
+  1.18 avec ClusterIssuer Let's Encrypt (DNS-01 Cloudflare V1,
+  acme-dns V2 air-gap), Helm chart umbrella `nina-aes` (11 services
+  + 3 frontends + sous-charts Bitnami), Argo Rollouts 1.8 pour
+  blue-green sur `identity-service`, Sealed Secrets 0.27, NetworkPolicy
+  default-deny, HPA Prometheus custom metrics, smoke tests post-install
+  via Helm hooks, section dépannage 12 pièges.
+
+- `docs/adr/ADR-020-deployment-k3s-production.md` (~235 lignes) :
+  décision K3s on-premise vs 9 alternatives (EKS/AKS/GKE managed,
+  OpenShift, vanilla kubeadm, microk8s, Nomad, Docker Swarm, plain
+  Compose en prod), note souveraineté avec mode air-gap-ready + Harbor
+  souverain + acme-dns self-hosted, 10 métriques de suivi chiffrées
+  (RTO rollback < 1 min, cert validity ≥ 30j, etc.).
+
+### 18.2 Stack cible
+
+| Composant            | Version       | Rôle                                     |
+| -------------------- | ------------- | ---------------------------------------- |
+| K3s                  | v1.33.4+k3s1  | Distribution K8s légère on-premise       |
+| Helm                 | 3.16.4        | Package manager + chart umbrella         |
+| Ingress Nginx        | 4.12.0        | Reverse proxy + TLS termination          |
+| cert-manager         | 1.18.0        | Émission/renouvellement Let's Encrypt    |
+| Argo Rollouts        | 1.8.0         | Blue-green identity-service              |
+| Sealed Secrets       | 0.27.0        | Secrets chiffrés commitables Git         |
+| Calico ou Cilium     | 3.30 / 1.17   | CNI avec NetworkPolicy (remplace Flannel)|
+| MetalLB (V2)         | 0.14.x        | LoadBalancer on-premise                  |
+
+### 18.3 Décisions structurelles
+
+- **K3s vs vanilla K8s** : 60 MB binaire, SQLite par défaut, démarre
+  < 30 s. Idéal CTDEC sans équipe SRE 10+ ETP.
+- **Helm chart umbrella unique** : 1 `helm install` déploie tout —
+  upgrade/rollback en 1 commande, traçables via `helm history`.
+- **Blue-green seulement pour identity-service** : c'est le service le
+  plus critique (validation NINA pour 11M citoyens). Les 10 autres
+  + frontends sont en RollingUpdate (`maxSurge: 25%`, `maxUnavailable: 0`).
+- **Argo Rollouts AnalysisTemplate** : smoke test HTTP + query
+  Prometheus error-rate < 1 % avant promotion auto. Impossible de
+  pousser une version cassée en prod.
+- **Sealed Secrets > External Secrets Operator (V1)** : plus simple,
+  pas de SPOF Vault au startup. ESO documenté pour V2.
+- **NetworkPolicy default-deny + allow ciblé** : zero-trust intra-cluster.
+- **3 namespaces séparés** : `nina-aes` (services métier),
+  `observability` (LGTM doc 17), `infra` (Postgres/Redis/RabbitMQ/MinIO/
+  Vault/Keycloak).
+- **Helm values multi-env** : `values-staging.yaml` + `values-production.
+  yaml`, déployable depuis CI (doc 16 `deploy-staging.yml`).
+
+### 18.4 Souveraineté (interdictions explicites ADR-020)
+
+- AWS EKS, Azure AKS, Google GKE (managed cloud US)
+- OpenShift SaaS (Red Hat = filiale IBM US)
+- Docker Hub public en production (utiliser GHCR + Harbor V2)
+- Cloudflare DNS si air-gap exigé (alternative : acme-dns self-hosted)
+
+Stack 100 % open-source, K3s par SUSE (Allemagne CNCF), aucune
+télémétrie cloud par défaut.
+
+### 18.5 Cibles chiffrées
+
+- RTO rollback Helm : **< 1 min** (drill mensuel)
+- Cert TLS validity : **≥ 30 jours** sur 100 % endpoints
+- Disponibilité cluster nodes : **100 % Ready**
+- Pods en CrashLoopBackOff : **< 5/semaine**
+- HPA scaling events tracking only (pas de seuil bloquant)
+- Argo Rollouts pre-promotion success rate : **> 95 %**
+- Helm upgrade temps moyen : **< 5 min**
+- Sealed Secret décryption échecs : **0**
+
+### 18.6 Reste à faire (implémentation effective)
+
+- Installer K3s sur 1 VM Ubuntu 24.04 (V1 staging)
+- Installer CNI compatible NetworkPolicy (Calico 3.30 ou Cilium 1.17)
+- Déployer Ingress Nginx + cert-manager
+- Configurer ClusterIssuer Let's Encrypt (token Cloudflare ou acme-dns)
+- Créer le Helm chart `infrastructure/helm/nina-aes/`
+  (Chart.yaml + values + templates pour 11 services + 3 frontends)
+- Installer Argo Rollouts + Sealed Secrets
+- Configurer NetworkPolicy default-deny + allow ciblées
+- Premier `helm install` sur namespace `nina-aes-staging`
+- Smoke test post-install + drill rollback mensuel
+- Rédiger `docs/deployment/OPS-RUNBOOK.md` + `UPGRADE-GUIDE.md`
+- Tag `production-mvp` après validation tutorat
+
+### 18.7 Cross-références
+
+- `MAINTENANCE.md §9` : ligne « Déploiement K3s » ajoutée aux liens canoniques.
+- `docs/00-README-INDEX.md` : doc 20 livré, **clôture phase
+  transversale 15-20** ; l'estimation est révisée à 14-20 h (vs 10-14 h
+  initial — Helm chart umbrella complet + Argo Rollouts demandent plus).
+
+### 18.8 État global phase transversale 15→20
+
+| Doc | Sujet                              | Statut             | Commit     |
+| --- | ---------------------------------- | ------------------ | ---------- |
+| 15  | Security Hardening (Vault, mTLS)   | ✅ Existant         | (avant)    |
+| 16  | CI/CD GitHub Actions               | ✅ Livré            | `a59ef3f`  |
+| 17  | Monitoring & Observabilité (LGTM)  | ✅ Livré            | `1cbf838`  |
+| 18  | Stratégie de tests (pyramide)      | ✅ Livré            | `f4453e4`  |
+| 19  | Backup & DRP (pgBackRest + age)    | ✅ Livré            | `95ab390`  |
+| 20  | Déploiement K3s production         | ✅ Livré            | (ce commit)|
+
+**5 docs + 5 ADR livrés** sur la session phase transversale, totalisant
+~5 700 lignes documentaires + ~1 100 lignes ADR. Toutes les chaînes
+`verify:repo` passent vertes après chaque livraison.

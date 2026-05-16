@@ -256,6 +256,7 @@ git push origin v0.5.0-bloc-A-data-seed
 | Monitoring & observabilité          | `docs/17-MONITORING-OBSERVABILITY.md`            |
 | Stratégie de tests                  | `docs/18-TESTING-STRATEGY.md`                    |
 | Backup & DRP                        | `docs/19-BACKUP-RECOVERY.md`                     |
+| Déploiement K3s production          | `docs/20-DEPLOYMENT-K3S-PRODUCTION.md`           |
 
 ---
 
