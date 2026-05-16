@@ -260,7 +260,13 @@ services:
   # crée le bucket `nina-documents` (idempotent), pose une policy public-read.
   # Évite l'étape manuelle « créer le bucket via la console » au premier boot.
   minio-init:
-    image: minio/mc:RELEASE.2025-09-07T16-13-09Z
+    # `minio/mc` (client CLI) suit un calendrier de release indépendant de
+    # `minio/minio` (serveur). Le tag `RELEASE.YYYY-MM-DDTHH-MM-SSZ` du
+    # serveur n'existe donc PAS sur le client. Pour un job one-shot dev
+    # qui s'exécute uniquement au bootstrap, `latest` est acceptable :
+    # drift entre pulls = bug du bucket init seulement, pas d'impact runtime.
+    # À épingler sur une release `mc` précise pour CI/prod via .env si requis.
+    image: minio/mc:latest
     container_name: nina-minio-init
     depends_on:
       minio:
