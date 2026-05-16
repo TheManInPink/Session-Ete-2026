@@ -2112,3 +2112,132 @@ automatiquement `.husky/` dans le cwd.
 Ce commit ferme le gap connu **« Husky non configuré »** documenté
 dans CHANGELOG §2 / 00-README-INDEX §1 dernière ligne du tableau
 « Husky + hooks pre-commit ⚠️ Présent mais à configurer fully ».
+
+## 29. HashiCorp Vault — Setup complet + clients TS/Python (PROMPT 2.4, mai 2026)
+
+Implémentation effective de la couche secrets management documentée
+doc 15 §4 (existante) + ADR-019 §17.4 (rotation). Vault 1.20 était
+déjà actif en dev mode dans docker-compose (cf. §9.5) mais sans
+policies, sans seed, sans client applicatif.
+
+### 29.1 Livrables
+
+| Fichier | Type | Rôle |
+|---|---|---|
+| `infrastructure/vault/vault-init.sh` | shell (idempotent) | Active 5 engines, applique 5 policies, configure AppRole pour 3 services |
+| `infrastructure/vault/policies/identity-service.hcl` | HCL policy | Lecture kv/database/identity-app + lookup-self |
+| `infrastructure/vault/policies/auth-service.hcl` | HCL policy | Lecture jwt/private + transit/sign/jwt-signing-rs256 |
+| `infrastructure/vault/policies/ai-service.hcl` | HCL policy | Lecture kv/ai + database/creds/ai-readonly UNIQUEMENT |
+| `infrastructure/vault/policies/admin.hcl` | HCL policy | R/W kv + database + transit (sauf sigac-whistleblower) |
+| `infrastructure/vault/policies/auditor.hcl` | HCL policy | READ-ONLY metadata + audit logs, deny tout secret |
+| `infrastructure/vault/seed-secrets.sh` | shell (dev) | Pré-remplit 10 secrets : JWT RS256, DB×11, Africa's Talking, Keycloak, MinIO, SIGAC, BCID-AES, backup |
+| `infrastructure/vault/rotate-secrets.sh` | shell | Rotation Transit + Postgres root + AppRole secret_id |
+| `infrastructure/k8s/cronjobs/vault-rotation.yaml` | K8s CronJob | Schedule trimestriel (jan/avr/jul/oct) + rollout restart services |
+| `packages/vault-client/` | TS workspace | Client NestJS — AppRole/token/k8s + cache TTL + auto-renew |
+| `packages/vault-client/src/__tests__/client.test.ts` | tests | Mocks fetch — login, cache, sign/verify |
+| `services/ai-service/src/vault.py` | Python module | Client hvac équivalent — context manager, thread renew, hash thread-safe |
+| `services/ai-service/requirements.txt` | deps | +`hvac>=2.4.1` |
+| `services/anticorruption-service/requirements.txt` | deps | +`hvac>=2.4.1` (réutilise vault.py) |
+| `docs/security/vault-usage.md` | doc | Guide opérationnel 9 sections + cheatsheet |
+| `Makefile` | cibles | +`vault-seed`, +`vault-rotate`, +`vault-bootstrap`, refonte `vault-init` |
+
+### 29.2 Décisions clés
+
+**Vault 1.20** (pas 1.18 comme dans PROMPT 2.4) pour rester aligné avec
+docker-compose.dev.yml + CHANGELOG §9.5.
+
+**5 engines activés** :
+- `kv-v2` (`kv/`) — secrets génériques avec versioning
+- `pki` (`pki/`) — CA interne mTLS (cf. doc 15 §4.2)
+- `database` (`database/`) — credentials Postgres dynamiques 24h
+- `transit` (`transit/`) — chiffrement/signature avec clé in-Vault
+- `totp` (`totp/`) — MFA agents CTDEC
+
+**5 policies HCL** avec **deny explicites** (defense-in-depth) :
+
+| Policy | Audience | Privilèges clés |
+|---|---|---|
+| `identity-service` | service | read kv/identity + database/identity-app |
+| `auth-service` | service | read jwt/private + transit/sign/jwt-rs256 |
+| `ai-service` | service | read kv/ai + database/ai-readonly (deny tout autre) |
+| `admin` | humain MFA | R/W kv + database + transit (sauf sigac-whistleblower) |
+| `auditor` | OCLEI/ANSSI | metadata only + audit logs (deny data) |
+
+**3 méthodes auth** supportées :
+- `token` (dev avec `nina-dev` ou production root one-shot)
+- `approle` (recommandé services, TTL 24h max 72h)
+- `kubernetes` (ServiceAccount mapping pour K3s prod)
+
+**Auto-renew à 80 % TTL** : les clients TS et Python renouvellent
+automatiquement leur token avant expiration via thread daemon
+(Python) ou setTimeout unref (TS).
+
+**Cache mémoire TTL 5 min par défaut** sur `getSecret()` :
+configurable via `cacheTtlSeconds`. `clearCache()` exposé pour
+invalidation post-rotation.
+
+**Refus explicite de sigac-whistleblower decrypt** dans `admin.hcl` :
+seul le rôle `prosecutor` (créé manuellement) peut déchiffrer les
+signalements lanceurs d'alerte (cf. ADR-023 §Note souveraineté).
+
+### 29.3 Rotation automatique trimestrielle (4×/an)
+
+CronJob K3s `vault-rotation` :
+- **Schedule** : `0 3 1 1,4,7,10 *` (1ᵉʳ jan/avr/jul/oct, 03:00 UTC)
+- **3 actions** :
+  1. Rotation `transit/keys/jwt-signing-rs256` et `aes-interop-mli`
+  2. Rotation root password Postgres (`database/rotate-root/nina-postgres`)
+  3. Émission nouveaux `secret_id` AppRole + rollout restart des 5
+     services principaux
+- **NE TOUCHE PAS** à `sigac-whistleblower` (rotation manuelle par
+  procureur pour préserver les signalements en attente, cf. ADR-023)
+- **Alerting** : `VaultRotationFailed` via Alertmanager (cf. doc 17)
+
+### 29.4 Souveraineté
+
+- Stack 100 % open-source HashiCorp Vault (MPL 2.0)
+- Mode air-gap-ready (pas d'appel vers vaultproject.io ou HashiCorp
+  Cloud Platform)
+- HCL policies versionnées en Git (audit ANSSI trivial)
+- Sealed Secrets recommandé pour les K8s Secrets contenant les
+  AppRole secret_id (cf. doc 20 §4.5)
+- Toutes les commandes documentées avec valeurs PowerShell Windows
+  (poste de travail étudiant)
+
+### 29.5 Activation locale
+
+```powershell
+# 1) Vault doit tourner
+pnpm docker:up
+
+# 2) Bootstrap complet (engines + policies + AppRoles + seed)
+make vault-bootstrap
+
+# 3) Vérifier
+docker exec nina-vault vault kv list kv/
+docker exec nina-vault vault policy list
+```
+
+### 29.6 Reste à faire (V2)
+
+- ⏳ Installer prettier-plugin-prisma (lint-staged glob `*.prisma`)
+- ⏳ Configurer `auth/kubernetes` quand K3s prod opérationnel (doc 20)
+- ⏳ Activer audit file `/vault/logs/audit.log` + Promtail shipping
+  vers Loki (cf. doc 17 §4.5)
+- ⏳ Provisionner Sealed Secret pour `vault-rotator-token` dans K8s
+  (actuellement `PLACEHOLDER_REPLACE_AVEC_SEALED_SECRET`)
+- ⏳ Helm chart `nina-aes` doit monter le ConfigMap `vault-rotate-script`
+  avec le contenu réel de `rotate-secrets.sh` (sync CI)
+- ⏳ Documenter procédure de génération + distribution Shamir 3/5 en
+  prod (cf. `vault operator init -key-shares=5 -key-threshold=3`)
+
+### 29.7 Cross-références
+
+- `docs/15-SECURITY-HARDENING.md §4` : architecture Vault (existant)
+- `docs/security/vault-usage.md` : guide opérationnel (nouveau)
+- `docs/adr/ADR-019-backup-recovery-strategy.md §17.4` : rotation
+  intégrée au DRP
+- `docs/00-README-INDEX.md` : tableau état Vault passe de partiel à ✅
+- `Makefile` : 6 cibles `vault-*` (vs 3 avant)
+
+`pnpm run verify:repo` ✅ vert.

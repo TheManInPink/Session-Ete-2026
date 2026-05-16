@@ -16,7 +16,7 @@
         docker-up docker-down docker-logs docker-ps docker-down-v \
         db-generate db-migrate db-seed db-studio db-reset db-validate \
         seed-locations-generate audit-cercles enrich-cercles enrich-cercles-write \
-        vault-init vault-unseal vault-status \
+        vault-init vault-seed vault-rotate vault-unseal vault-status vault-bootstrap \
         certs-generate certs-clean \
         verify validate-data validate-schemas docs-sync \
         clean clean-deep init
@@ -197,14 +197,26 @@ enrich-cercles-write: ## Applique l'enrichissement Wikipedia → cercles.json (�
 	@$(MAKE) seed-locations-generate
 
 # ── Vault (gestion des secrets) ────────────────────────────────────────────
-vault-init: ## Initialise Vault (génère les 5 unseal keys + root token)
-	@echo "🔐 Initialisation de Vault..."
-	docker exec $(VAULT_CONTAINER) vault operator init -key-shares=5 -key-threshold=3 \
-		| tee secrets/vault-init.txt
-	@echo "⚠️  Les unseal keys sont sauvegardées dans secrets/vault-init.txt"
-	@echo "    Distribuez les 5 keys à 5 personnes différentes en production."
+vault-init: ## Initialise Vault + applique policies + auth approle (dev/prod auto)
+	@echo "🔐 Initialisation Vault (policies + engines + approles)..."
+	@docker exec -e VAULT_ADDR=$(VAULT_ADDR) \
+		-e VAULT_DEV_ROOT_TOKEN_ID=$${VAULT_DEV_ROOT_TOKEN_ID:-nina-dev} \
+		$(VAULT_CONTAINER) sh /vault/init/vault-init.sh \
+		|| (echo "⚠️  Si le script n'est pas monté, exécutez depuis l'hôte :"; \
+		    echo "    cd infrastructure/vault && VAULT_ADDR=http://localhost:8200 VAULT_TOKEN=nina-dev bash vault-init.sh"; \
+		    exit 1)
 
-vault-unseal: ## Déverrouille Vault (lit secrets/vault-init.txt)
+vault-seed: ## Pré-remplit les secrets de dev (JWT, DB, Keycloak, Africa's Talking)
+	@echo "🌱 Seed des secrets dev..."
+	@cd infrastructure/vault && VAULT_ADDR=http://localhost:$${VAULT_PORT:-8200} \
+		VAULT_TOKEN=$${VAULT_DEV_ROOT_TOKEN_ID:-nina-dev} bash seed-secrets.sh
+
+vault-rotate: ## Lance manuellement la rotation des secrets (clés Transit + DB + AppRole)
+	@echo "🔄 Rotation des secrets Vault..."
+	@cd infrastructure/vault && VAULT_ADDR=http://localhost:$${VAULT_PORT:-8200} \
+		VAULT_TOKEN=$${VAULT_DEV_ROOT_TOKEN_ID:-nina-dev} bash rotate-secrets.sh
+
+vault-unseal: ## (PROD) Déverrouille Vault (lit secrets/vault-init.txt)
 	@if [ ! -f secrets/vault-init.txt ]; then \
 		echo "❌ secrets/vault-init.txt introuvable. Lancez 'make vault-init' d'abord."; \
 		exit 1; \
@@ -215,6 +227,9 @@ vault-unseal: ## Déverrouille Vault (lit secrets/vault-init.txt)
 
 vault-status: ## Affiche le statut de Vault
 	docker exec $(VAULT_CONTAINER) vault status
+
+vault-bootstrap: vault-init vault-seed ## Setup complet : init + policies + seed (dev)
+	@echo "✅ Vault bootstrap terminé. Cf. docs/security/vault-usage.md"
 
 # ── Certificats mTLS (interopérabilité AES) ────────────────────────────────
 certs-generate: ## Génère les certificats mTLS dev pour les 3 pays AES (Mali/BFA/Niger)

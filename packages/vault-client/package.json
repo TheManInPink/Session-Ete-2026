@@ -1,0 +1,36 @@
+{
+  "name": "@nina-aes/vault-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Client TypeScript pour HashiCorp Vault (AppRole login + cache TTL + auto-renew)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "jest --passWithNoTests",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "node-vault": "^0.10.4"
+  },
+  "devDependencies": {
+    "@nina-aes/typescript-config": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.6.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
+    "typescript": "^6.0.2"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

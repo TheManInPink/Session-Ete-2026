@@ -1,0 +1,163 @@
+# ═══════════════════════════════════════════════════════════════════
+# NINA-AES Platform — CronJob de rotation des secrets Vault
+# ═══════════════════════════════════════════════════════════════════
+# Exécute `infrastructure/vault/rotate-secrets.sh` tous les 90 jours
+# pour :
+#   - Rotater les clés Transit signantes (JWT, BCID-AES Ed25519)
+#   - Rotater le root password Postgres (database engine)
+#   - Émettre de nouveaux secret_id AppRole (force re-bootstrap services)
+#   - Trigger un `kubectl rollout restart` des deployments concernés
+#
+# Cf. docs/15-SECURITY-HARDENING.md §4.4 + doc 17 §4.6 + doc 19.
+# ═══════════════════════════════════════════════════════════════════
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-rotator
+  namespace: nina-aes-infra
+---
+# ─── Rôle : rollout restart sur les deployments services Bloc A ────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-rotator-rollout
+  namespace: nina-aes
+rules:
+  - apiGroups: ['apps']
+    resources: ['deployments']
+    verbs: ['get', 'list', 'patch']
+  - apiGroups: ['apps']
+    resources: ['deployments/status']
+    verbs: ['get']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-rotator-rollout
+  namespace: nina-aes
+subjects:
+  - kind: ServiceAccount
+    name: vault-rotator
+    namespace: nina-aes-infra
+roleRef:
+  kind: Role
+  name: vault-rotator-rollout
+  apiGroup: rbac.authorization.k8s.io
+---
+# ─── ConfigMap : embed le script bash rotate-secrets.sh ────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-rotate-script
+  namespace: nina-aes-infra
+data:
+  rotate-secrets.sh: |
+    # Le contenu de ce script est synchronisé depuis
+    # infrastructure/vault/rotate-secrets.sh par la pipeline CI/CD
+    # (cf. .github/workflows/cd-staging.yml step "Sync rotation script").
+    # En attente du sync, placeholder qui appelle le script monté en volume.
+    #!/bin/sh
+    set -e
+    exec /scripts/rotate-secrets.sh
+---
+# ─── CronJob principal ─────────────────────────────────────────────
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-rotation
+  namespace: nina-aes-infra
+  annotations:
+    description: 'Rotation périodique des secrets Vault (cf. ADR-019 + doc 15)'
+spec:
+  # 03:00 UTC = 03:00 Bamako (UTC+0), 1er du mois tous les 3 mois (jan, avr, jul, oct)
+  schedule: '0 3 1 1,4,7,10 *'
+  timeZone: 'UTC'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 4
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600 # max 10 min
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: vault-rotation
+            app.kubernetes.io/part-of: nina-aes
+        spec:
+          serviceAccountName: vault-rotator
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            fsGroup: 1001
+          containers:
+            - name: rotate
+              image: hashicorp/vault:1.20
+              command: ['/bin/sh', '/scripts/rotate-secrets.sh']
+              env:
+                - name: VAULT_ADDR
+                  value: 'http://vault.nina-aes-infra.svc:8200'
+                - name: VAULT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-rotator-token
+                      key: token
+                - name: KUBECTL_NAMESPACE
+                  value: 'nina-aes'
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 200m, memory: 256Mi }
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ['ALL'] }
+
+            # ─── Sidecar : rollout restart des services après rotation ──
+            - name: rollout-services
+              image: bitnami/kubectl:1.33
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  # Attendre que le container principal termine
+                  while pgrep -f rotate-secrets.sh >/dev/null 2>&1; do sleep 5; done
+
+                  echo "[rollout] Démarrage rollout restart des services Bloc A..."
+                  for svc in identity-service auth-service ai-service \
+                             audit-service document-service; do
+                    if kubectl -n nina-aes get deployment "$svc" >/dev/null 2>&1; then
+                      kubectl -n nina-aes rollout restart deployment "$svc"
+                      kubectl -n nina-aes rollout status deployment "$svc" --timeout=120s
+                      echo "[rollout] ✓ $svc redémarré"
+                    fi
+                  done
+                  echo "[rollout] ✅ Tous les services ont récupéré leur nouveau secret_id."
+
+          volumes:
+            - name: scripts
+              configMap:
+                name: vault-rotate-script
+                defaultMode: 0o755
+
+---
+# ─── Secret : token Vault root pour ce CronJob ─────────────────────
+# Sealed Secret en prod (cf. doc 20 §4.5).
+# Le token a une policy 'admin' avec rotation autorisée mais pas
+# init/seal/unseal (cf. policies/admin.hcl).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-rotator-token
+  namespace: nina-aes-infra
+type: Opaque
+stringData:
+  # ⚠️ Placeholder : à remplacer par un Sealed Secret en prod.
+  # En staging, le token est généré au déploiement Helm avec policy 'admin'.
+  token: 'PLACEHOLDER_REPLACE_AVEC_SEALED_SECRET'
