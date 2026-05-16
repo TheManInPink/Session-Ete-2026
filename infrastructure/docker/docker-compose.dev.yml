@@ -65,8 +65,12 @@ services:
       # entre versions majeures. Le sous-dossier `<major>/data` est créé par
       # l'image au premier démarrage.
       - nina-postgres-data:/var/lib/postgresql
-      # Script d'initialisation exécuté au premier démarrage UNIQUEMENT
+      # Scripts d'initialisation exécutés au premier démarrage UNIQUEMENT
+      # (alphabetic order — 01 avant 02).
       - ../../scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      # Seed géographique généré depuis data/mali/*.json — schéma geo_ref
+      # isolé de public.locations (qui sera créé par Prisma migrate).
+      - ../scripts/seed-locations.sql:/docker-entrypoint-initdb.d/02-seed-locations.sql:ro
     healthcheck:
       # pg_isready vérifie que PostgreSQL accepte les connexions
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nina_admin} -d ${POSTGRES_DB:-nina_aes_db}"]

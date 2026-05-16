@@ -78,3 +78,21 @@ curl -L -o data/mali/mali-regions-polygons.json \
 # Valider la chaîne complète :
 pnpm run verify:repo
 ```
+
+## Artefacts dérivés (générés depuis ces JSON)
+
+Les fichiers suivants sont **régénérés automatiquement** depuis le contenu
+ci-dessus — ne pas les éditer à la main :
+
+| Fichier généré                                 | Source            | Régénération                           |
+| ---------------------------------------------- | ----------------- | -------------------------------------- |
+| `infrastructure/scripts/seed-locations.sql`   | `regions.json` + `cercles.json` | `make seed-locations-generate` |
+
+Le SQL `seed-locations.sql` crée un schéma `geo_ref` dans PostgreSQL
+(20 régions + 64 cercles + 10 communes échantillon dans des tables
+isolées de `public.locations` géré par Prisma). Il est monté en
+`/docker-entrypoint-initdb.d/02-seed-locations.sql` et s'exécute
+automatiquement au premier `pnpm docker:up`.
+
+Voir `docs/data/mali-divisions.md §3bis` pour la justification du
+double stockage (JSON canonique + SQL dérivé).

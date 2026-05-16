@@ -79,13 +79,70 @@ docker exec nina-postgres psql -U nina_admin -d nina_aes_db -c "
   ORDER BY level;"
 ```
 
+### 2.1bis Bootstrap SQL (sans Prisma) — schéma `geo_ref`
+
+Avant que les microservices NestJS (et donc Prisma) soient déployés,
+certains scénarios ont besoin de requêter le référentiel : tests
+d'intégration BDD-only, scripts de DR (Disaster Recovery), vues
+matérialisées analytiques. Pour ces cas, le seed SQL
+`infrastructure/scripts/seed-locations.sql` (généré depuis les JSON)
+charge un schéma **isolé** `geo_ref` au premier démarrage Postgres
+(monté en `/docker-entrypoint-initdb.d/02-seed-locations.sql`).
+
+```powershell
+# Auto-exécuté au premier `docker:up`. Pour réappliquer manuellement :
+docker exec -i nina-postgres psql -U nina_admin -d nina_aes_db `
+  < infrastructure/scripts/seed-locations.sql
+```
+
+Contenu :
+
+| Schema    | Table           | Niveau | Cardinalité       |
+| --------- | --------------- | ------ | ----------------- |
+| `geo_ref` | regions         | 1      | 20                |
+| `geo_ref` | cercles         | 2      | 64 / 159 attendus |
+| `geo_ref` | communes        | 4      | 10 (échantillon)  |
+| `geo_ref` | arrondissements | 3      | 0 (V2 INSTAT)     |
+
+Requête type :
+
+```sql
+-- Régions avec centroïdes + langues
+SELECT code, name_short, chef_lieu, lat, lng, langues
+FROM geo_ref.regions ORDER BY code;
+
+-- Cercles d'une région
+SELECT c.code, c.name, c.confiance
+FROM geo_ref.cercles c
+WHERE c.region_code = 'ML-05'
+ORDER BY c.name;
+```
+
+**Régénération après modification des JSON** :
+
+```powershell
+# Lit data/mali/*.json → réécrit infrastructure/scripts/seed-locations.sql
+make seed-locations-generate
+# OU directement : node scripts/generate-seed-sql.mjs
+```
+
+> 📝 Le seed Prisma (`packages/database/prisma/seed.ts`) reste la voie
+> **principale** de chargement runtime ; il consomme directement les JSON
+> et peuple `public.locations`. Le schéma `geo_ref` est un complément
+> pour les usages infra-first décrits ci-dessus.
+
 ### 2.2 Re-seed après mise à jour des fichiers JSON
 
 Les seeds sont **idempotents** (`upsert` sur la clé `code`). Pour
 re-synchroniser après modification de `regions.json` ou `cercles.json` :
 
 ```powershell
+# Côté Prisma (public.locations) :
 pnpm --filter @nina-aes/database db:seed
+# Côté infra (geo_ref.*) :
+make seed-locations-generate
+docker exec -i nina-postgres psql -U nina_admin -d nina_aes_db `
+  < infrastructure/scripts/seed-locations.sql
 ```
 
 ### 2.3 Recherche fuzzy par trigram (PostgreSQL)

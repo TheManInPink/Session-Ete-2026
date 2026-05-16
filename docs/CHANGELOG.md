@@ -151,12 +151,39 @@ HEALTHCHECK). Le build CI/CD doit privilégier le générique :
 make build-service SERVICE=identity-service
 ```
 
-### 9.2 Pas de `seed-locations.sql` séparé (décision documentée)
+### 9.2 `seed-locations.sql` — décision révisée mai 2026
 
-Le PROMPT 2.1 suggérait un script SQL exhaustif des 19 régions / 159
-cercles / 819 communes / 12 712 villages. **Décision : non créé** car le
-référentiel canonique est `data/mali/*.json` + Prisma seed. Détails dans
-`docs/data/mali-divisions.md` §3bis.
+**État initial** : le PROMPT 2.1 suggérait un SQL exhaustif des 19 régions
+/ 159 cercles / 819 communes / 12 712 villages, maintenu à la main.
+Décision contraire avait été prise : pas de SQL séparé, source unique
+JSON + Prisma seed.
+
+**Révision (mai 2026)** : le besoin réel infra-first (tests d'intégration
+BDD-only, scripts de DR, vues matérialisées sans Prisma) a justifié le
+retour du SQL — mais **généré automatiquement** depuis les JSON canoniques,
+pas écrit à la main.
+
+**Architecture finale** :
+- **Source de vérité** : `data/mali/regions.json` + `cercles.json` (inchangé).
+- **Générateur** : `scripts/generate-seed-sql.mjs` (Node, ~210 lignes).
+  Lit les JSON, émet le SQL avec INSERT idempotents (`ON CONFLICT DO UPDATE`).
+- **Artefact dérivé** : `infrastructure/scripts/seed-locations.sql`
+  (~200 lignes, 44 KB). Commité pour reproductibilité Docker.
+- **Schéma isolé** : `geo_ref.regions / cercles / communes / arrondissements`
+  — distinct de `public.locations` (Prisma). Pas de drift bidirectionnel.
+- **Mount Postgres** : monté en `/docker-entrypoint-initdb.d/02-seed-locations.sql`,
+  exécuté automatiquement au premier `pnpm docker:up`.
+- **Cible Makefile** : `make seed-locations-generate` régénère le SQL.
+
+**Contenu effectif** (vs cible exhaustive du prompt) :
+- ✅ 20 régions (19 + District de Bamako)
+- ✅ 64 cercles confirmés (sur 159 attendus — enrichissement V2 via Wikipedia/INSTAT)
+- ⚠️ 10 communes échantillon (6 Bamako + 4 chefs-lieux) — sur 819 attendues
+- ❌ 0 arrondissements (sur 466) — V2 INSTAT
+- ❌ 0 villages (sur 12 712) — hors scope V1, dataset requis
+
+Détails dans `docs/data/mali-divisions.md §3bis` et
+`docs/data/integration-guide.md §2.1bis`.
 
 ### 9.3 Makefile enrichi (44 cibles)
 

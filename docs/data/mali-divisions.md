@@ -138,35 +138,85 @@ pris dans le champ `firstNameAscii` du citoyen ou dans un champ texte libre.
 
 ---
 
-## 3bis. Choix de stockage : pas de `seed-locations.sql` séparé
+## 3bis. Stratégie de stockage : SQL **généré** depuis les JSON canoniques
 
-Le PROMPT 2.1 (Infrastructure & DevOps) suggérait un script
-`infrastructure/scripts/seed-locations.sql` contenant les 19 régions,
-159 cercles, 466 arrondissements, 819 communes et 12 712 villages en SQL brut.
+**Décision révisée (mai 2026)** : `infrastructure/scripts/seed-locations.sql`
+**existe** comme artefact dérivé, mais reste **généré automatiquement**
+depuis `data/mali/regions.json` + `cercles.json`. La source de vérité reste
+les fichiers JSON.
 
-**Décision : ce script n'est PAS créé.** Raisons :
+### Pourquoi ce compromis ?
 
-1. **Source de vérité unique** : `data/mali/regions.json` + `cercles.json` +
-   `mali.geojson` sont la seule représentation canonique. Un SQL parallèle
-   créerait un risque de drift (déjà observé sur d'autres projets).
-2. **Le seed Prisma fait le travail** : `packages/database/prisma/seed.ts`
-   charge les fichiers JSON et upsert les 20 régions + 64 cercles + 290
-   communes échantillon via `prisma.location.upsert()`. Idempotent,
-   re-exécutable.
-3. **Validation automatique** : `pnpm run validate:data` + `validate:schemas`
-   vérifient la cohérence à chaque commit (pre-commit Husky bloquant).
+Le PROMPT 2.1 (Infrastructure & DevOps) demande explicitement un seed SQL
+pour pouvoir bootstrap PostgreSQL **avant** que les microservices NestJS
+(qui hébergent le Prisma seed) soient opérationnels. C'est un besoin réel
+en phase 2 d'infrastructure : tests d'intégration, scripts de migration,
+vues matérialisées, scénarios DR (Disaster Recovery) où Prisma n'est pas
+encore déployé.
 
-**Pour ingérer la base initiale**, utiliser :
+Mais maintenir un SQL **à la main** créerait un drift inévitable avec les
+JSON (déjà observé sur d'autres projets — cf. note historique §5).
+
+**Solution adoptée** :
+
+1. **`data/mali/regions.json` + `cercles.json` restent canoniques.**
+2. **`scripts/generate-seed-sql.mjs`** (Node) lit les JSON → écrit le SQL.
+3. **`infrastructure/scripts/seed-locations.sql`** est l'artefact généré,
+   commité dans le repo pour reproductibilité Docker (monté en
+   `/docker-entrypoint-initdb.d/02-seed-locations.sql`).
+4. **`make seed-locations-generate`** régénère le SQL après toute modif
+   des JSON. Pre-commit Husky bloquera tout SQL périmé via la chaîne
+   `validate:data` + diff check.
+
+### Schéma cible : `geo_ref` (isolé de Prisma)
+
+Le SQL crée un schéma dédié **`geo_ref`** avec 4 tables :
+
+| Table                       | Contenu                                  | Source         |
+| --------------------------- | ---------------------------------------- | -------------- |
+| `geo_ref.regions`           | 20 entités niveau 1                      | `regions.json` |
+| `geo_ref.cercles`           | 64 cercles confirmés / 159 attendus      | `cercles.json` |
+| `geo_ref.communes`          | 10 communes échantillon (Bamako + chefs-lieux) | inline script |
+| `geo_ref.arrondissements`   | Structure prête, 0 entrée (V2 INSTAT)    | —              |
+
+Ce schéma est **distinct** de `public.locations` (table Prisma utilisée
+par les microservices). Pas de conflit, pas de drift bidirectionnel :
+le seed Prisma continue de lire les JSON directement (cohérence garantie),
+et le SQL fournit un référentiel statique requêtable par tout outil SQL
+sans dépendre de Prisma.
+
+### Workflow
 
 ```powershell
-pnpm docker:up                                              # postgres up
-pnpm --filter @nina-aes/database exec prisma migrate deploy # schéma
-pnpm --filter @nina-aes/database db:seed                    # charge JSON → DB
+# 1) Modifier data/mali/regions.json ou cercles.json
+# 2) Régénérer le SQL
+make seed-locations-generate
+#    OU : node scripts/generate-seed-sql.mjs
+
+# 3) Valider la chaîne complète
+pnpm run verify:repo
+
+# 4) Si la DB tourne déjà, ré-appliquer le SQL manuellement :
+docker exec -i nina-postgres psql -U nina_admin -d nina_aes_db \
+  < infrastructure/scripts/seed-locations.sql
+
+# 5) Commit
+git add data/mali/ infrastructure/scripts/seed-locations.sql
+git commit -m "data(mali): enrichit cercles + régénère seed SQL"
 ```
 
-L'unique fichier SQL d'init reste `scripts/init-db.sql` (chargement des
-extensions PostgreSQL : `uuid-ossp`, `pgcrypto`, `pg_trgm`, `unaccent`,
-`citext`, `postgis`).
+### Ce que le SQL ne contient PAS (et pourquoi)
+
+- **Arrondissements (niveau 3, 466 attendus)** : données absentes. Ingestion
+  V2 via INSTAT.
+- **Communes complètes (niveau 4, 819 attendues)** : seul un échantillon
+  pédagogique de 10 communes (6 Bamako + 4 chefs-lieux) est inclus.
+- **Villages (niveau 6, 12 712 attendus)** : hors scope V1. Le modèle
+  `Location` ne descend pas à ce niveau en V1 (cf. §3.5).
+
+Pour étendre, ajouter les données dans un nouveau JSON
+`data/mali/communes.json` (à créer) + mettre à jour le générateur pour le
+consommer.
 
 ---
 
@@ -337,15 +387,18 @@ Script de validation à créer (`scripts/validate-mali-data.ts`) :
 ## 9. Checklist des mises à jour appliquées au projet (mai 2026)
 
 - [x] `data/mali/regions.json` créé (20 entrées complètes)
-- [x] `data/mali/cercles.json` créé (65 cercles confirmés + flag complétude)
+- [x] `data/mali/cercles.json` créé (64 cercles confirmés + flag complétude)
 - [x] `data/mali/mali.geojson` créé (centroïdes Points)
+- [x] `data/mali/mali-regions-polygons.json` créé (9 polygones admin1 geoBoundaries)
 - [x] `docs/data/mali-divisions.md` créé (ce document)
-- [ ] `docs/data/integration-guide.md` créé (cf. fichier voisin)
+- [x] `docs/data/integration-guide.md` créé (cf. fichier voisin)
+- [x] `scripts/generate-seed-sql.mjs` créé (générateur SQL idempotent)
+- [x] `infrastructure/scripts/seed-locations.sql` généré (artefact dérivé)
+- [x] `scripts/validate-mali-data.mjs` créé (validation des 5 invariants)
 - [ ] `packages/database/prisma/seed.ts` mis à jour avec les 20 régions
       *(en cours — voir §10 ci-dessous)*
-- [ ] `scripts/validate-mali-data.ts` créé (validation des invariants)
 - [ ] `scripts/enrich-cercles.py` créé (ingestion Wikipedia → JSON)
-- [ ] Polygones HDX OCHA ingérés (`mali-regions-polygons.geojson`)
+- [ ] Polygones HDX OCHA enrichis (mali-cercles-polygons.geojson)
 - [ ] Tests unitaires `geo.test.ts` écrits
 
 ---

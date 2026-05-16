@@ -178,6 +178,11 @@ db-reset: ## Remet la base à zéro (⚠️ supprime toutes les données)
 db-validate: ## Valide le schéma Prisma
 	cd packages/database && pnpm exec prisma validate
 
+seed-locations-generate: ## Régénère infrastructure/scripts/seed-locations.sql depuis data/mali/*.json
+	@echo "🌍 Génération du seed-locations.sql depuis data/mali/*.json..."
+	@node scripts/generate-seed-sql.mjs
+	@echo "✅ infrastructure/scripts/seed-locations.sql régénéré."
+
 # ── Vault (gestion des secrets) ────────────────────────────────────────────
 vault-init: ## Initialise Vault (génère les 5 unseal keys + root token)
 	@echo "🔐 Initialisation de Vault..."
