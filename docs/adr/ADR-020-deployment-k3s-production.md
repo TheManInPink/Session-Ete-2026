@@ -4,10 +4,10 @@
 (solo) **Contexte document** : [20 — Déploiement K3s production](../20-DEPLOYMENT-K3S-PRODUCTION.md)
 **Complète** : [ADR-002 — Microservices](./ADR-002-microservices.md),
 [ADR-010 — Infrastructure Docker Compose](./ADR-010-infrastructure-docker-compose.md),
-[ADR-015 — Sécurité hardening (mTLS, Vault)](./ADR-015-ml-stack-detection-erreurs-nina.md),
 [ADR-016 — CI/CD GitHub Actions](./ADR-016-cicd-github-actions.md),
 [ADR-017 — Observabilité LGTM](./ADR-017-observabilite-lgtm-stack.md),
 [ADR-019 — Backup & DRP](./ADR-019-backup-recovery-strategy.md)
+**Cf. aussi** : [doc 15 — Security Hardening](../15-SECURITY-HARDENING.md) (mTLS, Vault PKI — pas d'ADR dédié, cf. `DOCUMENTATION-MAP.md` §4.3)
 
 ---
 

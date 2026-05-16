@@ -1,5 +1,16 @@
 # Graph Report - .  (2026-05-05)
 
+> ⚠️ **SNAPSHOT STALE** — généré le 2026-05-05, **11+ jours obsolète au
+> 2026-05-16**. Depuis : 7 commits documentaires majeurs (`da87dbd`,
+> `a59ef3f`, `1cbf838`, `f4453e4`, `95ab390`, `971bd60`, `f9e8f9a`),
+> ~12 000 lignes de doc ajoutées, 10 nouveaux ADRs (016-025), 1 nouveau
+> doc `DOCUMENTATION-MAP.md`.
+>
+> Pour la carte à jour des cross-références : voir
+> **`docs/DOCUMENTATION-MAP.md`**.
+>
+> Pour re-générer ce graphe : `graphify update .` (AST-only, no API cost).
+
 ## Corpus Check
 - 125 files · ~191,668 words
 - Verdict: corpus is large enough that graph structure adds value.

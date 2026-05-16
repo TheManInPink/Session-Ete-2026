@@ -8,6 +8,7 @@ This file is a lightweight Claude-specific bootstrap and complements `AGENTS.md`
 2. Read `docs/CHANGELOG.md`.
 3. Read `docs/00-README-INDEX.md`.
 4. Read `MAINTENANCE.md` (operational mapping: what changes require what doc updates).
+5. Read `docs/DOCUMENTATION-MAP.md` (carte des 27 docs + 25 ADRs + drifts connus).
 
 ## Working style for this repository
 

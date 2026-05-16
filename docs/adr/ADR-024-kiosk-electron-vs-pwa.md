@@ -2,7 +2,8 @@
 
 **Statut** : ✅ Accepté **Date** : 2026-05-16 **Décideurs** : Étudiant UQAR
 (solo) **Contexte document** : [24 — Bloc E Bornes kiosque](../24-BLOC-E-BORNES-KIOSQUE-ELECTRON.md)
-**Complète** : [ADR-013 — Mobile Expo](./ADR-013-keycloak-identity-provider.md) (référentiel mobile)
+**Cf. aussi** : [doc 13 — Mobile App Expo](../13-MOBILE-APP-EXPO.md) comme
+référence UI/UX cross-device (pas d'ADR dédié, cf. `DOCUMENTATION-MAP.md` §4.3)
 
 ---
 

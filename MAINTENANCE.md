@@ -242,6 +242,7 @@ git push origin v0.5.0-bloc-A-data-seed
 
 | Sujet                              | Fichier                                          |
 | ---------------------------------- | ------------------------------------------------ |
+| **Carte de toute la doc**          | **`docs/DOCUMENTATION-MAP.md`**                  |
 | Vue d'ensemble du parcours          | `docs/00-README-INDEX.md`                        |
 | État réel courant                   | `docs/CHANGELOG.md`                              |
 | Conventions assistants IA           | `AGENTS.md` · `CLAUDE.md`                        |

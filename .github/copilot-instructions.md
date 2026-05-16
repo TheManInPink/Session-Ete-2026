@@ -7,8 +7,9 @@ This repository is not a generic Turborepo sample. Apply NINA-AES conventions fi
 1. Read `docs/CHANGELOG.md` for real current state and resolved incidents.
 2. Read `docs/00-README-INDEX.md` for implementation order and canonical docs.
 3. Read `MAINTENANCE.md` for the operational mapping (what changes require what doc updates).
-4. For architecture/codebase questions, read `graphify-out/GRAPH_REPORT.md` if present.
-5. If `graphify-out/wiki/index.md` exists, use it for deep navigation.
+4. Read `docs/DOCUMENTATION-MAP.md` for the cross-reference map between 27 docs, 25 ADRs and 6 governance files (and known drifts).
+5. For architecture/codebase questions, read `graphify-out/GRAPH_REPORT.md` if present (check the date in header — it may be stale).
+6. If `graphify-out/wiki/index.md` exists, use it for deep navigation.
 
 ### Non-negotiable conventions
 

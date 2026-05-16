@@ -1713,3 +1713,107 @@ Volume total docs 16-26 (phase transversale + extensions) :
 - **Grand total : ~10 460 lignes documentaires sur la session**
 
 `pnpm run verify:repo` ✅ vert.
+
+## 26. Corrélation documentaire — DOCUMENTATION-MAP.md + fixes drifts (mai 2026)
+
+Après la clôture 27/27 docs + 25/25 ADRs, audit complet du système
+documentaire et création d'une **carte unique de corrélation** avec
+correction des dérives détectées.
+
+### 26.1 Livrable principal
+
+- **`docs/DOCUMENTATION-MAP.md`** (~610 lignes) : carte des 3 tiers
+  documentaires (gouvernance / canonique / ADRs), matrice de
+  corrélation cross-références, registre des **12 drifts identifiés**,
+  recommandations priorisées **P0/P1/P2** avec actions exécutables.
+
+### 26.2 Drifts P0 corrigés immédiatement
+
+3 références ADR cassées (titres / fichiers cibles incohérents) :
+
+| ADR | Bug avant | Fix appliqué |
+|---|---|---|
+| ADR-020 | `[ADR-015 — Sécurité hardening (mTLS, Vault)](./ADR-015-ml-stack-detection-erreurs-nina.md)` (titre faux) | Retiré du header « Complète » ; remplacé par bandeau « **Cf. aussi** : doc 15 » |
+| ADR-024 | `[ADR-013 — Mobile Expo](./ADR-013-keycloak-identity-provider.md)` (titre faux, fichier = Keycloak) | Retiré ; remplacé par « **Cf. aussi** : doc 13 Mobile Expo (pas d'ADR dédié) » |
+| ADR-025 | `[ADR-015 — Sécurité hardening](./ADR-015-ml-stack-detection-erreurs-nina.md)` (idem) | Idem |
+
+**Cause racine** : confusion entre numéro ADR et numéro doc. ADR-013
+existe (Keycloak Identity Provider) mais ne couvre pas le doc 13
+(Mobile Expo) — il n'y a PAS d'ADR Mobile dédié. Idem ADR-015 existe
+(ML Stack) mais ne couvre pas le doc 15 (Security Hardening).
+
+### 26.3 Drifts P1 corrigés (alignement gouvernance)
+
+- **`AGENTS.md`** : ajout `verify:repo` + `docs:sync:check` dans
+  validation commands ; ajout référence `DOCUMENTATION-MAP.md` en
+  étape 4 mandatory reading order (graphify devient étape 5 avec
+  mention « may be stale »).
+- **`CLAUDE.md`** : ajout référence `DOCUMENTATION-MAP.md` étape 5
+  first checks.
+- **`.github/copilot-instructions.md`** : ajout
+  `DOCUMENTATION-MAP.md` étape 4 mandatory context ; mention
+  « check date in header — may be stale » pour graphify.
+- **`.cursor/rules/ai-governance.mdc`** : ajout
+  `DOCUMENTATION-MAP.md` dans source-of-truth docs.
+- **`README.md`** : enrichi (+30 lignes) avec lien direct vers
+  carte, MAINTENANCE, ADRs, section souveraineté numérique explicite,
+  statut 27/27 docs livrés.
+- **`graphify-out/GRAPH_REPORT.md`** : bandeau **STALE** en
+  en-tête documentant les 7 commits postérieurs au snapshot
+  2026-05-05.
+- **`MAINTENANCE.md` §9** : `DOCUMENTATION-MAP.md` ajoutée **en tête**
+  du tableau « Liens canoniques » (sujet : « Carte de toute la doc »).
+
+### 26.4 Drifts P0 à arbitrer (orphelins non encore traités)
+
+**2 docs orphelins de 2 908 lignes** :
+- `docs/01-fondations-monorepo-outillage-dx.md` (1 286 lignes)
+- `docs/02-infrastructure-docker-services-donnees.md` (1 622 lignes)
+
+Superposés par `01-CAHIER-DES-CHARGES.md` et `02-ARCHITECTURE-GLOBALE.md`
+(canoniques dans 00-README-INDEX). 3 options documentées dans
+`DOCUMENTATION-MAP.md` §7 (P0 #2) :
+
+- **A.** Déplacer vers `docs/_archive/` avec README explicatif
+- **B.** Supprimer (`git rm`)
+- **C.** Renommer en `*-LEGACY.md` pour conservation visible
+
+→ **À arbitrer avec l'utilisateur** avant action — non bloquant
+pour la chaîne verify:repo.
+
+### 26.5 Drifts P1/P2 différés (V2 ou plus tard)
+
+- **ADR-013 Mobile Expo** manquant → à créer V2
+- **ADR pour doc 15 Security Hardening** manquant → à créer V2
+  (actuellement le slot ADR-015 est utilisé pour ML, pas sécurité)
+- **Backfill `Complète :` sur ADRs 001-013** (format ancien sans
+  graphe explicite) → reporté V2
+- **Re-génération graphify** (`graphify update .`) → à exécuter
+  manuellement
+- **Extension `docs-sync-check.mjs`** pour vérifier plus de refs
+  (chaque ADR cite son doc parent, chaque doc 16-26 référencé,
+  format ADR uniforme, etc.) → reporté V2
+
+### 26.6 État final post-corrélation
+
+- ✅ 27/27 docs canoniques livrés
+- ✅ 25/25 ADRs livrés (2 ADRs manquants identifiés et documentés —
+  mobile + security — non bloquants V1)
+- ✅ 6 fichiers gouvernance alignés sur les **5 invariants partagés**
+  (cf. `DOCUMENTATION-MAP.md` §2.2)
+- ✅ 1 carte centrale `DOCUMENTATION-MAP.md`
+- ⚠️ 2 orphelins identifiés mais conservés (décision utilisateur
+  requise pour suppression/archive)
+- ⚠️ graphify snapshot stale 11 jours mais signalé en en-tête
+
+### 26.7 Cross-références
+
+- `MAINTENANCE.md §9` : `DOCUMENTATION-MAP.md` en tête liens canoniques
+- `README.md` : lien direct + statut 27/27 docs
+- 4 fichiers gouvernance IA : tous référencent `DOCUMENTATION-MAP.md`
+  dans leur mandatory reading order
+- Ce document devient le **6ᵉ point d'entrée obligatoire** pour tout
+  assistant IA opérant sur le repo (après CHANGELOG, 00-README-INDEX,
+  MAINTENANCE, AGENTS, et lui-même).
+
+`pnpm run verify:repo` ✅ vert.

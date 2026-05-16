@@ -3,8 +3,9 @@
 **Statut** : ✅ Accepté (vision V1) — **Implémentation conditionnée**
 **Date** : 2026-05-16 **Décideurs** : Étudiant UQAR (solo)
 **Contexte document** : [25 — Bloc F Biométrie](../25-BLOC-F-BIOMETRIE.md)
-**Complète** : [ADR-014 — Audit Merkle](./ADR-014-audit-event-driven-append-only.md),
-[ADR-015 — Sécurité hardening](./ADR-015-ml-stack-detection-erreurs-nina.md) (Vault PKI)
+**Complète** : [ADR-014 — Audit Merkle](./ADR-014-audit-event-driven-append-only.md)
+**Cf. aussi** : [doc 15 — Security Hardening](../15-SECURITY-HARDENING.md)
+(Vault PKI, mTLS — pas d'ADR dédié, cf. `DOCUMENTATION-MAP.md` §4.3)
 
 ---
 

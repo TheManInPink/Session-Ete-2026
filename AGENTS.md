@@ -14,7 +14,8 @@ Before making substantial suggestions or changes:
 1. `docs/CHANGELOG.md` (source of truth for real state and known deviations)
 2. `docs/00-README-INDEX.md` (navigation and canonical implementation order)
 3. `MAINTENANCE.md` (operational rules — when to update what, full verify chain)
-4. `graphify-out/GRAPH_REPORT.md` if present (architecture map)
+4. `docs/DOCUMENTATION-MAP.md` (map of all 27 docs + 25 ADRs + drift register)
+5. `graphify-out/GRAPH_REPORT.md` if present (architecture map — may be stale, check date in header)
 
 ## Operational constraints
 
@@ -42,9 +43,11 @@ At minimum, update:
 
 - Mali referential data files in `data/mali/` are validated before merge.
 - JSON schema contracts are stored in `schemas/`.
-- Validation commands:
+- Validation commands (preferred order):
+  - `pnpm run verify:repo` (full chain — recommended)
   - `pnpm run validate:data`
   - `pnpm run validate:schemas`
+  - `pnpm run docs:sync:check`
 
 ## Security and safety
 

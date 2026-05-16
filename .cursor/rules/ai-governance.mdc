@@ -9,6 +9,7 @@ Follow these repository rules for every code or documentation change:
 - docs/CHANGELOG.md
 - docs/00-README-INDEX.md
 - MAINTENANCE.md (operational mapping)
+- docs/DOCUMENTATION-MAP.md (map of 27 docs + 25 ADRs + drift register)
 
 2) Keep references synchronized:
 - If scripts, commands, data contracts, or architecture behavior change, update docs in same change set.
