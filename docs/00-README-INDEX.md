@@ -42,9 +42,11 @@ Le parcours suit trois principes :
 | pnpm                             | ✅ v10.12.1                                                                          |
 | `apps/web` + `apps/docs`         | ⚠️ Scaffolds par défaut Turborepo — à remplacer par `citizen`, `admin`, `governance` |
 | `apps/citizen` (port 4001)       | ✅ **Sessions 1+2 livrées** — PC-01 à PC-06 + auth Keycloak BFF (mock mode actif)    |
-| `packages/ui`                    | ✅ **Livré (Session 1)** — design system AES (Button/Card/Input/Alert/…)             |
+| `apps/admin` (port 4002)         | ✅ **Session 3 — foundation + AD-02** — DataGrid corrections avec drawer (mock mode) |
+| `apps/governance` (port 4003)    | ❌ Scaffold Turborepo — prévu Session 5+                                              |
+| `packages/ui`                    | ✅ **Livré (Sessions 1+3)** — design system AES + Sheet/Checkbox/DropdownMenu (Radix)|
 | `packages/api-client`            | ✅ **Livré (Sessions 1+2)** — identity + correction + appointment + sigac (Zod)      |
-| `packages/i18n`                  | ✅ **Livré (Session 1, FR complet)** — bambara fallback FR ; 6 autres langues à venir |
+| `packages/i18n`                  | ✅ **Livré (Sessions 1+3, FR complet + namespace admin)** — fallback FR par-clé      |
 | `packages/eslint-config`         | ✅ Présent                                                                           |
 | `packages/typescript-config`     | ✅ Présent                                                                           |
 | `packages/shared-types`          | ✅ **Livré (PROMPT 1.2)** — 11 enums, 16 interfaces, DTOs Zod                        |

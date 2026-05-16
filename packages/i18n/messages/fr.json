@@ -349,7 +349,18 @@
         "timelineTitle": "Historique",
         "approve": "Approuver",
         "reject": "Rejeter",
-        "rejectReason": "Motif de rejet (visible par le citoyen)"
+        "rejectReason": "Motif de rejet (visible par le citoyen)",
+        "rejectReasonPlaceholder": "Expliquez brièvement la raison du rejet — le citoyen verra ce texte."
+      },
+      "timeline": {
+        "label": "Historique de la demande",
+        "submitted": "Soumise par le citoyen",
+        "aiScored": "Score IA calculé",
+        "agentReview": "Revue par l'agent",
+        "documentRequested": "Document demandé",
+        "documentUploaded": "Document fourni",
+        "approved": "Approuvée",
+        "rejected": "Rejetée"
       },
       "empty": "Aucune demande ne correspond à vos filtres.",
       "pagination": {

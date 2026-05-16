@@ -321,3 +321,176 @@ ne pas fabriquer de traductions bambara sans relecture native).
   nom de fichier et la fonction par défaut sont renommés (`middleware`
   → `proxy`). L'import `next-intl/middleware` reste valide (next-intl
   garde son propre nom).
+
+## 11. Frontend Admin — Session 3 : foundation + AD-02 corrections (mai 2026)
+
+Console agents CTDEC `apps/admin` (port 4002) — scaffolding initial +
+écran AD-02 « Gestion des corrections IA » fonctionnel de bout en bout
+en mode mock. AD-01 (Dashboard complet) et AD-03 (SIGAC) prévus
+Session 4. Périmètre choisi avec le mainteneur : « Foundation +
+AD-02 prioritaire » (le DataGrid est l'outil le plus utile au
+quotidien CTDEC).
+
+### 11.1 Foundation `apps/admin`
+
+Refonte complète du scaffold Turborepo par défaut sur le pattern
+citizen Session 2 :
+  - **Auth BFF** (4 route handlers `/api/auth/{login,callback,refresh,
+    logout}`) avec client Keycloak `nina-admin`. Mode `NINA_AUTH_MODE=
+    mock` par défaut : session déterministe « Modibo Konaté »,
+    matricule CTDEC-2024-0156, rôles `[AGENT, SUPERVISOR]`, centre
+    `ctdec-bamako`.
+  - **`lib/auth/session.ts`** : `getSession()`, `requireSession()`,
+    `requireRole(roles: AdminRole[])`, `hasRole(roles)` — nouveau
+    contrôle d'accès par rôle (AGENT / SUPERVISOR / AUDITOR / ADMIN).
+  - **Layouts** alignés Next 16 + cacheComponents :
+    `app/layout.tsx` STATIQUE + `<HtmlLangSetter />` client,
+    `app/[locale]/layout.tsx` IntlBoundary dans `<Suspense>`,
+    `app/[locale]/(authenticated)/layout.tsx` applique
+    `requireRole(['AGENT', 'SUPERVISOR', 'AUDITOR', 'ADMIN'])` et
+    rend `<AdminSidebar>` (route group invisible dans l'URL).
+  - **`components/admin-sidebar.tsx`** : sidebar fixe 240px,
+    fond `hsl 220° 30 % 12 %`, 5 items nav (Dashboard / Corrections /
+    RDV / SIGAC / Paramètres), footer profil agent + logout.
+  - **`proxy.ts`** : i18n routing + auth guard ; routes publiques
+    `/[locale]` et `/[locale]/login`.
+  - **i18n namespace `admin.*`** (FR complet) — sidebar, dashboard,
+    login, corrections (filters, columns, status, field, actions,
+    drawer, timeline, pagination, toast). Les 6 skeletons SNK/FF/
+    TMQ/HAU/MOS/DJE héritent automatiquement via le deepMerge déjà
+    en place (Session 2 commit b7c1f5c).
+
+### 11.2 Nouvelles primitives `@nina-aes/ui`
+
+Trois wrappers Radix pour alimenter AD-02 (et les futurs écrans) :
+
+  - **Sheet** (`./components/sheet`) — Drawer latéral avec variants
+    `side` (top/bottom/left/right). Compose Sheet, SheetTrigger,
+    SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle,
+    SheetDescription. Focus trap, animation slide-in/out, overlay
+    backdrop-blur, `aria-modal` natif.
+  - **Checkbox** (`./components/checkbox`) — Radix Checkbox stylé
+    AES, supporte `indeterminate` (utile pour la sélection partielle
+    de colonne du DataGrid).
+  - **DropdownMenu** (`./components/dropdown-menu`) — Surface
+    complète Radix (Trigger, Content, Item, CheckboxItem, RadioItem,
+    Label, Separator, Sub, Group, Shortcut). Préparé pour menus
+    d'actions par ligne et filtres compacts.
+
+  Dépendances : `@radix-ui/react-dialog ^1.1.0`, `@radix-ui/
+  react-checkbox ^1.1.0`, `@radix-ui/react-dropdown-menu ^2.1.0`.
+
+### 11.3 AD-02 — Gestion des corrections IA
+
+  **`app/[locale]/(authenticated)/corrections/page.tsx`** (server) :
+    Charge `MOCK_CORRECTIONS` (50 fixtures déterministes) + délègue
+    à `<CorrectionsClient>` enveloppé dans `<Suspense>` avec
+    skeleton fallback.
+
+  **`_components/corrections-client.tsx`** (client) — Le DataGrid
+    complet basé sur **TanStack Table 8.20** :
+    - 11 colonnes : sélection multi, NINA (mono), citoyen, champ,
+      avant, après, score IA (coloré HIGH/MEDIUM/LOW), statut
+      (StatusBadge), région, soumis le, actions (DropdownMenu).
+    - **Tri** sur 9 colonnes (clic header → ascending → descending →
+      reset) avec icônes ArrowUp/ArrowDown.
+    - **Filtres** :
+      • Recherche full-text (debounced via React state) sur
+        NINA + nom citoyen ;
+      • Multi-select statut (UNDER_REVIEW, APPROVED, REJECTED,
+        AWAITING_DOCUMENT) ;
+      • Multi-select région (Bamako, Sikasso, Kayes, Mopti) ;
+      • Bouton « Réinitialiser » si filtres actifs.
+    - **Sélection multiple** : checkbox header (avec état
+      `indeterminate` si sélection partielle de la page courante),
+      checkbox par ligne. Bouton « Approuver (N) » apparaît à droite
+      de la toolbar si N ≥ 1.
+    - **Pagination** : pageSize 10, indicateur page X / Y,
+      ChevronLeft/Right pour naviguer.
+    - **Click ligne** ouvre le drawer ; click sur checkbox ou
+      DropdownMenu d'actions n'ouvre PAS le drawer
+      (`stopPropagation`).
+
+  **`_components/correction-drawer.tsx`** : Drawer right (Sheet
+    side=right, max-w-xl) avec :
+    - Header : titre `Correction #{id}` + StatusBadge.
+    - Citoyen (nom + NINA mono).
+    - Modification du champ : carte « avant » barrée + flèche +
+      carte « après » en `bg-primary-50/40`. Motif de la demande
+      en italique.
+    - **`<AiScorePanel />`** : gauge SVG inline (cercle radius 28,
+      stroke 6, dasharray dynamique) coloré HIGH/MEDIUM/LOW, 3
+      sous-scores (fuzzyMatch, consistency, agentHistory) en barres
+      horizontales.
+    - Justificatif : preview placeholder « PDF · 1.4 Mo » (le vrai
+      preview viendra avec document-service Session 4+).
+    - **`<CorrectionTimeline />`** : timeline verticale avec ligne
+      gauche + pastilles colorées (Send, Sparkles, UserCheck,
+      FileQuestion, FileCheck, Check, X selon le `kind` de
+      l'événement).
+    - Footer sticky avec actions : « Rejeter » (variant destructive)
+      → toggle un sous-formulaire avec textarea « motif de rejet
+      (visible par le citoyen) » + submit ; « Approuver » →
+      mutation immédiate. Le drawer se ferme et un toast vert
+      confirme l'action.
+
+  **Mutation mock approve/reject** : `decide(id, decision, reason?)`
+    dans `corrections-client.tsx` mute le state local avec
+    `useTransition`. La timeline est appendée avec un événement
+    `APPROVED` ou `REJECTED` daté ISO. Un toast 4 s apparaît en
+    bas-droite (`role="status"` `aria-live="polite"`).
+
+### 11.4 Mock fixtures (`apps/admin/lib/mock-corrections.ts`)
+
+  Générateur déterministe Mulberry32 produisant 50 corrections :
+    - 20 prénoms × 20 noms maliens (combinaisons réalistes).
+    - 9 champs `field` représentés équitablement (firstName,
+      lastName, birthDate, birthPlace, residence_cercle,
+      residence_commune, fatherName, motherName, profession).
+    - Échantillons d'erreurs typiques par champ (Sikaso → Sikasso,
+      Toure → Touré, Bla → Blá, 1995-13-02 → 1995-12-02).
+    - 4 statuts pondérés : UNDER_REVIEW (60 %), APPROVED (20 %),
+      REJECTED (15 %), AWAITING_DOCUMENT (5 %).
+    - 4 régions : Bamako, Sikasso, Kayes, Mopti.
+    - Score IA 30-98 + verdict HIGH/MEDIUM/LOW dérivé.
+    - 3 sous-scores (fuzzyMatch, consistency, agentHistory).
+    - Timeline réaliste SUBMITTED → AI_SCORED → AGENT_REVIEW →
+      APPROVED/REJECTED ou → DOCUMENT_REQUESTED.
+
+  À supprimer Session 4+ quand correction-service exposera
+  `GET /api/v1/admin/corrections?filters` côté agent.
+
+### 11.5 Validation
+
+  - `pnpm --filter @nina-aes/admin check-types` : ✅ 0 erreur.
+  - `pnpm --filter @nina-aes/citizen check-types` : ✅ 0 erreur
+    (citizen n'a pas régressé).
+  - `pnpm run verify:repo` : ✅ validate-data + validate-schemas +
+    docs-sync.
+
+### 11.6 Reste à faire (Session 4+)
+
+  - **AD-01 Dashboard** complet : 4 KPI cards avec sparkline SVG
+    inline + AreaChart Recharts corrections/jour + MaliHeatmap
+    activité régionale + feed temps réel alertes (SSE mock).
+  - **AD-03 SIGAC** : MaliHeatmap alertes par région + top 10
+    agents intégrité (IntegrityScoreGauge ×10) + feed alertes
+    temps réel + drill-down par région.
+  - **MaliHeatmap** réutilisable dans `@nina-aes/ui` (SVG inline
+    + GeoJSON `data/mali/regions.geojson`, 55 features déjà
+    validées par `validate:data`).
+  - **Extraction `@nina-aes/auth`** : factoriser `lib/auth/session.ts`
+    + routes API auth communes à citizen et admin (et bientôt
+    governance). Aujourd'hui : 2 copies. Threshold de 3 copies
+    déclenche l'extraction.
+  - **Câblage `correction-service`** : remplacer `MOCK_CORRECTIONS`
+    par fetch server-side + mutations TanStack Query avec
+    optimistic update + invalidation cache.
+  - **PDF preview justificatif** : bloqué tant que `document-service`
+    (port 3004) n'expose pas les URLs signées.
+  - **Drawer mobile** : actuellement w-full sur xs, OK mais le
+    DataGrid est inutilisable sur xs (10 colonnes). Ajouter une vue
+    « cards » alternative ou figer les 3 premières colonnes en
+    overflow-x.
+  - **Tests E2E Playwright** : parcours agent (login mock → DataGrid
+    → filtre → approbation → toast → ligne mise à jour).
