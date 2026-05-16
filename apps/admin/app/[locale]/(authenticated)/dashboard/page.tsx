@@ -18,6 +18,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nina
 import { Skeleton } from '@nina-aes/ui/components/skeleton';
 import { AreaChart } from '@nina-aes/ui/components/charts/area-chart';
 import { MaliHeatmap } from '@nina-aes/ui/components/charts/mali-heatmap';
+// GeoJSON polygons admin level 1 du Mali (geoBoundaries gbOpen, 9 régions
+// historiques pré-2016 — couvre 100 % du territoire). Cf. data/mali/README
+// pour la provenance et le mapping codes shapeISO → ML-NN.
+import maliPolygons from '../../../../../../data/mali/mali-regions-polygons.json';
 import { requireRole } from '../../../../lib/auth/session';
 import {
   KPI_SNAPSHOTS,
@@ -96,6 +100,7 @@ export default async function DashboardPage({ params }: PageProps) {
           <CardContent className="flex justify-center">
             <MaliHeatmap
               data={[...ACTIVITY_BY_REGION]}
+              geojson={maliPolygons as Parameters<typeof MaliHeatmap>[0]['geojson']}
               tone="sequential"
               width={720}
               ariaLabel={t('activityMapAria')}

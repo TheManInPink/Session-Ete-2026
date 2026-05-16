@@ -639,10 +639,7 @@ le bundle reste mince, et le rendu SSR est trivial.
     — messagerie signée Ed25519, Kanban directives, timeline
     officielle. Déclencherait l'extraction `@nina-aes/auth` (3ème
     consommateur).
-  - **MaliHeatmap polygonale** : si un GeoJSON polygons du Mali est
-    intégré (admin level 1 boundaries), passer le bubble map à un
-    vrai choropleth. Données potentielles : Natural Earth 1:10m
-    admin_1 ou OCHA Mali Common Operational Datasets.
+  - ~~**MaliHeatmap polygonale**~~ → livré (cf. §12.8 ci-dessous).
   - **AD-02 mobile** : DataGrid 11 colonnes inutilisable sur xs.
     Vue alternative « cards » à implémenter, ou freeze 3 premières
     colonnes en overflow-x.
@@ -650,3 +647,46 @@ le bundle reste mince, et le rendu SSR est trivial.
     KPIs visibles → click drill-down corrections → filtre statut
     UNDER_REVIEW → drawer → approve → toast → retour dashboard avec
     KPI corrections décrémenté.
+
+### 12.8 MaliHeatmap choroplèthe — polygones admin1 (post-Session 4)
+
+Suite à un retour utilisateur (les bulles centroïdes manquaient de
+contexte géographique), `<MaliHeatmap>` supporte désormais un **mode
+choroplèthe** avec polygones réels :
+
+  data/mali/mali-regions-polygons.json (nouveau, 295 KB) :
+    Téléchargé depuis geoBoundaries gbOpen Mali ADM1 simplified
+    (open data, licence permissive). 9 polygones :
+    Bamako + 8 régions historiques pré-2016 (Kayes, Koulikoro,
+    Sikasso, Ségou, Mopti, Tombouctou, Gao, Kidal). Bbox lon
+    -12.24/+4.25, lat 10.14/25.00. Couvre 100 % du territoire.
+
+  data/mali/README.md (nouveau) :
+    Documente toutes les sources data/mali/ (regions.json,
+    cercles.json, mali.geojson, mali-regions-polygons.json) avec
+    provenance, licence, mapping codes shapeISO → ML-NN, et
+    procédure de mise à jour.
+
+  packages/ui/src/components/charts/mali-heatmap.tsx :
+    - Nouvelle prop optionnelle `geojson?: FeatureCollection`.
+    - Si fournie → rendu choroplèthe (polygones SVG remplis selon
+      la valeur, mapping LEGACY_CODE_MAP ML-1 → ML-01, etc.).
+    - Si absente → fallback bubble map (comportement v1).
+    - Marqueurs centroïdes pour les 11 régions post-2016 (Taoudénit,
+      Ménaka, Bandiagara, etc.) qui n'ont pas de polygones séparés
+      dans le dataset historique. Petits points colorés par-dessus.
+    - ViewBox aspect ratio recalibré (100 × 90) pour matcher la
+      forme réelle du Mali (légèrement plus large que haut).
+    - Étiquettes régions enrichies (7 majeures) avec stroke
+      paintOrder pour rester lisibles par-dessus la choroplèthe.
+
+  apps/admin/app/[locale]/(authenticated)/dashboard/page.tsx +
+  apps/admin/app/[locale]/(authenticated)/sigac/page.tsx :
+    Import du JSON polygones + pass-through à MaliHeatmap via prop
+    `geojson`. Cast TypeScript explicite vers `MaliHeatmapProps
+    ['geojson']` (le JSON Module est typé `any` par Next).
+
+  Limite connue (documentée README.md) : 11 régions post-2016 sans
+  polygone propre — affichées comme marqueurs centroïdes. Pour
+  upgrader aux 20 régions actuelles, sourcer un dataset plus récent
+  (INSTAT Mali ou OCHA HDX).

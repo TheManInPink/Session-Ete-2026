@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nina
 import { MaliHeatmap } from '@nina-aes/ui/components/charts/mali-heatmap';
 import { IntegrityGauge } from '@nina-aes/ui/components/charts/integrity-gauge';
 import { Button } from '@nina-aes/ui/components/button';
+import maliPolygons from '../../../../../../data/mali/mali-regions-polygons.json';
 import { requireRole } from '../../../../lib/auth/session';
 import {
   ALERTS_BY_REGION,
@@ -55,6 +56,7 @@ export default async function SigacPage({ params }: PageProps) {
           <CardContent className="flex justify-center">
             <MaliHeatmap
               data={[...ALERTS_BY_REGION]}
+              geojson={maliPolygons as Parameters<typeof MaliHeatmap>[0]['geojson']}
               tone="severity"
               width={480}
               ariaLabel={t('alertsMap.aria')}

@@ -1,19 +1,23 @@
 /**
  * @file        mali-heatmap.tsx
- * @description Carte « bubble map » des 20 régions/cercles du Mali avec
- *              une métrique numérique par région. Cercles centroïdes
- *              proportionnels (rayon = √valeur × scale, lisibilité linéaire
- *              de la surface), couleur selon `tone`.
+ * @description Heatmap des régions du Mali — deux modes selon les props :
  *
- *              Pourquoi pas une vraie heatmap polygonale ?
- *                Le fichier `data/mali/mali.geojson` ne contient que des
- *                centroïdes Point (pas de polygones de frontières). Le
- *                bubble map est une variante valide de heatmap (densité par
- *                lieu) et garde l'overhead à zéro (aucune librairie chart).
+ *              1. CHOROPLÈTHE (recommandé, si `geojson` fourni)
+ *                 Polygones admin level 1 réels remplis selon la métrique.
+ *                 Source : geoBoundaries gbOpen MLI ADM1 simplifié (9 régions
+ *                 historiques pré-2016 — couvrent 100 % du territoire).
  *
- *              Accessibilité : `<svg role="img">` + `<title>` global + un
- *              `<title>` par cercle (tooltip natif au hover). Pour les
- *              clavier-only, `tabIndex` + `onKeyDown` sur chaque marker.
+ *              2. BUBBLE MAP (fallback, si `geojson` absent)
+ *                 Cercles centroïdes proportionnels aux valeurs.
+ *
+ *              Mapping codes : geoBoundaries utilise `ML-1` à `ML-8` + `ML-BKO`
+ *              pour les 9 régions historiques. Notre `MaliHeatmapDatum.regionCode`
+ *              utilise le format ISO 3166-2:ML étendu (ML-01 à ML-20). Le
+ *              mapping est appliqué au lookup (cf. `LEGACY_CODE_MAP`).
+ *
+ *              Accessibilité : `<svg role="img">` + `<title>` global +
+ *              `<title>` par polygone (tooltip natif). Polygones interactifs
+ *              au clavier (tabIndex + Enter/Space) si `onRegionClick` fourni.
  *
  * @module      @nina-aes/ui
  */
@@ -47,65 +51,118 @@ const MALI_REGIONS = [
   { code: 'ML-20', name: 'Douentza', lon: -2.9469, lat: 15.0028 },
 ] as const;
 
-/** Bbox des données Mali (latitude inversée car SVG y va vers le bas). */
-const BBOX = { lonMin: -12, lonMax: 3, latMin: 10.5, latMax: 23 };
+/** Mapping geoBoundaries shapeISO → notre code interne ML-NN.
+ *  geoBoundaries fournit les 9 régions historiques pré-2016 ; les nouvelles
+ *  régions (ML-10 à ML-20) n'ont pas de polygones séparés et seront affichées
+ *  en marqueurs centroïdes par-dessus la choroplèthe. */
+const LEGACY_CODE_MAP: Record<string, string> = {
+  'ML-1': 'ML-01',
+  'ML-2': 'ML-02',
+  'ML-3': 'ML-03',
+  'ML-4': 'ML-04',
+  'ML-5': 'ML-05',
+  'ML-6': 'ML-06',
+  'ML-7': 'ML-07',
+  'ML-8': 'ML-08',
+  'ML-BKO': 'ML-09',
+};
 
-/** Données passées à la heatmap : un nombre par code région. */
+/** Régions historiques (avec polygone) vs nouvelles (subdivisions). */
+const LEGACY_REGION_CODES = new Set(Object.values(LEGACY_CODE_MAP));
+
+/** Bbox couvrant exactement les polygones geoBoundaries Mali. */
+const BBOX = { lonMin: -12.3, lonMax: 4.3, latMin: 10, latMax: 25 };
+const VIEW_BOX_WIDTH = 100;
+const VIEW_BOX_HEIGHT = Math.round(
+  ((BBOX.latMax - BBOX.latMin) / (BBOX.lonMax - BBOX.lonMin)) * VIEW_BOX_WIDTH,
+);
+
+// ── Types GeoJSON minimaux (subset de RFC 7946) ─────────────────────────────
+interface GeoFeature {
+  type: 'Feature';
+  properties: {
+    shapeISO?: string;
+    shapeName?: string;
+    [k: string]: unknown;
+  };
+  geometry:
+    | { type: 'Polygon'; coordinates: number[][][] }
+    | { type: 'MultiPolygon'; coordinates: number[][][][] };
+}
+interface GeoFeatureCollection {
+  type: 'FeatureCollection';
+  features: GeoFeature[];
+}
+
+/** Données passées à la heatmap : un nombre par code région (ML-01..ML-20). */
 export interface MaliHeatmapDatum {
-  /** Code région ML-NN (cf. MALI_REGIONS). Régions inconnues ignorées. */
   regionCode: string;
-  /** Valeur métrique — sera mappée linéairement entre min(rayon) et max(rayon). */
   value: number;
-  /** Légende custom au hover. Si absent : « {name} : {value} ». */
+  /** Légende custom au hover. Si absent : `{name} : {value}`. */
   label?: string;
 }
 
 export interface MaliHeatmapProps {
-  /** Données à afficher. Vide → carte vide avec frontières seulement. */
   data: MaliHeatmapDatum[];
-  /**
-   * Échelle de couleur — `sequential` pour des activités (un seul ton bleu),
-   * `severity` pour des alertes (gradient vert → jaune → rouge selon valeur
-   * relative au max).
-   */
+  /** GeoJSON FeatureCollection avec polygones. Si fourni → mode choroplèthe.
+   *  Sinon → fallback bubble map (centroïdes). */
+  geojson?: GeoFeatureCollection;
   tone?: 'sequential' | 'severity';
-  /** Largeur du SVG en pixels (height = width × 0.75 pour le ratio Mali). */
   width?: number;
-  /** Rayon de cercle minimum (valeur 0). */
+  /** Mode bubble seulement : rayon min des cercles (valeur 0). */
   minRadius?: number;
-  /** Rayon de cercle maximum (valeur = max(data)). */
+  /** Mode bubble seulement : rayon max des cercles (max(data)). */
   maxRadius?: number;
-  /** Callback de click sur un marker. */
   onRegionClick?: (datum: MaliHeatmapDatum & { name: string }) => void;
-  /** Légende globale lue par les lecteurs d'écran (`<title>` du SVG). */
   ariaLabel?: string;
   className?: string;
 }
 
-/** Projette (lon, lat) en (x, y) SVG dans le viewBox 100×75. */
+/** Projette (lon, lat) → (x, y) dans le viewBox SVG. */
 function project(lon: number, lat: number): { x: number; y: number } {
-  const x = ((lon - BBOX.lonMin) / (BBOX.lonMax - BBOX.lonMin)) * 100;
+  const x = ((lon - BBOX.lonMin) / (BBOX.lonMax - BBOX.lonMin)) * VIEW_BOX_WIDTH;
   // Inversion Y : latitude haute → y bas du SVG
-  const y = (1 - (lat - BBOX.latMin) / (BBOX.latMax - BBOX.latMin)) * 75;
+  const y =
+    (1 - (lat - BBOX.latMin) / (BBOX.latMax - BBOX.latMin)) * VIEW_BOX_HEIGHT;
   return { x, y };
+}
+
+/** Convertit un anneau de coordonnées GeoJSON en `d` SVG path. */
+function ringToPath(ring: number[][]): string {
+  return ring
+    .map(([lon, lat], i) => {
+      const { x, y } = project(lon as number, lat as number);
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(3)},${y.toFixed(3)}`;
+    })
+    .join(' ');
+}
+
+/** Convertit Polygon ou MultiPolygon en `d` SVG complet (subpaths concaténés). */
+function geometryToPath(geometry: GeoFeature['geometry']): string {
+  if (geometry.type === 'Polygon') {
+    return geometry.coordinates.map(ringToPath).join(' Z ') + ' Z';
+  }
+  // MultiPolygon : chaque polygone est un array d'anneaux
+  return geometry.coordinates
+    .map((poly) => poly.map(ringToPath).join(' Z '))
+    .join(' Z ') + ' Z';
 }
 
 /** Couleur HSL pour une valeur normalisée [0..1] selon le tone. */
 function colorFor(tone: 'sequential' | 'severity', t: number): string {
   if (tone === 'severity') {
-    // Vert (120°) → Jaune (50°) → Rouge (0°) — interpolation HSL
     const hue = 120 - t * 120;
     const sat = 60 + t * 25;
     const light = 50 - t * 10;
     return `hsl(${hue} ${sat}% ${light}%)`;
   }
-  // sequential : bleu primary AES, opacité variable mais hue stable
   const light = 55 - t * 25;
   return `hsl(212 70% ${light}%)`;
 }
 
 export function MaliHeatmap({
   data,
+  geojson,
   tone = 'sequential',
   width = 480,
   minRadius = 2,
@@ -114,7 +171,7 @@ export function MaliHeatmap({
   ariaLabel = 'Carte du Mali — activité par région',
   className,
 }: MaliHeatmapProps) {
-  const height = width * 0.75;
+  const height = (width / VIEW_BOX_WIDTH) * VIEW_BOX_HEIGHT;
   const maxValue = Math.max(1, ...data.map((d) => d.value));
 
   const byCode = React.useMemo(() => {
@@ -123,9 +180,11 @@ export function MaliHeatmap({
     return m;
   }, [data]);
 
+  const isChoropleth = !!geojson;
+
   return (
     <svg
-      viewBox="0 0 100 75"
+      viewBox={`0 0 ${VIEW_BOX_WIDTH} ${VIEW_BOX_HEIGHT}`}
       width={width}
       height={height}
       role="img"
@@ -134,101 +193,183 @@ export function MaliHeatmap({
     >
       <title>{ariaLabel}</title>
 
-      {/* Outline approximative du Mali (bbox du pays — pas un vrai contour) */}
+      {/* Fond très léger derrière la carte */}
       <rect
         x="0"
         y="0"
-        width="100"
-        height="75"
+        width={VIEW_BOX_WIDTH}
+        height={VIEW_BOX_HEIGHT}
         fill="var(--bg-muted)"
-        fillOpacity="0.3"
-        stroke="var(--border)"
-        strokeWidth="0.2"
+        fillOpacity="0.2"
         rx="1"
       />
 
-      {/* Toutes les régions en gris clair (présence) */}
-      {MALI_REGIONS.map((r) => {
-        const { x, y } = project(r.lon, r.lat);
-        return (
-          <circle
-            key={`bg-${r.code}`}
-            cx={x}
-            cy={y}
-            r={minRadius * 0.6}
-            fill="var(--fg-muted)"
-            fillOpacity="0.4"
-          />
-        );
-      })}
+      {/* ── MODE CHOROPLÈTHE ──────────────────────────────────────────── */}
+      {isChoropleth &&
+        geojson.features.map((feature) => {
+          const legacyCode = (feature.properties.shapeISO as string) ?? '';
+          const internalCode = LEGACY_CODE_MAP[legacyCode] ?? legacyCode;
+          const datum = byCode.get(internalCode);
+          const value = datum?.value ?? 0;
+          const t = value / maxValue;
+          const fill = datum
+            ? colorFor(tone, t)
+            : 'var(--bg-muted)';
+          const fillOpacity = datum ? 0.75 : 0.4;
+          const region = MALI_REGIONS.find((r) => r.code === internalCode);
+          const name = region?.name ?? feature.properties.shapeName ?? legacyCode;
+          const label = datum?.label ?? `${name} : ${value}`;
+          const clickable = !!datum && typeof onRegionClick === 'function';
 
-      {/* Bubbles actifs */}
-      {MALI_REGIONS.map((r) => {
-        const datum = byCode.get(r.code);
-        if (!datum) return null;
-        const { x, y } = project(r.lon, r.lat);
-        const t = datum.value / maxValue;
-        const radius = minRadius + t * (maxRadius - minRadius);
-        const clickable = typeof onRegionClick === 'function';
-        const label = datum.label ?? `${r.name} : ${datum.value}`;
-
-        return (
-          <g
-            key={r.code}
-            className={cn(clickable && 'cursor-pointer focus:outline-none')}
-            tabIndex={clickable ? 0 : -1}
-            role={clickable ? 'button' : 'img'}
-            aria-label={label}
-            onClick={
-              clickable ? () => onRegionClick({ ...datum, name: r.name }) : undefined
-            }
-            onKeyDown={
-              clickable
-                ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onRegionClick({ ...datum, name: r.name });
+          return (
+            <g
+              key={legacyCode}
+              className={cn(clickable && 'cursor-pointer focus:outline-none')}
+              tabIndex={clickable ? 0 : -1}
+              role={clickable ? 'button' : 'img'}
+              aria-label={label}
+              onClick={
+                clickable && datum
+                  ? () => onRegionClick({ ...datum, name })
+                  : undefined
+              }
+              onKeyDown={
+                clickable && datum
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onRegionClick({ ...datum, name });
+                      }
                     }
-                  }
-                : undefined
-            }
-          >
-            <circle
-              cx={x}
-              cy={y}
-              r={radius}
-              fill={colorFor(tone, t)}
-              fillOpacity="0.7"
-              stroke={colorFor(tone, t)}
-              strokeWidth="0.3"
-              className="transition-all"
-            />
-            <title>{label}</title>
-          </g>
-        );
-      })}
+                  : undefined
+              }
+            >
+              <path
+                d={geometryToPath(feature.geometry)}
+                fill={fill}
+                fillOpacity={fillOpacity}
+                stroke="var(--bg-card)"
+                strokeWidth="0.3"
+                strokeLinejoin="round"
+                className="transition-all hover:brightness-110"
+              />
+              <title>{label}</title>
+            </g>
+          );
+        })}
 
-      {/* Étiquettes des régions principales (zoom-out lisibilité) */}
-      {(['ML-09', 'ML-01', 'ML-05', 'ML-07', 'ML-08'] as const).map((code) => {
-        const r = MALI_REGIONS.find((x) => x.code === code);
-        if (!r) return null;
-        const { x, y } = project(r.lon, r.lat);
-        const shortName = r.name.replace('District de ', '');
-        return (
-          <text
-            key={`label-${code}`}
-            x={x}
-            y={y - 3}
-            fontSize="2.2"
-            textAnchor="middle"
-            fill="var(--fg)"
-            fillOpacity="0.85"
-            className="pointer-events-none font-medium"
-          >
-            {shortName}
-          </text>
-        );
-      })}
+      {/* ── MODE BUBBLE (fallback) ────────────────────────────────────── */}
+      {!isChoropleth && (
+        <>
+          {/* Toutes les régions en gris clair (présence) */}
+          {MALI_REGIONS.map((r) => {
+            const { x, y } = project(r.lon, r.lat);
+            return (
+              <circle
+                key={`bg-${r.code}`}
+                cx={x}
+                cy={y}
+                r={minRadius * 0.6}
+                fill="var(--fg-muted)"
+                fillOpacity="0.4"
+              />
+            );
+          })}
+          {/* Bubbles actifs */}
+          {MALI_REGIONS.map((r) => {
+            const datum = byCode.get(r.code);
+            if (!datum) return null;
+            const { x, y } = project(r.lon, r.lat);
+            const t = datum.value / maxValue;
+            const radius = minRadius + t * (maxRadius - minRadius);
+            const clickable = typeof onRegionClick === 'function';
+            const label = datum.label ?? `${r.name} : ${datum.value}`;
+            return (
+              <g
+                key={r.code}
+                className={cn(clickable && 'cursor-pointer focus:outline-none')}
+                tabIndex={clickable ? 0 : -1}
+                role={clickable ? 'button' : 'img'}
+                aria-label={label}
+                onClick={clickable ? () => onRegionClick({ ...datum, name: r.name }) : undefined}
+                onKeyDown={
+                  clickable
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onRegionClick({ ...datum, name: r.name });
+                        }
+                      }
+                    : undefined
+                }
+              >
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={radius}
+                  fill={colorFor(tone, t)}
+                  fillOpacity="0.7"
+                  stroke={colorFor(tone, t)}
+                  strokeWidth="0.3"
+                  className="transition-all"
+                />
+                <title>{label}</title>
+              </g>
+            );
+          })}
+        </>
+      )}
+
+      {/* ── Marqueurs centroïdes nouvelles régions (choroplèthe seulement) ── */}
+      {/* Pour ML-10 à ML-20 (subdivisions post-2016), si elles ont des
+          données, afficher un petit point centroïde car elles n'ont pas
+          de polygone propre dans le GeoJSON historique. */}
+      {isChoropleth &&
+        MALI_REGIONS.filter((r) => !LEGACY_REGION_CODES.has(r.code)).map((r) => {
+          const datum = byCode.get(r.code);
+          if (!datum) return null;
+          const { x, y } = project(r.lon, r.lat);
+          const t = datum.value / maxValue;
+          const label = datum.label ?? `${r.name} : ${datum.value}`;
+          return (
+            <g key={`subd-${r.code}`}>
+              <circle
+                cx={x}
+                cy={y}
+                r={1.5}
+                fill={colorFor(tone, t)}
+                stroke="var(--bg-card)"
+                strokeWidth="0.4"
+              />
+              <title>{label}</title>
+            </g>
+          );
+        })}
+
+      {/* ── Étiquettes des régions principales (zoom-out lisibilité) ─── */}
+      {(['ML-09', 'ML-01', 'ML-05', 'ML-07', 'ML-08', 'ML-06', 'ML-03'] as const).map(
+        (code) => {
+          const r = MALI_REGIONS.find((x) => x.code === code);
+          if (!r) return null;
+          const { x, y } = project(r.lon, r.lat);
+          const shortName = r.name.replace('District de ', '');
+          return (
+            <text
+              key={`label-${code}`}
+              x={x}
+              y={y - 2.5}
+              fontSize="2.2"
+              textAnchor="middle"
+              fill="var(--fg)"
+              fillOpacity="0.85"
+              className="pointer-events-none font-medium"
+              style={{ paintOrder: 'stroke', stroke: 'var(--bg-card)', strokeWidth: 0.6 }}
+            >
+              {shortName}
+            </text>
+          );
+        },
+      )}
     </svg>
   );
 }
