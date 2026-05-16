@@ -1,0 +1,31 @@
+{
+  "name": "@nina-aes/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pattern BFF auth Keycloak (OIDC PKCE) partagé — helpers de session + factory de route handlers consommés par les 3 apps Next.js (citizen, admin, governance).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./session": "./src/session.ts",
+    "./handlers/login": "./src/handlers/login.ts",
+    "./handlers/callback": "./src/handlers/callback.ts",
+    "./handlers/refresh": "./src/handlers/refresh.ts",
+    "./handlers/logout": "./src/handlers/logout.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "jose": "^6.2.3",
+    "zod": "^4.3.6"
+  },
+  "peerDependencies": {
+    "next": "^16.0.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^25.5.2",
+    "next": "16.2.2",
+    "typescript": "^6.0.2"
+  }
+}

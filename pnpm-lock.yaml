@@ -41,6 +41,9 @@ importers:
       '@nina-aes/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@nina-aes/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@nina-aes/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -141,6 +144,9 @@ importers:
       '@nina-aes/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@nina-aes/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@nina-aes/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -285,6 +291,28 @@ importers:
       ts-jest:
         specifier: ^29.4.9
         version: 29.4.9(@babel/core@7.29.0)(@jest/transform@30.3.0)(@jest/types@30.3.0)(babel-jest@30.3.0(@babel/core@7.29.0))(jest-util@30.3.0)(jest@30.3.0(@types/node@25.6.0)(ts-node@10.9.2(@swc/core@1.15.33)(@types/node@25.6.0)(typescript@6.0.2)))(typescript@6.0.2)
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+
+  packages/auth:
+    dependencies:
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^25.5.2
+        version: 25.6.0
+      next:
+        specifier: 16.2.2
+        version: 16.2.2(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       typescript:
         specifier: ^6.0.2
         version: 6.0.2

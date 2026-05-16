@@ -1,62 +1,12 @@
 /**
  * @file        route.ts (logout)
- * @description Déconnecte l'utilisateur :
- *                1. Révoque la session côté Keycloak (back-channel)
- *                2. Supprime tous les cookies de session
- *                3. Redirige vers le logout endpoint Keycloak (front-channel)
- *                   pour vider la session SSO du navigateur
+ * @description Shim — délègue au handler factory `@nina-aes/auth`.
  * @module      @nina-aes/citizen
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { buildLogoutHandler } from '@nina-aes/auth';
+import { AUTH_CONFIG } from '../../../../lib/auth/session';
 
-const AUTH_MODE = (process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak';
-const APP_PUBLIC_URL = process.env.APP_PUBLIC_URL ?? 'http://localhost:4001';
-const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ISSUER ?? '';
-const KEYCLOAK_CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID ?? 'nina-citizen';
-
-export async function POST(req: NextRequest) {
-  return doLogout(req);
-}
-
-export async function GET(req: NextRequest) {
-  // Permet aussi un logout via simple lien (avec garde CSRF basique : Referer)
-  return doLogout(req);
-}
-
-async function doLogout(req: NextRequest): Promise<NextResponse> {
-  const jar = await cookies();
-  const refresh = jar.get('refresh_token')?.value;
-  const idToken = jar.get('id_token')?.value;
-
-  // Mode mock : pas de Keycloak à appeler
-  if (AUTH_MODE !== 'mock' && refresh) {
-    // Back-channel : révoque le refresh token côté Keycloak (best-effort)
-    await fetch(`${KEYCLOAK_ISSUER}/protocol/openid-connect/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: KEYCLOAK_CLIENT_ID,
-        refresh_token: refresh,
-      }),
-    }).catch(() => null);
-  }
-
-  // Construire la redirection : front-channel logout Keycloak ou simple retour accueil
-  let redirectUrl: string;
-  if (AUTH_MODE === 'keycloak' && idToken && KEYCLOAK_ISSUER) {
-    const fc = new URL(`${KEYCLOAK_ISSUER}/protocol/openid-connect/logout`);
-    fc.searchParams.set('id_token_hint', idToken);
-    fc.searchParams.set('post_logout_redirect_uri', `${APP_PUBLIC_URL}/fr`);
-    redirectUrl = fc.toString();
-  } else {
-    redirectUrl = new URL('/fr', req.url).toString();
-  }
-
-  const res = NextResponse.redirect(redirectUrl);
-  res.cookies.delete('access_token');
-  res.cookies.delete('refresh_token');
-  res.cookies.delete('id_token');
-  return res;
-}
+const handler = buildLogoutHandler(AUTH_CONFIG);
+export const GET = handler.GET;
+export const POST = handler.POST;

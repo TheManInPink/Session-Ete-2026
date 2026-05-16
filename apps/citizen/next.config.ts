@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     '@nina-aes/ui',
     '@nina-aes/api-client',
+    '@nina-aes/auth',
     '@nina-aes/i18n',
     '@nina-aes/shared-types',
     '@nina-aes/utils',

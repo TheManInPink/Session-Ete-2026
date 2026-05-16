@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@nina-aes/api-client": "workspace:*",
+    "@nina-aes/auth": "workspace:*",
     "@nina-aes/i18n": "workspace:*",
     "@nina-aes/shared-types": "workspace:*",
     "@nina-aes/ui": "workspace:*",
