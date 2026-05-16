@@ -11,7 +11,14 @@
 
 import { useState, useTransition, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@nina-aes/ui/components/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@nina-aes/ui/components/sheet';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
 import { Card, CardContent } from '@nina-aes/ui/components/card';
@@ -76,6 +83,12 @@ export function CorrectionDrawer({ correction, open, onOpenChange, onDecision }:
             <SheetTitle>{t('drawer.title', { id: correction.id })}</SheetTitle>
             <StatusBadge status={correction.status} />
           </div>
+          {/* Description sr-only — exigée par Radix Dialog pour l'accessibilité
+              (`aria-describedby` auto-câblé). Visible pour les lecteurs d'écran
+              uniquement, fournit le contexte de la modale. */}
+          <SheetDescription className="sr-only">
+            {t('drawer.fieldChange')} · {tField(correction.field)} — {correction.citizenName}
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">

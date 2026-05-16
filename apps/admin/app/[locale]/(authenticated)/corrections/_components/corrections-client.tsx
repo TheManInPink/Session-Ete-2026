@@ -416,25 +416,28 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
                         className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-fg-muted"
                         style={{ width: header.column.columnDef.size }}
                       >
-                        {header.isPlaceholder ? null : (
+                        {header.isPlaceholder ? null : canSort ? (
+                          // Colonne triable → bouton header avec icône de tri.
                           <button
                             type="button"
-                            className={cn(
-                              'flex items-center gap-1',
-                              canSort && 'cursor-pointer hover:text-fg',
-                            )}
-                            disabled={!canSort}
+                            className="flex items-center gap-1 cursor-pointer hover:text-fg"
                             onClick={header.column.getToggleSortingHandler()}
                           >
                             {flexRender(header.column.columnDef.header, header.getContext())}
-                            {canSort &&
-                              ({
-                                asc: <ArrowUp className="size-3" aria-hidden="true" />,
-                                desc: <ArrowDown className="size-3" aria-hidden="true" />,
-                              }[header.column.getIsSorted() as string] ?? (
-                                <ArrowUpDown className="size-3 opacity-40" aria-hidden="true" />
-                              ))}
+                            {({
+                              asc: <ArrowUp className="size-3" aria-hidden="true" />,
+                              desc: <ArrowDown className="size-3" aria-hidden="true" />,
+                            }[header.column.getIsSorted() as string] ?? (
+                              <ArrowUpDown className="size-3 opacity-40" aria-hidden="true" />
+                            ))}
                           </button>
+                        ) : (
+                          // Colonne non-triable (ex: select, actions) → rendu direct
+                          // pour ne pas imbriquer le <Checkbox> (qui est un <button>)
+                          // dans un <button>, ce qui casse l'hydration React.
+                          <span className="flex items-center">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
                         )}
                       </th>
                     );
