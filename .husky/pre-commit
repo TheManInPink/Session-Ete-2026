@@ -1,38 +1,66 @@
 #!/usr/bin/env sh
+# ═══════════════════════════════════════════════════════════════════
+# Hook pre-commit NINA-AES Platform
+# ═══════════════════════════════════════════════════════════════════
+# Cible : feedback < 30 s sur un PR moyen.
+#
+# Étapes (séquentielles, fail-fast) :
+#   1. lint-staged   → eslint --fix + prettier --write + ruff (sur stagés)
+#   2. typecheck     → turbo run check-types --filter=...[HEAD]
+#   3. pnpm audit    → CVEs CRITICAL/HIGH sur deps prod
+#   4. verify:repo   → invariants Mali + JSON Schemas + cross-refs docs
+#
+# Voir CONTRIBUTING.md §2 pour les conventions de commit.
+# ═══════════════════════════════════════════════════════════════════
 
-# Hook pre-commit NINA-AES — bloque le commit si une dérive est détectée.
-# Voir MAINTENANCE.md §2 pour la chaîne complète des contrôles.
-
-# Changer vers le répertoire du monorepo
-cd nina-aes-platform || exit 0
-
-# 1) Formatage Prettier
-pnpm run format:check || {
-  echo "❌ Formatage incorrect. Exécutez : pnpm run format"
+# ─── 1. lint-staged : formate + lint UNIQUEMENT les fichiers stagés ──
+# Beaucoup plus rapide que `pnpm run lint` sur tout le repo.
+echo "🧹 lint-staged…"
+pnpm exec lint-staged || {
+  echo "❌ Lint/format invalide sur les fichiers stagés."
+  echo "   Corrigez manuellement, ou exécutez : pnpm run lint:fix && pnpm run format"
   exit 1
 }
 
-# 2) Linter (turbo)
-pnpm run lint || {
-  echo "❌ Erreurs de lint. Corrigez-les avant de commiter."
+# ─── 2. Typecheck filtré sur les workspaces affectés depuis HEAD ─────
+# `--filter=...[HEAD]` = workspaces qui dépendent (transitif) des
+# fichiers modifiés depuis le dernier commit. Évite de recompiler tout.
+echo "🔍 Typecheck (workspaces affectés)…"
+pnpm exec turbo run check-types --filter=...[HEAD] --cache-dir=.turbo || {
+  echo "❌ Erreurs de types TypeScript."
+  echo "   Voir l'output ci-dessus pour les fichiers concernés."
   exit 1
 }
 
-# 3) Chaîne de vérification du repo (data + schémas + cross-refs docs)
-#    — équivaut à `pnpm run verify:repo` mais détaillé pour la lisibilité
-#    des messages d'erreur.
+# ─── 3. Audit chaîne d'approvisionnement (CVEs CRITICAL/HIGH) ────────
+# Détecte les packages compromis ou vulnérables dans pnpm-lock.yaml.
+# `--prod` ignore les devDeps (souvent bruyantes).
+# NB : pnpm 10 ne supporte pas `audit signatures` (spécifique npm).
+# L'équivalent est `pnpm audit` + `pnpm-lock.yaml` integrity hashes natifs.
+echo "🔒 pnpm audit (prod, CRITICAL/HIGH)…"
+pnpm audit --audit-level=high --prod || {
+  echo "⚠️  Vulnérabilités détectées sur les dépendances prod."
+  echo "   Inspectez l'output, puis : pnpm update <package> (ou ajoutez une justification)"
+  echo "   Pour bypass exceptionnel : git commit --no-verify (NON recommandé)"
+  exit 1
+}
+
+# ─── 4. Chaîne verify:repo (invariants Mali + schemas + docs sync) ──
+# Doit rester rapide (< 3 s en local). Si ça grossit, déplacer en pre-push.
+echo "📋 verify:repo (data + schemas + docs sync)…"
 pnpm run validate:data || {
   echo "❌ Invariants Mali violés. Voir scripts/validate-mali-data.mjs"
   exit 1
 }
-
 pnpm run validate:schemas || {
   echo "❌ JSON Schemas non respectés. Voir schemas/ et data/mali/"
   exit 1
 }
-
 pnpm run docs:sync:check || {
-  echo "❌ Références docs non synchronisées (README ↔ CHANGELOG ↔ index)."
-  echo "   → Mettre à jour AGENTS.md / CLAUDE.md / MAINTENANCE.md si une convention a changé."
+  echo "❌ Cross-références docs non synchronisées."
+  echo "   → Mettre à jour les 4 fichiers gouvernance IA si une convention a changé"
+  echo "   → Voir docs/DOCUMENTATION-MAP.md §2.3"
   exit 1
 }
+
+echo "✅ pre-commit OK"

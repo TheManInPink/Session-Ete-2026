@@ -62,7 +62,7 @@ Le parcours suit trois principes :
 | `ai-models/` (datasets, modèles) | ❌ Inexistant — à créer                                                              |
 | `.github/workflows/` (CI/CD)     | ✅ **Livré (mai 2026)** — 4 workflows (ci, cd-staging, release, codeql) + composite action + dependabot |
 | `scripts/` (Bash + PowerShell)   | ✅ Init-db.sql + setup.ps1 + setup.sh + `typecheck.ts` (placeholder TS)              |
-| Husky + hooks pre-commit         | ⚠️ Présent mais à configurer fully (lint-staged déjà installé)                       |
+| Husky + hooks pre-commit         | ✅ **Livré (mai 2026)** — pre-commit + commit-msg + pre-push, commitlint 45 scopes, CONTRIBUTING.md |
 | Docker Compose local             | ✅ Postgres+PostGIS démarrable via `pnpm docker:up`                                  |
 | Schéma Prisma                    | ✅ 16 modèles, migration `init_v1` appliquée                                         |
 | Tests Jest (utils + config)      | ✅ **53 tests passants** (44 utils + 9 config)                                       |

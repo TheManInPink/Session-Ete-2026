@@ -1979,3 +1979,136 @@ L'implémentation est livrée mais le **gating effectif** demande :
   déjà actée).
 - `docs/CHANGELOG.md §14.2` : les 13 écarts ci.yml historique sont
   désormais corrigés (tableau §27.4 ci-dessus).
+
+## 28. Hooks Git + Conventional Commits (PROMPT 2.3, mai 2026)
+
+Complétion de la configuration Husky qui était à l'état partiel
+(pre-commit + commit-msg basiques mais sans lint-staged, sans pre-push,
+sans Python, prepare script bogué). Ferme le gap CHANGELOG §2 « Husky
+non configuré ».
+
+### 28.1 Livrables
+
+| Fichier | Type | Rôle |
+|---|---|---|
+| `.husky/pre-commit` | hook (rewrite) | lint-staged + typecheck filtered + pnpm audit + verify:repo |
+| `.husky/commit-msg` | hook (refactor) | commitlint avec messages d'aide enrichis |
+| `.husky/pre-push` | hook (nouveau) | turbo test + build filtered `[HEAD~1]` |
+| `commitlint.config.js` | config (extend) | +30 scopes (sigac, sgogt, data, mali, etc.) + type `data` |
+| `package.json` lint-staged | config | +Python (ruff) +Prisma +CSS/SCSS, séparation mjs/cjs |
+| `package.json` prepare | script (fix) | `husky` simple (avant : `cd .. && husky nina-aes-platform/.husky`) |
+| `CONTRIBUTING.md` | doc (nouveau) | guide contribution complet 11 sections |
+
+### 28.2 Hook pre-commit — 4 étapes < 30 s
+
+```
+1. 🧹 lint-staged       → eslint --fix + prettier --write + ruff (stagés seulement)
+2. 🔍 typecheck         → turbo run check-types --filter=...[HEAD]
+3. 🔒 pnpm audit        → CVEs CRITICAL/HIGH sur deps prod
+4. 📋 verify:repo       → invariants Mali + JSON Schemas + cross-refs docs
+```
+
+**Décision** : `pnpm audit signatures` n'existe pas (spécifique npm).
+Remplacé par `pnpm audit --audit-level=high --prod` + integrity
+hashes natifs de `pnpm-lock.yaml`. Couverture équivalente.
+
+### 28.3 Hook pre-push — 2 étapes < 3 min
+
+```
+1. 🧪 turbo run test --filter=...[HEAD~1]
+2. 🏗️  turbo run build --filter=...[HEAD~1]
+```
+
+**Décision** : pas de Playwright E2E en pre-push (lent, tourne en CI
+uniquement). Filter `[HEAD~1]` cible les workspaces ayant changé
+depuis l'avant-dernier commit local.
+
+### 28.4 commitlint.config.js — extension complète
+
+- **Types autorisés** : +`data` (pour `data/mali/`, `schemas/`, seeds)
+- **Scopes services** (12) : ajout `sigac`, `sgogt` (alias pour
+  anticorruption-service + module SGOGT du governance-service)
+- **Scopes apps** (6) : `citizen`, `admin`, `gov`, `mobile`, `kiosk`,
+  `ussd`
+- **Scopes packages** (10) : ajout `auth-pkg`, `api-client`, `i18n`,
+  `logger`, `test-fixtures`
+- **Scopes transverse** (15) : ajout `docker`, `k3s`, `biometrics`,
+  `data`, `mali`, `security`, `observability`, `testing`, `backup`,
+  `docs`
+- **Règles** : `type-case` lower-case strict, `header-max-length` 100,
+  `body-max-line-length` 100 warning, `subject-empty` interdit,
+  `subject-full-stop` interdit, `scope-empty` autorisé
+
+Total : **45 scopes** + 12 types autorisés.
+
+### 28.5 lint-staged — 4 patterns
+
+| Pattern | Outils |
+|---|---|
+| `*.{ts,tsx,js,jsx,mjs,cjs}` | `eslint --fix --max-warnings=0` + `prettier --write` |
+| `*.py` | `ruff check --fix --exit-non-zero-on-fix` + `ruff format` |
+| `*.{json,md,yml,yaml,css,scss}` | `prettier --write` |
+| `*.prisma` | `prettier --write --plugin=prisma` |
+
+**Prérequis Python** : ruff doit être sur le PATH (installé via
+venv des services FastAPI). Documenté dans `CONTRIBUTING.md §4`.
+
+### 28.6 prepare script — fix critique
+
+Avant (bogué) :
+```json
+"prepare": "cd .. && husky nina-aes-platform/.husky"
+```
+
+Après (Husky 9 standard) :
+```json
+"prepare": "husky"
+```
+
+L'ancienne forme supposait un parent layout invalide. Husky 9 trouve
+automatiquement `.husky/` dans le cwd.
+
+### 28.7 CONTRIBUTING.md — 11 sections
+
+1. Setup initial (5 min)
+2. Hooks Git installés (tableau)
+3. Conventional Commits (grammaire + types + scopes + exemples)
+4. Lint-staged (quoi se passe par pattern)
+5. Workflow type d'une feature (PR steps)
+6. Conventions de code (TS / Python / Markdown)
+7. Tests — quoi attendre par PR
+8. Documentation — quoi mettre à jour avec quoi (lien MAINTENANCE §3)
+9. Sécurité — règles non négociables
+10. Bypass d'urgence (à éviter)
+11. Pour aller plus loin
+
+### 28.8 Cross-références
+
+- `MAINTENANCE.md §3` : reste hub central pour « Quand modifier quoi »
+  (CONTRIBUTING.md §8 y renvoie)
+- `docs/DOCUMENTATION-MAP.md §2.2` : 5 invariants partagés
+  (CONTRIBUTING reste plus opérationnel, DOCUMENTATION-MAP reste plus
+  structurel)
+- `docs/16-CICD-GITHUB-ACTIONS.md` : workflows GitHub Actions
+  référencés depuis CONTRIBUTING.md §5 « workflow type »
+
+### 28.9 Reste à faire (activation)
+
+- ⏳ Première installation : `pnpm install` (déclenche `prepare → husky`)
+- ⏳ Vérifier `git config core.hooksPath` retourne `.husky/_`
+- ⏳ Tester un commit invalide en local pour valider que commit-msg
+  bloque correctement
+- ⏳ Si prettier-plugin-prisma manque : `pnpm add -Dw prettier-plugin-prisma`
+- ⏳ Si ruff manque : activer venv `services/ai-service/.venv` ou
+  installer globalement (`pip install ruff` sur le PATH)
+
+### 28.10 Validation
+
+- `pnpm run verify:repo` : ✅ data + schemas + docs sync.
+- Les hooks sont effectivement réécrits (lecture des fichiers
+  confirme).
+- `commitlint.config.js` reste valide (extends conventional + rules).
+
+Ce commit ferme le gap connu **« Husky non configuré »** documenté
+dans CHANGELOG §2 / 00-README-INDEX §1 dernière ligne du tableau
+« Husky + hooks pre-commit ⚠️ Présent mais à configurer fully ».

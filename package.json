@@ -45,7 +45,7 @@
     "docker:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml up -d",
     "docker:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml down",
     "docker:logs": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs -f",
-    "prepare": "cd .. && husky nina-aes-platform/.husky"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
@@ -60,12 +60,19 @@
     "typescript": "6.0.2"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
+    "*.{ts,tsx,js,jsx,mjs,cjs}": [
+      "eslint --fix --max-warnings=0",
       "prettier --write"
     ],
-    "*.{json,md,yml,yaml}": [
+    "*.py": [
+      "ruff check --fix --exit-non-zero-on-fix",
+      "ruff format"
+    ],
+    "*.{json,md,yml,yaml,css,scss}": [
       "prettier --write"
+    ],
+    "*.{prisma}": [
+      "prettier --write --plugin=prisma"
     ]
   },
   "packageManager": "pnpm@10.12.1",

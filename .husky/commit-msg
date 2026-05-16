@@ -1,18 +1,34 @@
 #!/usr/bin/env sh
-
-# Hook commit-msg — Vérifie le format du message de commit
+# ═══════════════════════════════════════════════════════════════════
+# Hook commit-msg NINA-AES Platform — Conventional Commits
+# ═══════════════════════════════════════════════════════════════════
 # Format attendu : type(scope): description
-# Exemples valides : feat(identity): ajouter endpoint de recherche NINA
-#                    fix(auth): corriger expiration token JWT
-#                    docs: mettre à jour le README
+#
+# Exemples valides :
+#   feat(identity): ajoute endpoint /citizens/search
+#   fix(auth): corrige expiration refresh token JWT
+#   docs: mise à jour DOCUMENTATION-MAP.md
+#   data(mali): enrichit cercles 64 → 142 via Wikipedia
+#
+# Cf. commitlint.config.js pour la liste complète des types et scopes.
+# Cf. CONTRIBUTING.md §3 pour la grammaire complète.
+# ═══════════════════════════════════════════════════════════════════
 
-# Changer vers le répertoire du monorepo
-cd nina-aes-platform || exit 0
-
-# Vérifier le format du message de commit
 pnpm exec commitlint --edit "$1" || {
-  echo "❌ Format de commit invalide."
-  echo "   Format attendu : type(scope): description"
-  echo "   Exemple : feat(identity): add NINA search endpoint"
+  echo ""
+  echo "❌ Format de commit invalide (Conventional Commits)."
+  echo ""
+  echo "   Grammaire   : type(scope): description"
+  echo "   Types       : feat | fix | docs | style | refactor | perf | test |"
+  echo "                 build | ci | chore | revert | data"
+  echo "   Scopes      : voir commitlint.config.js (sigac, sgogt, identity, …)"
+  echo ""
+  echo "   Exemples    :"
+  echo "     feat(identity): ajoute endpoint /citizens/search"
+  echo "     fix(auth): corrige expiration refresh token"
+  echo "     docs(ci): met à jour doc 16 CI/CD"
+  echo "     data(mali): enrichit cercles via Wikipedia"
+  echo ""
+  echo "   Référence   : CONTRIBUTING.md §3"
   exit 1
 }
