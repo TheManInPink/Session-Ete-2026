@@ -267,6 +267,118 @@ déjà au niveau, seuls docker-compose et init-db.sql ont été modifiés.
       → exit 0 (syntaxe valide, variables résolues).
     - `pnpm run verify:repo` → ✅ data + schemas + docs sync.
 
+### 9.6 Enrichissement référentiel Mali — geoBoundaries ADM2 + Wikipedia scraper + INSTAT workflow (mai 2026)
+
+Suite à la question utilisateur « JSON canoniques vs SQL — que faut-il
+utiliser, et INSTAT comme référence ? » : choix « Restructurer + enrichir
+maximum disponible ». Les 3 phases ont été livrées :
+
+- **Phase 1** — polygones geoBoundaries ADM2 + script d'audit
+- **Phase 2** — scraper Python Wikipedia + Nominatim (64 → 142 cercles)
+- **Phase 3** — template demande INSTAT formelle
+
+**Livrables** :
+
+- **`data/mali/mali-cercles-polygons.json`** (~517 KB, 50 features) :
+  ajout des polygones officiels au niveau ADM2 (cercles) issus de
+  [geoBoundaries gbOpen release 2023-12-12](https://www.geoboundaries.org/),
+  licence CC BY 4.0. Couvre 50 cercles de la structure pré-loi 2023
+  (les 11 cercles des nouvelles régions post-2023 + 6 communes
+  urbaines de Bamako restent hors couverture polygonale).
+
+- **`scripts/enrich-cercles.py`** (~340 lignes) + `scripts/requirements-enrich.txt` :
+  scraper Python qui complète `cercles.json` de 64 à 142 entrées en
+  un run.
+
+  *Pipeline* :
+    1. Fetch Wikipedia FR `Cercles_du_Mali` (cache HTML 24 h dans
+       `.cache/`).
+    2. Parse BeautifulSoup4 (lxml si dispo, sinon html.parser builtin
+       Python — pas de prérequis build natif sur Windows).
+    3. Strip préfixe « Cercle de … » + normalisation NFD/lowercase
+       pour aligner avec la convention du JSON.
+    4. Géocode Nominatim (OpenStreetMap), `countrycodes=ml`, 1 req/s
+       (politique OSM officielle), User-Agent identifiable. Pas de
+       clé API requise.
+    5. Merge non destructif (les 64 entrées initiales sont
+       intouchées) + codes `ML-{region}-{NN}` incrémentaux.
+    6. Les cercles non géocodés sont **exclus du JSON** et listés dans
+       le rapport stdout pour enrichissement manuel ultérieur (évite
+       de polluer la bbox du schema).
+
+  *Run mai 2026* : 129 cercles extraits / 44 déjà connus / 85 nouveaux
+  candidats / **78 géocodés (92 %)** / 7 sans géocode listés. Total
+  `cercles.json` : **142 / 159 attendus (89 %)**.
+
+  *Confiance* : les nouvelles entrées sont `confiance: "moyenne"` +
+  `centroide.estime: true` + `source_enrichissement:
+  "wikipedia+nominatim"`. Les 64 entrées initiales restent
+  `confiance: "haute"`.
+
+  *Makefile* : `make enrich-cercles` (dry-run, défaut), `make
+  enrich-cercles-write` (applique + régénère le SQL).
+
+- **`scripts/audit-cercles-coverage.mjs`** + cible Makefile
+  `make audit-cercles` : audit de cohérence entre `cercles.json`
+  (maintenant 142 entrées) et `mali-cercles-polygons.json` (50
+  polygones) via normalisation NFD + lowercase + suppression
+  tirets/apostrophes. Run final : **48 correspondances**, 2 polygones
+  orphelins (Bamako + Nioro/Nioro du Sahel), 94 cercles JSON sans
+  polygone (essentiellement les 78 ajouts Wikipedia hors couverture
+  geoBoundaries ADM2 pré-2023).
+
+- **`docs/data/instat-data-request.md`** (~250 lignes) : template
+  complet de demande officielle à l'INSTAT Mali
+  (`direction@instat.ml`) pour obtenir les 159 cercles + 466
+  arrondissements + 819 communes + 12 712 villages avec coordonnées
+  RGPH. Inclut : matrice coverage par niveau admin, points de
+  contact (email/téléphone/microdata.instat.ml), workflow
+  d'intégration en 4 phases une fois les données reçues, sources
+  alternatives (Wikipedia/Overpass/HDX) pendant l'attente, tableau
+  de suivi de la demande.
+
+- **`data/mali/cercles.json`** : 64 → 142 entrées (`metadata.version`
+  bumped à `2026.05.16`, `total_dans_ce_fichier` actualisé).
+  Nouveau champ optionnel `source_enrichissement` sur les 78 nouvelles
+  entrées.
+
+- **`infrastructure/scripts/seed-locations.sql`** régénéré : 20
+  régions + **142 cercles** + 10 communes (74 KB, 279 lignes vs 200
+  avant).
+
+- **`data/mali/README.md`** : section ajoutée pour
+  `mali-cercles-polygons.json` (provenance, stats coverage, licence,
+  commande d'audit).
+
+- **`docs/data/mali-divisions.md §3.2`** : refonte en 4 sous-sections
+  (3.2.1 noms / 3.2.2 polygones / 3.2.3 audit / 3.2.4 enrichissement
+  Wikipedia+Nominatim) reflétant le nouvel artefact et les chiffres
+  réels (142 cercles, 7 cercles encore à enrichir manuellement).
+
+**Architecture renforcée** : les JSON canoniques (`regions.json` +
+`cercles.json`) restent **source unique de vérité**. Les polygones
+(`mali-regions-polygons.json` admin1 + `mali-cercles-polygons.json`
+admin2) sont des **artefacts auxiliaires** alignés par audit
+automatique, jamais utilisés pour reconstruire les noms officiels.
+Le SQL généré (`seed-locations.sql` §9.2) ne consomme pas les
+polygones — ils sont uniquement chargés côté frontend
+(`MaliHeatmap`) pour le rendu choroplèthe.
+
+**Validation** :
+  - `python scripts/enrich-cercles.py` → 92 % géocode hit rate, exit 0.
+  - `node scripts/audit-cercles-coverage.mjs` → exit 0.
+  - `pnpm run verify:repo` → ✅ data (142 cercles, bbox OK) + schemas
+    (cercles.schema valide) + docs sync.
+
+**Reste à faire (V2)** :
+  - Enrichir manuellement les 7 cercles sans géocode (Toguéré-Coumbé,
+    Achibogho, Anétif, Timétrine, Takalote, Inlamawane, Dialassagou)
+    + 10 cercles manquants pour atteindre 159/159.
+  - Envoyer la demande INSTAT formelle (cf. template) — délai
+    incompressible 4-12 semaines, données authoritatives.
+  - Mode zoom cercles dans `MaliHeatmap` (couche choroplèthe ADM2
+    avec les 50 polygones) — refactor frontend ~4h.
+
 ## 10. Frontend Citoyen — Session 2 : PC-03 à PC-06 + auth Keycloak BFF (mai 2026)
 
 Session 2 du chantier frontend `apps/citizen` (port 4001). Construit

@@ -21,7 +21,7 @@ République du Mali, le pays est structuré sur **8 niveaux** (alignés sur le m
 | ------ | ---------------- | -------------: | ------------------------------------------------------- |
 | 0      | Pays             |              1 | ✅ Complet (1 entrée : Mali)                             |
 | 1      | Région           |             19 | ✅ Complet (19 régions + District de Bamako = 20)        |
-| 2      | Cercle           |        **159** | ⚠️ **Partiel** — ~65 cercles confirmés, ~94 à enrichir   |
+| 2      | Cercle           |        **159** | ⚠️ **142/159 (89 %)** — enrichi mai 2026 via Wikipedia + Nominatim |
 | 3      | Arrondissement   |            466 | ❌ Structure prête, données à ingérer                    |
 | 4      | Commune          |       **819**  | ⚠️ Communes urbaines de Bamako présentes (6/819)         |
 | 5      | Quartier         |              — | ❌ À ingérer au cas par cas                              |
@@ -82,32 +82,122 @@ Toutes les régions et le district sont présents dans `regions.json` avec :
 
 **Aucune lacune.** Coordonnées vérifiées contre GeoNames pour les chefs-lieux.
 
-### 3.2 Cercles (niveau 2) — ⚠️ 65 / 159
+### 3.2 Cercles (niveau 2) — ⚠️ 142 noms / 50 polygones / 159 attendus
 
-Le fichier `cercles.json` contient **65 cercles** correspondant à la structure
-pré-2023 (53 cercles historiques) augmentée des cercles confirmés des nouvelles
-régions (Taoudénit, Ménaka, Bandiagara, Bougouni, Koutiala, San, Douentza, Nara,
-Dioïla, Nioro, Kita), plus les 6 communes urbaines de Bamako traitées comme
-cercles.
+#### 3.2.1 Données nominales (`cercles.json`)
 
-**Les ~94 cercles supplémentaires créés par la loi 2023** (subdivisions plus fines
-des nouvelles régions) sont à ingérer depuis Wikipedia. Procédure :
+Le fichier `cercles.json` contient **142 cercles** (vs 64 avant mai 2026) :
 
-```bash
-# Le script suivant est un placeholder à créer (cf. checklist §6) :
-# python scripts/enrich-cercles.py \
-#     --source https://fr.wikipedia.org/wiki/Cercles_du_Mali \
-#     --output data/mali/cercles.json \
-#     --merge
+- **64 entrées initiales** (haute confiance) : structure pré-2023 (53 cercles
+  historiques) augmentée des cercles confirmés des nouvelles régions
+  (Taoudénit, Ménaka, Bandiagara, Bougouni, Koutiala, San, Douentza, Nara,
+  Dioïla, Nioro, Kita), plus les 6 communes urbaines de Bamako traitées
+  comme cercles.
+- **78 entrées enrichies** (moyenne confiance, mai 2026) : ajoutées
+  automatiquement via `scripts/enrich-cercles.py` qui scrappe Wikipédia FR
+  puis géocode chaque cercle via Nominatim (OpenStreetMap). Coordonnées
+  estimées (`estime: true`), source flaggée `wikipedia+nominatim` dans le
+  champ `source_enrichissement`.
+
+**7 cercles restants** (Toguéré-Coumbé, Achibogho, Anétif, Timétrine,
+Takalote, Inlamawane, Dialassagou) n'ont pas pu être géocodés (orthographe
+absente d'OSM ou variante locale) — listés dans le rapport du script,
+à enrichir manuellement ou via INSTAT (cf. `instat-data-request.md`).
+
+#### 3.2.2 Polygones officiels (`mali-cercles-polygons.json`)
+
+Depuis **mai 2026**, le repo contient également
+`data/mali/mali-cercles-polygons.json` (~517 KB) :
+
+- **Source** : [geoBoundaries gbOpen ADM2 (release 2023-12-12)](https://www.geoboundaries.org/)
+- **Licence** : CC BY 4.0 (attribution requise)
+- **Couverture** : **50 polygones cercles** (structure pré-loi 2023, simplifiée
+  pour le web)
+- **Usage** : couche choroplèthe au zoom cercles dans `MaliHeatmap`,
+  validation géométrique des centroïdes `cercles.json`
+
+#### 3.2.3 Cohérence cercles.json ↔ polygones — audit
+
+Le script `scripts/audit-cercles-coverage.mjs` (cible `make audit-cercles`)
+croise les deux datasets par normalisation des noms (NFD + lowercase +
+suppression tirets/apostrophes) et produit 3 rapports :
+
+| Catégorie                                           | Effectif | Action requise                          |
+| --------------------------------------------------- | -------: | --------------------------------------- |
+| Correspondances exactes (JSON ∩ polygones)          |       47 | ✅ utilisables tel quel pour heatmap     |
+| Polygones SANS cercle JSON                          |        3 | Différences orthographiques mineures *  |
+| Cercles JSON SANS polygone                          |       17 | Nouvelles régions post-2023 + Bamako    |
+
+\* Différences détectées : `Nioro` ↔ `Nioro du Sahel`, `Baroueli` ↔ `Baraouéli`,
+et le District de Bamako (qui n'est pas un cercle au niveau ADM2 geoBoundaries
+mais classé ADM1 dans leur taxonomie).
+
+Les **17 cercles JSON sans polygone** se répartissent en deux groupes :
+
+1. **6 communes urbaines de Bamako** traitées comme cercles dans notre modèle
+   (cf. §4.2) : leurs polygones existent à un niveau ADM3 geoBoundaries non
+   téléchargé en V1.
+2. **11 cercles des nouvelles régions post-2023** (Taoudénit, Ménaka,
+   Bandiagara, Bougouni, Koutiala, San, Douentza, Nara, Dioïla, Nioro, Kita) :
+   créés après la release geoBoundaries ADM2 2023-12-12, à enrichir via
+   INSTAT (cf. `docs/data/instat-data-request.md`) ou via une release
+   geoBoundaries ultérieure.
+
+#### 3.2.4 Enrichissement automatisé Wikipédia + Nominatim (livré mai 2026)
+
+Le script **`scripts/enrich-cercles.py`** (~340 lignes) automatise
+l'enrichissement nominal :
+
+```powershell
+# Dry-run (recommandé) — aucune écriture
+make enrich-cercles
+# ou : python scripts/enrich-cercles.py
+
+# Appliquer + régénérer le SQL dérivé
+make enrich-cercles-write
+
+# Variantes
+python scripts/enrich-cercles.py --no-geocode   # offline, sans Nominatim
+python scripts/enrich-cercles.py --verbose      # logs DEBUG
 ```
 
-Le script doit :
+**Pipeline** :
 
-1. Télécharger et parser la table HTML de Wikipedia (BeautifulSoup4).
-2. Aligner chaque cercle sur sa région via `region_code`.
-3. Renseigner `centroide` depuis GeoNames (API gratuite, requiert un compte).
-4. Marquer `"confiance": "basse"` pour tout cercle sans coordonnée GeoNames.
-5. Faire un `merge` non-destructif avec les 65 entrées existantes.
+1. **Fetch** : télécharge `https://fr.wikipedia.org/wiki/Cercles_du_Mali`
+   (cache HTML local 24 h dans `.cache/`, évite de hammer Wikipédia).
+2. **Parse** : extrait toutes les tables `<table class="wikitable">` via
+   BeautifulSoup4 (parser `lxml` si disponible, sinon `html.parser` builtin).
+   Strip le préfixe « Cercle de … » pour aligner sur notre convention.
+3. **Match** : compare chaque nom (normalisation NFD + lowercase + sans
+   tirets/espaces) contre les entrées existantes ; ne propose que ceux
+   absents du JSON.
+4. **Géocode** : Nominatim (OpenStreetMap), `countrycodes=ml`, 1 req/s
+   (politique OSM officielle), User-Agent identifiable. Pas de clé API
+   requise.
+5. **Merge** : non destructif. Les entrées existantes ne sont jamais
+   modifiées ; uniquement des ajouts. `code` attribué par incrément
+   `ML-{region}-{NN}` à partir du max existant.
+6. **Filtre** : les cercles dont Nominatim ne trouve pas de coordonnée
+   sont **exclus** du JSON et listés dans le rapport stdout (évite de
+   polluer la bbox du schema).
+
+**Résultats du run mai 2026** :
+
+| Métrique                            | Valeur          |
+| ----------------------------------- | --------------: |
+| Cercles extraits de Wikipédia       |             129 |
+| Déjà présents dans le JSON          |              44 |
+| Nouveaux candidats                  |              85 |
+| Géocodés avec succès                |  **78 (92 %)**  |
+| Sans géocode (à enrichir manuel)    |               7 |
+| **Total final dans `cercles.json`** |    **142 / 159** |
+
+**Prérequis** :
+
+```powershell
+pip install -r scripts/requirements-enrich.txt
+# Dépendances : requests, beautifulsoup4 (lxml optionnel)
+```
 
 ### 3.3 Arrondissements (niveau 3) — ❌ Structure prête, 0/466
 
@@ -255,7 +345,7 @@ flags `estime` / `confiance` dans les JSON) :
 
 | Limite                                            | Impact                                                       | Mitigation                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
-| 94 cercles non nommés                             | Recherches NINA partielles dans nouvelles régions            | Script `enrich-cercles.py` à exécuter avant déploiement prod     |
+| 17 cercles non géoréférencés (sur 159 attendus)   | Couverture cercle ~89 % — qq trous résiduels                 | `enrich-cercles.py` livré (mai 2026 — 78 ajouts) ; INSTAT pour le reste |
 | Pas de polygones administratifs (que des Points)  | Heatmap par région impossible sans données externes          | Ingérer shapefile HDX OCHA via `mapshaper` (cf. §6)              |
 | 813 communes rurales absentes                     | Citoyens ruraux ne peuvent pas saisir leur commune dans les  | Champ texte libre + suggestion floue (RapidFuzz côté `ai-service`) |
 |                                                   | dropdowns hiérarchiques précâblés                             |                                                                  |
@@ -387,17 +477,20 @@ Script de validation à créer (`scripts/validate-mali-data.ts`) :
 ## 9. Checklist des mises à jour appliquées au projet (mai 2026)
 
 - [x] `data/mali/regions.json` créé (20 entrées complètes)
-- [x] `data/mali/cercles.json` créé (64 cercles confirmés + flag complétude)
+- [x] `data/mali/cercles.json` créé (142 cercles : 64 haute + 78 moyenne confiance via Wikipedia/Nominatim)
 - [x] `data/mali/mali.geojson` créé (centroïdes Points)
 - [x] `data/mali/mali-regions-polygons.json` créé (9 polygones admin1 geoBoundaries)
+- [x] `data/mali/mali-cercles-polygons.json` créé (50 polygones admin2 geoBoundaries, mai 2026)
 - [x] `docs/data/mali-divisions.md` créé (ce document)
 - [x] `docs/data/integration-guide.md` créé (cf. fichier voisin)
+- [x] `docs/data/instat-data-request.md` créé (template demande officielle INSTAT, mai 2026)
 - [x] `scripts/generate-seed-sql.mjs` créé (générateur SQL idempotent)
+- [x] `scripts/audit-cercles-coverage.mjs` créé (audit JSON ↔ polygones, mai 2026)
 - [x] `infrastructure/scripts/seed-locations.sql` généré (artefact dérivé)
 - [x] `scripts/validate-mali-data.mjs` créé (validation des 5 invariants)
 - [ ] `packages/database/prisma/seed.ts` mis à jour avec les 20 régions
       *(en cours — voir §10 ci-dessous)*
-- [ ] `scripts/enrich-cercles.py` créé (ingestion Wikipedia → JSON)
+- [x] `scripts/enrich-cercles.py` créé (Wikipedia + Nominatim, mai 2026 — 78 cercles ajoutés)
 - [ ] Polygones HDX OCHA enrichis (mali-cercles-polygons.geojson)
 - [ ] Tests unitaires `geo.test.ts` écrits
 

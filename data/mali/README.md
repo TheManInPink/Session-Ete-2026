@@ -28,6 +28,25 @@ de cercles. Niveaux :
 
 Utilisé par `<MaliHeatmap>` en mode bubble map (fallback).
 
+### `mali-cercles-polygons.json` ⭐ (mai 2026)
+
+**FeatureCollection GeoJSON polygons** de **50 cercles** du Mali (niveau
+admin 2).
+
+- **Source** : [geoBoundaries](https://www.geoboundaries.org/) gbOpen
+  Mali ADM2, version simplified, release 2023-12-12.
+- **URL d'origine** :
+  `https://github.com/wmgeolab/geoBoundaries/raw/main/releaseData/gbOpen/MLI/ADM2/geoBoundaries-MLI-ADM2_simplified.geojson`
+- **Licence** : CC BY 4.0.
+- **Taille** : ~517 KB simplifié.
+- **Coverage** : 47/64 cercles `cercles.json` matchent un polygone ADM2.
+  Les 17 cercles JSON sans polygone sont les nouvelles régions
+  post-2016 (Taoudénit, Ménaka) + les 6 communes urbaines de Bamako
+  (traitées comme cercles dans notre modèle).
+
+Vérifier la cohérence : `make audit-cercles` (ou
+`node scripts/audit-cercles-coverage.mjs`).
+
 ### `mali-regions-polygons.json` ⭐ (mai 2026)
 
 **FeatureCollection GeoJSON polygons** des 9 régions historiques Mali

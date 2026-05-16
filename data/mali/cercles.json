@@ -2,9 +2,9 @@
   "$schema": "../../docs/data/schemas/cercles.schema.json",
   "metadata": {
     "title": "Cercles administratifs du Mali",
-    "version": "2026.05.03",
+    "version": "2026.05.16",
     "total_attendu": 159,
-    "total_dans_ce_fichier": 65,
+    "total_dans_ce_fichier": 142,
     "completude": "PARTIELLE — voir mali-divisions.md §3 pour la stratégie d'enrichissement",
     "convention_codes": "ML-{REGION}-{NN} où NN est attribué chronologiquement par région.",
     "centroides": "Approximations basées sur les chefs-lieux de cercle. À remplacer par centroïdes officiels HDX OCHA pour la production.",
@@ -20,102 +20,1701 @@
     }
   },
   "cercles": [
-    { "code": "ML-01-01", "nom": "Kayes",      "region_code": "ML-01", "centroide": { "lat": 14.4467, "lng": -11.4444, "estime": false }, "confiance": "haute" },
-    { "code": "ML-01-02", "nom": "Bafoulabé",  "region_code": "ML-01", "centroide": { "lat": 13.8073, "lng": -10.8311, "estime": false }, "confiance": "haute" },
-    { "code": "ML-01-03", "nom": "Diéma",      "region_code": "ML-01", "centroide": { "lat": 14.5417, "lng": -9.1833,  "estime": false }, "confiance": "haute" },
-    { "code": "ML-01-04", "nom": "Kéniéba",    "region_code": "ML-01", "centroide": { "lat": 12.8500, "lng": -11.2333, "estime": false }, "confiance": "haute" },
-    { "code": "ML-01-05", "nom": "Yélimané",   "region_code": "ML-01", "centroide": { "lat": 15.1333, "lng": -10.5667, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-12-01", "nom": "Nioro du Sahel", "region_code": "ML-12", "centroide": { "lat": 15.2247, "lng": -9.5878, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-13-01", "nom": "Kita", "region_code": "ML-13", "centroide": { "lat": 13.0407, "lng": -9.4895, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-02-01", "nom": "Koulikoro", "region_code": "ML-02", "centroide": { "lat": 12.8628, "lng": -7.5598, "estime": false }, "confiance": "haute" },
-    { "code": "ML-02-02", "nom": "Banamba",   "region_code": "ML-02", "centroide": { "lat": 13.5500, "lng": -7.4500, "estime": false }, "confiance": "haute" },
-    { "code": "ML-02-03", "nom": "Kangaba",   "region_code": "ML-02", "centroide": { "lat": 11.9333, "lng": -8.4167, "estime": false }, "confiance": "haute" },
-    { "code": "ML-02-04", "nom": "Kati",      "region_code": "ML-02", "centroide": { "lat": 12.7444, "lng": -8.0731, "estime": false }, "confiance": "haute" },
-    { "code": "ML-02-05", "nom": "Kolokani",  "region_code": "ML-02", "centroide": { "lat": 13.5733, "lng": -8.0367, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-14-01", "nom": "Dioïla", "region_code": "ML-14", "centroide": { "lat": 12.4953, "lng": -6.7984, "estime": false }, "confiance": "haute" },
-    { "code": "ML-14-02", "nom": "Fana",   "region_code": "ML-14", "centroide": { "lat": 12.7667, "lng": -6.9500, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-15-01", "nom": "Nara", "region_code": "ML-15", "centroide": { "lat": 15.1701, "lng": -7.2853, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-03-01", "nom": "Sikasso",    "region_code": "ML-03", "centroide": { "lat": 11.3176, "lng": -5.6665, "estime": false }, "confiance": "haute" },
-    { "code": "ML-03-02", "nom": "Kadiolo",    "region_code": "ML-03", "centroide": { "lat": 10.5500, "lng": -5.7500, "estime": false }, "confiance": "haute" },
-    { "code": "ML-03-03", "nom": "Kolondiéba", "region_code": "ML-03", "centroide": { "lat": 11.0867, "lng": -6.8983, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-16-01", "nom": "Bougouni",   "region_code": "ML-16", "centroide": { "lat": 11.4167, "lng": -7.4833, "estime": false }, "confiance": "haute" },
-    { "code": "ML-16-02", "nom": "Yanfolila",  "region_code": "ML-16", "centroide": { "lat": 11.1833, "lng": -8.1500, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-17-01", "nom": "Koutiala", "region_code": "ML-17", "centroide": { "lat": 12.3917, "lng": -5.4642, "estime": false }, "confiance": "haute" },
-    { "code": "ML-17-02", "nom": "Yorosso", "region_code": "ML-17", "centroide": { "lat": 12.3500, "lng": -4.7833, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-04-01", "nom": "Ségou",     "region_code": "ML-04", "centroide": { "lat": 13.4318, "lng": -6.2156, "estime": false }, "confiance": "haute" },
-    { "code": "ML-04-02", "nom": "Baraouéli", "region_code": "ML-04", "centroide": { "lat": 13.0833, "lng": -6.8333, "estime": false }, "confiance": "haute" },
-    { "code": "ML-04-03", "nom": "Bla",       "region_code": "ML-04", "centroide": { "lat": 12.9500, "lng": -5.7667, "estime": false }, "confiance": "haute" },
-    { "code": "ML-04-04", "nom": "Macina",    "region_code": "ML-04", "centroide": { "lat": 13.9667, "lng": -5.3667, "estime": false }, "confiance": "haute" },
-    { "code": "ML-04-05", "nom": "Niono",     "region_code": "ML-04", "centroide": { "lat": 14.2533, "lng": -5.9858, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-18-01", "nom": "San",       "region_code": "ML-18", "centroide": { "lat": 13.3033, "lng": -4.8964, "estime": false }, "confiance": "haute" },
-    { "code": "ML-18-02", "nom": "Tominian",  "region_code": "ML-18", "centroide": { "lat": 13.3000, "lng": -4.5833, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-05-01", "nom": "Mopti",     "region_code": "ML-05", "centroide": { "lat": 14.4843, "lng": -4.1827, "estime": false }, "confiance": "haute" },
-    { "code": "ML-05-02", "nom": "Djenné",    "region_code": "ML-05", "centroide": { "lat": 13.9050, "lng": -4.5552, "estime": false }, "confiance": "haute" },
-    { "code": "ML-05-03", "nom": "Ténenkou",  "region_code": "ML-05", "centroide": { "lat": 14.4333, "lng": -4.9167, "estime": false }, "confiance": "haute" },
-    { "code": "ML-05-04", "nom": "Youwarou",  "region_code": "ML-05", "centroide": { "lat": 15.4500, "lng": -4.0833, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-19-01", "nom": "Bandiagara", "region_code": "ML-19", "centroide": { "lat": 14.3500, "lng": -3.6111, "estime": false }, "confiance": "haute" },
-    { "code": "ML-19-02", "nom": "Bankass",    "region_code": "ML-19", "centroide": { "lat": 14.0833, "lng": -3.5167, "estime": false }, "confiance": "haute" },
-    { "code": "ML-19-03", "nom": "Koro",       "region_code": "ML-19", "centroide": { "lat": 14.0667, "lng": -3.0833, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-20-01", "nom": "Douentza",   "region_code": "ML-20", "centroide": { "lat": 15.0028, "lng": -2.9469, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-06-01", "nom": "Tombouctou",     "region_code": "ML-06", "centroide": { "lat": 16.7722, "lng": -3.0087, "estime": false }, "confiance": "haute" },
-    { "code": "ML-06-02", "nom": "Diré",            "region_code": "ML-06", "centroide": { "lat": 16.2700, "lng": -3.3833, "estime": false }, "confiance": "haute" },
-    { "code": "ML-06-03", "nom": "Goundam",         "region_code": "ML-06", "centroide": { "lat": 16.4167, "lng": -3.6667, "estime": false }, "confiance": "haute" },
-    { "code": "ML-06-04", "nom": "Gourma-Rharous",  "region_code": "ML-06", "centroide": { "lat": 16.8833, "lng": -1.9333, "estime": false }, "confiance": "haute" },
-    { "code": "ML-06-05", "nom": "Niafunké",        "region_code": "ML-06", "centroide": { "lat": 15.9322, "lng": -3.9911, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-10-01", "nom": "Taoudénit",   "region_code": "ML-10", "centroide": { "lat": 22.6783, "lng": -3.9794, "estime": false }, "confiance": "haute" },
-    { "code": "ML-10-02", "nom": "Achouratt",   "region_code": "ML-10", "centroide": { "lat": 18.7500, "lng": -3.5500, "estime": true  }, "confiance": "moyenne" },
-    { "code": "ML-10-03", "nom": "Boudjbéha",   "region_code": "ML-10", "centroide": { "lat": 19.7833, "lng": -2.4333, "estime": true  }, "confiance": "moyenne" },
-    { "code": "ML-10-04", "nom": "Foum El Alba", "region_code": "ML-10", "centroide": { "lat": 21.3500, "lng": -4.0500, "estime": true  }, "confiance": "moyenne" },
-    { "code": "ML-10-05", "nom": "Al-Ourche",   "region_code": "ML-10", "centroide": { "lat": 22.0000, "lng": -2.5000, "estime": true  }, "confiance": "basse" },
-
-    { "code": "ML-07-01", "nom": "Gao",     "region_code": "ML-07", "centroide": { "lat": 16.2711, "lng": -0.0459, "estime": false }, "confiance": "haute" },
-    { "code": "ML-07-02", "nom": "Ansongo", "region_code": "ML-07", "centroide": { "lat": 15.6667, "lng": 0.5000,  "estime": false }, "confiance": "haute" },
-    { "code": "ML-07-03", "nom": "Bourem",  "region_code": "ML-07", "centroide": { "lat": 16.9500, "lng": -0.3500, "estime": false }, "confiance": "haute" },
-
-    { "code": "ML-11-01", "nom": "Ménaka",          "region_code": "ML-11", "centroide": { "lat": 15.9160, "lng": 2.4000, "estime": false }, "confiance": "haute" },
-    { "code": "ML-11-02", "nom": "Inékar",          "region_code": "ML-11", "centroide": { "lat": 15.9333, "lng": 2.0167, "estime": true  }, "confiance": "moyenne" },
-    { "code": "ML-11-03", "nom": "Andéramboukane",  "region_code": "ML-11", "centroide": { "lat": 15.4083, "lng": 3.0436, "estime": false }, "confiance": "haute" },
-    { "code": "ML-11-04", "nom": "Tidermène",       "region_code": "ML-11", "centroide": { "lat": 17.1167, "lng": 1.8500, "estime": true  }, "confiance": "moyenne" },
-
-    { "code": "ML-08-01", "nom": "Kidal",       "region_code": "ML-08", "centroide": { "lat": 18.4412, "lng": 1.4080, "estime": false }, "confiance": "haute" },
-    { "code": "ML-08-02", "nom": "Abeïbara",    "region_code": "ML-08", "centroide": { "lat": 19.3167, "lng": 1.7333, "estime": true  }, "confiance": "moyenne" },
-    { "code": "ML-08-03", "nom": "Tessalit",    "region_code": "ML-08", "centroide": { "lat": 20.2000, "lng": 1.0167, "estime": false }, "confiance": "haute" },
-    { "code": "ML-08-04", "nom": "Tin-Essako",  "region_code": "ML-08", "centroide": { "lat": 18.6833, "lng": 2.4500, "estime": true  }, "confiance": "moyenne" },
-
-    { "code": "ML-09-01", "nom": "Commune I de Bamako",   "region_code": "ML-09", "centroide": { "lat": 12.6667, "lng": -7.9833, "estime": false }, "confiance": "haute", "type_special": "commune_urbaine" },
-    { "code": "ML-09-02", "nom": "Commune II de Bamako",  "region_code": "ML-09", "centroide": { "lat": 12.6500, "lng": -7.9667, "estime": false }, "confiance": "haute", "type_special": "commune_urbaine" },
-    { "code": "ML-09-03", "nom": "Commune III de Bamako", "region_code": "ML-09", "centroide": { "lat": 12.6500, "lng": -8.0000, "estime": false }, "confiance": "haute", "type_special": "commune_urbaine" },
-    { "code": "ML-09-04", "nom": "Commune IV de Bamako",  "region_code": "ML-09", "centroide": { "lat": 12.6333, "lng": -8.0500, "estime": false }, "confiance": "haute", "type_special": "commune_urbaine" },
-    { "code": "ML-09-05", "nom": "Commune V de Bamako",   "region_code": "ML-09", "centroide": { "lat": 12.6000, "lng": -8.0167, "estime": false }, "confiance": "haute", "type_special": "commune_urbaine" },
-    { "code": "ML-09-06", "nom": "Commune VI de Bamako",  "region_code": "ML-09", "centroide": { "lat": 12.6167, "lng": -7.9333, "estime": false }, "confiance": "haute", "type_special": "commune_urbaine" }
+    {
+      "code": "ML-01-01",
+      "nom": "Kayes",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 14.4467,
+        "lng": -11.4444,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-01-02",
+      "nom": "Bafoulabé",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 13.8073,
+        "lng": -10.8311,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-01-03",
+      "nom": "Diéma",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 14.5417,
+        "lng": -9.1833,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-01-04",
+      "nom": "Kéniéba",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 12.85,
+        "lng": -11.2333,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-01-05",
+      "nom": "Yélimané",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 15.1333,
+        "lng": -10.5667,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-12-01",
+      "nom": "Nioro du Sahel",
+      "region_code": "ML-12",
+      "centroide": {
+        "lat": 15.2247,
+        "lng": -9.5878,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-13-01",
+      "nom": "Kita",
+      "region_code": "ML-13",
+      "centroide": {
+        "lat": 13.0407,
+        "lng": -9.4895,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-02-01",
+      "nom": "Koulikoro",
+      "region_code": "ML-02",
+      "centroide": {
+        "lat": 12.8628,
+        "lng": -7.5598,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-02-02",
+      "nom": "Banamba",
+      "region_code": "ML-02",
+      "centroide": {
+        "lat": 13.55,
+        "lng": -7.45,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-02-03",
+      "nom": "Kangaba",
+      "region_code": "ML-02",
+      "centroide": {
+        "lat": 11.9333,
+        "lng": -8.4167,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-02-04",
+      "nom": "Kati",
+      "region_code": "ML-02",
+      "centroide": {
+        "lat": 12.7444,
+        "lng": -8.0731,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-02-05",
+      "nom": "Kolokani",
+      "region_code": "ML-02",
+      "centroide": {
+        "lat": 13.5733,
+        "lng": -8.0367,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-14-01",
+      "nom": "Dioïla",
+      "region_code": "ML-14",
+      "centroide": {
+        "lat": 12.4953,
+        "lng": -6.7984,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-14-02",
+      "nom": "Fana",
+      "region_code": "ML-14",
+      "centroide": {
+        "lat": 12.7667,
+        "lng": -6.95,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-15-01",
+      "nom": "Nara",
+      "region_code": "ML-15",
+      "centroide": {
+        "lat": 15.1701,
+        "lng": -7.2853,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-03-01",
+      "nom": "Sikasso",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 11.3176,
+        "lng": -5.6665,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-03-02",
+      "nom": "Kadiolo",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 10.55,
+        "lng": -5.75,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-03-03",
+      "nom": "Kolondiéba",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 11.0867,
+        "lng": -6.8983,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-16-01",
+      "nom": "Bougouni",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 11.4167,
+        "lng": -7.4833,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-16-02",
+      "nom": "Yanfolila",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 11.1833,
+        "lng": -8.15,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-17-01",
+      "nom": "Koutiala",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.3917,
+        "lng": -5.4642,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-17-02",
+      "nom": "Yorosso",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.35,
+        "lng": -4.7833,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-04-01",
+      "nom": "Ségou",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.4318,
+        "lng": -6.2156,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-04-02",
+      "nom": "Baraouéli",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.0833,
+        "lng": -6.8333,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-04-03",
+      "nom": "Bla",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 12.95,
+        "lng": -5.7667,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-04-04",
+      "nom": "Macina",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.9667,
+        "lng": -5.3667,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-04-05",
+      "nom": "Niono",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 14.2533,
+        "lng": -5.9858,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-18-01",
+      "nom": "San",
+      "region_code": "ML-18",
+      "centroide": {
+        "lat": 13.3033,
+        "lng": -4.8964,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-18-02",
+      "nom": "Tominian",
+      "region_code": "ML-18",
+      "centroide": {
+        "lat": 13.3,
+        "lng": -4.5833,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-05-01",
+      "nom": "Mopti",
+      "region_code": "ML-05",
+      "centroide": {
+        "lat": 14.4843,
+        "lng": -4.1827,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-05-02",
+      "nom": "Djenné",
+      "region_code": "ML-05",
+      "centroide": {
+        "lat": 13.905,
+        "lng": -4.5552,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-05-03",
+      "nom": "Ténenkou",
+      "region_code": "ML-05",
+      "centroide": {
+        "lat": 14.4333,
+        "lng": -4.9167,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-05-04",
+      "nom": "Youwarou",
+      "region_code": "ML-05",
+      "centroide": {
+        "lat": 15.45,
+        "lng": -4.0833,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-19-01",
+      "nom": "Bandiagara",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 14.35,
+        "lng": -3.6111,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-19-02",
+      "nom": "Bankass",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 14.0833,
+        "lng": -3.5167,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-19-03",
+      "nom": "Koro",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 14.0667,
+        "lng": -3.0833,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-20-01",
+      "nom": "Douentza",
+      "region_code": "ML-20",
+      "centroide": {
+        "lat": 15.0028,
+        "lng": -2.9469,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-06-01",
+      "nom": "Tombouctou",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.7722,
+        "lng": -3.0087,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-06-02",
+      "nom": "Diré",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.27,
+        "lng": -3.3833,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-06-03",
+      "nom": "Goundam",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.4167,
+        "lng": -3.6667,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-06-04",
+      "nom": "Gourma-Rharous",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.8833,
+        "lng": -1.9333,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-06-05",
+      "nom": "Niafunké",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 15.9322,
+        "lng": -3.9911,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-10-01",
+      "nom": "Taoudénit",
+      "region_code": "ML-10",
+      "centroide": {
+        "lat": 22.6783,
+        "lng": -3.9794,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-10-02",
+      "nom": "Achouratt",
+      "region_code": "ML-10",
+      "centroide": {
+        "lat": 18.75,
+        "lng": -3.55,
+        "estime": true
+      },
+      "confiance": "moyenne"
+    },
+    {
+      "code": "ML-10-03",
+      "nom": "Boudjbéha",
+      "region_code": "ML-10",
+      "centroide": {
+        "lat": 19.7833,
+        "lng": -2.4333,
+        "estime": true
+      },
+      "confiance": "moyenne"
+    },
+    {
+      "code": "ML-10-04",
+      "nom": "Foum El Alba",
+      "region_code": "ML-10",
+      "centroide": {
+        "lat": 21.35,
+        "lng": -4.05,
+        "estime": true
+      },
+      "confiance": "moyenne"
+    },
+    {
+      "code": "ML-10-05",
+      "nom": "Al-Ourche",
+      "region_code": "ML-10",
+      "centroide": {
+        "lat": 22.0,
+        "lng": -2.5,
+        "estime": true
+      },
+      "confiance": "basse"
+    },
+    {
+      "code": "ML-07-01",
+      "nom": "Gao",
+      "region_code": "ML-07",
+      "centroide": {
+        "lat": 16.2711,
+        "lng": -0.0459,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-07-02",
+      "nom": "Ansongo",
+      "region_code": "ML-07",
+      "centroide": {
+        "lat": 15.6667,
+        "lng": 0.5,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-07-03",
+      "nom": "Bourem",
+      "region_code": "ML-07",
+      "centroide": {
+        "lat": 16.95,
+        "lng": -0.35,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-11-01",
+      "nom": "Ménaka",
+      "region_code": "ML-11",
+      "centroide": {
+        "lat": 15.916,
+        "lng": 2.4,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-11-02",
+      "nom": "Inékar",
+      "region_code": "ML-11",
+      "centroide": {
+        "lat": 15.9333,
+        "lng": 2.0167,
+        "estime": true
+      },
+      "confiance": "moyenne"
+    },
+    {
+      "code": "ML-11-03",
+      "nom": "Andéramboukane",
+      "region_code": "ML-11",
+      "centroide": {
+        "lat": 15.4083,
+        "lng": 3.0436,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-11-04",
+      "nom": "Tidermène",
+      "region_code": "ML-11",
+      "centroide": {
+        "lat": 17.1167,
+        "lng": 1.85,
+        "estime": true
+      },
+      "confiance": "moyenne"
+    },
+    {
+      "code": "ML-08-01",
+      "nom": "Kidal",
+      "region_code": "ML-08",
+      "centroide": {
+        "lat": 18.4412,
+        "lng": 1.408,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-08-02",
+      "nom": "Abeïbara",
+      "region_code": "ML-08",
+      "centroide": {
+        "lat": 19.3167,
+        "lng": 1.7333,
+        "estime": true
+      },
+      "confiance": "moyenne"
+    },
+    {
+      "code": "ML-08-03",
+      "nom": "Tessalit",
+      "region_code": "ML-08",
+      "centroide": {
+        "lat": 20.2,
+        "lng": 1.0167,
+        "estime": false
+      },
+      "confiance": "haute"
+    },
+    {
+      "code": "ML-08-04",
+      "nom": "Tin-Essako",
+      "region_code": "ML-08",
+      "centroide": {
+        "lat": 18.6833,
+        "lng": 2.45,
+        "estime": true
+      },
+      "confiance": "moyenne"
+    },
+    {
+      "code": "ML-09-01",
+      "nom": "Commune I de Bamako",
+      "region_code": "ML-09",
+      "centroide": {
+        "lat": 12.6667,
+        "lng": -7.9833,
+        "estime": false
+      },
+      "confiance": "haute",
+      "type_special": "commune_urbaine"
+    },
+    {
+      "code": "ML-09-02",
+      "nom": "Commune II de Bamako",
+      "region_code": "ML-09",
+      "centroide": {
+        "lat": 12.65,
+        "lng": -7.9667,
+        "estime": false
+      },
+      "confiance": "haute",
+      "type_special": "commune_urbaine"
+    },
+    {
+      "code": "ML-09-03",
+      "nom": "Commune III de Bamako",
+      "region_code": "ML-09",
+      "centroide": {
+        "lat": 12.65,
+        "lng": -8.0,
+        "estime": false
+      },
+      "confiance": "haute",
+      "type_special": "commune_urbaine"
+    },
+    {
+      "code": "ML-09-04",
+      "nom": "Commune IV de Bamako",
+      "region_code": "ML-09",
+      "centroide": {
+        "lat": 12.6333,
+        "lng": -8.05,
+        "estime": false
+      },
+      "confiance": "haute",
+      "type_special": "commune_urbaine"
+    },
+    {
+      "code": "ML-09-05",
+      "nom": "Commune V de Bamako",
+      "region_code": "ML-09",
+      "centroide": {
+        "lat": 12.6,
+        "lng": -8.0167,
+        "estime": false
+      },
+      "confiance": "haute",
+      "type_special": "commune_urbaine"
+    },
+    {
+      "code": "ML-09-06",
+      "nom": "Commune VI de Bamako",
+      "region_code": "ML-09",
+      "centroide": {
+        "lat": 12.6167,
+        "lng": -7.9333,
+        "estime": false
+      },
+      "confiance": "haute",
+      "type_special": "commune_urbaine"
+    },
+    {
+      "code": "ML-01-06",
+      "nom": "Ambidédi",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 14.9925772,
+        "lng": -11.7936828,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-01-07",
+      "nom": "Aourou",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 14.9646974,
+        "lng": -11.5863394,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-01-08",
+      "nom": "Diamou",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 14.086561,
+        "lng": -11.2624981,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-01-09",
+      "nom": "Oussoubidiagna",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 14.2450766,
+        "lng": -10.461587,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-01-10",
+      "nom": "Ségala",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 14.7608134,
+        "lng": -12.1238616,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-01-11",
+      "nom": "Sadiola",
+      "region_code": "ML-01",
+      "centroide": {
+        "lat": 13.891613,
+        "lng": -11.7054385,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-03-04",
+      "nom": "Dandérésso",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 11.4864277,
+        "lng": -5.4821726,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-03-05",
+      "nom": "Kignan",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 11.8516429,
+        "lng": -6.0123092,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-03-06",
+      "nom": "Kléla",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 11.6879476,
+        "lng": -5.6636533,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-03-07",
+      "nom": "Lobougoula",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 11.0429114,
+        "lng": -5.9812785,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-03-08",
+      "nom": "Loulouni",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 10.8947657,
+        "lng": -5.6079814,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-03-09",
+      "nom": "Nièna",
+      "region_code": "ML-03",
+      "centroide": {
+        "lat": 11.4256681,
+        "lng": -6.349073,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-04-06",
+      "nom": "Barouéli",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.0728274,
+        "lng": -6.8317734,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-04-07",
+      "nom": "Dioro",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.689042,
+        "lng": -5.8313839,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-04-08",
+      "nom": "Farako",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.4101042,
+        "lng": -6.3885491,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-04-09",
+      "nom": "Nampala",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 15.2792405,
+        "lng": -5.5517559,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-04-10",
+      "nom": "Sokolo",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 14.7414252,
+        "lng": -6.1209335,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-04-11",
+      "nom": "Markala",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.6858601,
+        "lng": -6.0686133,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-04-12",
+      "nom": "Sarro",
+      "region_code": "ML-04",
+      "centroide": {
+        "lat": 13.7208606,
+        "lng": -5.2386041,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-05-05",
+      "nom": "Konna",
+      "region_code": "ML-05",
+      "centroide": {
+        "lat": 14.9441399,
+        "lng": -3.8903866,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-05-06",
+      "nom": "Korientzé",
+      "region_code": "ML-05",
+      "centroide": {
+        "lat": 15.393401,
+        "lng": -3.78304,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-05-07",
+      "nom": "Sofara",
+      "region_code": "ML-05",
+      "centroide": {
+        "lat": 14.0171201,
+        "lng": -4.2312194,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-06",
+      "nom": "Bintagoungou",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.7375895,
+        "lng": -3.7310448,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-07",
+      "nom": "Saraféré",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 15.823207,
+        "lng": -3.696052,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-08",
+      "nom": "Bambara Maoudé",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 15.8510333,
+        "lng": -2.7861122,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-09",
+      "nom": "Léré",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 15.7160981,
+        "lng": -4.9021643,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-10",
+      "nom": "Gossi",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 15.819721,
+        "lng": -1.3101051,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-11",
+      "nom": "Tonka",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.1370414,
+        "lng": -3.7490541,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-12",
+      "nom": "Ber",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.8394668,
+        "lng": -2.5267412,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-06-13",
+      "nom": "Gargando",
+      "region_code": "ML-06",
+      "centroide": {
+        "lat": 16.4677932,
+        "lng": -4.1688615,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-08-05",
+      "nom": "Aguel-Hoc",
+      "region_code": "ML-08",
+      "centroide": {
+        "lat": 19.4641919,
+        "lng": 0.8573623,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-11-05",
+      "nom": "Anouzagrène",
+      "region_code": "ML-11",
+      "centroide": {
+        "lat": 15.5370848,
+        "lng": 2.4971794,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-12-02",
+      "nom": "Diangounté",
+      "region_code": "ML-12",
+      "centroide": {
+        "lat": 14.2975758,
+        "lng": -10.0298345,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-12-03",
+      "nom": "Sandaré",
+      "region_code": "ML-12",
+      "centroide": {
+        "lat": 14.7034797,
+        "lng": -10.3056063,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-12-04",
+      "nom": "Troungoumbé",
+      "region_code": "ML-12",
+      "centroide": {
+        "lat": 15.2653967,
+        "lng": -9.2299573,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-12-05",
+      "nom": "Béma",
+      "region_code": "ML-12",
+      "centroide": {
+        "lat": 15.0430405,
+        "lng": -9.3531752,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-13-02",
+      "nom": "Sagabari",
+      "region_code": "ML-13",
+      "centroide": {
+        "lat": 12.583731,
+        "lng": -9.8031288,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-13-03",
+      "nom": "Sébékoro",
+      "region_code": "ML-13",
+      "centroide": {
+        "lat": 12.9627076,
+        "lng": -8.9879559,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-13-04",
+      "nom": "Toukoto",
+      "region_code": "ML-13",
+      "centroide": {
+        "lat": 13.4479896,
+        "lng": -9.8767502,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-13-05",
+      "nom": "Séféto",
+      "region_code": "ML-13",
+      "centroide": {
+        "lat": 14.13972,
+        "lng": -9.8272874,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-13-06",
+      "nom": "Sirakoro",
+      "region_code": "ML-13",
+      "centroide": {
+        "lat": 12.6825901,
+        "lng": -9.2288689,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-14-03",
+      "nom": "Banco",
+      "region_code": "ML-14",
+      "centroide": {
+        "lat": 12.0991693,
+        "lng": -6.5244935,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-14-04",
+      "nom": "Béléko",
+      "region_code": "ML-14",
+      "centroide": {
+        "lat": 14.0366947,
+        "lng": -7.1333717,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-14-05",
+      "nom": "Massigui",
+      "region_code": "ML-14",
+      "centroide": {
+        "lat": 11.861314,
+        "lng": -6.7714892,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-14-06",
+      "nom": "Ména",
+      "region_code": "ML-14",
+      "centroide": {
+        "lat": 11.471895,
+        "lng": -7.61163,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-15-02",
+      "nom": "Ballé",
+      "region_code": "ML-15",
+      "centroide": {
+        "lat": 15.3399571,
+        "lng": -8.5835211,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-15-03",
+      "nom": "Dilly",
+      "region_code": "ML-15",
+      "centroide": {
+        "lat": 14.9991305,
+        "lng": -7.6688642,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-15-04",
+      "nom": "Mourdiah",
+      "region_code": "ML-15",
+      "centroide": {
+        "lat": 14.4719244,
+        "lng": -7.4716314,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-15-05",
+      "nom": "Guiré",
+      "region_code": "ML-15",
+      "centroide": {
+        "lat": 14.6417223,
+        "lng": -6.6918547,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-15-06",
+      "nom": "Fallou",
+      "region_code": "ML-15",
+      "centroide": {
+        "lat": 14.5990697,
+        "lng": -7.9327928,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-16-03",
+      "nom": "Garalo",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 10.9927195,
+        "lng": -7.436939,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-16-04",
+      "nom": "Koumantou",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 11.4086089,
+        "lng": -6.8464137,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-16-05",
+      "nom": "Sélingué",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 11.642335,
+        "lng": -8.1931465,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-16-06",
+      "nom": "Ouélessébougou",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 11.9918419,
+        "lng": -7.909479,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-16-07",
+      "nom": "Kadiala",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 12.8054539,
+        "lng": -5.7085732,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-16-08",
+      "nom": "Fakola",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 10.5507315,
+        "lng": -6.916953,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-16-09",
+      "nom": "Dogo",
+      "region_code": "ML-16",
+      "centroide": {
+        "lat": 15.168402,
+        "lng": -4.431335,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-17-03",
+      "nom": "M'Péssoba",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.6654805,
+        "lng": -5.7206908,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-17-04",
+      "nom": "Molobala",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.1769776,
+        "lng": -5.3314966,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-17-05",
+      "nom": "Koury",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.181178,
+        "lng": -4.8016714,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-17-06",
+      "nom": "Konséguéla",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.403713,
+        "lng": -5.8857515,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-17-07",
+      "nom": "Kouniana",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.5719647,
+        "lng": -5.1261569,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-17-08",
+      "nom": "Zangasso",
+      "region_code": "ML-17",
+      "centroide": {
+        "lat": 12.6596143,
+        "lng": -4.5999851,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-18-03",
+      "nom": "Kimparana",
+      "region_code": "ML-18",
+      "centroide": {
+        "lat": 12.834733,
+        "lng": -4.9244395,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-18-04",
+      "nom": "Yangasso",
+      "region_code": "ML-18",
+      "centroide": {
+        "lat": 13.0695952,
+        "lng": -5.3220836,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-18-05",
+      "nom": "Fangasso",
+      "region_code": "ML-18",
+      "centroide": {
+        "lat": 13.5270139,
+        "lng": -4.4464747,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-18-06",
+      "nom": "Mandiakuy",
+      "region_code": "ML-18",
+      "centroide": {
+        "lat": 13.0210792,
+        "lng": -4.4629338,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-18-07",
+      "nom": "Sy",
+      "region_code": "ML-18",
+      "centroide": {
+        "lat": 13.6004327,
+        "lng": -4.978182,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-20-02",
+      "nom": "Boré",
+      "region_code": "ML-20",
+      "centroide": {
+        "lat": 14.396576,
+        "lng": -2.9710952,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-20-03",
+      "nom": "Hombori",
+      "region_code": "ML-20",
+      "centroide": {
+        "lat": 15.2831164,
+        "lng": -1.6990741,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-20-04",
+      "nom": "N'Gouma",
+      "region_code": "ML-20",
+      "centroide": {
+        "lat": 15.63789,
+        "lng": -3.370612,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-20-05",
+      "nom": "Mondoro",
+      "region_code": "ML-20",
+      "centroide": {
+        "lat": 14.6758694,
+        "lng": -1.9500937,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-20-06",
+      "nom": "Boni",
+      "region_code": "ML-20",
+      "centroide": {
+        "lat": 15.0768761,
+        "lng": -2.2211397,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-19-04",
+      "nom": "Kendié",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 14.6757563,
+        "lng": -3.5104213,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-19-05",
+      "nom": "Ningari",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 14.66202,
+        "lng": -3.2741214,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-19-06",
+      "nom": "Sangha",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 14.468356,
+        "lng": -3.306466,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-19-07",
+      "nom": "Kani",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 12.1355033,
+        "lng": -6.7772192,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    },
+    {
+      "code": "ML-19-08",
+      "nom": "Sokoura",
+      "region_code": "ML-19",
+      "centroide": {
+        "lat": 14.5380605,
+        "lng": -4.0903538,
+        "estime": true
+      },
+      "confiance": "moyenne",
+      "source_enrichissement": "wikipedia+nominatim"
+    }
   ],
   "cercles_a_enrichir": {
     "description": "Liste des régions où des cercles supplémentaires existent selon la loi 2023 mais ne sont pas dans ce fichier. À enrichir depuis https://fr.wikipedia.org/wiki/Cercles_du_Mali via le script scripts/enrich-cercles.py.",
     "regions_concernees": [
-      { "region_code": "ML-12", "cercles_connus": 1, "cercles_attendus_post_2023": "Plusieurs (Nioro, Diéma-bis, ...)" },
-      { "region_code": "ML-13", "cercles_connus": 1, "cercles_attendus_post_2023": "Plusieurs (Kita, ...)" },
-      { "region_code": "ML-14", "cercles_connus": 2, "cercles_attendus_post_2023": "Plusieurs (Dioïla, Fana, ...)" },
-      { "region_code": "ML-15", "cercles_connus": 1, "cercles_attendus_post_2023": "Plusieurs" },
-      { "region_code": "ML-16", "cercles_connus": 2, "cercles_attendus_post_2023": "Plusieurs" },
-      { "region_code": "ML-17", "cercles_connus": 2, "cercles_attendus_post_2023": "Plusieurs" },
-      { "region_code": "ML-18", "cercles_connus": 2, "cercles_attendus_post_2023": "Plusieurs" },
-      { "region_code": "ML-19", "cercles_connus": 3, "cercles_attendus_post_2023": "Plusieurs" },
-      { "region_code": "ML-20", "cercles_connus": 1, "cercles_attendus_post_2023": "Plusieurs" }
+      {
+        "region_code": "ML-12",
+        "cercles_connus": 1,
+        "cercles_attendus_post_2023": "Plusieurs (Nioro, Diéma-bis, ...)"
+      },
+      {
+        "region_code": "ML-13",
+        "cercles_connus": 1,
+        "cercles_attendus_post_2023": "Plusieurs (Kita, ...)"
+      },
+      {
+        "region_code": "ML-14",
+        "cercles_connus": 2,
+        "cercles_attendus_post_2023": "Plusieurs (Dioïla, Fana, ...)"
+      },
+      {
+        "region_code": "ML-15",
+        "cercles_connus": 1,
+        "cercles_attendus_post_2023": "Plusieurs"
+      },
+      {
+        "region_code": "ML-16",
+        "cercles_connus": 2,
+        "cercles_attendus_post_2023": "Plusieurs"
+      },
+      {
+        "region_code": "ML-17",
+        "cercles_connus": 2,
+        "cercles_attendus_post_2023": "Plusieurs"
+      },
+      {
+        "region_code": "ML-18",
+        "cercles_connus": 2,
+        "cercles_attendus_post_2023": "Plusieurs"
+      },
+      {
+        "region_code": "ML-19",
+        "cercles_connus": 3,
+        "cercles_attendus_post_2023": "Plusieurs"
+      },
+      {
+        "region_code": "ML-20",
+        "cercles_connus": 1,
+        "cercles_attendus_post_2023": "Plusieurs"
+      }
     ],
     "total_manquant_estimatif": 94
   }

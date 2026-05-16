@@ -15,6 +15,7 @@
         test test-cov test-watch \
         docker-up docker-down docker-logs docker-ps docker-down-v \
         db-generate db-migrate db-seed db-studio db-reset db-validate \
+        seed-locations-generate audit-cercles enrich-cercles enrich-cercles-write \
         vault-init vault-unseal vault-status \
         certs-generate certs-clean \
         verify validate-data validate-schemas docs-sync \
@@ -182,6 +183,18 @@ seed-locations-generate: ## Régénère infrastructure/scripts/seed-locations.sq
 	@echo "🌍 Génération du seed-locations.sql depuis data/mali/*.json..."
 	@node scripts/generate-seed-sql.mjs
 	@echo "✅ infrastructure/scripts/seed-locations.sql régénéré."
+
+audit-cercles: ## Audit cohérence cercles.json ↔ mali-cercles-polygons.json (geoBoundaries ADM2)
+	@node scripts/audit-cercles-coverage.mjs
+
+enrich-cercles: ## Enrichit cercles.json depuis Wikipedia FR + géocode Nominatim (dry-run par défaut)
+	@echo "🌐 Enrichissement cercles depuis Wikipedia + Nominatim..."
+	@echo "   (dry-run — pour appliquer : make enrich-cercles-write)"
+	@python scripts/enrich-cercles.py
+
+enrich-cercles-write: ## Applique l'enrichissement Wikipedia → cercles.json (écrit le fichier)
+	@python scripts/enrich-cercles.py --write
+	@$(MAKE) seed-locations-generate
 
 # ── Vault (gestion des secrets) ────────────────────────────────────────────
 vault-init: ## Initialise Vault (génère les 5 unseal keys + root token)

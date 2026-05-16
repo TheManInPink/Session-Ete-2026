@@ -1,0 +1,15 @@
+# Dépendances pour scripts/enrich-cercles.py
+# (séparé de services/*/requirements.txt pour ne pas alourdir les images Docker)
+#
+# Installation :
+#   pip install -r scripts/requirements-enrich.txt
+#
+# Test :
+#   python scripts/enrich-cercles.py --verbose   # dry-run
+
+requests>=2.32,<3.0
+beautifulsoup4>=4.13,<5.0
+
+# lxml est optionnel : le script bascule sur html.parser (builtin) si absent.
+# Sur Windows sans MSVC, le wheel lxml peut échouer ; commenter sans souci.
+# lxml>=5.3,<6.0
