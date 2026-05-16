@@ -230,5 +230,141 @@
     },
     "notFound": "Ressource introuvable",
     "unauthorized": "Vous devez être connecté pour accéder à cette page."
+  },
+  "admin": {
+    "sidebar": {
+      "brand": "Console agent",
+      "subtitle": "CTDEC · DNEC",
+      "navLabel": "Navigation principale",
+      "matricule": "Mat.",
+      "logout": "Déconnexion",
+      "items": {
+        "dashboard": "Tableau de bord",
+        "corrections": "Corrections",
+        "appointments": "Rendez-vous",
+        "sigac": "Alertes SIGAC",
+        "settings": "Paramètres"
+      }
+    },
+    "dashboard": {
+      "greeting": "Bonjour {name}",
+      "subtitle": "Console de validation des demandes citoyens.",
+      "quickActionsTitle": "Accès rapides",
+      "quickActions": {
+        "corrections": {
+          "title": "Demandes de correction",
+          "description": "Valider ou rejeter les corrections proposées par les citoyens."
+        },
+        "appointments": {
+          "title": "Rendez-vous",
+          "description": "Planifier et suivre les rendez-vous CTDEC / RAVEC."
+        },
+        "sigac": {
+          "title": "Alertes SIGAC",
+          "description": "Investiguer les signalements anonymes de corruption."
+        }
+      },
+      "placeholderTitle": "KPIs + heatmap à venir (Session 4)",
+      "placeholderBody": "Le dashboard complet (KPI cards avec sparkline, area chart corrections/jour, MaliHeatmap activité régionale, feed temps réel alertes) sera livré en Session 4 — AD-01 cf. docs/design-system/screens.md."
+    },
+    "login": {
+      "heading": "Console agent",
+      "subheading": "Authentification réservée aux agents CTDEC / DNEC.",
+      "cta": {
+        "title": "Se connecter avec Keycloak",
+        "help": "Vous serez redirigé(e) vers le service d'authentification interne du CTDEC.",
+        "button": "Continuer vers Keycloak"
+      },
+      "footer": "Accès strictement réservé aux personnels habilités. Toute connexion est tracée.",
+      "error": {
+        "title": "La connexion a échoué",
+        "codes": {
+          "missing_code": "Code d'autorisation manquant dans la réponse de Keycloak.",
+          "no_session": "Aucune session OIDC en cours — relancez la connexion.",
+          "state_mismatch": "Anomalie de sécurité détectée (state mismatch).",
+          "token_exchange_failed": "Échange du code contre les tokens refusé par Keycloak.",
+          "id_token_invalid": "ID token invalide — la signature ne correspond pas.",
+          "nonce_mismatch": "Anomalie de sécurité détectée (nonce mismatch)."
+        }
+      }
+    },
+    "corrections": {
+      "pageTitle": "Demandes de correction",
+      "pageSubtitle": "{count} demandes — filtrez, triez, validez en lot.",
+      "filters": {
+        "search": "Recherche NINA ou nom",
+        "status": "Statut",
+        "region": "Région",
+        "aiScore": "Score IA",
+        "date": "Date",
+        "reset": "Réinitialiser",
+        "applied": "{count, plural, =0 {Aucun filtre} =1 {1 filtre actif} other {# filtres actifs}}"
+      },
+      "columns": {
+        "nina": "NINA",
+        "field": "Champ",
+        "before": "Avant",
+        "after": "Après",
+        "score": "Score IA",
+        "status": "Statut",
+        "submittedAt": "Soumis le",
+        "actions": "Actions"
+      },
+      "status": {
+        "UNDER_REVIEW": "En revue",
+        "APPROVED": "Approuvée",
+        "REJECTED": "Rejetée",
+        "AWAITING_DOCUMENT": "Doc. en attente"
+      },
+      "field": {
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "birthDate": "Date naissance",
+        "birthPlace": "Lieu naissance",
+        "residence_cercle": "Cercle résidence",
+        "residence_commune": "Commune résidence",
+        "fatherName": "Nom du père",
+        "motherName": "Nom de la mère",
+        "profession": "Profession"
+      },
+      "actions": {
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "viewDetail": "Voir le détail",
+        "bulkApprove": "Approuver ({count})",
+        "bulkReject": "Rejeter ({count})"
+      },
+      "drawer": {
+        "title": "Correction #{id}",
+        "citizen": "Citoyen",
+        "fieldChange": "Modification du champ",
+        "aiScore": "Score IA",
+        "aiScoreSub": {
+          "fuzzyMatch": "Fuzzy match",
+          "consistency": "Cohérence",
+          "agentHistory": "Hist. agent"
+        },
+        "justificatif": "Justificatif",
+        "noJustificatif": "Aucun justificatif fourni.",
+        "timelineTitle": "Historique",
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "rejectReason": "Motif de rejet (visible par le citoyen)"
+      },
+      "empty": "Aucune demande ne correspond à vos filtres.",
+      "pagination": {
+        "showing": "Affichage de {from}–{to} sur {total}",
+        "prev": "Précédent",
+        "next": "Suivant",
+        "pageSize": "Lignes par page"
+      },
+      "toast": {
+        "approvedTitle": "Correction approuvée",
+        "approvedBody": "La fiche du citoyen sera mise à jour sous quelques minutes.",
+        "rejectedTitle": "Correction rejetée",
+        "rejectedBody": "Le citoyen sera notifié du motif.",
+        "bulkSuccess": "{count} correction(s) traitée(s)."
+      }
+    }
   }
 }

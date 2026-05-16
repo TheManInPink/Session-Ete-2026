@@ -27,6 +27,9 @@ yarn-error.log*
 
 # env files (can opt-in for commiting if needed)
 .env*
+# Mais le template d'exemple DOIT être versionné — documente les variables
+# nécessaires pour qu'un nouveau collaborateur configure son .env.local.
+!.env.local.example
 
 # vercel
 .vercel
