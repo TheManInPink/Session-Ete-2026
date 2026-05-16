@@ -140,8 +140,9 @@ export function MaliHeatmap({
         y="0"
         width="100"
         height="75"
-        fill="hsl(var(--bg-muted) / 0.3)"
-        stroke="hsl(var(--border))"
+        fill="var(--bg-muted)"
+        fillOpacity="0.3"
+        stroke="var(--border)"
         strokeWidth="0.2"
         rx="1"
       />
@@ -155,7 +156,8 @@ export function MaliHeatmap({
             cx={x}
             cy={y}
             r={minRadius * 0.6}
-            fill="hsl(var(--fg-muted) / 0.4)"
+            fill="var(--fg-muted)"
+            fillOpacity="0.4"
           />
         );
       })}
@@ -219,7 +221,8 @@ export function MaliHeatmap({
             y={y - 3}
             fontSize="2.2"
             textAnchor="middle"
-            fill="hsl(var(--fg) / 0.7)"
+            fill="var(--fg)"
+            fillOpacity="0.85"
             className="pointer-events-none font-medium"
           >
             {shortName}

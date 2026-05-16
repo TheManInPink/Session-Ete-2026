@@ -104,7 +104,7 @@ export function AreaChart({
             x2={VB.w - VB.right}
             y1={g.y}
             y2={g.y}
-            stroke="hsl(var(--border))"
+            stroke="var(--border)"
             strokeWidth="0.5"
             strokeDasharray="2 2"
           />
@@ -113,7 +113,7 @@ export function AreaChart({
             y={g.y + 3}
             fontSize="9"
             textAnchor="end"
-            fill="hsl(var(--fg-muted))"
+            fill="var(--fg-muted)"
           >
             {Math.round(g.value)}
           </text>
@@ -139,7 +139,7 @@ export function AreaChart({
             cx={p.x}
             cy={p.y}
             r="2.5"
-            fill="hsl(var(--bg-card))"
+            fill="var(--bg-card)"
             stroke={colors.stroke}
             strokeWidth="1.2"
             className="transition-all"
@@ -158,7 +158,7 @@ export function AreaChart({
             y={VB.h - 4}
             fontSize="9"
             textAnchor="middle"
-            fill="hsl(var(--fg-muted))"
+            fill="var(--fg-muted)"
           >
             {p.raw.x}
           </text>
