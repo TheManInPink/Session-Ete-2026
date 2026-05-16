@@ -252,13 +252,17 @@ git push origin v0.5.0-bloc-A-data-seed
 | ADR (décisions architecturales)     | `docs/adr/ADR-*.md`                              |
 | Cahier des charges                  | `docs/01-CAHIER-DES-CHARGES.md`                  |
 | Sécurité / hardening                | `docs/15-SECURITY-HARDENING.md`                  |
+| CI/CD GitHub Actions                | `docs/16-CICD-GITHUB-ACTIONS.md`                 |
 
 ---
 
 ## 10. Pour aller plus loin
 
-- **CI/CD** (doc 16) ajoutera `pnpm run verify:repo` comme step bloquant dans
-  GitHub Actions, en plus du pre-commit local.
+- **CI/CD** : la spec complète vit dans
+  [`docs/16-CICD-GITHUB-ACTIONS.md`](./docs/16-CICD-GITHUB-ACTIONS.md) +
+  [`docs/adr/ADR-016-cicd-github-actions.md`](./docs/adr/ADR-016-cicd-github-actions.md)
+  (5 workflows séparés ; `verify:repo` est l'un des required checks bloquants
+  sur `main`). Implémentation YAML : à appliquer en bonus de la doc 15.
 - **Renovate / Dependabot** : à activer pour automatiser les bumps mineurs ;
   garder les majeurs en revue manuelle (avec test d'invariants après merge).
 - **Documentation sites statique** : possibilité de générer `docusaurus` à

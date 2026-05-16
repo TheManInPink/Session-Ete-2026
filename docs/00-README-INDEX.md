@@ -60,7 +60,7 @@ Le parcours suit trois principes :
 | `infrastructure/docker/`         | ✅ `docker-compose.dev.yml` opérationnel (PostgreSQL+PostGIS), corrections en cours  |
 | `docs/diagrams/*.puml`           | ✅ **8 diagrammes UML livrés (PROMPT 1.5)** — 1 557 lignes                           |
 | `ai-models/` (datasets, modèles) | ❌ Inexistant — à créer                                                              |
-| `.github/workflows/` (CI/CD)     | ❌ Inexistant — à créer                                                              |
+| `.github/workflows/` (CI/CD)     | ⚠️ `ci.yml` historique présent — spec cible livrée doc 16 + ADR-016, à appliquer    |
 | `scripts/` (Bash + PowerShell)   | ✅ Init-db.sql + setup.ps1 + setup.sh + `typecheck.ts` (placeholder TS)              |
 | Husky + hooks pre-commit         | ⚠️ Présent mais à configurer fully (lint-staged déjà installé)                       |
 | Docker Compose local             | ✅ Postgres+PostGIS démarrable via `pnpm docker:up`                                  |

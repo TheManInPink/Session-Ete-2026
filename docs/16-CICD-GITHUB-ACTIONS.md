@@ -1,0 +1,931 @@
+# 16 — CI/CD (GitHub Actions, caches, scans, déploiement staging)
+
+> **Bloc concerné** : Transversal (tous les blocs A → F) — pipeline outillé en
+> parallèle du développement, durci en même temps que la sécurité (doc 15).
+> **Prérequis** : documents 00 → 15 complétés ; repository GitHub initialisé ;
+> chaîne `pnpm run verify:repo` opérationnelle en local.
+> **Durée estimée** : 8 à 12 heures pour un étudiant seul.
+> **Livrables de cette étape** :
+>
+> - 5 workflows GitHub Actions canoniques sous `.github/workflows/` :
+>   - `verify.yml` (chaîne `verify:repo` + lint + typecheck) — bloquant PR
+>   - `test.yml` (Jest Node + Pytest Python + matrice services)
+>   - `e2e.yml` (Playwright sur les 3 apps Next.js, mode mock)
+>   - `build.yml` (Turborepo cache distant + images Docker)
+>   - `security.yml` (Trivy + Semgrep + gitleaks + pnpm audit + Bandit)
+> - 1 workflow `deploy-staging.yml` (déclenché sur push `main`, déploie sur K3s
+>   via Helm)
+> - 1 workflow réutilisable `_setup-node-pnpm.yml` (composable action)
+> - Caches : pnpm store, Turborepo remote cache (S3 / MinIO interne), pip wheel,
+>   Playwright browsers, Docker buildx
+> - Branch protection sur `main` : `verify` + `test` + `security` requis
+> - Renovate auto-merge sur dépendances mineures et patchs
+> - Badges README : Build · Tests · Coverage · Security
+> - `docs/adr/ADR-016-cicd-github-actions.md`
+
+---
+
+## 1. Objectif pédagogique
+
+Un projet d'identité d'État ne peut pas survivre à un développement « heureux
+côté local mais cassé en CI ». Trois principes structurent ce document :
+
+1. **Le pipeline reflète exactement la chaîne locale**. Tout ce qui doit passer
+   avant un commit doit aussi passer en CI : `pnpm run verify:repo`, lint,
+   typecheck, tests unitaires, tests E2E mock, scans sécurité. Si la CI valide
+   ce que le pre-commit ne valide pas (ou inversement), un dev finit par
+   livrer du code rouge.
+
+2. **Coût maîtrisé** = caches partout. Sans cache, un run prend ~20 min
+   (install pnpm + Prisma generate + Turbo build + Pytest + Trivy). Avec
+   pnpm store + Turbo remote cache + pip wheel cache, on tombe sous **5 min
+   sur un PR moyen**. GitHub Actions est facturé à la minute (gratuit jusqu'à
+   2 000 min/mois sur compte étudiant) — la frugalité est un objectif
+   pédagogique en soi.
+
+3. **Bloquant sans être paralysant**. Les jobs `verify` + `test` + `security`
+   sont **required checks** sur `main`. Les jobs `e2e` et `build` Docker
+   tournent sur PR mais ne bloquent que sur `main` (où ils sont indispensables
+   pour staging). Renovate fait passer les bumps mineurs/patches sans
+   intervention humaine quand toute la matrice est verte.
+
+> 💡 **Pourquoi GitHub Actions et pas GitLab CI / Drone / Jenkins ?** Trois
+> raisons documentées dans `ADR-016` : (1) repo déjà sur GitHub, pas de fric
+> à monter une infra CI séparée pour un projet universitaire, (2) marketplace
+> très riche d'actions officielles (`pnpm/action-setup`, `actions/setup-node`,
+> `aquasecurity/trivy-action`), (3) intégration native avec les
+> branch-protection rules, sans plugin tiers. La souveraineté est préservée
+> car on peut **rejouer localement** chaque workflow via `act` ou réécrire les
+> 5 fichiers vers GitLab CI en quelques heures si nécessaire.
+
+---
+
+## 2. Technologies utilisées (versions mai 2026)
+
+| Composant                          | Version         | Rôle                                                    |
+| ---------------------------------- | --------------- | ------------------------------------------------------- |
+| **GitHub Actions runners**         | `ubuntu-24.04`  | Runner par défaut — Ubuntu 24.04 LTS                    |
+| **actions/checkout**               | `v4`            | Checkout du repo (avec `fetch-depth: 0` pour gitleaks)  |
+| **pnpm/action-setup**              | `v4`            | Installation pnpm pinned via `packageManager`           |
+| **actions/setup-node**             | `v4`            | Node 24 LTS + cache pnpm store automatique              |
+| **actions/setup-python**           | `v5`            | Python 3.14 + cache pip                                 |
+| **actions/cache**                  | `v4`            | Cache Turbo + Playwright browsers + Docker buildx       |
+| **docker/setup-buildx-action**     | `v3`            | Buildx pour images multi-stage + cache distant          |
+| **docker/build-push-action**       | `v6`            | Build + push vers GHCR (`ghcr.io/<org>/<image>`)        |
+| **aquasecurity/trivy-action**      | `master`        | Scan FS + images Docker — `severity: CRITICAL,HIGH`     |
+| **returntocorp/semgrep-action**    | `v1`            | Static analysis OWASP + secrets accidentels             |
+| **gitleaks/gitleaks-action**       | `v2`            | Détection de secrets dans l'historique git              |
+| **pypa/gh-action-pip-audit**       | `v1`            | Audit deps Python (vs requirements.txt)                 |
+| **codecov/codecov-action**         | `v5`            | Upload couverture (optionnel — sinon artefact)          |
+| **peter-evans/create-pull-request**| `v7`            | PRs automatiques (Renovate fallback, etc.)              |
+| **Turborepo Remote Cache**         | self-hosted     | Cache Turbo `.turbo/` sur MinIO interne (souverain)     |
+| **Renovate**                       | `app`           | Bumps dépendances automatisés (alternative Dependabot)  |
+| **act (CLI)**                      | `0.2.66+`       | Rejoue les workflows en local (Docker)                  |
+
+> 🔒 Tous les outils sont open-source / souverains. Codecov reste optionnel
+> (Codecov est US) — fallback : artefact `coverage-final.json` dans
+> l'onglet Actions.
+
+---
+
+## 3. Architecture / Schéma
+
+```plantuml
+@startuml NINA-AES_CICD
+title CI/CD GitHub Actions — vue d'ensemble
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #EEF2FF
+  BorderColor #4F46E5
+}
+skinparam cloud {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+}
+
+actor "Dev étudiant" as Dev
+rectangle "Pre-commit local\n(Husky)\n• lint-staged\n• verify:repo" as Local
+
+cloud "GitHub" {
+  rectangle "Branche `feat/*`\nPR vers `develop` ou `main`" as PR
+  rectangle "Workflow: verify.yml\n• lint + typecheck\n• verify:repo\n(BLOQUANT)" as Verify
+  rectangle "Workflow: test.yml\n• Jest (Node)\n• Pytest (FastAPI)\n• Couverture artefact\n(BLOQUANT)" as Test
+  rectangle "Workflow: e2e.yml\n• Playwright mock\n• 3 apps Next.js" as E2E
+  rectangle "Workflow: security.yml\n• Trivy · Semgrep\n• gitleaks · pip-audit\n• Bandit\n(BLOQUANT)" as Security
+  rectangle "Workflow: build.yml\n• Turbo build (cache)\n• Docker buildx\n• Push GHCR" as Build
+  rectangle "Workflow: deploy-staging.yml\n• Helm upgrade --install\n• Smoke test API" as Deploy
+}
+
+cloud "Infra MinIO interne\n(souverain)" as MinIO {
+  rectangle "Turbo Remote Cache\n.turbo/* (.tgz)" as TurboCache
+  rectangle "GHCR mirror\nimages Docker" as Registry
+}
+
+cloud "K3s staging\n(CTDEC sandbox)" as K3s
+
+Dev --> Local : git commit
+Local --> PR : git push
+PR --> Verify
+PR --> Test
+PR --> E2E : non-bloquant sauf main
+PR --> Security
+Verify --> Build : si main
+Test --> Build : si main
+Security --> Build : si main
+Build --> Registry : push image\ntag = git-sha
+Build --> Deploy
+Deploy --> K3s : helm upgrade
+
+TurboCache <.. Build : pull/push cache
+
+note bottom of Verify
+  Required check : verify
+end note
+note bottom of Test
+  Required check : test
+end note
+note bottom of Security
+  Required check : security
+end note
+@enduml
+```
+
+---
+
+## 4. Étapes d'implémentation
+
+### Étape 4.1 — Action réutilisable : setup Node + pnpm
+
+**Pourquoi** : on duplique 4 fois la même séquence (`checkout` → `setup-pnpm`
+→ `setup-node` → `install`) dans `verify`, `test`, `e2e`, `build`. Factoriser
+via une **composite action** locale (pas une reusable workflow — plus simple)
+réduit la maintenance.
+
+**Fichier(s) à créer/modifier** :
+
+```yaml
+# .github/actions/setup-node-pnpm/action.yml
+name: Setup Node + pnpm
+description: |
+  Composite action : checkout (déjà fait par caller), pnpm, node 24, install
+  avec cache pnpm store.
+
+inputs:
+  install:
+    description: 'Run pnpm install --frozen-lockfile'
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pnpm (from package.json packageManager)
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Setup Node ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'pnpm'
+
+    - name: Install deps
+      if: inputs.install == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile
+```
+
+```text
+# .nvmrc (créer à la racine)
+24
+```
+
+> 💡 La version pnpm est lue depuis `package.json` → `packageManager:
+> "pnpm@10.12.1"` (déjà présent). Pas besoin de variable d'env.
+
+---
+
+### Étape 4.2 — Workflow `verify.yml` (bloquant)
+
+**Pourquoi** : c'est le check minimal — il replique exactement le pre-commit
+local. Si `verify:repo` passe en local mais pas en CI, c'est un dérive
+d'environnement à corriger immédiatement.
+
+```yaml
+# .github/workflows/verify.yml
+name: verify
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint · Typecheck · verify:repo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Lint (ESLint + Prettier check)
+        run: pnpm run lint
+
+      - name: Format check
+        run: pnpm run format:check
+
+      - name: Typecheck (Turbo)
+        run: pnpm run check-types
+
+      - name: verify:repo (data + schemas + docs sync)
+        run: pnpm run verify:repo
+```
+
+**Validation** :
+
+```powershell
+# Rejoue le workflow en local via `act` (nécessite Docker)
+act -W .github/workflows/verify.yml pull_request
+```
+
+---
+
+### Étape 4.3 — Workflow `test.yml` (Jest Node + Pytest Python)
+
+**Pourquoi** : sépare les tests unitaires du `verify` pour parallélisme et
+diagnostic clair (un échec test ne masque pas un échec lint).
+
+```yaml
+# .github/workflows/test.yml
+name: test
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Tests Node (Jest) ─────────────────────────────────────────────
+  test-node:
+    name: Jest (Node packages + services)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: nina_admin
+          POSTGRES_PASSWORD: ci-test-password-do-not-reuse
+          POSTGRES_DB: nina_aes_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U nina_admin -d nina_aes_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:8.6-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://nina_admin:ci-test-password-do-not-reuse@localhost:5432/nina_aes_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-jwt-secret-minimum-32-characters-long-padding
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Activate PostGIS extension
+        run: |
+          PGPASSWORD=ci-test-password-do-not-reuse psql -h localhost -U nina_admin \
+            -d nina_aes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+      - name: Generate Prisma client
+        run: pnpm --filter @nina-aes/database db:generate
+
+      - name: Apply Prisma migrations
+        run: pnpm --filter @nina-aes/database exec prisma migrate deploy
+
+      - name: Run Jest (root + all packages)
+        run: pnpm test -- --coverage
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-coverage
+          path: '**/coverage/coverage-final.json'
+          retention-days: 14
+
+  # ── Tests Python (Pytest) ─────────────────────────────────────────
+  test-python:
+    name: Pytest (FastAPI services)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ai-service, anticorruption-service]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: services/${{ matrix.service }}/requirements.txt
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run pytest
+        run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-coverage-${{ matrix.service }}
+          path: services/${{ matrix.service }}/coverage.xml
+          retention-days: 14
+```
+
+> ⚠️ **Sur les credentials CI** : le mot de passe Postgres est volontairement
+> visible en clair dans le YAML (pattern `ci-test-password-do-not-reuse`).
+> C'est une **string contextualisée** qui ne donne accès qu'au container
+> postgres éphémère du runner — il ne s'agit pas d'un secret. La règle reste
+> : aucun secret réel n'apparaît dans un workflow ; ils passent par
+> `${{ secrets.* }}` qui pointent vers GitHub Actions Secrets.
+
+---
+
+### Étape 4.4 — Workflow `e2e.yml` (Playwright, mode mock)
+
+**Pourquoi** : les 11 tests Playwright (livrés Session 5, mode `NINA_AUTH_MODE=mock`)
+valident le parcours frontend bout-en-bout sans dépendre des microservices NestJS.
+Idéal pour PR : pas besoin de provisionner Keycloak/identity-service en CI.
+
+```yaml
+# .github/workflows/e2e.yml
+name: e2e
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    name: Playwright (mock auth)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NINA_AUTH_MODE: mock
+      CI: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build apps (Turbo)
+        run: pnpm run build --filter=@nina-aes/citizen --filter=@nina-aes/admin
+
+      - name: Run Playwright tests
+        run: pnpm exec playwright test --reporter=html
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+```
+
+---
+
+### Étape 4.5 — Workflow `security.yml` (Trivy + Semgrep + gitleaks + audits deps)
+
+**Pourquoi** : c'est la matérialisation des scans de la doc 15 dans le pipeline.
+Bloque le merge si une CVE CRITICAL/HIGH apparaît, un secret est commité, ou une
+règle Semgrep OWASP est violée.
+
+```yaml
+# .github/workflows/security.yml
+name: security
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  schedule:
+    # Re-scan nocturne à 03:00 UTC pour capter les nouvelles CVEs
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+  security-events: write   # nécessaire pour push SARIF vers Security tab
+
+jobs:
+  trivy-fs:
+    name: Trivy (filesystem)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy fs scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          format: sarif
+          output: trivy-fs.sarif
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+  semgrep:
+    name: Semgrep (OWASP rules)
+    runs-on: ubuntu-24.04
+    container:
+      image: returntocorp/semgrep:1.110
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep ci --config p/owasp-top-ten --config p/javascript --config p/typescript --config p/python --error
+
+  gitleaks:
+    name: gitleaks (secrets)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # historique complet requis
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pnpm-audit:
+    name: pnpm audit (Node deps)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          install: 'false'
+      - run: pnpm audit --audit-level=high --prod
+        continue-on-error: false
+
+  pip-audit:
+    name: pip-audit (Python deps)
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        service: [ai-service, anticorruption-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/gh-action-pip-audit@v1
+        with:
+          inputs: services/${{ matrix.service }}/requirements.txt
+
+  bandit:
+    name: Bandit (Python static)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: pip install bandit[toml]
+      - run: bandit -r services/ai-service/app services/anticorruption-service/app -ll
+```
+
+---
+
+### Étape 4.6 — Workflow `build.yml` (Turbo cache + Docker buildx)
+
+**Pourquoi** : sur `main`, on construit toutes les images Docker et on les
+pousse vers GHCR (GitHub Container Registry) avec tag = `git-sha`. Le job
+exploite un **Turbo remote cache** auto-hébergé (MinIO interne) pour ne pas
+re-builder ce que `verify` a déjà compilé.
+
+```yaml
+# .github/workflows/build.yml
+name: build
+
+on:
+  push:
+    branches: [main]
+  workflow_call: {}   # appelable par deploy-staging.yml
+
+permissions:
+  contents: read
+  packages: write   # push GHCR
+
+env:
+  TURBO_API: ${{ secrets.TURBO_REMOTE_CACHE_URL }}    # ex. https://turbo-cache.aes.internal
+  TURBO_TOKEN: ${{ secrets.TURBO_REMOTE_CACHE_TOKEN }}
+  TURBO_TEAM: nina-aes
+  REGISTRY: ghcr.io
+
+jobs:
+  turbo-build:
+    name: Turbo build (with remote cache)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Build all
+        run: pnpm run build
+
+  docker-images:
+    name: Docker · ${{ matrix.service }}
+    runs-on: ubuntu-24.04
+    needs: turbo-build
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - identity-service
+          - auth-service
+          - audit-service
+          - document-service
+          - ai-service
+          - anticorruption-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine Dockerfile
+        id: dockerfile
+        run: |
+          if [[ "${{ matrix.service }}" == *"-service" && \
+                ( "${{ matrix.service }}" == "ai-service" || \
+                  "${{ matrix.service }}" == "anticorruption-service" ) ]]; then
+            echo "path=infrastructure/docker/Dockerfile.fastapi" >> $GITHUB_OUTPUT
+          else
+            echo "path=infrastructure/docker/Dockerfile.nestjs" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.dockerfile.outputs.path }}
+          build-args: SERVICE=${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}:main
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Trivy scan image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: 1
+```
+
+---
+
+### Étape 4.7 — Workflow `deploy-staging.yml` (Helm K3s)
+
+**Pourquoi** : après un build vert sur `main`, on déploie automatiquement sur
+le cluster K3s staging (CTDEC sandbox). Le workflow consomme le tag
+`git-sha` produit par `build.yml`.
+
+```yaml
+# .github/workflows/deploy-staging.yml
+name: deploy-staging
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false   # ne jamais annuler un déploiement en cours
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+  deploy:
+    name: Helm upgrade staging
+    runs-on: ubuntu-24.04
+    needs: build
+    environment:
+      name: staging
+      url: https://staging.nina-aes.uqar.ca
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl + helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.16.4'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.K3S_STAGING_KUBECONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install nina-aes ./infrastructure/helm/nina-aes \
+            --namespace nina-aes-staging \
+            --create-namespace \
+            --set image.tag=${{ github.sha }} \
+            --set ingress.host=staging.nina-aes.uqar.ca \
+            --wait --timeout 10m
+
+      - name: Smoke test API
+        run: |
+          curl -fsSL --retry 5 --retry-delay 10 \
+            https://staging.nina-aes.uqar.ca/api/health \
+            | grep '"status":"ok"'
+```
+
+> 🔒 Le secret `K3S_STAGING_KUBECONFIG` contient un kubeconfig avec un
+> ServiceAccount limité au namespace `nina-aes-staging` (NOT cluster-admin).
+> Voir `infrastructure/k3s/staging-deployer-sa.yaml`.
+
+---
+
+### Étape 4.8 — Branch protection sur `main`
+
+**Configuration UI GitHub** (Settings → Branches → Branch protection rules) :
+
+| Réglage                                              | Valeur                                      |
+| ---------------------------------------------------- | ------------------------------------------- |
+| Require a pull request before merging                | ✅ + 1 reviewer (tuteur ou co-étudiant)     |
+| Require status checks to pass before merging         | ✅                                          |
+| → Required checks                                    | `verify`, `test-node`, `test-python`, `gitleaks`, `trivy-fs`, `semgrep` |
+| Require branches to be up to date before merging     | ✅                                          |
+| Require conversation resolution before merging       | ✅                                          |
+| Require linear history                               | ✅ (rebase-and-merge uniquement)            |
+| Require signed commits                               | ⚠️ recommandé (GPG/SSH signing)             |
+| Include administrators                               | ✅ (même l'étudiant ne peut pas bypass)     |
+| Allow force pushes                                   | ❌                                          |
+| Allow deletions                                      | ❌                                          |
+
+> 💡 Pour un projet solo universitaire, le « 1 reviewer » est levé (sinon
+> personne ne peut merger). Compromis : exiger qu'un test de relecture
+> minimal soit fait par soi-même via `gh pr review --approve` après une nuit
+> de recul.
+
+---
+
+### Étape 4.9 — Renovate (bumps automatisés)
+
+**Fichier(s) à créer** :
+
+```json
+// renovate.json (racine du repo)
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":automergeMinor",
+    ":automergePatch"
+  ],
+  "timezone": "America/Toronto",
+  "schedule": ["after 1am and before 5am every weekday"],
+  "labels": ["dependencies", "renovate"],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 8,
+  "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["needs-manual-review"]
+    },
+    {
+      "matchPackagePatterns": ["^@prisma/", "^prisma$"],
+      "groupName": "prisma",
+      "addLabels": ["needs-manual-review"]
+    },
+    {
+      "matchPackagePatterns": ["^next$", "^react$"],
+      "groupName": "next-react",
+      "addLabels": ["needs-manual-review"]
+    },
+    {
+      "matchManagers": ["pip_requirements"],
+      "rangeStrategy": "bump"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "urgent"]
+  }
+}
+```
+
+L'app Renovate s'installe via GitHub Marketplace (`Settings → Integrations →
+Renovate`). Configuration validée au prochain run nocturne.
+
+---
+
+### Étape 4.10 — Badges README
+
+**Fichier(s) à modifier** : `README.md` (haut du fichier).
+
+```markdown
+[![verify](https://github.com/<org>/nina-aes-platform/actions/workflows/verify.yml/badge.svg)](https://github.com/<org>/nina-aes-platform/actions/workflows/verify.yml)
+[![test](https://github.com/<org>/nina-aes-platform/actions/workflows/test.yml/badge.svg)](https://github.com/<org>/nina-aes-platform/actions/workflows/test.yml)
+[![e2e](https://github.com/<org>/nina-aes-platform/actions/workflows/e2e.yml/badge.svg)](https://github.com/<org>/nina-aes-platform/actions/workflows/e2e.yml)
+[![security](https://github.com/<org>/nina-aes-platform/actions/workflows/security.yml/badge.svg)](https://github.com/<org>/nina-aes-platform/actions/workflows/security.yml)
+```
+
+---
+
+## 5. Validation locale (act)
+
+Avant de pousser, rejouer **chaque** workflow en local via [act](https://nektosact.com/) :
+
+```powershell
+# Installation Windows : scoop install act ; ou : choco install act-cli
+# Sur Linux/macOS : brew install act
+
+# Rejoue le workflow verify
+act -W .github/workflows/verify.yml pull_request
+
+# Rejoue test (avec services PostGIS/Redis via Docker)
+act -W .github/workflows/test.yml pull_request --container-architecture linux/amd64
+
+# Rejoue security (avec un secret factice GITHUB_TOKEN)
+act -W .github/workflows/security.yml pull_request -s GITHUB_TOKEN=fake-token-for-act
+```
+
+> 💡 `act` est un outil souverain (Go, MIT) qui simule GitHub Actions en
+> local. Il est ~85 % fidèle — quelques actions (notamment celles qui
+> dépendent de l'API GitHub comme `gh`) ne marchent qu'en CI réelle.
+
+---
+
+## 6. Pièges courants & dépannage
+
+| Symptôme                                                       | Cause probable                                       | Solution                                                       |
+| -------------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| `pnpm install` lent (~3 min) à chaque run                      | Cache pnpm non hit                                   | Vérifier que `cache: 'pnpm'` est bien dans `setup-node@v4` et que `pnpm-lock.yaml` est commité |
+| `verify:repo` passe en local mais échoue en CI                 | Locale `fr-FR.UTF-8` absente du runner Ubuntu        | Ajouter `LC_ALL: en_US.UTF-8` dans `env:` du job               |
+| Postgres CI : `database "nina_aes_test" does not exist`        | L'image `postgis/postgis:18` ne crée pas la DB tant que `POSTGRES_DB` non posé | Vérifier `env: POSTGRES_DB: nina_aes_test` dans `services.postgres` |
+| Playwright : `Error: browserType.launch: ... missing X server` | Browsers installés sans `--with-deps`                | `pnpm exec playwright install --with-deps chromium`            |
+| `gitleaks` faux positif sur exemples (ex. `JWT_SECRET=foo`)    | Patterns par défaut trop larges                      | Ajouter `.gitleaks.toml` avec `[allowlist]` et un commentaire ticket |
+| `Trivy` failed: `unable to find vulnerability database`         | DB Trivy down (rare)                                 | Retry — DB hostée chez Aqua, rétablie sous quelques minutes    |
+| Turbo remote cache MISS systématique                            | Token / URL mal configurés                           | Vérifier `TURBO_API` + `TURBO_TOKEN` dans secrets ; `turbo run build --dry=json` pour debug |
+| Push GHCR : `denied: installation not allowed to upload`        | Permissions du `GITHUB_TOKEN` du workflow trop faibles | Ajouter `permissions: packages: write` au niveau workflow      |
+| Deploy staging : `helm upgrade` timeout                         | Image pas encore poussée quand deploy démarre        | Ajouter `needs: docker-images` ou `wait` sur tous les builds   |
+| `act` : `ENOSPC: no space left on device`                       | Cache Docker local plein                             | `docker system prune -af --volumes`                            |
+
+---
+
+## 7. Documentation à produire
+
+- `docs/adr/ADR-016-cicd-github-actions.md` — décision GitHub Actions vs
+  alternatives, plus design des 5 workflows.
+- `docs/CHANGELOG.md` §14 (ajout) : liste des workflows livrés + corrections
+  appliquées sur l'ancien `ci.yml`.
+- `MAINTENANCE.md` §10 : retirer la mention « CI/CD (doc 16) ajoutera... »
+  et la remplacer par une référence à ce document maintenant qu'il existe.
+- `README.md` (racine) : ajouter les 4 badges en tête de fichier.
+- `infrastructure/helm/nina-aes/` (si Helm chart pas encore livré — sinon
+  référence vers doc 20).
+
+---
+
+## 8. Mini-rapport d'étape (template)
+
+```markdown
+### Rapport — CI/CD GitHub Actions — JJ/MM/2026
+
+- **Status** : ✅ Terminé / ⏳ En cours / ❌ Bloqué
+- **Temps réel passé** : X heures
+- **Workflows livrés** : verify ✅ · test ✅ · e2e ✅ · security ✅ · build ✅ · deploy-staging ✅
+- **Caches actifs** : pnpm store ✅ · Playwright browsers ✅ · pip ✅ · Turbo remote ⏳ · Docker buildx ✅
+- **Branch protection** : ✅ activée sur `main` (6 required checks)
+- **Renovate** : ✅ app installée, 1er run nocturne ok
+- **Temps moyen run PR** : X min (cible < 5 min)
+- **Badges README** : ✅ 4 badges affichés et verts
+- **Difficultés rencontrées** :
+- **Solutions trouvées** :
+- **Prochaines actions** : doc 17 (Monitoring) — pipeline alimente Prometheus
+  via webhook GitHub → Alertmanager
+- **Captures jointes** : github-actions-overview.png, branch-protection.png, renovate-pr.png
+```
+
+---
+
+## 9. Checklist de fin d'étape
+
+- [ ] `.github/actions/setup-node-pnpm/action.yml` créé et testé localement (act)
+- [ ] `.nvmrc` créé à la racine, contenu = `24`
+- [ ] `verify.yml` livré, vert sur PR test
+- [ ] `test.yml` livré (Node + Python matrix), vert sur PR test
+- [ ] `e2e.yml` livré, Playwright HTML report en artefact
+- [ ] `security.yml` livré, 6 jobs (trivy-fs, semgrep, gitleaks, pnpm-audit, pip-audit, bandit), tous verts
+- [ ] `build.yml` livré, 6 images Docker poussées sur GHCR avec tag `git-sha`
+- [ ] `deploy-staging.yml` livré, smoke test API passe
+- [ ] Branch protection `main` configurée (6 required checks)
+- [ ] `renovate.json` mergé, app Renovate installée
+- [ ] Badges ajoutés au README
+- [ ] `ADR-016` rédigé
+- [ ] `docs/CHANGELOG.md` §14 ajouté
+- [ ] `MAINTENANCE.md` §10 mis à jour (retirer mention prospective)
+- [ ] Aucun secret réel commité (`gitleaks detect --no-git` clean)
+- [ ] Tag Git `cicd-mvp` posé après validation tutorat
+- [ ] Commit conventionnel : `feat(ci): pipelines verify+test+e2e+security+build+deploy + ADR-016`
+
+---
+
+## 10. Pour aller plus loin
+
+- **Self-hosted runners** : pour réduire les coûts en cas de scale (et
+  garder le contrôle sur l'environnement d'exécution). Image runner =
+  Debian 12 + Docker + pnpm pre-installé. Provisionner via Ansible sur 2
+  VMs CTDEC ou un cluster Hetzner souverain (datacenter EU).
+- **OIDC GitHub → AWS / Azure** : remplacer `K3S_STAGING_KUBECONFIG` long-lived
+  par un OIDC trust : GitHub émet un token court (15 min), le cluster K3s
+  vérifie le claim `repo:<org>/nina-aes-platform:ref:refs/heads/main` —
+  zéro secret persistant.
+- **Pipeline preview env** : déployer chaque PR sur un sous-domaine éphémère
+  (`pr-<NN>.nina-aes.uqar.ca`) via un namespace K3s temporaire. Très utile
+  pour la revue UX. Coût : ~1 GB RAM × N PRs ouvertes.
+- **Mergify ou Kodiak** : automerge conditionnel (« si tous les checks passent
+  ET 1 reviewer approuve ET pas de label `do-not-merge` »). Évite les
+  merges manuels à 2 h du matin avant soutenance.
+- **SBOM en artefact** : intégrer `syft packages dir:.` à chaque build pour
+  générer la liste exhaustive des dépendances dans un format CycloneDX —
+  exigence croissante des audits gouvernementaux (cf. doc 15 §10).
+- **Lectures recommandées** :
+  - <https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions>
+  - <https://turbo.build/repo/docs/core-concepts/remote-caching>
+  - <https://docs.renovatebot.com/configuration-options/>
+  - <https://nektosact.com/usage/index.html> (act)
+  - SLSA framework (<https://slsa.dev/>) pour la chaîne d'approvisionnement
+
+---
+
+_Document 16 — Version 1.0 — Mai 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_

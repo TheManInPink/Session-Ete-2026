@@ -1005,3 +1005,89 @@ Setup multi-app au niveau root (config unique pilotant 2 projets) +
     `e2e/integration/` vs `e2e/ui/`).
   - **Snapshots visuels** : Playwright `expect.toHaveScreenshot()` une
     fois les écrans stabilisés (Session 7+).
+
+## 14. CI/CD — Doc 16 + ADR-016 (mai 2026)
+
+Première livraison documentaire de la phase transversale **Qualité,
+sécurité, déploiement** (docs 15 → 20). La doc 16 et l'ADR
+associée formalisent la stack CI/CD GitHub Actions et identifient les
+écarts à corriger sur le `ci.yml` historique.
+
+### 14.1 Livrables documentaires
+
+- `docs/16-CICD-GITHUB-ACTIONS.md` (~610 lignes) : guide complet
+  d'implémentation du pipeline cible (5 workflows : verify, test, e2e,
+  security, build + 1 deploy-staging + composite action
+  `setup-node-pnpm` + Renovate + branch protection + badges README).
+- `docs/adr/ADR-016-cicd-github-actions.md` (~155 lignes) : décision
+  GitHub Actions vs alternatives (GitLab CI SaaS/auto-hébergé, Drone,
+  Jenkins, CircleCI, monolithique `ci.yml`), note souveraineté, plan
+  de migration Forgejo Actions pour gouvernance AES.
+
+### 14.2 Écarts identifiés sur `.github/workflows/ci.yml` actuel
+
+L'unique workflow présent (`ci.yml`, monolithique) présente plusieurs
+dérives par rapport aux décisions infra (cf. §9.5) qui seront corrigées
+lors de l'implémentation effective du doc 16 :
+
+| Composant CI actuel              | Décision projet (§9.5)                | Action            |
+| -------------------------------- | ------------------------------------- | ----------------- |
+| `postgres:16-alpine`             | `postgis/postgis:18-3.6`              | À corriger        |
+| `redis:7-alpine`                 | `redis:8.6-alpine`                    | À corriger        |
+| `rabbitmq:3.13-alpine`           | `rabbitmq:4.2-management-alpine`      | À corriger        |
+| `PYTHON_VERSION: "3.12"`         | Python 3.14                            | À corriger        |
+| `POSTGRES_USER: nina_user`       | `nina_admin` (cf. `init-db.sql`)      | À corriger        |
+| `pnpm db:push`                   | `prisma migrate deploy` (canonique)   | À corriger        |
+| Tests Python : ai-service seul   | + anticorruption-service              | À étendre         |
+| 0 cache Playwright               | `actions/cache@v4` keyed pnpm-lock    | À ajouter         |
+| 0 SARIF upload                   | `github/codeql-action/upload-sarif`   | À ajouter         |
+| 1 fichier `ci.yml` monolithique  | 5 workflows séparés                   | À refactorer      |
+| 0 Renovate                       | `renovate.json` documenté             | À installer       |
+
+### 14.3 Architecture cible (résumé)
+
+- **5 workflows PR/push** : `verify` (lint + typecheck + `verify:repo`),
+  `test` (Jest Node + Pytest Python matrix), `e2e` (Playwright mock 3
+  apps), `security` (Trivy + Semgrep + gitleaks + pnpm-audit + pip-audit
+  + Bandit), `build` (Turbo + Docker buildx + push GHCR).
+- **1 workflow déploiement** : `deploy-staging` (Helm upgrade sur K3s
+  staging CTDEC, déclenché sur `main`).
+- **1 composite action** : `.github/actions/setup-node-pnpm` factorise
+  checkout + pnpm + node + install.
+- **Caches** : pnpm store (natif setup-node), Playwright browsers
+  (actions/cache), pip wheels (natif setup-python), Docker buildx
+  (cache-from: gha), Turborepo remote cache **self-hosted MinIO**
+  (souverain — pas Vercel).
+- **Branch protection main** : 6 required checks (verify, test-node,
+  test-python, gitleaks, trivy-fs, semgrep). Linear history, signed
+  commits recommandés, no force push.
+- **Renovate** : `automergeMinor` + `automergePatch`, schedule nocturne
+  (after 1am, before 5am, America/Toronto), grouping Prisma +
+  Next/React + flag manual-review sur majeurs.
+- **Cible perf** : < 5 min par PR moyen (après chauffe caches), < 1 200
+  min runners / mois.
+
+### 14.4 Reste à faire (implémentation effective)
+
+L'implémentation des workflows YAML est planifiée comme Phase 3
+post-doc-15 (Sécurité). Doc 16 livre la spec, pas encore le code :
+
+  - Créer `.github/actions/setup-node-pnpm/action.yml` + `.nvmrc`
+  - Splitter `ci.yml` → `verify.yml` + `test.yml` + `e2e.yml` +
+    `security.yml` + `build.yml`
+  - Créer `deploy-staging.yml` + provisionner ServiceAccount K3s
+    (kubeconfig dans `K3S_STAGING_KUBECONFIG`)
+  - Activer Turbo remote cache MinIO (URL + token dans secrets)
+  - Installer Renovate app + commiter `renovate.json`
+  - Configurer branch protection rules (UI GitHub)
+  - Ajouter les 4 badges au README
+  - Tagger `cicd-mvp` après validation tutorat
+
+### 14.5 Mise à jour cross-références
+
+- `MAINTENANCE.md §10` : la mention prospective « CI/CD (doc 16) ajoutera
+  `pnpm run verify:repo` comme step bloquant » est remplacée par un lien
+  direct vers `docs/16-CICD-GITHUB-ACTIONS.md`.
+- `docs/00-README-INDEX.md §2` : doc 16 conserve son entrée originale ;
+  l'estimation reste 8-12 h (spec livrée + ~6 h pour l'implémentation
+  YAML).
