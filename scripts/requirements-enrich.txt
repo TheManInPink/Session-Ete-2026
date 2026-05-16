@@ -7,7 +7,7 @@
 # Test :
 #   python scripts/enrich-cercles.py --verbose   # dry-run
 
-requests>=2.32,<3.0
+requests>=2.34.2,<3.0
 beautifulsoup4>=4.13,<5.0
 
 # lxml est optionnel : le script bascule sur html.parser (builtin) si absent.
