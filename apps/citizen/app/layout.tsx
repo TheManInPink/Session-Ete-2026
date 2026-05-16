@@ -21,13 +21,20 @@
  */
 
 import './globals.css';
+import { Suspense } from 'react';
 import { HtmlLangSetter } from './_components/html-lang-setter';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-screen bg-bg text-fg antialiased">
-        <HtmlLangSetter />
+        {/* HtmlLangSetter utilise `usePathname()` côté client — Next 16 +
+            cacheComponents le considère comme un accès « request-scoped »
+            (déductible du SSR). On l'enveloppe dans Suspense pour ne pas
+            bloquer le stream de la coque statique. */}
+        <Suspense fallback={null}>
+          <HtmlLangSetter />
+        </Suspense>
         {children}
       </body>
     </html>

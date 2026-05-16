@@ -12,6 +12,7 @@
  */
 
 import './globals.css';
+import { Suspense } from 'react';
 import { HtmlLangSetter } from './_components/html-lang-setter';
 import type { Metadata } from 'next';
 
@@ -30,7 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-screen bg-bg text-fg antialiased">
-        <HtmlLangSetter />
+        {/* Suspense exigée par Next 16 + cacheComponents — HtmlLangSetter
+            lit usePathname() (request-scoped) et bloquerait sinon le stream
+            de la coque statique. Cf. apps/citizen/app/layout.tsx. */}
+        <Suspense fallback={null}>
+          <HtmlLangSetter />
+        </Suspense>
         {children}
       </body>
     </html>

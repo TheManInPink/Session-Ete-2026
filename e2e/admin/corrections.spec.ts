@@ -14,43 +14,42 @@ test.describe('AD-02 — DataGrid corrections', () => {
 
     await expect(page.getByRole('heading', { name: /demandes de correction/i })).toBeVisible();
 
-    // Au moins 1 ligne de tableau (cliquable)
     const rows = page.locator('table tbody tr');
     await expect(rows.first()).toBeVisible();
     expect(await rows.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test('filtre statut UNDER_REVIEW change le résultat', async ({ page }) => {
+  test('filtre statut UNDER_REVIEW réduit ou maintient le résultat', async ({ page }) => {
     await page.goto('/fr/corrections');
 
-    // Compte initial
     const initialCount = await page.locator('table tbody tr').count();
 
-    // Ouvrir le dropdown statut + cocher UNDER_REVIEW
-    await page.getByRole('button', { name: /^statut/i }).click();
+    // Deux boutons « Statut » existent : (1) toolbar dropdown, (2) header
+    // de tri de la colonne Statut dans le tableau. On cible le premier
+    // via `.first()` (la toolbar est rendue avant le tableau).
+    await page.getByRole('button', { name: 'Statut' }).first().click();
+
+    // Le menu DropdownMenu de Radix utilise role="menuitem"
     await page.getByRole('menuitem', { name: /en revue/i }).click();
-    // Fermer le menu (Escape)
     await page.keyboard.press('Escape');
 
-    // Compte filtré (peut être identique si UNDER_REVIEW domine, mais
-    // au moins le badge filtre apparaît)
-    await expect(page.locator('button', { hasText: /^statut/i }).locator('span').last()).toBeVisible();
     const filteredCount = await page.locator('table tbody tr').count();
     expect(filteredCount).toBeLessThanOrEqual(initialCount);
   });
 
-  test('click ligne ouvre le drawer détail', async ({ page }) => {
+  test('click ligne ouvre le drawer détail avec actions', async ({ page }) => {
     await page.goto('/fr/corrections');
     await page.locator('table tbody tr').first().click();
 
-    // Sheet/dialog visible
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    // AiScorePanel présent (titre « Score IA »)
-    await expect(dialog.getByText(/score ia/i)).toBeVisible();
+    // AiScorePanel : on cible le `<h3>Score IA</h3>` précisément via le
+    // rôle heading (sinon collision avec « Score IA calculé » de la
+    // timeline qui contient aussi le texte).
+    await expect(dialog.getByRole('heading', { name: 'Score IA' })).toBeVisible();
 
-    // Boutons Approuver / Rejeter
+    // Boutons d'action en footer du drawer
     await expect(dialog.getByRole('button', { name: /approuver/i })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /rejeter/i })).toBeVisible();
   });

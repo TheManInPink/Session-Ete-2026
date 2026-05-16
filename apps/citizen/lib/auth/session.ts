@@ -22,12 +22,15 @@ import {
   type UserProfile,
 } from '@nina-aes/auth';
 
-/** Mock citoyen — Fatoumata Diallo, NINA fictif, rôle CITIZEN. */
+/** Mock citoyen — Fatoumata Diallo, NINA fictif **valide** (la lettre de
+ *  contrôle V est dérivée des 14 chiffres via `validateNina()`). L'ancien
+ *  `...Z` était incorrect — il déclenchait isOwnerOf=false sur toutes les
+ *  routes vérifiant l'ownership (wizard correction notamment). */
 const MOCK_CITIZEN: UserProfile = {
   id: 'mock-citizen-001',
   email: 'fatoumata.diallo@nina-aes.demo',
   name: 'Fatoumata Diallo',
-  nina: '18903102015042Z',
+  nina: '18903102015042V',
   matricule: null,
   centerId: null,
   roles: ['CITIZEN'],

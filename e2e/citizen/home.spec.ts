@@ -27,9 +27,12 @@ test.describe('PC-01 — Accueil citoyen', () => {
     await expect(page.getByRole('link', { name: /se connecter/i })).toBeVisible();
   });
 
-  test('redirige racine vers /fr', async ({ page }) => {
+  test('racine `/` redirige vers une locale supportée', async ({ page }) => {
     const res = await page.goto('/');
-    expect(res?.url()).toContain('/fr');
+    // next-intl localePrefix=always : `/` redirige toujours vers `/<locale>`.
+    // La locale choisie dépend de l'Accept-Language négocié par le
+    // navigateur — on accepte n'importe laquelle des 8 locales AES.
+    expect(res?.url()).toMatch(/\/(fr|bm|snk|ff|tmq|hau|mos|dje)(\/|$)/);
   });
 
   test('change de langue via le LanguageSwitcher', async ({ page }) => {

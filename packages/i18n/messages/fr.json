@@ -31,7 +31,7 @@
       "help": "Saisissez votre numéro d'identité (15 caractères : 14 chiffres + 1 lettre de contrôle).",
       "ninaLabel": "Numéro NINA",
       "submit": "Rechercher",
-      "examplePlaceholder": "18903102015042Z"
+      "examplePlaceholder": "18903102015042V"
     },
     "view": {
       "photoOk": "Photo disponible",
