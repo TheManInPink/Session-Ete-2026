@@ -1503,3 +1503,213 @@ télémétrie cloud par défaut.
 **5 docs + 5 ADR livrés** sur la session phase transversale, totalisant
 ~5 700 lignes documentaires + ~1 100 lignes ADR. Toutes les chaînes
 `verify:repo` passent vertes après chaque livraison.
+
+## 19. Bloc B Interopérabilité AES — Doc 21 + ADR-021 (mai 2026)
+
+Première livraison **Blocs B → F** (extensions post-Bloc-A).
+
+### 19.1 Livrables
+
+- `docs/21-BLOC-B-INTEROPERABILITE-AES.md` (~620 lignes) : spec
+  complète protocole **BCID-AES v1** (Border Citizen Identity —
+  Alliance des États du Sahel), microservice `interop-service` NestJS
+  port 3006, mTLS + JWS Ed25519, rate limiting 1000/h/pays via Redis
+  sliding window, tables Prisma `aes_partner_keys` + `aes_verification_logs`,
+  onglet « Interop AES » dans `apps/governance`, OpenAPI 3.1 publié
+  pour partenaires BFA + NER.
+
+- `docs/adr/ADR-021-protocole-bcid-aes-interop.md` (~225 lignes) :
+  décision protocole custom BCID-AES vs 9 alternatives (eIDAS, OAuth
+  Federation, SAML, W3C VC+DID, INTERPOL I-24/7, CEDEAO, gRPC, mTLS
+  seul, JWE), note souveraineté avec position **anti-eIDAS** (refus
+  supervision UE), 10 métriques de suivi.
+
+### 19.2 Décisions clés
+
+- REST sur HTTPS + mTLS (pas gRPC, simplicité debug)
+- Double couche auth : mTLS pour gateway + JWS Ed25519 pour payload
+- Schéma réponse **minimaliste** `{exists, valid, vulnerable, lastUpdated}`
+  — privacy by design, impossible de reconstruire base citoyens
+- Versionnage explicite par path `/v1/`, `/v2/`
+- Audit Merkle 10 ans compatible ADR-014
+
+## 20. Bloc C Modules gouvernementaux — Doc 22 + ADR-022 (mai 2026)
+
+### 20.1 Livrables
+
+- `docs/22-BLOC-C-MODULES-GOUVERNEMENTAUX.md` (~580 lignes) : 3
+  sous-modules consolidés — **C1 vulnerability-service** (port 3011,
+  catégories grossesse/handicap/65+/mineur/IDP/chronique, file
+  prioritaire RDV, agent mobile offline 5j, BullMQ),
+  **C2 SGOGT** (messagerie officielle JWS Ed25519, escalade TTL 4h/24h),
+  **C3 Élections** (inscription auto à 18 ans via cron quotidien
+  Africa/Bamako, export delta DGE signé SHA-256 + JWS, pseudonyme via
+  sel rotated 5 ans).
+
+- `docs/adr/ADR-022-modules-gouvernementaux-scope.md` (~145 lignes) :
+  décision **2 microservices** (`vulnerability-service` autonome +
+  `governance-service` contenant SGOGT + Élections) vs 3 séparés ou 1
+  monolithique, 8 alternatives rejetées, 8 métriques de suivi.
+
+### 20.2 Décisions clés
+
+- vulnerability-service autonome (cache offline + BullMQ spécifique)
+- SGOGT + Élections consolidés dans governance-service (RBAC + UI partagés)
+- Pseudonyme électeurs = SHA-256(NINA + sel-élection-rotated-5y)
+- Aucun NINA en clair dans export DGE
+
+## 21. Bloc D SIGAC Anti-corruption — Doc 23 + ADR-023 (mai 2026)
+
+### 21.1 Livrables
+
+- `docs/23-BLOC-D-SIGAC-ANTICORRUPTION.md` (~680 lignes) :
+  `anticorruption-service` FastAPI port 3009 (scaffold existant
+  étendu), 3 modèles ML (**Isolation Forest** scikit-learn 1.7 pour
+  anomalies agents, **LSTM** PyTorch 2.5 séries temporelles, **BERT
+  AfroXLMR** `Davlan/afro-xlmr-base` pour classif signalements
+  multilingue bambara/peul), scoring intégrité 5 facteurs hebdo (0-100),
+  canal USSD `*123*ALERTE#` chiffré Vault Transit Ed25519 (numéro
+  téléphone JAMAIS enregistré), workflow lanceur d'alerte, MLflow
+  self-hosted pour tracking.
+
+- `docs/adr/ADR-023-sigac-ml-stack-lanceurs-alerte.md` (~230 lignes) :
+  décision stack 3 modèles complémentaires vs 8 alternatives (GPT-4
+  SaaS, Llama 3, autoencoder seul, règles uniquement, Tor, PGP),
+  distinction explicite avec ADR-015 (erreurs NINA vs comportements
+  agents), interdiction Datadog APM / SageMaker / Vertex AI.
+
+### 21.2 Décisions clés
+
+- **Le ML ne décide pas, il flagge** — RGPD art. 22 compliance
+- Anonymat lanceur d'alerte mathématiquement garanti (chiffrement
+  asymétrique côté serveur, clé privée Vault non exportable)
+- AfroXLMR pré-entraîné langues africaines (vs `bert-multilingual-cased`)
+- Dataset synthétique pour fine-tuning (zero leak NINA réels)
+
+## 22. Bloc E Bornes kiosque — Doc 24 + ADR-024 (mai 2026)
+
+### 22.1 Livrables
+
+- `docs/24-BLOC-E-BORNES-KIOSQUE-ELECTRON.md` (~620 lignes) : app
+  Electron 31 LTS `apps/kiosk`, mode kiosque verrouillé Win+Linux,
+  preload sécurisé (contextIsolation + sandbox), 4 écrans
+  pictogrammes (Scan / Book / Print / Report), lecteur QR via
+  `@zxing/browser`, imprimante thermique ESC/POS via
+  `node-thermal-printer`, cache local SQLite + queue offline 24h,
+  auto-update signé Ed25519 depuis serveur souverain interne,
+  télémétrie heartbeat 5 min vers `apps/admin`.
+
+- `docs/adr/ADR-024-kiosk-electron-vs-pwa.md` (~190 lignes) : décision
+  Electron 31 vs 7 alternatives (PWA, Win32 C#, native Qt/GTK,
+  tablette Android, LineageOS, Tauri, Wails, pas de borne du tout),
+  note souveraineté avec auto-update interne uniquement (pas
+  GitHub release public), migration Tauri envisagée V3.
+
+### 22.2 Décisions clés
+
+- Réutilisation 80 % du code citizen-app
+- contextIsolation + sandbox + CSP strict obligatoires
+- Auto-update signé Ed25519, jamais GitHub release
+- Mode offline 24h gracieux (queue SQLite)
+
+## 23. Bloc F Biométrie — Doc 25 + ADR-025 (mai 2026, vision V1)
+
+### 23.1 Livrables
+
+- `docs/25-BLOC-F-BIOMETRIE.md` (~580 lignes) : **plan progressif V1
+  (vision sans implémentation)**, phasage P3a (empreintes 1:1) → P3b
+  (face 1:1) → P3c (1:N restreint), pipeline hash irréversible
+  HMAC-SHA-256 + salt Vault rotated 5y, format ISO/IEC 19794-* (pas
+  de vendor lock-in), consentement signé JWS Ed25519 obligatoire,
+  audit Merkle de chaque opération biométrique, DPIA modèle, critères
+  go/no-go chiffrés entre phases (FAR < 0.01 %, FRR < 1 %).
+
+- `docs/adr/ADR-025-biometrie-phasage-et-hash-irreversible.md` (~230
+  lignes) : décision phasage strict + hash irréversible obligatoire
+  vs 8 alternatives (no biometrics, templates clair encrypted, images
+  brutes, match-on-card Estonie, Aadhaar centralisé clear, algos
+  propriétaires, fingerprint smartphone TouchID/FaceID, pas de phasage),
+  note souveraineté avec interdiction Microsoft Face / AWS Rekognition
+  / Google Vision.
+
+### 23.2 Décisions clés
+
+- **Statut V1 = vision seulement** — implémentation conditionnée à
+  cadre juridique malien stabilisé + validation OCLEI + pen-test ANSSI
+- Hash HMAC-SHA-256(template, salt Vault) — irréversible
+- Aucune image brute persistée (RAM only < 200 ms)
+- Salt rotation 5y = défense ultime (force re-enrôlement si Vault compromis)
+- 1:N uniquement avec mandat judiciaire + double validation procureur
+
+## 24. Rapport final soutenance — Doc 26 (mai 2026)
+
+### 24.1 Livrables
+
+- `docs/26-RAPPORT-FINAL-SOUTENANCE.md` (~580 lignes) : plan
+  d'écriture du rapport final 60-80 pages structure UQAR, plan
+  présentation soutenance 20-30 min (intro / démo live 12 min /
+  architecture / qualité / blocs B-F / conclusion), script
+  démonstration live minute par minute avec plan B en cas de panne,
+  tableau métriques chiffrées consolidées, top 30 questions
+  anticipées + réponses préparées, rétrospective honnête (ce qui a
+  marché / pas marché / referait autrement), checklist J-15 à J-jour J.
+
+### 24.2 Pas d'ADR
+
+Le doc 26 est un **plan de soutenance**, pas une décision
+architecturale → pas d'ADR-026 associée. Les 25 ADRs (001-025)
+couvrent l'intégralité des décisions techniques du projet.
+
+### 24.3 Rétrospective honnête livrée
+
+5 succès assumés + 5 échecs assumés + 5 « ce qu'on referait
+autrement » + 5 leçons personnelles. Volonté explicite de transparence
+pédagogique pour le jury.
+
+## 25. État global docs (00-26) — CLÔTURE COMPLÈTE
+
+| Doc | Sujet                              | Statut     | Commit       |
+| --- | ---------------------------------- | ---------- | ------------ |
+| 00  | README Index                       | ✅ Existant | (avant)      |
+| 01  | Cahier des charges                 | ✅ Existant | (avant)      |
+| 02  | Architecture globale               | ✅ Existant | (avant)      |
+| 03  | Setup environnement dev            | ✅ Existant | (avant)      |
+| 04  | Monorepo Structure                 | ✅ Existant | (avant)      |
+| 05  | Infrastructure Docker Compose      | ✅ Existant | (avant)      |
+| 06  | Database Schema Prisma             | ✅ Existant | (avant)      |
+| 07  | Backend Identity Service           | ✅ Existant | (avant)      |
+| 08  | Backend Auth Service               | ✅ Existant | (avant)      |
+| 09  | Backend Audit Service              | ✅ Existant | (avant)      |
+| 10  | Backend Document Service           | ✅ Existant | (avant)      |
+| 11  | AI Service FastAPI                 | ✅ Existant | (avant)      |
+| 12  | Frontend Integration API           | ✅ Existant | (avant)      |
+| 13  | Mobile App Expo                    | ✅ Existant | (avant)      |
+| 14  | USSD Service Africa's Talking      | ✅ Existant | (avant)      |
+| 15  | Security Hardening                 | ✅ Existant | (avant)      |
+| 16  | CI/CD GitHub Actions               | ✅ Livré    | `a59ef3f`    |
+| 17  | Monitoring & Observabilité         | ✅ Livré    | `1cbf838`    |
+| 18  | Stratégie de tests                 | ✅ Livré    | `f4453e4`    |
+| 19  | Backup & DRP                       | ✅ Livré    | `95ab390`    |
+| 20  | Déploiement K3s                    | ✅ Livré    | `971bd60`    |
+| 21  | Bloc B Interop AES                 | ✅ Livré    | (ce commit)  |
+| 22  | Bloc C Modules gouvernementaux     | ✅ Livré    | (ce commit)  |
+| 23  | Bloc D SIGAC                       | ✅ Livré    | (ce commit)  |
+| 24  | Bloc E Bornes kiosque              | ✅ Livré    | (ce commit)  |
+| 25  | Bloc F Biométrie (vision V1)       | ✅ Livré    | (ce commit)  |
+| 26  | Rapport final soutenance           | ✅ Livré    | (ce commit)  |
+
+**27/27 documents livrés** + **25 ADRs livrés** (001-025). Le doc 26
+n'a pas d'ADR (c'est un plan, pas une décision archi).
+
+Volume total session Blocs B→F + soutenance (ce commit) :
+- 5 docs Blocs : ~3 080 lignes
+- 1 doc soutenance : ~580 lignes
+- 5 ADRs : ~1 020 lignes
+- **Total : ~4 680 lignes documentaires**
+
+Volume total docs 16-26 (phase transversale + extensions) :
+- 11 docs : ~8 360 lignes
+- 10 ADRs : ~2 100 lignes
+- **Grand total : ~10 460 lignes documentaires sur la session**
+
+`pnpm run verify:repo` ✅ vert.

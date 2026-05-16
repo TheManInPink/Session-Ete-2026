@@ -257,6 +257,12 @@ git push origin v0.5.0-bloc-A-data-seed
 | Stratégie de tests                  | `docs/18-TESTING-STRATEGY.md`                    |
 | Backup & DRP                        | `docs/19-BACKUP-RECOVERY.md`                     |
 | Déploiement K3s production          | `docs/20-DEPLOYMENT-K3S-PRODUCTION.md`           |
+| Bloc B Interop AES                  | `docs/21-BLOC-B-INTEROPERABILITE-AES.md`         |
+| Bloc C Modules gouvernementaux      | `docs/22-BLOC-C-MODULES-GOUVERNEMENTAUX.md`      |
+| Bloc D SIGAC anti-corruption        | `docs/23-BLOC-D-SIGAC-ANTICORRUPTION.md`         |
+| Bloc E Bornes kiosque Electron      | `docs/24-BLOC-E-BORNES-KIOSQUE-ELECTRON.md`      |
+| Bloc F Biométrie (vision V1)        | `docs/25-BLOC-F-BIOMETRIE.md`                    |
+| Rapport final soutenance            | `docs/26-RAPPORT-FINAL-SOUTENANCE.md`            |
 
 ---
 
