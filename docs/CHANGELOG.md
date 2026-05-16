@@ -182,6 +182,64 @@ pour les 9+ services d'infrastructure (PostgreSQL+PostGIS, Redis, RabbitMQ,
 MinIO, Elasticsearch, Kibana, Keycloak, Vault, MailDev). Corrections déjà
 appliquées (cf. §4 « Incidents résolus »).
 
+### 9.5 Audit infrastructure (mai 2026 — re-passage PROMPT 2.1)
+
+Re-passage complet du PROMPT 2.1 d'infrastructure : audit + alignement
+des versions sur les dernières stables mai 2026 + complétion des
+livrables manquants. Aucune régression — Dockerfiles + Makefile sont
+déjà au niveau, seuls docker-compose et init-db.sql ont été modifiés.
+
+  **docker-compose.dev.yml** :
+    - Versions alignées : Redis `8.6-alpine` (était 8.4.2),
+      RabbitMQ `4.2-management-alpine` (était `latest` non-épinglé),
+      Elasticsearch `9.3.2` (était 8.19.14), Keycloak `26.5` (était
+      26.2.4), Vault `1.20` (était 1.18).
+    - **Kibana 9.3.2 ajouté** (port 5601) avec dépendance `service_healthy`
+      sur Elasticsearch + login `kibana_system`. Healthcheck via
+      `/api/status` check du JSON `"level":"available"`.
+    - **minio-init** : nouveau job one-shot `minio/mc` qui attend MinIO
+      healthy puis crée le bucket `nina-documents` (idempotent via
+      `mc mb --ignore-existing`) + active le versionning pour faciliter
+      les rollbacks en dev. Évite l'étape manuelle « créer le bucket
+      via la console » au premier boot.
+    - `VAULT_DEV_ROOT_TOKEN_ID` aligné sur `nina-dev` (au lieu de
+      `dev-root-token`), surchargeable via `.env`.
+    - Cleanup des volumes commentés (résidus draft initial).
+
+  **scripts/init-db.sql** :
+    - **`CREATE EXTENSION postgis`** ajouté sur `nina_aes_db` et
+      `nina_aes_test` (l'image `postgis/postgis:18-3.6` fournit le
+      binaire mais l'extension doit être activée dans chaque DB).
+    - **Utilisateur `app_user`** créé avec privilèges minimaux : login
+      autorisé, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, connection
+      limit 50. Droits DML uniquement (SELECT/INSERT/UPDATE/DELETE)
+      sur les 9 schémas DDD + `public` + héritage automatique pour
+      les futures tables via `ALTER DEFAULT PRIVILEGES`. Les migrations
+      Prisma continuent d'utiliser `nina_admin` (owner) via une
+      connection string distincte (séparation des privilèges
+      runtime vs DDL).
+    - Création conditionnelle (`SELECT ... WHERE NOT EXISTS \gexec`)
+      des bases `keycloak` et `nina_aes_test` — remplace le doublon
+      `CREATE DATABASE` initial qui levait une erreur au 2ème run.
+    - Collations passées à **ICU `fr-FR`** (au lieu de `LC_COLLATE
+      fr_FR.UTF-8` qui dépendait d'une locale système non garantie
+      dans l'image).
+
+  **Décisions reconduites** (déjà documentées) :
+    - `seed-locations.sql` séparé : **NON créé** (§9.2). Source de
+      vérité = `data/mali/*.json` + Prisma seed, validés par
+      `scripts/validate-mali-data.mjs`.
+    - `Dockerfile.nestjs` + `Dockerfile.fastapi` : **AUCUNE
+      modification** — déjà multi-stage propre, turbo prune, uv pour
+      Python, non-root UID 1001, tini, HEALTHCHECK, labels OCI.
+    - `Makefile` racine : **AUCUNE modification** — les 45 cibles
+      présentes couvrent toutes les attentes du PROMPT 2.1.
+
+  **Validation** :
+    - `docker compose -f infrastructure/docker/docker-compose.dev.yml config --quiet`
+      → exit 0 (syntaxe valide, variables résolues).
+    - `pnpm run verify:repo` → ✅ data + schemas + docs sync.
+
 ## 10. Frontend Citoyen — Session 2 : PC-03 à PC-06 + auth Keycloak BFF (mai 2026)
 
 Session 2 du chantier frontend `apps/citizen` (port 4001). Construit

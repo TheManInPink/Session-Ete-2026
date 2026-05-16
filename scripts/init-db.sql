@@ -18,39 +18,44 @@
 -- CREATE DATABASE nina_aes_db;
 
 -- ===========================================
--- 2. Base de données pour Keycloak
+-- 2. Bases de données auxiliaires (Keycloak + tests)
 -- ===========================================
+-- Création conditionnelle (idempotent) — utilise ICU pour le tri français,
+-- cohérent avec POSTGRES_INITDB_ARGS de docker-compose.dev.yml (locale fr-FR).
 
--- Keycloak a besoin de sa propre base de données
--- Séparée de la base NINA pour l'isolation des données d'authentification
-CREATE DATABASE keycloak
-    WITH OWNER = nina_admin
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'fr_FR.UTF-8'
-    LC_CTYPE = 'fr_FR.UTF-8'
-    TEMPLATE = template0;
-
--- ===========================================
--- 3. Base de données de test
--- ===========================================
-
--- Base séparée pour les tests d'intégration
--- Détruite et recréée à chaque exécution de la suite de tests
-CREATE DATABASE nina_aes_test
-    WITH OWNER = nina_admin
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'fr_FR.UTF-8'
-    LC_CTYPE = 'fr_FR.UTF-8'
-    TEMPLATE = template0;
-
--- ── Création conditionnelle (sécurisée) de la base de test ──
 \connect postgres;
 
--- Créer une base dédiée aux tests (isolée de la base de dev)
-SELECT 'CREATE DATABASE nina_aes_test'
-WHERE NOT EXISTS (
-  SELECT FROM pg_database WHERE datname = 'nina_aes_test'
-)\gexec
+-- Base pour Keycloak (isolation auth).
+SELECT 'CREATE DATABASE keycloak WITH OWNER = nina_admin ENCODING = ''UTF8'' LOCALE_PROVIDER = ''icu'' ICU_LOCALE = ''fr-FR'' TEMPLATE = template0'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak')\gexec
+
+-- Base dédiée aux tests d'intégration.
+SELECT 'CREATE DATABASE nina_aes_test WITH OWNER = nina_admin ENCODING = ''UTF8'' LOCALE_PROVIDER = ''icu'' ICU_LOCALE = ''fr-FR'' TEMPLATE = template0'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'nina_aes_test')\gexec
+
+-- ===========================================
+-- 2bis. Utilisateur applicatif avec privilèges minimaux
+-- ===========================================
+-- `app_user` = utilisateur runtime des microservices : droits DML
+-- (SELECT/INSERT/UPDATE/DELETE) UNIQUEMENT. Pas de DDL, pas de superuser.
+-- Limite l'impact d'une compromission de service. Les migrations Prisma
+-- utilisent `nina_admin` (owner) via une connection string distincte.
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN
+    CREATE ROLE app_user
+      LOGIN
+      PASSWORD 'app_user_dev_2026!'
+      NOSUPERUSER
+      NOCREATEDB
+      NOCREATEROLE
+      CONNECTION LIMIT 50;
+    RAISE NOTICE 'Utilisateur app_user créé (password dev — Vault en prod)';
+  ELSE
+    RAISE NOTICE 'Utilisateur app_user déjà présent — skip';
+  END IF;
+END $$;
 
 -- ===========================================
 -- 2. Configuration de la base principale
@@ -76,6 +81,11 @@ CREATE EXTENSION IF NOT EXISTS "unaccent";
 
 -- Extension pour les types de donnees supplementaires (citext = case-insensitive text)
 CREATE EXTENSION IF NOT EXISTS "citext";
+
+-- postgis : types et fonctions spatiales (geography, geometry, ST_*).
+-- Fourni par l'image `postgis/postgis:18-3.6` du docker-compose. Indispensable
+-- pour les colonnes `Location` (cercles, communes, centres CTDEC).
+CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- ===========================================
 -- 3. Schemas (DDD / microservices)
@@ -136,6 +146,28 @@ ALTER TEXT SEARCH CONFIGURATION french_unaccent
     WITH unaccent, french_stem;
 
 -- ===========================================
+-- 4bis. Privilèges app_user sur la base principale
+-- ===========================================
+-- Schémas DDD + tables futures (créées par les migrations Prisma). On grant
+-- en amont pour que les nouvelles tables héritent automatiquement des
+-- bons droits via `ALTER DEFAULT PRIVILEGES`.
+
+GRANT CONNECT ON DATABASE nina_aes_db TO app_user;
+GRANT USAGE ON SCHEMA identity, auth, audit, document, appointment,
+                       governance, anticorruption, vulnerability, notification, public
+  TO app_user;
+-- Droits DML (pas DDL) sur tout ce qui existe DÉJÀ
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
+-- Droits DML hérités pour TOUT ce qui sera créé plus tard (migrations Prisma)
+ALTER DEFAULT PRIVILEGES IN SCHEMA identity, auth, audit, document, appointment,
+                                  governance, anticorruption, vulnerability, notification, public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA identity, auth, audit, document, appointment,
+                                  governance, anticorruption, vulnerability, notification, public
+  GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+
+-- ===========================================
 -- 5. Configuration base de test
 -- ===========================================
 
@@ -146,6 +178,13 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE EXTENSION IF NOT EXISTS "unaccent";
 CREATE EXTENSION IF NOT EXISTS "citext";
+CREATE EXTENSION IF NOT EXISTS "postgis";
+
+-- app_user a aussi accès à la base de tests
+GRANT CONNECT ON DATABASE nina_aes_test TO app_user;
+GRANT ALL ON SCHEMA public TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
 
 -- ===========================================
 -- 6. Finalisation
@@ -158,8 +197,11 @@ CREATE EXTENSION IF NOT EXISTS "citext";
 DO $$
 BEGIN
   RAISE NOTICE '============================================';
-  RAISE NOTICE '✅ NINA-AES — Base de données initialisée avec extensions : uuid-ossp, pgcrypto, pg_trgm, unaccent';
-  RAISE NOTICE 'Extensions : uuid-ossp, pg_trgm, pgcrypto, citext';
-  RAISE NOTICE 'Schemas : identity, auth, audit, document, appointment, governance, anticorruption, vulnerability, notification';
+  RAISE NOTICE '✅ NINA-AES — Initialisation PostgreSQL terminée';
+  RAISE NOTICE '   Bases    : nina_aes_db, nina_aes_test, keycloak';
+  RAISE NOTICE '   Extensions : uuid-ossp, pgcrypto, pg_trgm, unaccent, citext, postgis';
+  RAISE NOTICE '   Schemas  : identity, auth, audit, document, appointment,';
+  RAISE NOTICE '              governance, anticorruption, vulnerability, notification';
+  RAISE NOTICE '   Users    : nina_admin (owner, migrations), app_user (DML runtime)';
   RAISE NOTICE '============================================';
 END $$;

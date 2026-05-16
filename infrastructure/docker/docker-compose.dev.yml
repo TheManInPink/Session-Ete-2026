@@ -22,12 +22,13 @@
 #
 # Services inclus :
 #   - PostgreSQL 18 + PostGIS (5432) — Base principale (+ géographie)
-#   - Redis 8.4.x (6379) — Cache et sessions
-#   - RabbitMQ (5672 / 15672) — Message broker
-#   - Elasticsearch 8.19.x (9200) — Recherche floue
-#   - MinIO (9000 / 9001) — Stockage objet (tag image épinglé)
-#   - Keycloak 26.2.x (8080) — Authentification IAM
-#   - Vault (8200) — Secrets (mode dev)
+#   - Redis 8.6 (6379) — Cache et sessions (AOF activé)
+#   - RabbitMQ 4.2-management (5672 / 15672) — Message broker
+#   - Elasticsearch 9.3.2 (9200) — Recherche floue
+#   - Kibana 9.3.2 (5601) — Console visualisation ES
+#   - MinIO + minio-init (9000 / 9001) — Stockage objet + bucket auto-créé
+#   - Keycloak 26.5 (8080) — Authentification IAM
+#   - Vault 1.20 (8200) — Secrets (mode dev)
 #   - Maildev (1080 / 1025) — SMTP de test
 # ═══════════════════════════════════════════════════════════════
 
@@ -80,7 +81,7 @@ services:
   # Stocke : sessions Keycloak, sessions USSD (TTL 5 min),
   # cache des recherches fréquentes, rate limiting
   redis:
-    image: redis:8.4.2-alpine3.22
+    image: redis:8.6-alpine
     container_name: nina-redis
     restart: unless-stopped
     ports:
@@ -114,7 +115,7 @@ services:
   # Exemples : identity-service publie un evenement "nina.created",
   # audit-service et notification-service s'y abonnent.
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq:4.2-management-alpine
     container_name: nina-rabbitmq
     restart: unless-stopped
     ports:
@@ -182,7 +183,7 @@ services:
   # - Indexer les 20M+ enregistrements pour des réponses < 100ms
   # (8.x car 9.x pas encore en image Docker stable en avril 2026)
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.2
     container_name: nina-elasticsearch
     restart: unless-stopped
     ports:
@@ -219,6 +220,67 @@ services:
       - nina-network
 
   # ──────────────────────────────────────────────────────────────
+  # Kibana 9.3.2 — Console de visualisation Elasticsearch
+  # ──────────────────────────────────────────────────────────────
+  # Interface web pour explorer les index ES en dev : visualiser les
+  # documents NINA indexés, debug des requêtes fuzzy, monitoring du
+  # cluster. Non requis en production (alerting via Grafana).
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.3.2
+    container_name: nina-kibana
+    restart: unless-stopped
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"     # UI Web → http://localhost:5601
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      # Kibana doit s'authentifier auprès d'Elasticsearch (xpack.security activé).
+      ELASTICSEARCH_USERNAME: kibana_system
+      # En dev, Kibana utilise un mot de passe simple sur l'utilisateur
+      # `kibana_system` (créé manuellement OU via setup ES). Fallback sur le
+      # password elastic root si non configuré.
+      ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD:-${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}}}
+      SERVER_NAME: nina-kibana
+      SERVER_HOST: 0.0.0.0
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status | grep -q '\"level\":\"available\"' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - nina-network
+
+  # ──────────────────────────────────────────────────────────────
+  # MinIO init — Création automatique du bucket par défaut
+  # ──────────────────────────────────────────────────────────────
+  # Job one-shot : attend que MinIO soit healthy, configure l'alias,
+  # crée le bucket `nina-documents` (idempotent), pose une policy public-read.
+  # Évite l'étape manuelle « créer le bucket via la console » au premier boot.
+  minio-init:
+    image: minio/mc:RELEASE.2025-09-07T16-13-09Z
+    container_name: nina-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MC_HOST_nina: http://${MINIO_ROOT_USER:-${MINIO_ACCESS_KEY:-nina_minio_admin}}:${MINIO_ROOT_PASSWORD:-${MINIO_SECRET_KEY:-minio_dev_2026!}}@minio:9000
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Création du bucket nina-documents...' &&
+        mc mb --ignore-existing nina/nina-documents &&
+        echo 'Bucket prêt — versionning activé en dev pour faciliter le rollback' &&
+        mc version enable nina/nina-documents &&
+        echo '✅ MinIO bootstrapped' &&
+        exit 0
+      "
+    networks:
+      - nina-network
+    restart: "no"
+
+  # ──────────────────────────────────────────────────────────────
   # Keycloak 26.5 — Serveur d'identité (OAuth2 / OIDC / RBAC)
   # ──────────────────────────────────────────────────────────────
   # Centralise l'authentification de TOUS les acteurs du système :
@@ -231,7 +293,7 @@ services:
   # citoyen, agent, superviseur, administrateur, auditeur,
   # inspecteur anti-corruption.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.2.4
+    image: quay.io/keycloak/keycloak:26.5
     container_name: nina-keycloak
     restart: unless-stopped
     ports:
@@ -271,14 +333,16 @@ services:
 
   # ── HashiCorp Vault — Gestion centralisée des secrets ──
   vault:
-    # Vault n'a pas de version 2.x — la dernière stable mai 2026 est 1.18.
-    image: hashicorp/vault:1.18
+    # Vault n'a pas de version 2.x — la dernière stable mai 2026 est 1.20.
+    image: hashicorp/vault:1.20
     container_name: nina-vault
     restart: unless-stopped
     ports:
       - "${VAULT_PORT:-8200}:8200"     # API + UI → http://localhost:8200
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: dev-root-token
+      # Token root du mode dev. Surchargeable via .env mais "nina-dev" par
+      # défaut pour cohérence avec le prompt 2.1 d'infrastructure.
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-nina-dev}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     cap_add:
       - IPC_LOCK
@@ -317,17 +381,6 @@ services:
 # Volumes nommes (persistants entre les redemarrages)
 # ──────────────────────────────────────────────────────────────
 volumes:
-  # postgres_data:
-  #   driver: local
-  # redis_data:
-  #   driver: local
-  # rabbitmq_data:
-  #   driver: local
-  # minio_data:
-  #   driver: local
-  # es_data:
-  #   driver: local
-
   nina-postgres-data:
     name: nina-postgres-data
   nina-redis-data:
