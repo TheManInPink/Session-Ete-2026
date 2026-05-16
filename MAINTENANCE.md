@@ -253,6 +253,7 @@ git push origin v0.5.0-bloc-A-data-seed
 | Cahier des charges                  | `docs/01-CAHIER-DES-CHARGES.md`                  |
 | Sécurité / hardening                | `docs/15-SECURITY-HARDENING.md`                  |
 | CI/CD GitHub Actions                | `docs/16-CICD-GITHUB-ACTIONS.md`                 |
+| Monitoring & observabilité          | `docs/17-MONITORING-OBSERVABILITY.md`            |
 
 ---
 

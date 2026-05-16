@@ -1091,3 +1091,95 @@ post-doc-15 (Sécurité). Doc 16 livre la spec, pas encore le code :
 - `docs/00-README-INDEX.md §2` : doc 16 conserve son entrée originale ;
   l'estimation reste 8-12 h (spec livrée + ~6 h pour l'implémentation
   YAML).
+
+## 15. Observabilité — Doc 17 + ADR-017 (mai 2026)
+
+Deuxième livraison documentaire de la phase transversale (docs 15 → 20).
+La doc 17 et l'ADR-017 formalisent la stack d'observabilité LGTM et
+l'instrumentation OpenTelemetry des 11 services Bloc A.
+
+### 15.1 Livrables documentaires
+
+- `docs/17-MONITORING-OBSERVABILITY.md` (~960 lignes) : guide
+  d'implémentation complet — réécriture `@nina-aes/logger` Pino + Loki +
+  redact PII, endpoints `/metrics` NestJS + FastAPI, OTel SDK auto-instru,
+  ajout profil `observability` à `docker-compose.dev.yml` (7 containers :
+  Prometheus, Grafana, Loki, Tempo, Promtail, OTel Collector,
+  Alertmanager), provisioning Grafana (3 datasources + 6 dashboards),
+  12 règles d'alerting Prometheus avec runbook associé.
+
+- `docs/adr/ADR-017-observabilite-lgtm-stack.md` (~205 lignes) : décision
+  LGTM vs 9 alternatives (Datadog, NewRelic, ELK, Graylog, VictoriaMetrics,
+  Jaeger, OpenSearch, Sentry, no-op), note souveraineté avec interdiction
+  explicite de Grafana Cloud, plan de migration vers VictoriaMetrics +
+  ClickHouse + Vector si volumes l'exigent en Phase 2.
+
+### 15.2 Stack cible (LGTM + OTel + Pino + Alertmanager)
+
+| Composant                   | Version    | Rôle                                  |
+| --------------------------- | ---------- | ------------------------------------- |
+| Prometheus                  | 3.4.1      | Métriques, retention 15j              |
+| Grafana                     | 12.3.0     | Dashboards + alerting unifié          |
+| Loki                        | 3.5.0      | Logs structurés, retention 30j        |
+| Tempo                       | 2.7.1      | Traces OTLP, retention 7j             |
+| Promtail                    | 3.5.0      | Ship logs containers → Loki           |
+| OTel Collector              | 0.119.0    | Routeur OTLP → 3 backends             |
+| Alertmanager                | 0.28.1     | Routing notif + dédoublonnage         |
+| Pino (Node) + structlog (Py)| 9.6 / 25.1 | Loggers JSON structurés               |
+
+### 15.3 PII safe by construction
+
+Le nouveau `@nina-aes/logger` (réécrit en Pino) embarque un **redact array**
+de 12 champs (`nina`, `ninaRaw`, `fingerprintHash`, `faceEmbedding`,
+`dateNaissance`, `password`, `token`, etc.). Le test
+`packages/logger/src/__tests__/redact.test.ts` valide qu'aucun NINA brut
+ne traverse jamais le transport Loki. Cette propriété est suivie par la
+métrique d'ADR-017 : `logcli query '{} |~ "189\d{12}[A-Z]"'` doit
+retourner **0 résultat**.
+
+### 15.4 Alertes critiques
+
+Sur les 12 règles d'alerting livrées, deux sont explicitement marquées
+**CRITICAL sans tolérance** :
+
+- `AuditChainBreak` (rupture chaîne Merkle audit, cf. ADR-014) → procédure
+  d'isolation immédiate + CISO CTDEC + ANSSI Mali (cf. RUNBOOK §9).
+- `LokiIngestionDown` (perte de traçabilité observabilité) → trail
+  forensic compromis.
+
+Les 10 autres alertes (latence p95, taux 5xx, queue RabbitMQ, etc.)
+incluent une référence runbook obligatoire (`runbook:
+docs/observability/RUNBOOK.md#<anchor>`).
+
+### 15.5 Substitut `@nina-aes/logger` stub → Pino
+
+Le tableau §2 de ce CHANGELOG est mis à jour : `@nina-aes/logger` passe
+de **stub temporaire console-backed** à **Pino 9 + transport Loki +
+redact PII** dès l'implémentation effective de la doc 17.
+
+### 15.6 Reste à faire (implémentation effective)
+
+L'implémentation pratique est planifiée comme Phase 3 post-doc-15 :
+
+  - Réécrire `packages/logger/src/index.ts` (Pino 9 + redact + transport Loki)
+  - Ajouter test `redacts nina field` dans `__tests__/`
+  - Ajouter `MetricsModule` aux 6 AppModule NestJS Bloc A
+  - Ajouter `instrument(app)` aux 2 FastAPI services
+  - Ajouter `startOtel()` en première ligne de chaque main.ts/main.py
+  - Créer 11 fichiers config dans `infrastructure/observability/`
+    (prometheus.yml, loki.yml, tempo.yml, promtail.yml,
+    otel-collector.yml, alertmanager.yml, rules/nina-aes-slo.yml,
+    grafana/provisioning/datasources/all.yml,
+    grafana/provisioning/dashboards/nina-aes.yml, 6 dashboards JSON)
+  - Étendre `docker-compose.dev.yml` avec profil `observability`
+  - Rédiger `docs/observability/RUNBOOK.md` (12 entrées) +
+    `docs/observability/SLOs.md`
+  - Tagger `observability-mvp` après validation tutorat
+
+### 15.7 Cross-références
+
+- `MAINTENANCE.md §9` : ligne « Monitoring & observabilité » ajoutée aux
+  liens canoniques.
+- `docs/00-README-INDEX.md §2` : doc 17 conserve son entrée originale ;
+  l'estimation est révisée à 16-22 h (vs 8-12 h initial — la stack LGTM
+  + instrumentation OTel sur 11 services demande plus que prévu).
