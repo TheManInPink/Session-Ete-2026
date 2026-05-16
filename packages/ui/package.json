@@ -19,6 +19,10 @@
     "./components/sheet": "./src/components/ui/sheet.tsx",
     "./components/checkbox": "./src/components/ui/checkbox.tsx",
     "./components/dropdown-menu": "./src/components/ui/dropdown-menu.tsx",
+    "./components/charts/mali-heatmap": "./src/components/charts/mali-heatmap.tsx",
+    "./components/charts/sparkline": "./src/components/charts/sparkline.tsx",
+    "./components/charts/area-chart": "./src/components/charts/area-chart.tsx",
+    "./components/charts/integrity-gauge": "./src/components/charts/integrity-gauge.tsx",
     "./components/brand/aes-logo": "./src/components/brand/aes-logo.tsx",
     "./components/forms/nina-input": "./src/components/forms/nina-input.tsx"
   },

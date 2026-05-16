@@ -249,6 +249,24 @@
     "dashboard": {
       "greeting": "Bonjour {name}",
       "subtitle": "Console de validation des demandes citoyens.",
+      "kpis": {
+        "title": "Indicateurs clés (aujourd'hui)",
+        "ninaActive": "NINA actifs",
+        "correctionsPending": "Corrections en attente",
+        "alertsOpen": "Alertes SIGAC",
+        "appointmentsToday": "RDV aujourd'hui",
+        "deltaWeek": "vs sem. dernière",
+        "deltaUp": "{value, number, percent} en hausse",
+        "deltaDown": "{value, number, percent} en baisse"
+      },
+      "correctionsChartTitle": "Corrections par jour — 30 derniers jours",
+      "correctionsChartAria": "Évolution du nombre de corrections traitées par jour sur les 30 derniers jours",
+      "activityMapTitle": "Activité régionale",
+      "activityMapSubtitle": "Volume de corrections traitées (30j)",
+      "activityMapAria": "Carte du Mali : volume de corrections traitées par région sur les 30 derniers jours",
+      "alertsFeedTitle": "Alertes récentes",
+      "alertsFeedLive": "Flux temps réel",
+      "alertsFeedEmpty": "Aucune alerte active.",
       "quickActionsTitle": "Accès rapides",
       "quickActions": {
         "corrections": {
@@ -263,9 +281,52 @@
           "title": "Alertes SIGAC",
           "description": "Investiguer les signalements anonymes de corruption."
         }
+      }
+    },
+    "sigac": {
+      "pageTitle": "Dashboard SIGAC",
+      "pageSubtitle": "Système d'Information Gouvernance — Anti-Corruption",
+      "filters": {
+        "severity": "Sévérité",
+        "period": "Période",
+        "all": "Toutes",
+        "periodToday": "Aujourd'hui",
+        "periodWeek": "7 jours",
+        "periodMonth": "30 jours",
+        "reset": "Réinitialiser"
       },
-      "placeholderTitle": "KPIs + heatmap à venir (Session 4)",
-      "placeholderBody": "Le dashboard complet (KPI cards avec sparkline, area chart corrections/jour, MaliHeatmap activité régionale, feed temps réel alertes) sera livré en Session 4 — AD-01 cf. docs/design-system/screens.md."
+      "severity": {
+        "LOW": "Faible",
+        "MEDIUM": "Moyenne",
+        "HIGH": "Élevée",
+        "CRITICAL": "Critique"
+      },
+      "category": {
+        "BRIBERY": "Corruption financière",
+        "FORGERY": "Falsification",
+        "FAVORITISM": "Favoritisme",
+        "ABUSE_OF_POWER": "Abus de pouvoir",
+        "PROCUREMENT": "Marchés publics",
+        "OTHER": "Autre"
+      },
+      "alertsMap": {
+        "title": "Alertes par région",
+        "subtitle": "Investigation en cours",
+        "aria": "Carte du Mali : alertes SIGAC actives par région"
+      },
+      "topAgents": {
+        "title": "Top 10 agents — score d'intégrité",
+        "subtitle": "Score IA basé sur 30 derniers jours d'activité",
+        "centerLabel": "Centre",
+        "investigate": "Investiguer"
+      },
+      "feed": {
+        "title": "Flux d'alertes",
+        "live": "Temps réel",
+        "newAlert": "Nouvelle alerte",
+        "investigate": "Investiguer",
+        "empty": "Aucune alerte ne correspond à vos filtres."
+      }
     },
     "login": {
       "heading": "Console agent",

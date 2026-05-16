@@ -494,3 +494,159 @@ Trois wrappers Radix pour alimenter AD-02 (et les futurs écrans) :
     overflow-x.
   - **Tests E2E Playwright** : parcours agent (login mock → DataGrid
     → filtre → approbation → toast → ligne mise à jour).
+
+## 12. Frontend Admin — Session 4 : AD-01 Dashboard + AD-03 SIGAC (mai 2026)
+
+Finalisation du périmètre `apps/admin` initial — les deux écrans
+restants de docs/design-system/screens.md §AD-01/AD-03 sont livrés en
+mode mock, l'app est complète bout-en-bout (Dashboard → Corrections →
+SIGAC + RDV/Paramètres en placeholder).
+
+### 12.1 Nouvelles primitives chart `@nina-aes/ui`
+
+4 composants SVG inline, **zéro dépendance lib chart** (pas de
+recharts, victory, etc.). Le choix : la complexité reste linéaire,
+le bundle reste mince, et le rendu SSR est trivial.
+
+  **MaliHeatmap** (`./components/charts/mali-heatmap`)
+    Bubble map des 20 régions Mali (centroïdes `data/mali/mali.geo
+    json` level=1). Props `data: MaliHeatmapDatum[]` (régionCode +
+    valeur), `tone: 'sequential' | 'severity'` (palette HSL
+    interpolée vert→jaune→rouge pour severity, bleu progressif pour
+    sequential). `onRegionClick` optionnel pour drill-down,
+    accessibilité clavier complète (`tabIndex` + Enter/Space).
+    Projection lon/lat → viewBox 100×75 avec bbox Mali (-12 à +3 lon,
+    10.5 à 23 lat).
+
+    Note : le GeoJSON disponible ne contient que des Point
+    centroïdes, pas de polygones. Le bubble map est une variante
+    valide de heatmap (densité par lieu) et garde le coût zéro lib.
+    Si un GeoJSON polygonal est ajouté plus tard, ré-évaluer.
+
+  **Sparkline** (`./components/charts/sparkline`)
+    Courbe minimal viewBox `0 0 100 30`, area fill optionnel,
+    highlight du dernier point. 5 tones AES (primary / success /
+    warning / danger / muted). Utilisée dans les KPI cards AD-01.
+
+  **AreaChart** (`./components/charts/area-chart`)
+    Area chart avec axes Y left (labels) + X bottom (labels tous
+    les N points), gridlines pointillées, points interactifs avec
+    `<title>` natif au hover. ViewBox 400×200, padding intelligent.
+    Utilisé pour « Corrections / jour 30j ».
+
+  **IntegrityGauge** (`./components/charts/integrity-gauge`)
+    Composite : icône check/x (≥70 / <70) + nom (truncate w-32) +
+    barre horizontale colorée + score. Couleur sémantique :
+    ≥80 success, 50-79 warning, <50 destructive. Utilisé pour le
+    Top 10 agents AD-03.
+
+### 12.2 AD-01 — Dashboard agent CTDEC
+
+  **`apps/admin/app/[locale]/(authenticated)/dashboard/page.tsx`**
+    (server) — Remplace le placeholder Session 3. Layout :
+    - 4 KPI cards en grid 1/2/4 col (mobile/sm/lg) : NINA actifs
+      (12 489, +2.4 % vs sem.), Corrections en attente (84, -12.5 %),
+      Alertes SIGAC (17, +6.3 %), RDV aujourd'hui (326, +1.8 %).
+      Chaque card : titre uppercase, valeur tabular-nums, delta %
+      avec ArrowUpRight/DownRight + tone success/danger selon
+      « positiveIsGood » (correctionsPending et alertsOpen sont des
+      KPIs où la baisse est bonne), sparkline 30j.
+    - Section 2 col (lg) : AreaChart corrections/jour 30j (tone
+      warning) sur 2/3, AlertsFeed live sur 1/3.
+    - Section pleine largeur : MaliHeatmap activité régionale (tone
+      sequential, 10 régions échantillonnées).
+
+  **`_components/kpi-card.tsx`** — Composite KpiCard avec
+    drill-down optionnel (Link Next vers `./corrections`,
+    `./appointments`, `./sigac`). `tabular-nums` pour aligner
+    visuellement les chiffres entre cards.
+
+  **`_components/alerts-feed.tsx`** — Client component avec mock SSE.
+    `setInterval` jitter 12-20 s ajoute une nouvelle alerte en tête
+    de liste (capée à `maxItems=12`). Badge LIVE pulse 800 ms à
+    chaque nouveau message (`animate-pulse`). Liste scrollable avec
+    `divide-y`, severity badge coloré, relative time via next-intl
+    `useFormatter().relativeTime`.
+
+### 12.3 AD-03 — Dashboard SIGAC
+
+  **`apps/admin/app/[locale]/(authenticated)/sigac/page.tsx`** (server) :
+    - Contrôle d'accès renforcé : `requireRole(['SUPERVISOR',
+      'AUDITOR', 'ADMIN'])` — exclut les simples AGENT (le SIGAC est
+      réservé aux superviseurs/auditeurs).
+    - Layout 2 sections principales :
+      • Grid 2 col : MaliHeatmap alertes par région (tone severity)
+        + Top 10 agents (IntegrityGauge ×10 avec bouton
+        « Investiguer » si score < 70).
+      • SigacClient (feed filtrable temps réel).
+
+  **`_components/sigac-client.tsx`** — Client component avec :
+    - Multi-filtres : recherche full-text (description + lieu),
+      multi-select severity (CRITICAL/HIGH/MEDIUM/LOW), période
+      (today / week / month).
+    - Mock SSE identique à AlertsFeed AD-01 (12-20 s jitter, badge
+      LIVE pulse).
+    - Liste scrollable avec bouton « Investiguer » par alerte
+      (`/[locale]/sigac/[id]`, page à implémenter Session 5+).
+    - Counter `filtered.length / alerts.length` dans le header.
+
+### 12.4 Mock data (`apps/admin/lib/mock-dashboard.ts`)
+
+  Toutes les données Session 4 dans un fichier unique, déterministes
+  (PRNG Mulberry32 seed fixe) :
+    - `KPI_SNAPSHOTS` : 4 KPIs avec history 30j générée (tendance
+      ascendante + bruit ±15 %).
+    - `CORRECTIONS_PER_DAY` : 30 points (date au format dd/mm,
+      volume 65-90 + spikes occasionnels).
+    - `ACTIVITY_BY_REGION` : 10 régions principales avec volumes
+      réalistes (Bamako 487 → Kidal 12).
+    - `ALERTS_BY_REGION` : 6 régions avec alertes actives.
+    - `TOP_AGENTS` : 10 agents (Modibo 97 → Boubacar 31), 4
+      en-dessous de 70 (à investiguer).
+    - `INITIAL_ALERTS` : 8 alertes échantillons (CRITICAL forgery,
+      HIGH bribery, MEDIUM favoritism, etc.).
+    - `generateNewAlert(prevCount)` : générateur déterministe pour
+      le mock SSE.
+
+  À supprimer Session 5+ quand audit-service (port 3007),
+  correction-service (port 3005) et anticorruption-service
+  (port 3009) exposeront les agrégations réelles.
+
+### 12.5 i18n
+
+  packages/i18n/messages/fr.json — Extensions :
+    - `admin.dashboard.kpis.*` : titres + delta strings
+    - `admin.dashboard.{correctionsChartTitle, activityMapTitle,
+      alertsFeedTitle, alertsFeedLive, alertsFeedEmpty}`
+    - `admin.sigac.*` (nouveau namespace) : pageTitle/Subtitle,
+      filters (severity, period, all/today/week/month, reset),
+      severity {LOW/MEDIUM/HIGH/CRITICAL}, category (6 catégories),
+      alertsMap, topAgents (investigate), feed (live, investigate,
+      empty).
+
+### 12.6 Validation
+
+  - `pnpm --filter @nina-aes/admin check-types` : ✅
+  - `pnpm run verify:repo` : ✅ data + schemas + docs sync.
+
+### 12.7 Reste à faire (Session 5+)
+
+  - **Câblage backends réels** : audit-service (KPIs + activité
+    régionale agrégée), correction-service (DataGrid + decide
+    mutation), anticorruption-service (SSE alerts stream + filtres
+    côté API). Tous nécessitent les services NestJS/FastAPI prêts.
+  - **GOV-01 à GOV-03** : 3ème app `apps/governance` (port 4003)
+    — messagerie signée Ed25519, Kanban directives, timeline
+    officielle. Déclencherait l'extraction `@nina-aes/auth` (3ème
+    consommateur).
+  - **MaliHeatmap polygonale** : si un GeoJSON polygons du Mali est
+    intégré (admin level 1 boundaries), passer le bubble map à un
+    vrai choropleth. Données potentielles : Natural Earth 1:10m
+    admin_1 ou OCHA Mali Common Operational Datasets.
+  - **AD-02 mobile** : DataGrid 11 colonnes inutilisable sur xs.
+    Vue alternative « cards » à implémenter, ou freeze 3 premières
+    colonnes en overflow-x.
+  - **Tests E2E Playwright** : parcours agent login mock → dashboard
+    KPIs visibles → click drill-down corrections → filtre statut
+    UNDER_REVIEW → drawer → approve → toast → retour dashboard avec
+    KPI corrections décrémenté.

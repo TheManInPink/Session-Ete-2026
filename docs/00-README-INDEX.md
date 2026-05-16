@@ -42,9 +42,9 @@ Le parcours suit trois principes :
 | pnpm                             | ✅ v10.12.1                                                                          |
 | `apps/web` + `apps/docs`         | ⚠️ Scaffolds par défaut Turborepo — à remplacer par `citizen`, `admin`, `governance` |
 | `apps/citizen` (port 4001)       | ✅ **Sessions 1+2 livrées** — PC-01 à PC-06 + auth Keycloak BFF (mock mode actif)    |
-| `apps/admin` (port 4002)         | ✅ **Session 3 — foundation + AD-02** — DataGrid corrections avec drawer (mock mode) |
+| `apps/admin` (port 4002)         | ✅ **Sessions 3+4 — foundation + AD-01/02/03** — Dashboard + DataGrid + SIGAC (mock)  |
 | `apps/governance` (port 4003)    | ❌ Scaffold Turborepo — prévu Session 5+                                              |
-| `packages/ui`                    | ✅ **Livré (Sessions 1+3)** — design system AES + Sheet/Checkbox/DropdownMenu (Radix)|
+| `packages/ui`                    | ✅ **Sessions 1+3+4** — design system + Sheet/Checkbox/DropdownMenu + 4 charts SVG  |
 | `packages/api-client`            | ✅ **Livré (Sessions 1+2)** — identity + correction + appointment + sigac (Zod)      |
 | `packages/i18n`                  | ✅ **Livré (Sessions 1+3, FR complet + namespace admin)** — fallback FR par-clé      |
 | `packages/eslint-config`         | ✅ Présent                                                                           |
