@@ -456,6 +456,15 @@ importers:
       '@nina-aes/utils':
         specifier: workspace:*
         version: link:../utils
+      '@radix-ui/react-checkbox':
+        specifier: ^1.1.0
+        version: 1.3.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@radix-ui/react-dialog':
+        specifier: ^1.1.0
+        version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@radix-ui/react-dropdown-menu':
+        specifier: ^2.1.0
+        version: 2.1.16(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@radix-ui/react-slot':
         specifier: ^1.1.0
         version: 1.2.3(@types/react@19.2.14)(react@19.2.5)
