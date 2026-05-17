@@ -1,0 +1,105 @@
+{
+  "nodes": [
+    {
+      "id": "packages_i18n_src_request_ts",
+      "label": "request.ts",
+      "file_type": "code",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "request_deepmerge",
+      "label": "deepMerge()",
+      "file_type": "code",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L32"
+    },
+    {
+      "id": "request_onerror",
+      "label": "onError()",
+      "file_type": "code",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L95"
+    },
+    {
+      "id": "request_getmessagefallback",
+      "label": "getMessageFallback()",
+      "file_type": "code",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L101"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_i18n_src_request_ts",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_i18n_src_request_ts",
+      "target": "packages_i18n_src_index",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_i18n_src_request_ts",
+      "target": "request_deepmerge",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_i18n_src_request_ts",
+      "target": "request_onerror",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_i18n_src_request_ts",
+      "target": "request_getmessagefallback",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L101",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "request_deepmerge",
+      "callee": "entries",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L34"
+    },
+    {
+      "caller_nid": "request_deepmerge",
+      "callee": "isArray",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L39"
+    },
+    {
+      "caller_nid": "request_deepmerge",
+      "callee": "isArray",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L42"
+    },
+    {
+      "caller_nid": "request_onerror",
+      "callee": "warn",
+      "source_file": "packages\\i18n\\src\\request.ts",
+      "source_location": "L98"
+    }
+  ]
+}

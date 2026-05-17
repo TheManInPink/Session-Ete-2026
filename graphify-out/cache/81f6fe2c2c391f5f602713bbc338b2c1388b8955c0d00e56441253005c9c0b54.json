@@ -1,0 +1,55 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_common_decorators_roles_decorator_ts",
+      "label": "roles.decorator.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\roles.decorator.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "roles_decorator_roles",
+      "label": "Roles()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\roles.decorator.ts",
+      "source_location": "L22"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_common_decorators_roles_decorator_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\roles.decorator.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_decorators_roles_decorator_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\roles.decorator.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_decorators_roles_decorator_ts",
+      "target": "roles_decorator_roles",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\roles.decorator.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "roles_decorator_roles",
+      "callee": "SetMetadata",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\roles.decorator.ts",
+      "source_location": "L23"
+    }
+  ]
+}

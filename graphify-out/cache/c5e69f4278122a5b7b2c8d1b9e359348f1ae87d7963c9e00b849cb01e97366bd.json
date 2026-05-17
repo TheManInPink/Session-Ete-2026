@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "packages_ui_src_components_brand_aes_logo_tsx",
+      "label": "aes-logo.tsx",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\brand\\aes-logo.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_ui_src_components_brand_aes_logo_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\brand\\aes-logo.tsx",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_brand_aes_logo_tsx",
+      "target": "packages_ui_src_components_brand_lib_utils_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\brand\\aes-logo.tsx",
+      "source_location": "L9",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

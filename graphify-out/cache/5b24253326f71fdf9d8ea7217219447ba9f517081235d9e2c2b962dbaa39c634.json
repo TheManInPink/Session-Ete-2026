@@ -1,0 +1,113 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "skeleton",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "area_chart",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "mali_heatmap",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_dashboard_data_mali_mali_regions_polygons_json",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_dashboard_lib_auth_session",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_dashboard_lib_mock_dashboard",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_dashboard_components_alerts_feed",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\page.tsx",
+      "source_location": "L33",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

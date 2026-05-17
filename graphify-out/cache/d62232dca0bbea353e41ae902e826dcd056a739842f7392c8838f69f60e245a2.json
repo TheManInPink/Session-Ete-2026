@@ -1,0 +1,171 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_correction_correction_client_ts",
+      "label": "correction.client.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "correction_client_correctionclient",
+      "label": "CorrectionClient",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "correction_client_correctionclient_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L17"
+    },
+    {
+      "id": "correction_client_correctionclient_submit",
+      "label": ".submit()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L24"
+    },
+    {
+      "id": "correction_client_correctionclient_list",
+      "label": ".list()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L40"
+    },
+    {
+      "id": "correction_client_correctionclient_getbyid",
+      "label": ".getById()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L55"
+    },
+    {
+      "id": "correction_client_correctionclient_cancel",
+      "label": ".cancel()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L64"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_correction_correction_client_ts",
+      "target": "packages_api_client_src_correction_core_http_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_correction_correction_client_ts",
+      "target": "packages_api_client_src_correction_correction_schema",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_correction_correction_client_ts",
+      "target": "correction_client_correctionclient",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_client_correctionclient",
+      "target": "correction_client_correctionclient_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_client_correctionclient",
+      "target": "correction_client_correctionclient_submit",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_client_correctionclient",
+      "target": "correction_client_correctionclient_list",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_client_correctionclient",
+      "target": "correction_client_correctionclient_getbyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_client_correctionclient",
+      "target": "correction_client_correctionclient_cancel",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L64",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "correction_client_correctionclient_submit",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L25"
+    },
+    {
+      "caller_nid": "correction_client_correctionclient_submit",
+      "callee": "now",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L30"
+    },
+    {
+      "caller_nid": "correction_client_correctionclient_list",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L46"
+    },
+    {
+      "caller_nid": "correction_client_correctionclient_getbyid",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L56"
+    },
+    {
+      "caller_nid": "correction_client_correctionclient_getbyid",
+      "callee": "encodeURIComponent",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L58"
+    },
+    {
+      "caller_nid": "correction_client_correctionclient_cancel",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L65"
+    },
+    {
+      "caller_nid": "correction_client_correctionclient_cancel",
+      "callee": "encodeURIComponent",
+      "source_file": "packages\\api-client\\src\\correction\\correction.client.ts",
+      "source_location": "L67"
+    }
+  ]
+}

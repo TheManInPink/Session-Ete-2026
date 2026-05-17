@@ -1,0 +1,75 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_index_ts",
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "index_createapiclient",
+      "label": "createApiClient()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L34"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_index_ts",
+      "target": "packages_api_client_src_core_http_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_index_ts",
+      "target": "packages_api_client_src_identity_identity_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_index_ts",
+      "target": "packages_api_client_src_correction_correction_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_index_ts",
+      "target": "packages_api_client_src_appointment_appointment_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_index_ts",
+      "target": "packages_api_client_src_sigac_sigac_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_index_ts",
+      "target": "index_createapiclient",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\index.ts",
+      "source_location": "L34",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

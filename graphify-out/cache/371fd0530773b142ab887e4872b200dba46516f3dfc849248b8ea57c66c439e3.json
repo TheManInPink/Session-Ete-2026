@@ -1,0 +1,68 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_authenticated_corrections_page_tsx",
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\page.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_page_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\page.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_page_tsx",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\page.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_page_tsx",
+      "target": "skeleton",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\page.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_lib_auth_session",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\page.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_lib_mock_corrections",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\page.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_page_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_corrections_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\page.tsx",
+      "source_location": "L20",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

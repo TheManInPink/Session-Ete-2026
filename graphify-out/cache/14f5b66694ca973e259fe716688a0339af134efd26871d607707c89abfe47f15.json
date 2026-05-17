@@ -1,0 +1,85 @@
+{
+  "nodes": [
+    {
+      "id": "packages_ui_src_components_charts_area_chart_tsx",
+      "label": "area-chart.tsx",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "area_chart_areachart",
+      "label": "AreaChart()",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L47"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_ui_src_components_charts_area_chart_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_area_chart_tsx",
+      "target": "packages_ui_src_components_charts_lib_utils_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_area_chart_tsx",
+      "target": "area_chart_areachart",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L47",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "area_chart_areachart",
+      "callee": "max",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L60"
+    },
+    {
+      "caller_nid": "area_chart_areachart",
+      "callee": "map",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L60"
+    },
+    {
+      "caller_nid": "area_chart_areachart",
+      "callee": "map",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L68"
+    },
+    {
+      "caller_nid": "area_chart_areachart",
+      "callee": "join",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "area_chart_areachart",
+      "callee": "map",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "area_chart_areachart",
+      "callee": "from",
+      "source_file": "packages\\ui\\src\\components\\charts\\area-chart.tsx",
+      "source_location": "L79"
+    }
+  ]
+}

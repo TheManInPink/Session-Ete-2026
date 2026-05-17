@@ -1,0 +1,94 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline_tsx",
+      "label": "correction-timeline.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "correction_timeline_correctiontimeline",
+      "label": "CorrectionTimeline()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L56"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_lib_mock_corrections",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline_tsx",
+      "target": "correction_timeline_correctiontimeline",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L56",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "correction_timeline_correctiontimeline",
+      "callee": "useTranslations",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L57"
+    },
+    {
+      "caller_nid": "correction_timeline_correctiontimeline",
+      "callee": "useFormatter",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L58"
+    },
+    {
+      "caller_nid": "correction_timeline_correctiontimeline",
+      "callee": "map",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-timeline.tsx",
+      "source_location": "L62"
+    }
+  ]
+}

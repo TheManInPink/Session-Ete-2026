@@ -1,0 +1,152 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_common_interceptors_logging_interceptor_ts",
+      "label": "logging.interceptor.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "logging_interceptor_logginginterceptor",
+      "label": "LoggingInterceptor",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "logging_interceptor_logginginterceptor_intercept",
+      "label": ".intercept()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L26"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_common_interceptors_logging_interceptor_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_interceptors_logging_interceptor_ts",
+      "target": "rxjs",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_interceptors_logging_interceptor_ts",
+      "target": "operators",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_interceptors_logging_interceptor_ts",
+      "target": "node_crypto",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_interceptors_logging_interceptor_ts",
+      "target": "express",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_interceptors_logging_interceptor_ts",
+      "target": "logging_interceptor_logginginterceptor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "logging_interceptor_logginginterceptor",
+      "target": "logging_interceptor_logginginterceptor_intercept",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "switchToHttp",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L27"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "getRequest",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L28"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "getResponse",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L29"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "randomUUID",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L32"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "setHeader",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L33"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "now",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L35"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "pipe",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L39"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "handle",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L39"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "tap",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L40"
+    },
+    {
+      "caller_nid": "logging_interceptor_logginginterceptor_intercept",
+      "callee": "catchError",
+      "source_file": "services\\identity-service\\src\\common\\interceptors\\logging.interceptor.ts",
+      "source_location": "L54"
+    }
+  ]
+}

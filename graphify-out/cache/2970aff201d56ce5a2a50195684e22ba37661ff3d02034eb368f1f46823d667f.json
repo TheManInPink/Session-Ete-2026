@@ -1,0 +1,89 @@
+{
+  "nodes": [
+    {
+      "id": "packages_observability_src_observability_module_ts",
+      "label": "observability.module.ts",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "observability_module_observabilitymodule",
+      "label": "ObservabilityModule",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L28"
+    },
+    {
+      "id": "observability_module_observabilitymodule_forroot",
+      "label": ".forRoot()",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L49"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_observability_src_observability_module_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_observability_module_ts",
+      "target": "nestjs_prometheus",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_observability_module_ts",
+      "target": "packages_observability_src_metrics_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_observability_module_ts",
+      "target": "packages_observability_src_types_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_observability_module_ts",
+      "target": "observability_module_observabilitymodule",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "observability_module_observabilitymodule",
+      "target": "observability_module_observabilitymodule_forroot",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L49",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "observability_module_observabilitymodule_forroot",
+      "callee": "register",
+      "source_file": "packages\\observability\\src\\observability.module.ts",
+      "source_location": "L53"
+    }
+  ]
+}

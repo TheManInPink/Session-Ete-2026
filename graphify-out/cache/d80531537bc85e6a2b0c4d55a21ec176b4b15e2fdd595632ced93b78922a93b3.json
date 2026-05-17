@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_sigac_sigac_schema_ts",
+      "label": "sigac.schema.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.schema.ts",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_sigac_sigac_schema_ts",
+      "target": "zod",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.schema.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

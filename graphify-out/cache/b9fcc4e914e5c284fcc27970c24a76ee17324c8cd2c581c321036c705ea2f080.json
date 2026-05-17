@@ -1,0 +1,198 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "label": "correction.controller.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "correction_controller_correctioncontroller",
+      "label": "CorrectionController",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L47"
+    },
+    {
+      "id": "correction_controller_correctioncontroller_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L48"
+    },
+    {
+      "id": "correction_controller_correctioncontroller_submit",
+      "label": ".submit()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L56"
+    },
+    {
+      "id": "correction_controller_correctioncontroller_list",
+      "label": ".list()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L67"
+    },
+    {
+      "id": "correction_controller_correctioncontroller_findbyid",
+      "label": ".findById()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L75"
+    },
+    {
+      "id": "correction_controller_correctioncontroller_approve",
+      "label": ".approve()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L83"
+    },
+    {
+      "id": "correction_controller_correctioncontroller_reject",
+      "label": ".reject()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L94"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "swagger",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "services_identity_service_src_modules_correction_common_decorators_current_user_decorator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "services_identity_service_src_modules_correction_common_decorators_roles_decorator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "services_identity_service_src_modules_correction_common_guards_roles_guard",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "services_identity_service_src_modules_correction_dto_correction_dto",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "services_identity_service_src_modules_correction_correction_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_controller_ts",
+      "target": "correction_controller_correctioncontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_controller_correctioncontroller",
+      "target": "correction_controller_correctioncontroller_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_controller_correctioncontroller",
+      "target": "correction_controller_correctioncontroller_submit",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_controller_correctioncontroller",
+      "target": "correction_controller_correctioncontroller_list",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_controller_correctioncontroller",
+      "target": "correction_controller_correctioncontroller_findbyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_controller_correctioncontroller",
+      "target": "correction_controller_correctioncontroller_approve",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_controller_correctioncontroller",
+      "target": "correction_controller_correctioncontroller_reject",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.controller.ts",
+      "source_location": "L94",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

@@ -1,0 +1,223 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "label": "citizen.controller.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "citizen_controller_citizencontroller",
+      "label": "CitizenController",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L58"
+    },
+    {
+      "id": "citizen_controller_citizencontroller_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L59"
+    },
+    {
+      "id": "citizen_controller_citizencontroller_findbynina",
+      "label": ".findByNina()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L70"
+    },
+    {
+      "id": "citizen_controller_citizencontroller_findbyid",
+      "label": ".findById()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L77"
+    },
+    {
+      "id": "citizen_controller_citizencontroller_search",
+      "label": ".search()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L84"
+    },
+    {
+      "id": "citizen_controller_citizencontroller_create",
+      "label": ".create()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L95"
+    },
+    {
+      "id": "citizen_controller_citizencontroller_update",
+      "label": ".update()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L106"
+    },
+    {
+      "id": "citizen_controller_citizencontroller_softdelete",
+      "label": ".softDelete()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L119"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "swagger",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "services_identity_service_src_modules_citizen_common_decorators_current_user_decorator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "services_identity_service_src_modules_citizen_common_decorators_roles_decorator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "services_identity_service_src_modules_citizen_common_guards_roles_guard",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "services_identity_service_src_modules_citizen_common_interceptors_redis_cache_interceptor",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "services_identity_service_src_modules_citizen_dto_citizen_dto",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "services_identity_service_src_modules_citizen_citizen_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_citizen_citizen_controller_ts",
+      "target": "citizen_controller_citizencontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "citizen_controller_citizencontroller",
+      "target": "citizen_controller_citizencontroller_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "citizen_controller_citizencontroller",
+      "target": "citizen_controller_citizencontroller_findbynina",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
+      "source": "citizen_controller_citizencontroller",
+      "target": "citizen_controller_citizencontroller_findbyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "citizen_controller_citizencontroller",
+      "target": "citizen_controller_citizencontroller_search",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "citizen_controller_citizencontroller",
+      "target": "citizen_controller_citizencontroller_create",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "citizen_controller_citizencontroller",
+      "target": "citizen_controller_citizencontroller_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "citizen_controller_citizencontroller",
+      "target": "citizen_controller_citizencontroller_softdelete",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\citizen\\citizen.controller.ts",
+      "source_location": "L119",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

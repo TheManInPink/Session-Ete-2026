@@ -1,0 +1,140 @@
+{
+  "nodes": [
+    {
+      "id": "packages_observability_src_tracing_ts",
+      "label": "tracing.ts",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "tracing_startoteltracing",
+      "label": "startOtelTracing()",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L39"
+    },
+    {
+      "id": "tracing_shutdownoteltracing",
+      "label": "shutdownOtelTracing()",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L92"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_observability_src_tracing_ts",
+      "target": "sdk_node",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_tracing_ts",
+      "target": "exporter_trace_otlp_grpc",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_tracing_ts",
+      "target": "auto_instrumentations_node",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_tracing_ts",
+      "target": "resources",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_tracing_ts",
+      "target": "semantic_conventions",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_tracing_ts",
+      "target": "tracing_startoteltracing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_tracing_ts",
+      "target": "tracing_shutdownoteltracing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L92",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "tracing_startoteltracing",
+      "callee": "warn",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L47"
+    },
+    {
+      "caller_nid": "tracing_startoteltracing",
+      "callee": "resourceFromAttributes",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L57"
+    },
+    {
+      "caller_nid": "tracing_startoteltracing",
+      "callee": "getNodeAutoInstrumentations",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L65"
+    },
+    {
+      "caller_nid": "tracing_startoteltracing",
+      "callee": "start",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "tracing_startoteltracing",
+      "callee": "info",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L75"
+    },
+    {
+      "caller_nid": "tracing_startoteltracing",
+      "callee": "on",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L85"
+    },
+    {
+      "caller_nid": "tracing_startoteltracing",
+      "callee": "on",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L86"
+    },
+    {
+      "caller_nid": "tracing_shutdownoteltracing",
+      "callee": "shutdown",
+      "source_file": "packages\\observability\\src\\tracing.ts",
+      "source_location": "L94"
+    }
+  ]
+}

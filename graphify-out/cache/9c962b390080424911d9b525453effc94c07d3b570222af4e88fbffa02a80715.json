@@ -1,0 +1,121 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "label": "whistleblower-form.tsx",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "whistleblower_form_handlesubmit",
+      "label": "handleSubmit()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L59"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "label",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "alert",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "api_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_components_whistleblower_form_tsx",
+      "target": "whistleblower_form_handlesubmit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L59",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "whistleblower_form_handlesubmit",
+      "callee": "preventDefault",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L60"
+    },
+    {
+      "caller_nid": "whistleblower_form_handlesubmit",
+      "callee": "setError",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L61"
+    },
+    {
+      "caller_nid": "whistleblower_form_handlesubmit",
+      "callee": "startTransition",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\_components\\whistleblower-form.tsx",
+      "source_location": "L62"
+    }
+  ]
+}

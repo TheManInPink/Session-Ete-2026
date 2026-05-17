@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_lib_providers_tsx",
+      "label": "providers.tsx",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "providers_attemptrefresh",
+      "label": "attemptRefresh()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L20"
+    },
+    {
+      "id": "providers_providers",
+      "label": "Providers()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L32"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_lib_providers_tsx",
+      "target": "react_query",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_providers_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_providers_tsx",
+      "target": "api_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_providers_tsx",
+      "target": "providers_attemptrefresh",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_providers_tsx",
+      "target": "providers_providers",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L32",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "providers_attemptrefresh",
+      "callee": "fetch",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L22"
+    },
+    {
+      "caller_nid": "providers_providers",
+      "callee": "useState",
+      "source_file": "apps\\citizen\\lib\\providers.tsx",
+      "source_location": "L33"
+    }
+  ]
+}

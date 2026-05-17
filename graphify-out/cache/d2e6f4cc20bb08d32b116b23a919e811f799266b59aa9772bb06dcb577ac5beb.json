@@ -1,0 +1,130 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_location_location_controller_ts",
+      "label": "location.controller.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "location_controller_locationcontroller",
+      "label": "LocationController",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "location_controller_locationcontroller_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L22"
+    },
+    {
+      "id": "location_controller_locationcontroller_list",
+      "label": ".list()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L28"
+    },
+    {
+      "id": "location_controller_locationcontroller_search",
+      "label": ".search()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L35"
+    },
+    {
+      "id": "location_controller_locationcontroller_findbyid",
+      "label": ".findById()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L42"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_location_location_controller_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_controller_ts",
+      "target": "swagger",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_controller_ts",
+      "target": "services_identity_service_src_modules_location_dto_location_dto",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_controller_ts",
+      "target": "services_identity_service_src_modules_location_location_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_controller_ts",
+      "target": "location_controller_locationcontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "location_controller_locationcontroller",
+      "target": "location_controller_locationcontroller_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "location_controller_locationcontroller",
+      "target": "location_controller_locationcontroller_list",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "location_controller_locationcontroller",
+      "target": "location_controller_locationcontroller_search",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "location_controller_locationcontroller",
+      "target": "location_controller_locationcontroller_findbyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.controller.ts",
+      "source_location": "L42",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

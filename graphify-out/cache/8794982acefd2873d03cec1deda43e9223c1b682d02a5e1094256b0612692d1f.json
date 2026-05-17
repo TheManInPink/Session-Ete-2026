@@ -1,0 +1,276 @@
+{
+  "nodes": [
+    {
+      "id": "packages_auth_src_handlers_login_ts",
+      "label": "login.ts",
+      "file_type": "code",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "login_base64urlencode",
+      "label": "base64UrlEncode()",
+      "file_type": "code",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "login_randomstring",
+      "label": "randomString()",
+      "file_type": "code",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L26"
+    },
+    {
+      "id": "login_buildloginhandler",
+      "label": "buildLoginHandler()",
+      "file_type": "code",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L30"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_auth_src_handlers_login_ts",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_login_ts",
+      "target": "headers",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_login_ts",
+      "target": "node_crypto",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_login_ts",
+      "target": "packages_auth_src_handlers_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_login_ts",
+      "target": "login_base64urlencode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_login_ts",
+      "target": "login_randomstring",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_login_ts",
+      "target": "login_buildloginhandler",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "login_randomstring",
+      "target": "login_base64urlencode",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "login_buildloginhandler",
+      "target": "login_randomstring",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "login_buildloginhandler",
+      "target": "login_base64urlencode",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L47",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "login_base64urlencode",
+      "callee": "replace",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L24"
+    },
+    {
+      "caller_nid": "login_base64urlencode",
+      "callee": "replace",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L24"
+    },
+    {
+      "caller_nid": "login_base64urlencode",
+      "callee": "replace",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L24"
+    },
+    {
+      "caller_nid": "login_base64urlencode",
+      "callee": "toString",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L24"
+    },
+    {
+      "caller_nid": "login_randomstring",
+      "callee": "randomBytes",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L27"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "get",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L33"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "get",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L34"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "redirect",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L38"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "json",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L43"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "digest",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L48"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "update",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L48"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "createHash",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L48"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "cookies",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L53"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L54"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "stringify",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L56"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L67"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L68"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L69"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L70"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L71"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L72"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L73"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "redirect",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L76"
+    },
+    {
+      "caller_nid": "login_buildloginhandler",
+      "callee": "toString",
+      "source_file": "packages\\auth\\src\\handlers\\login.ts",
+      "source_location": "L76"
+    }
+  ]
+}

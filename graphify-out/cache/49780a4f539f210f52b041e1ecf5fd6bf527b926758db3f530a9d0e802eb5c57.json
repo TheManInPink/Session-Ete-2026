@@ -1,0 +1,215 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_infrastructure_rabbitmq_rabbitmq_service_ts",
+      "label": "rabbitmq.service.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "rabbitmq_service_rabbitmqservice",
+      "label": "RabbitMQService",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L39"
+    },
+    {
+      "id": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "label": ".onModuleInit()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L45"
+    },
+    {
+      "id": "rabbitmq_service_rabbitmqservice_onmoduledestroy",
+      "label": ".onModuleDestroy()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L66"
+    },
+    {
+      "id": "rabbitmq_service_rabbitmqservice_publish",
+      "label": ".publish()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L84"
+    },
+    {
+      "id": "rabbitmq_service_rabbitmqservice_isconnected",
+      "label": ".isConnected()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L126"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_infrastructure_rabbitmq_rabbitmq_service_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_infrastructure_rabbitmq_rabbitmq_service_ts",
+      "target": "amqplib",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_infrastructure_rabbitmq_rabbitmq_service_ts",
+      "target": "rabbitmq_service_rabbitmqservice",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "rabbitmq_service_rabbitmqservice",
+      "target": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "rabbitmq_service_rabbitmqservice",
+      "target": "rabbitmq_service_rabbitmqservice_onmoduledestroy",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "rabbitmq_service_rabbitmqservice",
+      "target": "rabbitmq_service_rabbitmqservice_publish",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "rabbitmq_service_rabbitmqservice",
+      "target": "rabbitmq_service_rabbitmqservice_isconnected",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L126",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "callee": "connect",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L48"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "callee": "createChannel",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L49"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "callee": "assertExchange",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L50"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "callee": "on",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L52"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "callee": "on",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L55"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "callee": "log",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L57"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduleinit",
+      "callee": "warn",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L59"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduledestroy",
+      "callee": "close",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L68"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_onmoduledestroy",
+      "callee": "close",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L69"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "warn",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L86"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "randomUUID",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L92"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "toISOString",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L93"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "from",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L103"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "stringify",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L103"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "now",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L108"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "warn",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L116"
+    },
+    {
+      "caller_nid": "rabbitmq_service_rabbitmqservice_publish",
+      "callee": "warn",
+      "source_file": "services\\identity-service\\src\\infrastructure\\rabbitmq\\rabbitmq.service.ts",
+      "source_location": "L120"
+    }
+  ]
+}

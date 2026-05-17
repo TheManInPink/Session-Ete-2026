@@ -1,0 +1,134 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_lib_auth_session_ts",
+      "label": "session.ts",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "session_getsession",
+      "label": "getSession()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L49"
+    },
+    {
+      "id": "session_requiresession",
+      "label": "requireSession()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "session_hasrole",
+      "label": "hasRole()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L51"
+    },
+    {
+      "id": "session_isownerof",
+      "label": "isOwnerOf()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L52"
+    },
+    {
+      "id": "session_isagent",
+      "label": "isAgent()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L55"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_lib_auth_session_ts",
+      "target": "auth",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_auth_session_ts",
+      "target": "session_getsession",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_auth_session_ts",
+      "target": "session_requiresession",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_auth_session_ts",
+      "target": "session_hasrole",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_auth_session_ts",
+      "target": "session_isownerof",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_lib_auth_session_ts",
+      "target": "session_isagent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L55",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "session_getsession",
+      "callee": "_getSession",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L49"
+    },
+    {
+      "caller_nid": "session_requiresession",
+      "callee": "_requireSession",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L50"
+    },
+    {
+      "caller_nid": "session_hasrole",
+      "callee": "_hasRole",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L51"
+    },
+    {
+      "caller_nid": "session_isownerof",
+      "callee": "_isOwnerOf",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L52"
+    },
+    {
+      "caller_nid": "session_isagent",
+      "callee": "_hasRole",
+      "source_file": "apps\\citizen\\lib\\auth\\session.ts",
+      "source_location": "L56"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "badge",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "alert",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "navigation",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_page_tsx",
+      "target": "link",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\page.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

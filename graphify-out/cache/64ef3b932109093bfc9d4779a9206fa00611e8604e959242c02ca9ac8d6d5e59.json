@@ -1,0 +1,170 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_core_errors_ts",
+      "label": "errors.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "errors_apierror",
+      "label": "ApiError",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L22"
+    },
+    {
+      "id": "errors_apierror_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L29"
+    },
+    {
+      "id": "errors_apierror_isusererror",
+      "label": ".isUserError()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L45"
+    },
+    {
+      "id": "errors_apierror_isservererror",
+      "label": ".isServerError()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L48"
+    },
+    {
+      "id": "errors_apinetworkerror",
+      "label": "ApiNetworkError",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L54"
+    },
+    {
+      "id": "errors_apinetworkerror_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L57"
+    },
+    {
+      "id": "errors_apivalidationerror",
+      "label": "ApiValidationError",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L66"
+    },
+    {
+      "id": "errors_apivalidationerror_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L70"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_core_errors_ts",
+      "target": "core",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_core_errors_ts",
+      "target": "errors_apierror",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_apierror",
+      "target": "errors_apierror_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_apierror",
+      "target": "errors_apierror_isusererror",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_apierror",
+      "target": "errors_apierror_isservererror",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_core_errors_ts",
+      "target": "errors_apinetworkerror",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_apinetworkerror",
+      "target": "errors_apinetworkerror_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_core_errors_ts",
+      "target": "errors_apivalidationerror",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_apivalidationerror",
+      "target": "errors_apivalidationerror_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L70",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "errors_apierror_constructor",
+      "callee": "super",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L36"
+    },
+    {
+      "caller_nid": "errors_apinetworkerror_constructor",
+      "callee": "super",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L58"
+    },
+    {
+      "caller_nid": "errors_apivalidationerror_constructor",
+      "callee": "super",
+      "source_file": "packages\\api-client\\src\\core\\errors.ts",
+      "source_location": "L71"
+    }
+  ]
+}

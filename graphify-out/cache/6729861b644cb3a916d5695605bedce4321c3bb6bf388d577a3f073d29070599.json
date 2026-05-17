@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    {
+      "id": "packages_vault_client_src_types_ts",
+      "label": "types.ts",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\types.ts",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [],
+  "raw_calls": []
+}

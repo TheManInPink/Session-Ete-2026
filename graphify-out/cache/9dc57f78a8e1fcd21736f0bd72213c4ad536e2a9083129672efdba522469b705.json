@@ -1,0 +1,61 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_components_html_lang_setter_tsx",
+      "label": "html-lang-setter.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\_components\\html-lang-setter.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "html_lang_setter_htmllangsetter",
+      "label": "HtmlLangSetter()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\_components\\html-lang-setter.tsx",
+      "source_location": "L24"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_components_html_lang_setter_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\_components\\html-lang-setter.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_components_html_lang_setter_tsx",
+      "target": "navigation",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\_components\\html-lang-setter.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_components_html_lang_setter_tsx",
+      "target": "html_lang_setter_htmllangsetter",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\_components\\html-lang-setter.tsx",
+      "source_location": "L24",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "html_lang_setter_htmllangsetter",
+      "callee": "usePathname",
+      "source_file": "apps\\admin\\app\\_components\\html-lang-setter.tsx",
+      "source_location": "L25"
+    },
+    {
+      "caller_nid": "html_lang_setter_htmllangsetter",
+      "callee": "useEffect",
+      "source_file": "apps\\admin\\app\\_components\\html-lang-setter.tsx",
+      "source_location": "L27"
+    }
+  ]
+}

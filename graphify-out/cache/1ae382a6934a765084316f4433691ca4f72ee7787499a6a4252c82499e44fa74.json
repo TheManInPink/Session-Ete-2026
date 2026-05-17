@@ -1,0 +1,76 @@
+{
+  "nodes": [
+    {
+      "id": "scripts_audit_cercles_coverage_mjs",
+      "label": "audit-cercles-coverage.mjs",
+      "file_type": "code",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L1"
+    },
+    {
+      "id": "audit_cercles_coverage_normalize",
+      "label": "normalize()",
+      "file_type": "code",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L38"
+    }
+  ],
+  "edges": [
+    {
+      "source": "scripts_audit_cercles_coverage_mjs",
+      "target": "node_fs",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_audit_cercles_coverage_mjs",
+      "target": "node_path",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_audit_cercles_coverage_mjs",
+      "target": "node_url",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_audit_cercles_coverage_mjs",
+      "target": "audit_cercles_coverage_normalize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L38",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "audit_cercles_coverage_normalize",
+      "callee": "replace",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L39"
+    },
+    {
+      "caller_nid": "audit_cercles_coverage_normalize",
+      "callee": "toLowerCase",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L39"
+    },
+    {
+      "caller_nid": "audit_cercles_coverage_normalize",
+      "callee": "replace",
+      "source_file": "scripts\\audit-cercles-coverage.mjs",
+      "source_location": "L39"
+    }
+  ]
+}

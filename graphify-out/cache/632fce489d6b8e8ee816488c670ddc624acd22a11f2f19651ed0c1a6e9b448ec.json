@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "packages_ui_src_components_ui_card_tsx",
+      "label": "card.tsx",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\ui\\card.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_ui_src_components_ui_card_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\ui\\card.tsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_ui_card_tsx",
+      "target": "packages_ui_src_components_ui_lib_utils_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\ui\\card.tsx",
+      "source_location": "L8",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

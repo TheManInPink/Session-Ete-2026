@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "packages_observability_src_logger_ts",
+      "label": "logger.ts",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "logger_createpinologger",
+      "label": "createPinoLogger()",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L74"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_observability_src_logger_ts",
+      "target": "pino",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_logger_ts",
+      "target": "logger_createpinologger",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L74",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "logger_createpinologger",
+      "callee": "push",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L99"
+    },
+    {
+      "caller_nid": "logger_createpinologger",
+      "callee": "push",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L112"
+    },
+    {
+      "caller_nid": "logger_createpinologger",
+      "callee": "pino",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L129"
+    },
+    {
+      "caller_nid": "logger_createpinologger",
+      "callee": "pino",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L131"
+    },
+    {
+      "caller_nid": "logger_createpinologger",
+      "callee": "transport",
+      "source_file": "packages\\observability\\src\\logger.ts",
+      "source_location": "L131"
+    }
+  ]
+}

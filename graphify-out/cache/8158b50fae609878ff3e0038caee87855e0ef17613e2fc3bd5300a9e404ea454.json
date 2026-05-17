@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_app_locale_nina_nina_not_found_tsx",
+      "label": "not-found.tsx",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\not-found.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_app_locale_nina_nina_not_found_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\not-found.tsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_not_found_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\not-found.tsx",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_nina_nina_not_found_tsx",
+      "target": "link",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\nina\\[nina]\\not-found.tsx",
+      "source_location": "L9",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

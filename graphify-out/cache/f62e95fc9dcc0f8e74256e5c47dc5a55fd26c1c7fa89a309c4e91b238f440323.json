@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_common_decorators_current_user_decorator_ts",
+      "label": "current-user.decorator.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\current-user.decorator.ts",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_common_decorators_current_user_decorator_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\current-user.decorator.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_decorators_current_user_decorator_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\current-user.decorator.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_decorators_current_user_decorator_ts",
+      "target": "express",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\decorators\\current-user.decorator.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

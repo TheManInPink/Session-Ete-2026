@@ -1,0 +1,170 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_health_health_controller_ts",
+      "label": "health.controller.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "health_controller_healthcontroller",
+      "label": "HealthController",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L33"
+    },
+    {
+      "id": "health_controller_healthcontroller_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L34"
+    },
+    {
+      "id": "health_controller_healthcontroller_check",
+      "label": ".check()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L45"
+    },
+    {
+      "id": "health_controller_healthcontroller_liveness",
+      "label": ".liveness()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L90"
+    },
+    {
+      "id": "health_controller_healthcontroller_readiness",
+      "label": ".readiness()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L102"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_health_health_controller_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_health_health_controller_ts",
+      "target": "swagger",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_health_health_controller_ts",
+      "target": "terminus",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_health_health_controller_ts",
+      "target": "database",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_health_health_controller_ts",
+      "target": "services_identity_service_src_modules_health_infrastructure_rabbitmq_rabbitmq_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_health_health_controller_ts",
+      "target": "services_identity_service_src_modules_health_infrastructure_redis_redis_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_health_health_controller_ts",
+      "target": "health_controller_healthcontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "health_controller_healthcontroller",
+      "target": "health_controller_healthcontroller_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "health_controller_healthcontroller",
+      "target": "health_controller_healthcontroller_check",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "health_controller_healthcontroller",
+      "target": "health_controller_healthcontroller_liveness",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "health_controller_healthcontroller",
+      "target": "health_controller_healthcontroller_readiness",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "health_controller_healthcontroller_readiness",
+      "target": "health_controller_healthcontroller_check",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L103",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "health_controller_healthcontroller_liveness",
+      "callee": "uptime",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L93"
+    },
+    {
+      "caller_nid": "health_controller_healthcontroller_liveness",
+      "callee": "toISOString",
+      "source_file": "services\\identity-service\\src\\modules\\health\\health.controller.ts",
+      "source_location": "L94"
+    }
+  ]
+}

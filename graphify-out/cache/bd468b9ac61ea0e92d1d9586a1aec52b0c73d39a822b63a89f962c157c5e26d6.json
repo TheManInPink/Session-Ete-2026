@@ -1,0 +1,118 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_app_locale_page_tsx",
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "page_homepage",
+      "label": "HomePage()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L25"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "aes_logo",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "link",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "i18n",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "apps_citizen_app_locale_components_nina_hero_search",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "apps_citizen_app_locale_components_language_switcher",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_page_tsx",
+      "target": "page_homepage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L25",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "page_homepage",
+      "callee": "setRequestLocale",
+      "source_file": "apps\\citizen\\app\\[locale]\\page.tsx",
+      "source_location": "L27"
+    }
+  ]
+}

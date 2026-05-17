@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_test_citizen_e2e_spec_ts",
+      "label": "citizen.e2e-spec.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "testing",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "supertest",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "services_identity_service_test_src_modules_citizen_citizen_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "services_identity_service_test_src_modules_citizen_citizen_controller",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "services_identity_service_test_src_common_guards_roles_guard",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "core",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_test_citizen_e2e_spec_ts",
+      "target": "services_identity_service_test_src_infrastructure_redis_redis_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\test\\citizen.e2e-spec.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

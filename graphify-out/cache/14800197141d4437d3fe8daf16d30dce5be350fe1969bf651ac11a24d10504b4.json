@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_correction_correction_schema_ts",
+      "label": "correction.schema.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\correction\\correction.schema.ts",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_correction_correction_schema_ts",
+      "target": "zod",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\correction\\correction.schema.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

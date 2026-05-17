@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_app_locale_signalement_page_tsx",
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\page.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_app_locale_signalement_page_tsx",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\page.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_page_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\page.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_page_tsx",
+      "target": "alert",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\page.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_page_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\page.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_signalement_page_tsx",
+      "target": "apps_citizen_app_locale_signalement_components_whistleblower_form",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\signalement\\page.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

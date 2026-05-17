@@ -1,0 +1,164 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_identity_identity_client_ts",
+      "label": "identity.client.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "identity_client_identityclient",
+      "label": "IdentityClient",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L39"
+    },
+    {
+      "id": "identity_client_identityclient_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L40"
+    },
+    {
+      "id": "identity_client_identityclient_getbynina",
+      "label": ".getByNina()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L46"
+    },
+    {
+      "id": "identity_client_identityclient_search",
+      "label": ".search()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L56"
+    },
+    {
+      "id": "identity_client_identityclient_getbyid",
+      "label": ".getById()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L75"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_identity_identity_client_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_identity_identity_client_ts",
+      "target": "zod",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_identity_identity_client_ts",
+      "target": "packages_api_client_src_identity_core_http_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_identity_identity_client_ts",
+      "target": "identity_client_identityclient",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "identity_client_identityclient",
+      "target": "identity_client_identityclient_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "identity_client_identityclient",
+      "target": "identity_client_identityclient_getbynina",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "identity_client_identityclient",
+      "target": "identity_client_identityclient_search",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "identity_client_identityclient",
+      "target": "identity_client_identityclient_getbyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L75",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "identity_client_identityclient_getbynina",
+      "callee": "parse",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L47"
+    },
+    {
+      "caller_nid": "identity_client_identityclient_getbynina",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L48"
+    },
+    {
+      "caller_nid": "identity_client_identityclient_getbynina",
+      "callee": "encodeURIComponent",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L50"
+    },
+    {
+      "caller_nid": "identity_client_identityclient_search",
+      "callee": "parse",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L62"
+    },
+    {
+      "caller_nid": "identity_client_identityclient_search",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L66"
+    },
+    {
+      "caller_nid": "identity_client_identityclient_getbyid",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L76"
+    },
+    {
+      "caller_nid": "identity_client_identityclient_getbyid",
+      "callee": "encodeURIComponent",
+      "source_file": "packages\\api-client\\src\\identity\\identity.client.ts",
+      "source_location": "L78"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "nodes": [
+    {
+      "id": "packages_utils_src_ascii_ts",
+      "label": "ascii.ts",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\ascii.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "ascii_toascii",
+      "label": "toAscii()",
+      "file_type": "code",
+      "source_file": "packages\\utils\\src\\ascii.ts",
+      "source_location": "L33"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_utils_src_ascii_ts",
+      "target": "ascii_toascii",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\utils\\src\\ascii.ts",
+      "source_location": "L33",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "ascii_toascii",
+      "callee": "trim",
+      "source_file": "packages\\utils\\src\\ascii.ts",
+      "source_location": "L35"
+    },
+    {
+      "caller_nid": "ascii_toascii",
+      "callee": "toLowerCase",
+      "source_file": "packages\\utils\\src\\ascii.ts",
+      "source_location": "L35"
+    },
+    {
+      "caller_nid": "ascii_toascii",
+      "callee": "replace",
+      "source_file": "packages\\utils\\src\\ascii.ts",
+      "source_location": "L35"
+    },
+    {
+      "caller_nid": "ascii_toascii",
+      "callee": "normalize",
+      "source_file": "packages\\utils\\src\\ascii.ts",
+      "source_location": "L35"
+    }
+  ]
+}

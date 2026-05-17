@@ -9,7 +9,8 @@
  *              Cf. CONTRIBUTING.md §4 + docs/16-CICD-GITHUB-ACTIONS.md.
  */
 
-// Fichiers à ne JAMAIS passer aux linters (config files self-referent)
+// Fichiers à ne JAMAIS passer aux linters (config files self-referent
+// + sorties auto-générées comme le snapshot graphify)
 const NEVER_LINT = (path) => {
   const lower = path.toLowerCase().replace(/\\/g, '/');
   return (
@@ -21,7 +22,11 @@ const NEVER_LINT = (path) => {
     /\.eslintrc(\.[cm]?js)?$/i.test(lower) ||
     lower.endsWith('eslint.config.js') ||
     lower.endsWith('eslint.config.mjs') ||
-    lower.endsWith('eslint.config.cjs')
+    lower.endsWith('eslint.config.cjs') ||
+    // Snapshot graphify auto-généré (graphify update .) — cache/*.json
+    // et graph.json sont énormes et minifiés, prettier les casserait.
+    lower.includes('graphify-out/cache/') ||
+    lower.endsWith('graphify-out/graph.json')
   );
 };
 
@@ -47,8 +52,9 @@ export default {
   },
 
   '*.{json,md,yml,yaml,css,scss}': (files) => {
-    if (files.length === 0) return [];
-    const quoted = files.map((f) => `"${f}"`).join(' ');
+    const linted = files.filter((f) => !NEVER_LINT(f));
+    if (linted.length === 0) return [];
+    const quoted = linted.map((f) => `"${f}"`).join(' ');
     return [`prettier --write ${quoted}`];
   },
 

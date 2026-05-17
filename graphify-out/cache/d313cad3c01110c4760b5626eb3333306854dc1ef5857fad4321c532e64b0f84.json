@@ -1,0 +1,115 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_sigac_sigac_client_ts",
+      "label": "sigac.client.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "sigac_client_sigacclient",
+      "label": "SigacClient",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L18"
+    },
+    {
+      "id": "sigac_client_sigacclient_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L19"
+    },
+    {
+      "id": "sigac_client_sigacclient_submit",
+      "label": ".submit()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L30"
+    },
+    {
+      "id": "sigac_client_sigacclient_getstatus",
+      "label": ".getStatus()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L44"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_sigac_sigac_client_ts",
+      "target": "packages_api_client_src_sigac_core_http_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_sigac_sigac_client_ts",
+      "target": "packages_api_client_src_sigac_sigac_schema",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_sigac_sigac_client_ts",
+      "target": "sigac_client_sigacclient",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "sigac_client_sigacclient",
+      "target": "sigac_client_sigacclient_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "sigac_client_sigacclient",
+      "target": "sigac_client_sigacclient_submit",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "sigac_client_sigacclient",
+      "target": "sigac_client_sigacclient_getstatus",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L44",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "sigac_client_sigacclient_submit",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L31"
+    },
+    {
+      "caller_nid": "sigac_client_sigacclient_getstatus",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L45"
+    },
+    {
+      "caller_nid": "sigac_client_sigacclient_getstatus",
+      "callee": "encodeURIComponent",
+      "source_file": "packages\\api-client\\src\\sigac\\sigac.client.ts",
+      "source_location": "L47"
+    }
+  ]
+}

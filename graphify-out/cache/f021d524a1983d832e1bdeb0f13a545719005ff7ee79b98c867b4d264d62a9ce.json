@@ -1,0 +1,456 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_correction_correction_service_ts",
+      "label": "correction.service.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "correction_service_correctionservice",
+      "label": "CorrectionService",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L59"
+    },
+    {
+      "id": "correction_service_correctionservice_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L65"
+    },
+    {
+      "id": "correction_service_correctionservice_submit",
+      "label": ".submit()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L71"
+    },
+    {
+      "id": "correction_service_correctionservice_list",
+      "label": ".list()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L133"
+    },
+    {
+      "id": "correction_service_correctionservice_findbyid",
+      "label": ".findById()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L165"
+    },
+    {
+      "id": "correction_service_correctionservice_approve",
+      "label": ".approve()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L177"
+    },
+    {
+      "id": "correction_service_correctionservice_reject",
+      "label": ".reject()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L230"
+    },
+    {
+      "id": "correction_service_correctionservice_callai",
+      "label": ".callAi()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L262"
+    },
+    {
+      "id": "correction_service_correctionservice_callsigac",
+      "label": ".callSigac()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L287"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "axios",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "rxjs",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "operators",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "database",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "services_identity_service_src_modules_correction_infrastructure_rabbitmq_rabbitmq_service",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "services_identity_service_src_modules_correction_dto_correction_dto",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_correction_service_ts",
+      "target": "correction_service_correctionservice",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_submit",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_list",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_findbyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_approve",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_reject",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L230",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_callai",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L262",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice",
+      "target": "correction_service_correctionservice_callsigac",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L287",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice_submit",
+      "target": "correction_service_correctionservice_callai",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice_submit",
+      "target": "correction_service_correctionservice_callsigac",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "correction_service_correctionservice_approve",
+      "target": "correction_service_correctionservice_findbyid",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L226",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "correction_service_correctionservice_submit",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L72"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_submit",
+      "callee": "create",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L78"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_submit",
+      "callee": "all",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L92"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_submit",
+      "callee": "update",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L98"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_submit",
+      "callee": "warn",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L109"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_submit",
+      "callee": "publish",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L115"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_list",
+      "callee": "all",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L151"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_list",
+      "callee": "findMany",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L152"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_list",
+      "callee": "count",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L159"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_findbyid",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L166"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_approve",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L178"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_approve",
+      "callee": "has",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L198"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_approve",
+      "callee": "$transaction",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L204"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_approve",
+      "callee": "update",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L205"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_approve",
+      "callee": "update",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L209"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_approve",
+      "callee": "log",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L219"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_approve",
+      "callee": "publish",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L220"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_reject",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L231"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_reject",
+      "callee": "update",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L241"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_reject",
+      "callee": "log",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L251"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_reject",
+      "callee": "publish",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L252"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callai",
+      "callee": "pipe",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L268"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callai",
+      "callee": "post",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L268"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callai",
+      "callee": "timeout",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L277"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callai",
+      "callee": "map",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L278"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callai",
+      "callee": "catchError",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L279"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callai",
+      "callee": "firstValueFrom",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L281"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callsigac",
+      "callee": "pipe",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L297"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callsigac",
+      "callee": "post",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L297"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callsigac",
+      "callee": "timeout",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L305"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callsigac",
+      "callee": "map",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L306"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callsigac",
+      "callee": "catchError",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L307"
+    },
+    {
+      "caller_nid": "correction_service_correctionservice_callsigac",
+      "callee": "firstValueFrom",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\correction.service.ts",
+      "source_location": "L309"
+    }
+  ]
+}

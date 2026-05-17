@@ -1,0 +1,155 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "label": "sigac-client.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "sigac_client_schedule",
+      "label": "schedule()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L75"
+    },
+    {
+      "id": "sigac_client_toggleseverity",
+      "label": "toggleSeverity()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L103"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "badge",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "checkbox",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "dropdown_menu",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "apps_admin_app_locale_authenticated_sigac_components_lib_mock_dashboard",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "sigac_client_schedule",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_sigac_components_sigac_client_tsx",
+      "target": "sigac_client_toggleseverity",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L103",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "sigac_client_schedule",
+      "callee": "random",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L76"
+    },
+    {
+      "caller_nid": "sigac_client_schedule",
+      "callee": "setTimeout",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L77"
+    },
+    {
+      "caller_nid": "sigac_client_toggleseverity",
+      "callee": "setSeverityFilter",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\sigac\\_components\\sigac-client.tsx",
+      "source_location": "L104"
+    }
+  ]
+}

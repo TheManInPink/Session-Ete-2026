@@ -1,0 +1,64 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_app_controller_ts",
+      "label": "app.controller.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\app.controller.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_controller_appcontroller",
+      "label": "AppController",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\app.controller.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "app_controller_appcontroller_root",
+      "label": ".root()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\app.controller.ts",
+      "source_location": "L25"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_app_controller_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\app.controller.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_app_controller_ts",
+      "target": "swagger",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\app.controller.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_app_controller_ts",
+      "target": "app_controller_appcontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\app.controller.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "app_controller_appcontroller",
+      "target": "app_controller_appcontroller_root",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\app.controller.ts",
+      "source_location": "L25",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

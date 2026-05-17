@@ -1,0 +1,515 @@
+{
+  "nodes": [
+    {
+      "id": "packages_vault_client_src_index_ts",
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "index_vaultclient",
+      "label": "VaultClient",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L44"
+    },
+    {
+      "id": "index_vaultclient_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "index_vaultclient_log",
+      "label": ".log()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L59"
+    },
+    {
+      "id": "index_vaultclient_login",
+      "label": ".login()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L73"
+    },
+    {
+      "id": "index_vaultclient_schedulerenew",
+      "label": ".scheduleRenew()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L113"
+    },
+    {
+      "id": "index_vaultclient_getsecret",
+      "label": ".getSecret()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L141"
+    },
+    {
+      "id": "index_vaultclient_getdatabasecreds",
+      "label": ".getDatabaseCreds()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L166"
+    },
+    {
+      "id": "index_vaultclient_transitsign",
+      "label": ".transitSign()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L187"
+    },
+    {
+      "id": "index_vaultclient_transitverify",
+      "label": ".transitVerify()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L197"
+    },
+    {
+      "id": "index_vaultclient_rotatetransitkey",
+      "label": ".rotateTransitKey()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L212"
+    },
+    {
+      "id": "index_vaultclient_clearcache",
+      "label": ".clearCache()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L223"
+    },
+    {
+      "id": "index_vaultclient_destroy",
+      "label": ".destroy()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L228"
+    },
+    {
+      "id": "index_vaultclient_request",
+      "label": ".request()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L236"
+    },
+    {
+      "id": "index_createvaultclientfromenv",
+      "label": "createVaultClientFromEnv()",
+      "file_type": "code",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L280"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_vault_client_src_index_ts",
+      "target": "packages_vault_client_src_types_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_vault_client_src_index_ts",
+      "target": "index_vaultclient",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_log",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_login",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_schedulerenew",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_getsecret",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_getdatabasecreds",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L166",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_transitsign",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L187",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_transitverify",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_rotatetransitkey",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_clearcache",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_destroy",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L228",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient",
+      "target": "index_vaultclient_request",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L236",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_vault_client_src_index_ts",
+      "target": "index_createvaultclientfromenv",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L280",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient_login",
+      "target": "index_vaultclient_log",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L80",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient_login",
+      "target": "index_vaultclient_schedulerenew",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient_getsecret",
+      "target": "index_vaultclient_log",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L147",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient_rotatetransitkey",
+      "target": "index_vaultclient_request",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L213",
+      "weight": 1.0
+    },
+    {
+      "source": "index_vaultclient_rotatetransitkey",
+      "target": "index_vaultclient_log",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L218",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "index_vaultclient_log",
+      "callee": "toUpperCase",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L61"
+    },
+    {
+      "caller_nid": "index_vaultclient_log",
+      "callee": "console[level === 'error' || level === 'warn' ? level : 'log']",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L62"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L78"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "now",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L79"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L83"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "now",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L90"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "import",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L93"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "readFile",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L94"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L98"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "trim",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L101"
+    },
+    {
+      "caller_nid": "index_vaultclient_login",
+      "callee": "now",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L105"
+    },
+    {
+      "caller_nid": "index_vaultclient_schedulerenew",
+      "callee": "clearTimeout",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L114"
+    },
+    {
+      "caller_nid": "index_vaultclient_schedulerenew",
+      "callee": "now",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L115"
+    },
+    {
+      "caller_nid": "index_vaultclient_schedulerenew",
+      "callee": "max",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L117"
+    },
+    {
+      "caller_nid": "index_vaultclient_schedulerenew",
+      "callee": "setTimeout",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L118"
+    },
+    {
+      "caller_nid": "index_vaultclient_schedulerenew",
+      "callee": "unref",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L131"
+    },
+    {
+      "caller_nid": "index_vaultclient_getsecret",
+      "callee": "get",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L145"
+    },
+    {
+      "caller_nid": "index_vaultclient_getsecret",
+      "callee": "now",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L146"
+    },
+    {
+      "caller_nid": "index_vaultclient_getsecret",
+      "callee": "replace",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L151"
+    },
+    {
+      "caller_nid": "index_vaultclient_getsecret",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L152"
+    },
+    {
+      "caller_nid": "index_vaultclient_getsecret",
+      "callee": "set",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L154"
+    },
+    {
+      "caller_nid": "index_vaultclient_getsecret",
+      "callee": "now",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L156"
+    },
+    {
+      "caller_nid": "index_vaultclient_getdatabasecreds",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L167"
+    },
+    {
+      "caller_nid": "index_vaultclient_transitsign",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L188"
+    },
+    {
+      "caller_nid": "index_vaultclient_transitverify",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L198"
+    },
+    {
+      "caller_nid": "index_vaultclient_rotatetransitkey",
+      "callee": "await this.request",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L214"
+    },
+    {
+      "caller_nid": "index_vaultclient_clearcache",
+      "callee": "clear",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L224"
+    },
+    {
+      "caller_nid": "index_vaultclient_destroy",
+      "callee": "clearTimeout",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L229"
+    },
+    {
+      "caller_nid": "index_vaultclient_destroy",
+      "callee": "clear",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L231"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "replace",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L242"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "replace",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L242"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "setTimeout",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L247"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "fetch",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L249"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "stringify",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L252"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "text",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L256"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "json",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L261"
+    },
+    {
+      "caller_nid": "index_vaultclient_request",
+      "callee": "clearTimeout",
+      "source_file": "packages\\vault-client\\src\\index.ts",
+      "source_location": "L263"
+    }
+  ]
+}

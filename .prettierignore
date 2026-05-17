@@ -18,3 +18,7 @@ pnpm-lock.yaml
 
 ai-models/models
 infrastructure/terraform/.terraform
+
+# Snapshot graphify auto-généré (graphify update .) — ne pas reformater
+graphify-out/cache/
+graphify-out/graph.json

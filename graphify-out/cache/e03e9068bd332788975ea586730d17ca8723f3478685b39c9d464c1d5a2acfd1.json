@@ -1,0 +1,229 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "label": "correction-drawer.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "correction_drawer_handleapprove",
+      "label": "handleApprove()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L50"
+    },
+    {
+      "id": "correction_drawer_handlerejectsubmit",
+      "label": "handleRejectSubmit()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L57"
+    },
+    {
+      "id": "correction_drawer_closewithreset",
+      "label": "closeWithReset()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L68"
+    },
+    {
+      "id": "correction_drawer_tfield",
+      "label": "tField()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L90"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "sheet",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "label",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_lib_mock_corrections",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_ai_score_panel",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_correction_timeline",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_status_badge",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "correction_drawer_handleapprove",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "correction_drawer_handlerejectsubmit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "correction_drawer_closewithreset",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer_tsx",
+      "target": "correction_drawer_tfield",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L90",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "correction_drawer_handleapprove",
+      "callee": "startTransition",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L51"
+    },
+    {
+      "caller_nid": "correction_drawer_handlerejectsubmit",
+      "callee": "preventDefault",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L58"
+    },
+    {
+      "caller_nid": "correction_drawer_handlerejectsubmit",
+      "callee": "trim",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L59"
+    },
+    {
+      "caller_nid": "correction_drawer_handlerejectsubmit",
+      "callee": "startTransition",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L60"
+    },
+    {
+      "caller_nid": "correction_drawer_closewithreset",
+      "callee": "setRejectMode",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L70"
+    },
+    {
+      "caller_nid": "correction_drawer_closewithreset",
+      "callee": "setRejectReason",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L71"
+    },
+    {
+      "caller_nid": "correction_drawer_closewithreset",
+      "callee": "onOpenChange",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\correction-drawer.tsx",
+      "source_location": "L73"
+    }
+  ]
+}

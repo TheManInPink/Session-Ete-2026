@@ -1,0 +1,202 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_common_guards_roles_guard_ts",
+      "label": "roles.guard.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "roles_guard_rolesguard",
+      "label": "RolesGuard",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L32"
+    },
+    {
+      "id": "roles_guard_rolesguard_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L36"
+    },
+    {
+      "id": "roles_guard_rolesguard_canactivate",
+      "label": ".canActivate()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L38"
+    },
+    {
+      "id": "roles_guard_rolesguard_extractuserfromjwt",
+      "label": ".extractUserFromJwt()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L86"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_common_guards_roles_guard_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_guards_roles_guard_ts",
+      "target": "core",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_guards_roles_guard_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_guards_roles_guard_ts",
+      "target": "express",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_guards_roles_guard_ts",
+      "target": "services_identity_service_src_common_guards_decorators_roles_decorator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_guards_roles_guard_ts",
+      "target": "services_identity_service_src_common_guards_decorators_current_user_decorator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_common_guards_roles_guard_ts",
+      "target": "roles_guard_rolesguard",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "roles_guard_rolesguard",
+      "target": "roles_guard_rolesguard_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "roles_guard_rolesguard",
+      "target": "roles_guard_rolesguard_canactivate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "roles_guard_rolesguard",
+      "target": "roles_guard_rolesguard_extractuserfromjwt",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "roles_guard_rolesguard_canactivate",
+      "target": "roles_guard_rolesguard_extractuserfromjwt",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L62",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "getAllAndOverride",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L39"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "getHandler",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L40"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "getClass",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L41"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "getRequest",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L44"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "switchToHttp",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L44"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "includes",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L68"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "warn",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L70"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_canactivate",
+      "callee": "join",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L71"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_extractuserfromjwt",
+      "callee": "startsWith",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L92"
+    },
+    {
+      "caller_nid": "roles_guard_rolesguard_extractuserfromjwt",
+      "callee": "warn",
+      "source_file": "services\\identity-service\\src\\common\\guards\\roles.guard.ts",
+      "source_location": "L97"
+    }
+  ]
+}

@@ -1,0 +1,242 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_lib_mock_dashboard_ts",
+      "label": "mock-dashboard.ts",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "mock_dashboard_rng",
+      "label": "rng()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "mock_dashboard_generatehistory",
+      "label": "generateHistory()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L47"
+    },
+    {
+      "id": "mock_dashboard_formatdaylabel",
+      "label": "formatDayLabel()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L93"
+    },
+    {
+      "id": "mock_dashboard_buildinitialalerts",
+      "label": "buildInitialAlerts()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L177"
+    },
+    {
+      "id": "mock_dashboard_generatenewalert",
+      "label": "generateNewAlert()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L200"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_lib_mock_dashboard_ts",
+      "target": "mock_dashboard_rng",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_mock_dashboard_ts",
+      "target": "mock_dashboard_generatehistory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_mock_dashboard_ts",
+      "target": "mock_dashboard_formatdaylabel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_mock_dashboard_ts",
+      "target": "mock_dashboard_buildinitialalerts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_mock_dashboard_ts",
+      "target": "mock_dashboard_generatenewalert",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "mock_dashboard_generatehistory",
+      "target": "mock_dashboard_rng",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "mock_dashboard_buildinitialalerts",
+      "target": "mock_dashboard_rng",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L178",
+      "weight": 1.0
+    },
+    {
+      "source": "mock_dashboard_generatenewalert",
+      "target": "mock_dashboard_rng",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L201",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "mock_dashboard_generatehistory",
+      "callee": "from",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L49"
+    },
+    {
+      "caller_nid": "mock_dashboard_formatdaylabel",
+      "callee": "now",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L94"
+    },
+    {
+      "caller_nid": "mock_dashboard_formatdaylabel",
+      "callee": "padStart",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "mock_dashboard_formatdaylabel",
+      "callee": "String",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "mock_dashboard_formatdaylabel",
+      "callee": "getDate",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "mock_dashboard_formatdaylabel",
+      "callee": "padStart",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "mock_dashboard_formatdaylabel",
+      "callee": "String",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "mock_dashboard_formatdaylabel",
+      "callee": "getMonth",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "mock_dashboard_buildinitialalerts",
+      "callee": "map",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L190"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "padStart",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L214"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "String",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L214"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "floor",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L215"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "rand",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L215"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "floor",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L216"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "rand",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L216"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "floor",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L217"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "rand",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L217"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "floor",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L218"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "rand",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L218"
+    },
+    {
+      "caller_nid": "mock_dashboard_generatenewalert",
+      "callee": "toISOString",
+      "source_file": "apps\\admin\\lib\\mock-dashboard.ts",
+      "source_location": "L219"
+    }
+  ]
+}

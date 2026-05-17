@@ -1,0 +1,122 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "label": "corrections-client.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "react_table",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "checkbox",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "dropdown_menu",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_lib_mock_corrections",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_correction_drawer",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_corrections_components_corrections_client_tsx",
+      "target": "apps_admin_app_locale_authenticated_corrections_components_status_badge",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\corrections\\_components\\corrections-client.tsx",
+      "source_location": "L57",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

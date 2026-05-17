@@ -1,0 +1,48 @@
+{
+  "nodes": [
+    {
+      "id": "packages_observability_src_metrics_ts",
+      "label": "metrics.ts",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\metrics.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "metrics_businessmetrics",
+      "label": "BusinessMetrics",
+      "file_type": "code",
+      "source_file": "packages\\observability\\src\\metrics.ts",
+      "source_location": "L28"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_observability_src_metrics_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\metrics.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_metrics_ts",
+      "target": "prom_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\metrics.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_observability_src_metrics_ts",
+      "target": "metrics_businessmetrics",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\observability\\src\\metrics.ts",
+      "source_location": "L28",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

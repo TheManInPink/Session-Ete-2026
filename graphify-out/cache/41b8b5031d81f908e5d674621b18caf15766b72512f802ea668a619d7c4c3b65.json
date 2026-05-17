@@ -1,0 +1,147 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_layout_tsx",
+      "label": "layout.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "layout_generatestaticparams",
+      "label": "generateStaticParams()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L25"
+    },
+    {
+      "id": "layout_localelayout",
+      "label": "LocaleLayout()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L29"
+    },
+    {
+      "id": "layout_intlboundary",
+      "label": "IntlBoundary()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L43"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "i18n",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "navigation",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "apps_admin_app_locale_lib_providers",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "layout_generatestaticparams",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "layout_localelayout",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_layout_tsx",
+      "target": "layout_intlboundary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L43",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "layout_generatestaticparams",
+      "callee": "map",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L26"
+    },
+    {
+      "caller_nid": "layout_localelayout",
+      "callee": "includes",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L31"
+    },
+    {
+      "caller_nid": "layout_localelayout",
+      "callee": "notFound",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L32"
+    },
+    {
+      "caller_nid": "layout_localelayout",
+      "callee": "setRequestLocale",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L34"
+    },
+    {
+      "caller_nid": "layout_intlboundary",
+      "callee": "getMessages",
+      "source_file": "apps\\admin\\app\\[locale]\\layout.tsx",
+      "source_location": "L50"
+    }
+  ]
+}

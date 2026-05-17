@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "scripts_generate_seed_sql_mjs",
+      "label": "generate-seed-sql.mjs",
+      "file_type": "code",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L1"
+    },
+    {
+      "id": "generate_seed_sql_esc",
+      "label": "esc()",
+      "file_type": "code",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L70"
+    },
+    {
+      "id": "generate_seed_sql_num",
+      "label": "num()",
+      "file_type": "code",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L71"
+    },
+    {
+      "id": "generate_seed_sql_insertrow",
+      "label": "insertRow()",
+      "file_type": "code",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L72"
+    }
+  ],
+  "edges": [
+    {
+      "source": "scripts_generate_seed_sql_mjs",
+      "target": "node_fs",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_generate_seed_sql_mjs",
+      "target": "node_path",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_generate_seed_sql_mjs",
+      "target": "node_url",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_generate_seed_sql_mjs",
+      "target": "generate_seed_sql_esc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_generate_seed_sql_mjs",
+      "target": "generate_seed_sql_num",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_generate_seed_sql_mjs",
+      "target": "generate_seed_sql_insertrow",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L72",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "generate_seed_sql_esc",
+      "callee": "replace",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L70"
+    },
+    {
+      "caller_nid": "generate_seed_sql_esc",
+      "callee": "String",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L70"
+    },
+    {
+      "caller_nid": "generate_seed_sql_num",
+      "callee": "toFixed",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L71"
+    },
+    {
+      "caller_nid": "generate_seed_sql_insertrow",
+      "callee": "join",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L73"
+    },
+    {
+      "caller_nid": "generate_seed_sql_insertrow",
+      "callee": "join",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "generate_seed_sql_insertrow",
+      "callee": "map",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "generate_seed_sql_insertrow",
+      "callee": "filter",
+      "source_file": "scripts\\generate-seed-sql.mjs",
+      "source_location": "L74"
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_lib_auth_session_ts",
+      "label": "session.ts",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "session_getsession",
+      "label": "getSession()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L45"
+    },
+    {
+      "id": "session_requiresession",
+      "label": "requireSession()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L46"
+    },
+    {
+      "id": "session_hasrole",
+      "label": "hasRole()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L47"
+    },
+    {
+      "id": "session_requirerole",
+      "label": "requireRole()",
+      "file_type": "code",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L48"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_lib_auth_session_ts",
+      "target": "auth",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_auth_session_ts",
+      "target": "session_getsession",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_auth_session_ts",
+      "target": "session_requiresession",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_auth_session_ts",
+      "target": "session_hasrole",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_lib_auth_session_ts",
+      "target": "session_requirerole",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L48",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "session_getsession",
+      "callee": "_getSession",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L45"
+    },
+    {
+      "caller_nid": "session_requiresession",
+      "callee": "_requireSession",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L46"
+    },
+    {
+      "caller_nid": "session_hasrole",
+      "callee": "_hasRole",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L47"
+    },
+    {
+      "caller_nid": "session_requirerole",
+      "callee": "_requireRole",
+      "source_file": "apps\\admin\\lib\\auth\\session.ts",
+      "source_location": "L48"
+    }
+  ]
+}

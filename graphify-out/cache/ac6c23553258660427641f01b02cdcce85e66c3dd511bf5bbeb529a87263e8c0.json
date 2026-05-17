@@ -1,0 +1,199 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_location_location_service_ts",
+      "label": "location.service.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "location_service_locationservice",
+      "label": "LocationService",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "location_service_locationservice_list",
+      "label": ".list()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "location_service_locationservice_findbyid",
+      "label": ".findById()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L45"
+    },
+    {
+      "id": "location_service_locationservice_search",
+      "label": ".search()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L70"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_location_location_service_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_service_ts",
+      "target": "database",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_service_ts",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_service_ts",
+      "target": "services_identity_service_src_modules_location_dto_location_dto",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_location_service_ts",
+      "target": "location_service_locationservice",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "location_service_locationservice",
+      "target": "location_service_locationservice_list",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "location_service_locationservice",
+      "target": "location_service_locationservice_findbyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "location_service_locationservice",
+      "target": "location_service_locationservice_search",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L70",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "location_service_locationservice_list",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L27"
+    },
+    {
+      "caller_nid": "location_service_locationservice_list",
+      "callee": "findMany",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L33"
+    },
+    {
+      "caller_nid": "location_service_locationservice_findbyid",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L46"
+    },
+    {
+      "caller_nid": "location_service_locationservice_findbyid",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L51"
+    },
+    {
+      "caller_nid": "location_service_locationservice_findbyid",
+      "callee": "unshift",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L54"
+    },
+    {
+      "caller_nid": "location_service_locationservice_findbyid",
+      "callee": "findUnique",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L56"
+    },
+    {
+      "caller_nid": "location_service_locationservice_findbyid",
+      "callee": "join",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L61"
+    },
+    {
+      "caller_nid": "location_service_locationservice_findbyid",
+      "callee": "map",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L61"
+    },
+    {
+      "caller_nid": "location_service_locationservice_search",
+      "callee": "trim",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L71"
+    },
+    {
+      "caller_nid": "location_service_locationservice_search",
+      "callee": "filter",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "location_service_locationservice_search",
+      "callee": "split",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "location_service_locationservice_search",
+      "callee": "toAscii",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "location_service_locationservice_search",
+      "callee": "findMany",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L78"
+    },
+    {
+      "caller_nid": "location_service_locationservice_search",
+      "callee": "map",
+      "source_file": "services\\identity-service\\src\\modules\\location\\location.service.ts",
+      "source_location": "L80"
+    }
+  ]
+}

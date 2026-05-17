@@ -1,0 +1,135 @@
+{
+  "nodes": [
+    {
+      "id": "scripts_validate_mali_data_mjs",
+      "label": "validate-mali-data.mjs",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L1"
+    },
+    {
+      "id": "validate_mali_data_err",
+      "label": "err()",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L18"
+    },
+    {
+      "id": "validate_mali_data_load",
+      "label": "load()",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L22"
+    },
+    {
+      "id": "validate_mali_data_inbbox",
+      "label": "inBbox()",
+      "file_type": "code",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L31"
+    }
+  ],
+  "edges": [
+    {
+      "source": "scripts_validate_mali_data_mjs",
+      "target": "node_fs",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_validate_mali_data_mjs",
+      "target": "node_path",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_validate_mali_data_mjs",
+      "target": "node_url",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_validate_mali_data_mjs",
+      "target": "validate_mali_data_err",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_validate_mali_data_mjs",
+      "target": "validate_mali_data_load",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_validate_mali_data_mjs",
+      "target": "validate_mali_data_inbbox",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "validate_mali_data_load",
+      "target": "validate_mali_data_err",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L25",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "validate_mali_data_err",
+      "callee": "push",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L19"
+    },
+    {
+      "caller_nid": "validate_mali_data_load",
+      "callee": "join",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L23"
+    },
+    {
+      "caller_nid": "validate_mali_data_load",
+      "callee": "existsSync",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L24"
+    },
+    {
+      "caller_nid": "validate_mali_data_load",
+      "callee": "exit",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L26"
+    },
+    {
+      "caller_nid": "validate_mali_data_load",
+      "callee": "parse",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L28"
+    },
+    {
+      "caller_nid": "validate_mali_data_load",
+      "callee": "readFileSync",
+      "source_file": "scripts\\validate-mali-data.mjs",
+      "source_location": "L28"
+    }
+  ]
+}

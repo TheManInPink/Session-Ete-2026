@@ -1,0 +1,73 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_location_dto_location_dto_ts",
+      "label": "location.dto.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "location_dto_listlocationsdto",
+      "label": "ListLocationsDto",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "location_dto_searchlocationdto",
+      "label": "SearchLocationDto",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L31"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_location_dto_location_dto_ts",
+      "target": "swagger",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_dto_location_dto_ts",
+      "target": "class_validator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_dto_location_dto_ts",
+      "target": "class_transformer",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_dto_location_dto_ts",
+      "target": "location_dto_listlocationsdto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_location_dto_location_dto_ts",
+      "target": "location_dto_searchlocationdto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\location\\dto\\location.dto.ts",
+      "source_location": "L31",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

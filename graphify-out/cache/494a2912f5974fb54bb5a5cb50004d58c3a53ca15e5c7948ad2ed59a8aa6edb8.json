@@ -1,0 +1,298 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_core_http_client_ts",
+      "label": "http-client.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "http_client_generatecorrelationid",
+      "label": "generateCorrelationId()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L17"
+    },
+    {
+      "id": "http_client_retrywithbackoff",
+      "label": "retryWithBackoff()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L25"
+    },
+    {
+      "id": "http_client_httpclient",
+      "label": "HttpClient",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L77"
+    },
+    {
+      "id": "http_client_httpclient_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L78"
+    },
+    {
+      "id": "http_client_httpclient_request",
+      "label": ".request()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L87"
+    },
+    {
+      "id": "http_client_httpclient_buildurl",
+      "label": ".buildUrl()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L141"
+    },
+    {
+      "id": "http_client_httpclient_parseresponse",
+      "label": ".parseResponse()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L151"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_core_http_client_ts",
+      "target": "zod",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_core_http_client_ts",
+      "target": "packages_api_client_src_core_errors",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_core_http_client_ts",
+      "target": "http_client_generatecorrelationid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_core_http_client_ts",
+      "target": "http_client_retrywithbackoff",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_core_http_client_ts",
+      "target": "http_client_httpclient",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "http_client_httpclient",
+      "target": "http_client_httpclient_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "http_client_httpclient",
+      "target": "http_client_httpclient_request",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "http_client_httpclient",
+      "target": "http_client_httpclient_buildurl",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "http_client_httpclient",
+      "target": "http_client_httpclient_parseresponse",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L151",
+      "weight": 1.0
+    },
+    {
+      "source": "http_client_httpclient_request",
+      "target": "http_client_generatecorrelationid",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L91",
+      "weight": 1.0
+    },
+    {
+      "source": "http_client_httpclient_request",
+      "target": "http_client_httpclient_buildurl",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "http_client_httpclient_request",
+      "target": "http_client_retrywithbackoff",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L118",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "http_client_generatecorrelationid",
+      "callee": "toString",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L18"
+    },
+    {
+      "caller_nid": "http_client_generatecorrelationid",
+      "callee": "now",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L18"
+    },
+    {
+      "caller_nid": "http_client_generatecorrelationid",
+      "callee": "getRandomValues",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L19"
+    },
+    {
+      "caller_nid": "http_client_generatecorrelationid",
+      "callee": "join",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L20"
+    },
+    {
+      "caller_nid": "http_client_generatecorrelationid",
+      "callee": "from",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L20"
+    },
+    {
+      "caller_nid": "http_client_retrywithbackoff",
+      "callee": "fn",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L33"
+    },
+    {
+      "caller_nid": "http_client_retrywithbackoff",
+      "callee": "retryOn",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L34"
+    },
+    {
+      "caller_nid": "http_client_httpclient_request",
+      "callee": "setTimeout",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L90"
+    },
+    {
+      "caller_nid": "http_client_httpclient_request",
+      "callee": "onUnauthorized",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L125"
+    },
+    {
+      "caller_nid": "http_client_httpclient_request",
+      "callee": "perform",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L126"
+    },
+    {
+      "caller_nid": "http_client_httpclient_request",
+      "callee": "await this.parseResponse",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L129"
+    },
+    {
+      "caller_nid": "http_client_httpclient_request",
+      "callee": "clearTimeout",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L137"
+    },
+    {
+      "caller_nid": "http_client_httpclient_buildurl",
+      "callee": "entries",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L144"
+    },
+    {
+      "caller_nid": "http_client_httpclient_buildurl",
+      "callee": "append",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L145"
+    },
+    {
+      "caller_nid": "http_client_httpclient_buildurl",
+      "callee": "String",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L145"
+    },
+    {
+      "caller_nid": "http_client_httpclient_buildurl",
+      "callee": "toString",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L148"
+    },
+    {
+      "caller_nid": "http_client_httpclient_parseresponse",
+      "callee": "get",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L156"
+    },
+    {
+      "caller_nid": "http_client_httpclient_parseresponse",
+      "callee": "includes",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L157"
+    },
+    {
+      "caller_nid": "http_client_httpclient_parseresponse",
+      "callee": "json",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L158"
+    },
+    {
+      "caller_nid": "http_client_httpclient_parseresponse",
+      "callee": "text",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L158"
+    },
+    {
+      "caller_nid": "http_client_httpclient_parseresponse",
+      "callee": "safeParse",
+      "source_file": "packages\\api-client\\src\\core\\http-client.ts",
+      "source_location": "L171"
+    }
+  ]
+}

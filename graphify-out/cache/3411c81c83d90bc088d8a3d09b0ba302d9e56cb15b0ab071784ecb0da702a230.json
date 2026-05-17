@@ -1,0 +1,188 @@
+{
+  "nodes": [
+    {
+      "id": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "label": "appointment-form.tsx",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "appointment_form_generatemockslots",
+      "label": "generateMockSlots()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L44"
+    },
+    {
+      "id": "appointment_form_handlesubmit",
+      "label": "handleSubmit()",
+      "file_type": "code",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L77"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "navigation",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "label",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "alert",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "badge",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "appointment_form_generatemockslots",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_citizen_app_locale_appointments_new_components_appointment_form_tsx",
+      "target": "appointment_form_handlesubmit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L77",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "appointment_form_generatemockslots",
+      "callee": "setDate",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L49"
+    },
+    {
+      "caller_nid": "appointment_form_generatemockslots",
+      "callee": "getDate",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L49"
+    },
+    {
+      "caller_nid": "appointment_form_generatemockslots",
+      "callee": "slice",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L50"
+    },
+    {
+      "caller_nid": "appointment_form_generatemockslots",
+      "callee": "toISOString",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L50"
+    },
+    {
+      "caller_nid": "appointment_form_generatemockslots",
+      "callee": "push",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L54"
+    },
+    {
+      "caller_nid": "appointment_form_generatemockslots",
+      "callee": "padStart",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L57"
+    },
+    {
+      "caller_nid": "appointment_form_generatemockslots",
+      "callee": "String",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L57"
+    },
+    {
+      "caller_nid": "appointment_form_handlesubmit",
+      "callee": "preventDefault",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L78"
+    },
+    {
+      "caller_nid": "appointment_form_handlesubmit",
+      "callee": "setError",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L79"
+    },
+    {
+      "caller_nid": "appointment_form_handlesubmit",
+      "callee": "startTransition",
+      "source_file": "apps\\citizen\\app\\[locale]\\appointments\\new\\_components\\appointment-form.tsx",
+      "source_location": "L80"
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "nodes": [
+    {
+      "id": "packages_auth_src_handlers_callback_ts",
+      "label": "callback.ts",
+      "file_type": "code",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "callback_buildcallbackhandler",
+      "label": "buildCallbackHandler()",
+      "file_type": "code",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "callback_redirecttologin",
+      "label": "redirectToLogin()",
+      "file_type": "code",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L88"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_auth_src_handlers_callback_ts",
+      "target": "server",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_callback_ts",
+      "target": "headers",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_callback_ts",
+      "target": "jose",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_callback_ts",
+      "target": "zod",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_callback_ts",
+      "target": "packages_auth_src_handlers_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_callback_ts",
+      "target": "callback_buildcallbackhandler",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_auth_src_handlers_callback_ts",
+      "target": "callback_redirecttologin",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "callback_buildcallbackhandler",
+      "target": "callback_redirecttologin",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L30",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "get",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L26"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "get",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L27"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "cookies",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L32"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "get",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L33"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "parse",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L38"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "fetch",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L44"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "safeParse",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L57"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "json",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L57"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "createRemoteJWKSet",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L62"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "jwtVerify",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L63"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "redirect",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L72"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L77"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L80"
+    },
+    {
+      "caller_nid": "callback_buildcallbackhandler",
+      "callee": "delete",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L83"
+    },
+    {
+      "caller_nid": "callback_redirecttologin",
+      "callee": "set",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L90"
+    },
+    {
+      "caller_nid": "callback_redirecttologin",
+      "callee": "redirect",
+      "source_file": "packages\\auth\\src\\handlers\\callback.ts",
+      "source_location": "L91"
+    }
+  ]
+}

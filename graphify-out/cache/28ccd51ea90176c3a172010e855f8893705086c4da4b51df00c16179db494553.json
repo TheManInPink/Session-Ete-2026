@@ -1,0 +1,270 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_infrastructure_redis_redis_service_ts",
+      "label": "redis.service.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "redis_service_redisservice",
+      "label": "RedisService",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L17"
+    },
+    {
+      "id": "redis_service_redisservice_onmoduleinit",
+      "label": ".onModuleInit()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L22"
+    },
+    {
+      "id": "redis_service_redisservice_onmoduledestroy",
+      "label": ".onModuleDestroy()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L35"
+    },
+    {
+      "id": "redis_service_redisservice_get",
+      "label": ".get()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L42"
+    },
+    {
+      "id": "redis_service_redisservice_set",
+      "label": ".set()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L54"
+    },
+    {
+      "id": "redis_service_redisservice_del",
+      "label": ".del()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L60"
+    },
+    {
+      "id": "redis_service_redisservice_invalidate",
+      "label": ".invalidate()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L72"
+    },
+    {
+      "id": "redis_service_redisservice_ping",
+      "label": ".ping()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L86"
+    },
+    {
+      "id": "redis_service_redisservice_fullkey",
+      "label": ".fullKey()",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L96"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_infrastructure_redis_redis_service_ts",
+      "target": "common",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_infrastructure_redis_redis_service_ts",
+      "target": "ioredis",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_infrastructure_redis_redis_service_ts",
+      "target": "redis_service_redisservice",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_onmoduleinit",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_onmoduledestroy",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_get",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_set",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_del",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_invalidate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_ping",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice",
+      "target": "redis_service_redisservice_fullkey",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice_get",
+      "target": "redis_service_redisservice_fullkey",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice_set",
+      "target": "redis_service_redisservice_fullkey",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice_del",
+      "target": "redis_service_redisservice_fullkey",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice_invalidate",
+      "target": "redis_service_redisservice_fullkey",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "redis_service_redisservice_invalidate",
+      "target": "redis_service_redisservice_del",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L78",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "redis_service_redisservice_onmoduleinit",
+      "callee": "on",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L31"
+    },
+    {
+      "caller_nid": "redis_service_redisservice_onmoduleinit",
+      "callee": "on",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L32"
+    },
+    {
+      "caller_nid": "redis_service_redisservice_onmoduledestroy",
+      "callee": "quit",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L37"
+    },
+    {
+      "caller_nid": "redis_service_redisservice_get",
+      "callee": "parse",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L47"
+    },
+    {
+      "caller_nid": "redis_service_redisservice_set",
+      "callee": "stringify",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L56"
+    },
+    {
+      "caller_nid": "redis_service_redisservice_invalidate",
+      "callee": "scanStream",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L74"
+    },
+    {
+      "caller_nid": "redis_service_redisservice_invalidate",
+      "callee": "debug",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L81"
+    },
+    {
+      "caller_nid": "redis_service_redisservice_fullkey",
+      "callee": "startsWith",
+      "source_file": "services\\identity-service\\src\\infrastructure\\redis\\redis.service.ts",
+      "source_location": "L97"
+    }
+  ]
+}

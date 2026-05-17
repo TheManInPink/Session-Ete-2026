@@ -1,0 +1,183 @@
+{
+  "nodes": [
+    {
+      "id": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "label": "mali-heatmap.tsx",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "mali_heatmap_project",
+      "label": "project()",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L122"
+    },
+    {
+      "id": "mali_heatmap_ringtopath",
+      "label": "ringToPath()",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L131"
+    },
+    {
+      "id": "mali_heatmap_geometrytopath",
+      "label": "geometryToPath()",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L141"
+    },
+    {
+      "id": "mali_heatmap_colorfor",
+      "label": "colorFor()",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L152"
+    },
+    {
+      "id": "mali_heatmap_maliheatmap",
+      "label": "MaliHeatmap()",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L163"
+    },
+    {
+      "id": "mali_heatmap_clickable",
+      "label": "clickable()",
+      "file_type": "code",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L294"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "packages_ui_src_components_charts_lib_utils_ts",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "mali_heatmap_project",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "mali_heatmap_ringtopath",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "mali_heatmap_geometrytopath",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "mali_heatmap_colorfor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "mali_heatmap_maliheatmap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L163",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_ui_src_components_charts_mali_heatmap_tsx",
+      "target": "mali_heatmap_clickable",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L294",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "mali_heatmap_ringtopath",
+      "callee": "join",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L132"
+    },
+    {
+      "caller_nid": "mali_heatmap_ringtopath",
+      "callee": "map",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L132"
+    },
+    {
+      "caller_nid": "mali_heatmap_geometrytopath",
+      "callee": "join",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L143"
+    },
+    {
+      "caller_nid": "mali_heatmap_geometrytopath",
+      "callee": "map",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L143"
+    },
+    {
+      "caller_nid": "mali_heatmap_geometrytopath",
+      "callee": "join",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L146"
+    },
+    {
+      "caller_nid": "mali_heatmap_geometrytopath",
+      "callee": "map",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L146"
+    },
+    {
+      "caller_nid": "mali_heatmap_maliheatmap",
+      "callee": "max",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L175"
+    },
+    {
+      "caller_nid": "mali_heatmap_maliheatmap",
+      "callee": "map",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L175"
+    },
+    {
+      "caller_nid": "mali_heatmap_maliheatmap",
+      "callee": "useMemo",
+      "source_file": "packages\\ui\\src\\components\\charts\\mali-heatmap.tsx",
+      "source_location": "L177"
+    }
+  ]
+}

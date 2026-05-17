@@ -1,0 +1,98 @@
+{
+  "nodes": [
+    {
+      "id": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "label": "correction.dto.ts",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "correction_dto_submitcorrectiondto",
+      "label": "SubmitCorrectionDto",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L28"
+    },
+    {
+      "id": "correction_dto_rejectcorrectiondto",
+      "label": "RejectCorrectionDto",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L72"
+    },
+    {
+      "id": "correction_dto_listcorrectionsdto",
+      "label": "ListCorrectionsDto",
+      "file_type": "code",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L84"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "target": "swagger",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "target": "class_transformer",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "target": "class_validator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "target": "shared_types",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "target": "correction_dto_submitcorrectiondto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "target": "correction_dto_rejectcorrectiondto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "services_identity_service_src_modules_correction_dto_correction_dto_ts",
+      "target": "correction_dto_listcorrectionsdto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\identity-service\\src\\modules\\correction\\dto\\correction.dto.ts",
+      "source_location": "L84",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

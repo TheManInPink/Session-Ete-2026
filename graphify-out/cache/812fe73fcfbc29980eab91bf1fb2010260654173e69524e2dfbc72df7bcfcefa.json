@@ -1,0 +1,159 @@
+{
+  "nodes": [
+    {
+      "id": "packages_api_client_src_appointment_appointment_client_ts",
+      "label": "appointment.client.ts",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "appointment_client_appointmentclient",
+      "label": "AppointmentClient",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L18"
+    },
+    {
+      "id": "appointment_client_appointmentclient_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L19"
+    },
+    {
+      "id": "appointment_client_appointmentclient_getavailableslots",
+      "label": ".getAvailableSlots()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L26"
+    },
+    {
+      "id": "appointment_client_appointmentclient_create",
+      "label": ".create()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L40"
+    },
+    {
+      "id": "appointment_client_appointmentclient_listmine",
+      "label": ".listMine()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L51"
+    },
+    {
+      "id": "appointment_client_appointmentclient_cancel",
+      "label": ".cancel()",
+      "file_type": "code",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L60"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages_api_client_src_appointment_appointment_client_ts",
+      "target": "packages_api_client_src_appointment_core_http_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_appointment_appointment_client_ts",
+      "target": "packages_api_client_src_appointment_appointment_schema",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "packages_api_client_src_appointment_appointment_client_ts",
+      "target": "appointment_client_appointmentclient",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "appointment_client_appointmentclient",
+      "target": "appointment_client_appointmentclient_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "appointment_client_appointmentclient",
+      "target": "appointment_client_appointmentclient_getavailableslots",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "appointment_client_appointmentclient",
+      "target": "appointment_client_appointmentclient_create",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "appointment_client_appointmentclient",
+      "target": "appointment_client_appointmentclient_listmine",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "appointment_client_appointmentclient",
+      "target": "appointment_client_appointmentclient_cancel",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L60",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "appointment_client_appointmentclient_getavailableslots",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L31"
+    },
+    {
+      "caller_nid": "appointment_client_appointmentclient_create",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L41"
+    },
+    {
+      "caller_nid": "appointment_client_appointmentclient_listmine",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L52"
+    },
+    {
+      "caller_nid": "appointment_client_appointmentclient_cancel",
+      "callee": "request",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L61"
+    },
+    {
+      "caller_nid": "appointment_client_appointmentclient_cancel",
+      "callee": "encodeURIComponent",
+      "source_file": "packages\\api-client\\src\\appointment\\appointment.client.ts",
+      "source_location": "L63"
+    }
+  ]
+}

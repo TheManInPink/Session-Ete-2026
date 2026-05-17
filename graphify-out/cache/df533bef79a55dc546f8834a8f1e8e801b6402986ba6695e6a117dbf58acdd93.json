@@ -1,0 +1,459 @@
+{
+  "nodes": [
+    {
+      "id": "services_ai_service_src_observability_py",
+      "label": "observability.py",
+      "file_type": "code",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "observability_redact_pii",
+      "label": "_redact_pii()",
+      "file_type": "code",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L82"
+    },
+    {
+      "id": "observability_init_tracing",
+      "label": "init_tracing()",
+      "file_type": "code",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L99"
+    },
+    {
+      "id": "observability_instrument",
+      "label": "instrument()",
+      "file_type": "code",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L140"
+    },
+    {
+      "id": "observability_get_logger",
+      "label": "get_logger()",
+      "file_type": "code",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L164"
+    },
+    {
+      "id": "observability_rationale_1",
+      "label": "observability.py \u2014 Module d'observabilit\u00e9 pour ai-service (FastAPI).  \u00c9quivalent",
+      "file_type": "rationale",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "observability_rationale_83",
+      "label": "Processeur structlog qui caviarde r\u00e9cursivement les champs PII.",
+      "file_type": "rationale",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L83"
+    },
+    {
+      "id": "observability_rationale_100",
+      "label": "Configure OTel + exporter OTLP gRPC vers Jaeger.      DOIT \u00eatre appel\u00e9 AVANT tou",
+      "file_type": "rationale",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L100"
+    },
+    {
+      "id": "observability_rationale_141",
+      "label": "Active /metrics + histogrammes HTTP par d\u00e9faut + auto-instrument     FastAPI tra",
+      "file_type": "rationale",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L141"
+    },
+    {
+      "id": "observability_rationale_165",
+      "label": "Retourne un logger structlog configur\u00e9 pour NINA-AES.      Sortie : JSON (compat",
+      "file_type": "rationale",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L165"
+    }
+  ],
+  "edges": [
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "logging",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "typing",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "structlog",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry_sdk_resources",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry_sdk_trace",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry_sdk_trace_export",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry_exporter_otlp_proto_grpc_trace_exporter",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry_instrumentation_fastapi",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry_instrumentation_requests",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "opentelemetry_instrumentation_sqlalchemy",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "prometheus_client",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "prometheus_fastapi_instrumentator",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "fastapi",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "observability_redact_pii",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "observability_init_tracing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "observability_instrument",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L140",
+      "weight": 1.0
+    },
+    {
+      "source": "services_ai_service_src_observability_py",
+      "target": "observability_get_logger",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L164",
+      "weight": 1.0
+    },
+    {
+      "source": "observability_init_tracing",
+      "target": "observability_instrument",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "observability_rationale_1",
+      "target": "services_ai_service_src_observability_py",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "observability_rationale_83",
+      "target": "observability_redact_pii",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "observability_rationale_100",
+      "target": "observability_init_tracing",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "observability_rationale_141",
+      "target": "observability_instrument",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "observability_rationale_165",
+      "target": "observability_get_logger",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L165",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "observability_redact_pii",
+      "callee": "_walk",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "get",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L109"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "TracerProvider",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L113"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "create",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L114"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "get",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L117"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "get",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L118"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "add_span_processor",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L122"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "BatchSpanProcessor",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L123"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "OTLPSpanExporter",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L124"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "set_tracer_provider",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L129"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "RequestsInstrumentor",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L132"
+    },
+    {
+      "caller_nid": "observability_init_tracing",
+      "callee": "SQLAlchemyInstrumentor",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L134"
+    },
+    {
+      "caller_nid": "observability_instrument",
+      "callee": "expose",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L146"
+    },
+    {
+      "caller_nid": "observability_instrument",
+      "callee": "Instrumentator",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L146"
+    },
+    {
+      "caller_nid": "observability_instrument",
+      "callee": "instrument_app",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L157"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "configure",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L176"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "TimeStamper",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L180"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "JSONRenderer",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L183"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "LoggerFactory",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L186"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "upper",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L190"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "get",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L190"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "basicConfig",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L191"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "getattr",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L193"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "bind",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L195"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "get",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L197"
+    },
+    {
+      "caller_nid": "observability_get_logger",
+      "callee": "get",
+      "source_file": "services\\ai-service\\src\\observability.py",
+      "source_location": "L198"
+    }
+  ]
+}

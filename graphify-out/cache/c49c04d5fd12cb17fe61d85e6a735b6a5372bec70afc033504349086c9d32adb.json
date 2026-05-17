@@ -1,0 +1,57 @@
+{
+  "nodes": [
+    {
+      "id": "apps_governance_app_page_tsx",
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "apps\\governance\\app\\page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "page_themeimage",
+      "label": "ThemeImage()",
+      "file_type": "code",
+      "source_file": "apps\\governance\\app\\page.tsx",
+      "source_location": "L10"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_governance_app_page_tsx",
+      "target": "image",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\governance\\app\\page.tsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_governance_app_page_tsx",
+      "target": "button",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\governance\\app\\page.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_governance_app_page_tsx",
+      "target": "apps_governance_app_page_module_css",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\governance\\app\\page.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_governance_app_page_tsx",
+      "target": "page_themeimage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\governance\\app\\page.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}

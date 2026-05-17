@@ -1,0 +1,77 @@
+{
+  "nodes": [
+    {
+      "id": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "label": "kpi-card.tsx",
+      "file_type": "code",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "target": "link",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "target": "next_intl",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "target": "card",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "target": "sparkline",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "target": "lucide_react",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "target": "utils",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "apps_admin_app_locale_authenticated_dashboard_components_kpi_card_tsx",
+      "target": "apps_admin_app_locale_authenticated_dashboard_components_lib_mock_dashboard",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "apps\\admin\\app\\[locale]\\(authenticated)\\dashboard\\_components\\kpi-card.tsx",
+      "source_location": "L15",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": []
+}
