@@ -10,7 +10,7 @@ inputs:
     required: false
     default: 'true'
   prisma-generate:
-    description: 'Exécuter pnpm db:generate après l\'install (false par défaut)'
+    description: "Exécuter pnpm db:generate après l'install (false par défaut)"
     required: false
     default: 'false'
 
