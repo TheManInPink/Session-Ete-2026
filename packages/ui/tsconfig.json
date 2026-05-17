@@ -3,7 +3,16 @@
   "compilerOptions": {
     "rootDir": "./src",
     "strictNullChecks": true,
-    "types": ["node"]
+    "types": ["node"],
+    // Override NodeNext (hérité de base.json) → bundler. `@nina-aes/ui`
+    // est consommé uniquement par des bundlers (Next.js Turbopack /
+    // webpack via les `exports` qui pointent directement sur le .ts).
+    // En NodeNext, le typecheck exige une extension `.js` sur les
+    // imports relatifs ; en bundler, on peut/doit l'omettre. Turbopack
+    // ne sait pas mapper `.js` → `.ts` pour la résolution, donc on
+    // s'aligne sur bundler partout.
+    "module": "ESNext",
+    "moduleResolution": "bundler"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

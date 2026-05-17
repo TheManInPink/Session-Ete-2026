@@ -10,7 +10,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { Loader2 } from 'lucide-react';
 import * as React from 'react';
 
-import { cn } from '../../lib/utils.js';
+import { cn } from '../../lib/utils';
 
 const buttonVariants = cva(
   // Base : focus ring, transitions, disabled state, accessibilité tactile
@@ -45,8 +45,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   /** Si `true`, le composant rend son enfant via Radix Slot (composition). */
   asChild?: boolean;
   /** Affiche un spinner et désactive le bouton pendant une action async. */
@@ -61,7 +60,10 @@ export interface ButtonProps
  *   <Button asChild variant="outline"><Link href="/">Retour</Link></Button>
  */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
+  (
+    { className, variant, size, asChild = false, loading = false, disabled, children, ...props },
+    ref,
+  ) => {
     const classes = cn(buttonVariants({ variant, size }), className);
 
     // Mode composition (Radix Slot) : exactement UN enfant requis par
@@ -69,7 +71,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // doit gérer l'état loading lui-même via `<Link>` désactivé etc.
     if (asChild) {
       return (
-        <Slot ref={ref as React.Ref<HTMLElement>} className={classes} aria-busy={loading || undefined} {...props}>
+        <Slot
+          ref={ref as React.Ref<HTMLElement>}
+          className={classes}
+          aria-busy={loading || undefined}
+          {...props}
+        >
           {children}
         </Slot>
       );

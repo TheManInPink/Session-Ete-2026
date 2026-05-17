@@ -16,7 +16,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
 import * as React from 'react';
-import { cn } from '../../lib/utils.js';
+import { cn } from '../../lib/utils';
 
 const Sheet = DialogPrimitive.Root;
 const SheetTrigger = DialogPrimitive.Trigger;
@@ -63,7 +63,8 @@ const sheetVariants = cva(
 );
 
 interface SheetContentProps
-  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
+  extends
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
   /** Désactive le bouton de fermeture par défaut en haut à droite. */
   hideCloseButton?: boolean;
@@ -75,7 +76,11 @@ const SheetContent = React.forwardRef<
 >(({ side = 'right', className, children, hideCloseButton, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
-    <DialogPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(sheetVariants({ side }), className)}
+      {...props}
+    >
       {children}
       {!hideCloseButton && (
         <DialogPrimitive.Close
@@ -95,7 +100,10 @@ const SheetContent = React.forwardRef<
 SheetContent.displayName = 'SheetContent';
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col space-y-1.5 border-b border-border px-6 py-4', className)} {...props} />
+  <div
+    className={cn('flex flex-col space-y-1.5 border-b border-border px-6 py-4', className)}
+    {...props}
+  />
 );
 SheetHeader.displayName = 'SheetHeader';
 

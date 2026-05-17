@@ -11,7 +11,7 @@
 
 import * as React from 'react';
 import { Check, X } from 'lucide-react';
-import { cn } from '../../lib/utils.js';
+import { cn } from '../../lib/utils';
 
 export interface IntegrityGaugeProps {
   /** Nom affichable de l'agent. */
@@ -59,12 +59,14 @@ export function IntegrityGauge({
         {name}
       </span>
       <div className="flex-1 h-2 overflow-hidden rounded-full bg-bg-muted">
-        <div
-          className={cn('h-full transition-all', tone.bar)}
-          style={{ width: `${clamped}%` }}
-        />
+        <div className={cn('h-full transition-all', tone.bar)} style={{ width: `${clamped}%` }} />
       </div>
-      <span className={cn('w-10 shrink-0 text-right font-mono text-sm font-medium tabular-nums', tone.text)}>
+      <span
+        className={cn(
+          'w-10 shrink-0 text-right font-mono text-sm font-medium tabular-nums',
+          tone.text,
+        )}
+      >
         {clamped}
       </span>
     </div>

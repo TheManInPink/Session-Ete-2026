@@ -13,9 +13,9 @@
 
 import { normalizeNina, validateNina, type ParsedNina } from '@nina-aes/utils';
 import * as React from 'react';
-import { cn } from '../../lib/utils.js';
-import { Input } from '../ui/input.js';
-import { Label } from '../ui/label.js';
+import { cn } from '../../lib/utils';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 export interface NinaInputProps {
   /** Identifiant HTML (par défaut "nina"). */
@@ -66,7 +66,6 @@ export function NinaInput({
   const helperId = `${id}-helper`;
 
   const isComplete = value.length === 15;
-  const isValidFormat = /^[12]\d{13}[A-Z]$/.test(value);
   const isFullyValid = isComplete && validateNina(value);
   const hasError = isComplete && !isFullyValid;
 

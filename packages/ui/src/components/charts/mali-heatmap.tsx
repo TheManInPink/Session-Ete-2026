@@ -25,7 +25,7 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '../../lib/utils.js';
+import { cn } from '../../lib/utils';
 
 /** Centroïdes des 20 régions/cercles Mali (level=1 dans mali.geojson). */
 const MALI_REGIONS = [
@@ -122,8 +122,7 @@ export interface MaliHeatmapProps {
 function project(lon: number, lat: number): { x: number; y: number } {
   const x = ((lon - BBOX.lonMin) / (BBOX.lonMax - BBOX.lonMin)) * VIEW_BOX_WIDTH;
   // Inversion Y : latitude haute → y bas du SVG
-  const y =
-    (1 - (lat - BBOX.latMin) / (BBOX.latMax - BBOX.latMin)) * VIEW_BOX_HEIGHT;
+  const y = (1 - (lat - BBOX.latMin) / (BBOX.latMax - BBOX.latMin)) * VIEW_BOX_HEIGHT;
   return { x, y };
 }
 
@@ -143,9 +142,7 @@ function geometryToPath(geometry: GeoFeature['geometry']): string {
     return geometry.coordinates.map(ringToPath).join(' Z ') + ' Z';
   }
   // MultiPolygon : chaque polygone est un array d'anneaux
-  return geometry.coordinates
-    .map((poly) => poly.map(ringToPath).join(' Z '))
-    .join(' Z ') + ' Z';
+  return geometry.coordinates.map((poly) => poly.map(ringToPath).join(' Z ')).join(' Z ') + ' Z';
 }
 
 /** Couleur HSL pour une valeur normalisée [0..1] selon le tone. */
@@ -212,9 +209,7 @@ export function MaliHeatmap({
           const datum = byCode.get(internalCode);
           const value = datum?.value ?? 0;
           const t = value / maxValue;
-          const fill = datum
-            ? colorFor(tone, t)
-            : 'var(--bg-muted)';
+          const fill = datum ? colorFor(tone, t) : 'var(--bg-muted)';
           const fillOpacity = datum ? 0.75 : 0.4;
           const region = MALI_REGIONS.find((r) => r.code === internalCode);
           const name = region?.name ?? feature.properties.shapeName ?? legacyCode;
@@ -228,11 +223,7 @@ export function MaliHeatmap({
               tabIndex={clickable ? 0 : -1}
               role={clickable ? 'button' : 'img'}
               aria-label={label}
-              onClick={
-                clickable && datum
-                  ? () => onRegionClick({ ...datum, name })
-                  : undefined
-              }
+              onClick={clickable && datum ? () => onRegionClick({ ...datum, name }) : undefined}
               onKeyDown={
                 clickable && datum
                   ? (e) => {
@@ -347,29 +338,27 @@ export function MaliHeatmap({
         })}
 
       {/* ── Étiquettes des régions principales (zoom-out lisibilité) ─── */}
-      {(['ML-09', 'ML-01', 'ML-05', 'ML-07', 'ML-08', 'ML-06', 'ML-03'] as const).map(
-        (code) => {
-          const r = MALI_REGIONS.find((x) => x.code === code);
-          if (!r) return null;
-          const { x, y } = project(r.lon, r.lat);
-          const shortName = r.name.replace('District de ', '');
-          return (
-            <text
-              key={`label-${code}`}
-              x={x}
-              y={y - 2.5}
-              fontSize="2.2"
-              textAnchor="middle"
-              fill="var(--fg)"
-              fillOpacity="0.85"
-              className="pointer-events-none font-medium"
-              style={{ paintOrder: 'stroke', stroke: 'var(--bg-card)', strokeWidth: 0.6 }}
-            >
-              {shortName}
-            </text>
-          );
-        },
-      )}
+      {(['ML-09', 'ML-01', 'ML-05', 'ML-07', 'ML-08', 'ML-06', 'ML-03'] as const).map((code) => {
+        const r = MALI_REGIONS.find((x) => x.code === code);
+        if (!r) return null;
+        const { x, y } = project(r.lon, r.lat);
+        const shortName = r.name.replace('District de ', '');
+        return (
+          <text
+            key={`label-${code}`}
+            x={x}
+            y={y - 2.5}
+            fontSize="2.2"
+            textAnchor="middle"
+            fill="var(--fg)"
+            fillOpacity="0.85"
+            className="pointer-events-none font-medium"
+            style={{ paintOrder: 'stroke', stroke: 'var(--bg-card)', strokeWidth: 0.6 }}
+          >
+            {shortName}
+          </text>
+        );
+      })}
     </svg>
   );
 }

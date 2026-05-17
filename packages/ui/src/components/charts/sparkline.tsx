@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { cn } from '../../lib/utils.js';
+import { cn } from '../../lib/utils';
 
 export interface SparklineProps {
   /** Séquence de valeurs numériques. Min 2 points pour tracer une ligne. */
@@ -72,8 +72,7 @@ export function Sparkline({
 
   const last = points[points.length - 1]!;
 
-  const accessibleLabel =
-    ariaLabel ?? `Tendance ${data.length} derniers points : ${min} à ${max}`;
+  const accessibleLabel = ariaLabel ?? `Tendance ${data.length} derniers points : ${min} à ${max}`;
 
   return (
     <svg
@@ -85,13 +84,7 @@ export function Sparkline({
     >
       <title>{accessibleLabel}</title>
 
-      {fill && (
-        <path
-          d={`${linePath} L100,30 L0,30 Z`}
-          fill={color}
-          fillOpacity="0.15"
-        />
-      )}
+      {fill && <path d={`${linePath} L100,30 L0,30 Z`} fill={color} fillOpacity="0.15" />}
       <path
         d={linePath}
         fill="none"
@@ -101,9 +94,7 @@ export function Sparkline({
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
       />
-      {highlightLast && (
-        <circle cx={last.x} cy={last.y} r="1.6" fill={color} />
-      )}
+      {highlightLast && <circle cx={last.x} cy={last.y} r="1.6" fill={color} />}
     </svg>
   );
 }

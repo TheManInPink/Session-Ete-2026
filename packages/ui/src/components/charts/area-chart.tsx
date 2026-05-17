@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { cn } from '../../lib/utils.js';
+import { cn } from '../../lib/utils';
 
 export interface AreaChartPoint {
   /** Label X (ex: '14/05', 'Lun', ...). */
@@ -108,13 +108,7 @@ export function AreaChart({
             strokeWidth="0.5"
             strokeDasharray="2 2"
           />
-          <text
-            x={VB.left - 4}
-            y={g.y + 3}
-            fontSize="9"
-            textAnchor="end"
-            fill="var(--fg-muted)"
-          >
+          <text x={VB.left - 4} y={g.y + 3} fontSize="9" textAnchor="end" fill="var(--fg-muted)">
             {Math.round(g.value)}
           </text>
         </g>

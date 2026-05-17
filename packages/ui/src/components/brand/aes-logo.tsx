@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { cn } from '../../lib/utils.js';
+import { cn } from '../../lib/utils';
 
 const SIZES = { sm: 24, md: 32, lg: 48, xl: 64 } as const;
 
