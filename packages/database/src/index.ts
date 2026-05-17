@@ -39,19 +39,13 @@ const IS_DEV = NODE_ENV !== 'production' && NODE_ENV !== 'test';
  *   - En dev : queries + info + warn + error (pédagogique, facile à déboguer).
  *   - En prod : errors-only (réduit le bruit et le coût de journalisation).
  */
-const LOG_LEVELS: Prisma.LogLevel[] = IS_DEV
-  ? ['query', 'info', 'warn', 'error']
-  : ['error'];
+const LOG_LEVELS: Prisma.LogLevel[] = IS_DEV ? ['query', 'info', 'warn', 'error'] : ['error'];
 
 /**
  * Modèles sur lesquels le soft-delete est activé. Ajouter un modèle ici
  * suppose que sa table Prisma possède le champ `deletedAt: DateTime?`.
  */
-const SOFT_DELETE_MODELS = new Set<string>([
-  'Citizen',
-  'User',
-  'CorrectionRequest',
-]);
+const SOFT_DELETE_MODELS = new Set<string>(['Citizen', 'User', 'CorrectionRequest']);
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Création du client brut
@@ -91,9 +85,7 @@ function createBareClient(): PrismaClient {
  * @param args - Arguments de requête Prisma.
  * @returns Nouveaux arguments enrichis avec le filtre « non supprimé ».
  */
-function applyNotDeleted<T extends { where?: Record<string, unknown> } | undefined>(
-  args: T,
-): T {
+function applyNotDeleted<T extends { where?: Record<string, unknown> } | undefined>(args: T): T {
   const safe = (args ?? {}) as { where?: Record<string, unknown> };
   const where = safe.where ?? {};
   if (Object.prototype.hasOwnProperty.call(where, 'deletedAt')) return args;
@@ -130,12 +122,20 @@ const softDeleteExtension = Prisma.defineExtension((client) =>
     name: 'soft-delete',
     query: {
       $allModels: {
-        async delete({ model, args, query }) {
+        async delete({
+          model,
+          args,
+          query,
+        }: {
+          model: string;
+          args: unknown;
+          query: (args: unknown) => Promise<unknown>;
+        }) {
           if (!SOFT_DELETE_MODELS.has(model)) return query(args);
           const key = model.charAt(0).toLowerCase() + model.slice(1);
-          const delegate = (client as unknown as Record<string, {
-            update: (a: unknown) => Promise<unknown>;
-          }>)[key];
+          const delegate = (
+            client as unknown as Record<string, { update: (a: unknown) => Promise<unknown> }>
+          )[key];
           if (!delegate) return query(args);
           return delegate.update({
             ...(args as object),
@@ -143,12 +143,20 @@ const softDeleteExtension = Prisma.defineExtension((client) =>
           }) as unknown as ReturnType<typeof query>;
         },
 
-        async deleteMany({ model, args, query }) {
+        async deleteMany({
+          model,
+          args,
+          query,
+        }: {
+          model: string;
+          args: unknown;
+          query: (args: unknown) => Promise<unknown>;
+        }) {
           if (!SOFT_DELETE_MODELS.has(model)) return query(args);
           const key = model.charAt(0).toLowerCase() + model.slice(1);
-          const delegate = (client as unknown as Record<string, {
-            updateMany: (a: unknown) => Promise<unknown>;
-          }>)[key];
+          const delegate = (
+            client as unknown as Record<string, { updateMany: (a: unknown) => Promise<unknown> }>
+          )[key];
           if (!delegate) return query(args);
           return delegate.updateMany({
             ...(args as object),
@@ -156,21 +164,58 @@ const softDeleteExtension = Prisma.defineExtension((client) =>
           }) as unknown as ReturnType<typeof query>;
         },
 
-        async findUnique({ model, args, query }) {
+        // NB : on type explicitement les binding elements car Prisma 7.x
+        // ne propage pas toujours le générique du TypeMap jusqu'aux
+        // callbacks `$allModels.*` (TS7031). `args`/`query` restent
+        // structurellement compatibles avec ce que Prisma fournit ; on
+        // re-cast côté retour si nécessaire.
+        async findUnique({
+          model,
+          args,
+          query,
+        }: {
+          model: string;
+          args: unknown;
+          query: (args: unknown) => Promise<unknown>;
+        }) {
           if (!SOFT_DELETE_MODELS.has(model)) return query(args);
-          return query(applyNotDeleted(args));
+          return query(applyNotDeleted(args as { where?: Record<string, unknown> } | undefined));
         },
-        async findFirst({ model, args, query }) {
+        async findFirst({
+          model,
+          args,
+          query,
+        }: {
+          model: string;
+          args: unknown;
+          query: (args: unknown) => Promise<unknown>;
+        }) {
           if (!SOFT_DELETE_MODELS.has(model)) return query(args);
-          return query(applyNotDeleted(args));
+          return query(applyNotDeleted(args as { where?: Record<string, unknown> } | undefined));
         },
-        async findMany({ model, args, query }) {
+        async findMany({
+          model,
+          args,
+          query,
+        }: {
+          model: string;
+          args: unknown;
+          query: (args: unknown) => Promise<unknown>;
+        }) {
           if (!SOFT_DELETE_MODELS.has(model)) return query(args);
-          return query(applyNotDeleted(args));
+          return query(applyNotDeleted(args as { where?: Record<string, unknown> } | undefined));
         },
-        async count({ model, args, query }) {
+        async count({
+          model,
+          args,
+          query,
+        }: {
+          model: string;
+          args: unknown;
+          query: (args: unknown) => Promise<unknown>;
+        }) {
           if (!SOFT_DELETE_MODELS.has(model)) return query(args);
-          return query(applyNotDeleted(args));
+          return query(applyNotDeleted(args as { where?: Record<string, unknown> } | undefined));
         },
       },
     },
