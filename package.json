@@ -1,6 +1,7 @@
 {
   "name": "nina-aes-platform",
   "private": true,
+  "type": "module",
   "description": "Système Sécurisé de Gestion d'Identité Numérique pour l'AES (Alliance des États du Sahel)",
   "keywords": [
     "nina",
@@ -51,31 +52,18 @@
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@playwright/test": "^1.50.0",
+    "@repo/eslint-config": "workspace:*",
     "@types/node": "^25.6.0",
+    "ajv": "^8.17.1",
+    "eslint": "^10.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "ajv": "^8.17.1",
     "turbo": "^2.9.8",
     "typescript": "6.0.2"
   },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx,mjs,cjs}": [
-      "eslint --fix --max-warnings=0",
-      "prettier --write"
-    ],
-    "*.py": [
-      "ruff check --fix --exit-non-zero-on-fix",
-      "ruff format"
-    ],
-    "*.{json,md,yml,yaml,css,scss}": [
-      "prettier --write"
-    ],
-    "*.prisma": [
-      "prettier --write --plugin=prisma"
-    ]
-  },
-  "packageManager": "pnpm@10.12.1",
+  "//lint-staged": "Config déportée dans .lintstagedrc.mjs (form fonction pour filtrer eslint.config.js)",
+  "packageManager": "pnpm@11.1.2",
   "engines": {
     "node": ">=24.0.0",
     "pnpm": ">=10.0.0"

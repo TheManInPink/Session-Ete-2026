@@ -59,7 +59,6 @@ export class VaultClient {
   private log(level: LogLevel, msg: string, meta?: unknown): void {
     if (LOG_LEVELS[level] > LOG_LEVELS[this.cfg.logLevel!]) return;
     const prefix = `[vault-client] [${level.toUpperCase()}]`;
-    // eslint-disable-next-line no-console
     console[level === 'error' || level === 'warn' ? level : 'log'](prefix, msg, meta ?? '');
   }
 
@@ -195,11 +194,7 @@ export class VaultClient {
   }
 
   /** Vérifie une signature Transit. */
-  async transitVerify(
-    keyName: string,
-    payloadBase64: string,
-    signature: string,
-  ): Promise<boolean> {
+  async transitVerify(keyName: string, payloadBase64: string, signature: string): Promise<boolean> {
     const res = await this.request<{ data: { valid: boolean } }>(
       'POST',
       `transit/verify/${keyName}`,
@@ -285,10 +280,7 @@ export class VaultClient {
 export function createVaultClientFromEnv(): VaultClient {
   const endpoint = process.env.VAULT_ADDR;
   if (!endpoint) throw new Error('VAULT_ADDR non défini');
-  const method = (process.env.VAULT_AUTH_METHOD ?? 'approle') as
-    | 'token'
-    | 'approle'
-    | 'kubernetes';
+  const method = (process.env.VAULT_AUTH_METHOD ?? 'approle') as 'token' | 'approle' | 'kubernetes';
 
   if (method === 'token') {
     return new VaultClient({

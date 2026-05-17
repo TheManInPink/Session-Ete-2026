@@ -3,7 +3,7 @@
  * @description Tests unitaires VaultClient (mock fetch).
  */
 
-import { VaultClient } from '../index';
+import { VaultClient } from '../index.js';
 
 const originalFetch = globalThis.fetch;
 
@@ -41,10 +41,9 @@ describe('VaultClient', () => {
     it('avec method=approle, POST /auth/approle/login', async () => {
       globalThis.fetch = mockFetch({
         'POST /v1/auth/approle/login': () =>
-          new Response(
-            JSON.stringify({ auth: { client_token: 'rt.xxx', lease_duration: 3600 } }),
-            { status: 200 },
-          ),
+          new Response(JSON.stringify({ auth: { client_token: 'rt.xxx', lease_duration: 3600 } }), {
+            status: 200,
+          }),
       });
 
       const c = new VaultClient({

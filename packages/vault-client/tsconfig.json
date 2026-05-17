@@ -1,5 +1,5 @@
 {
-  "extends": "@nina-aes/typescript-config/base.json",
+  "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
@@ -7,8 +7,9 @@
     "declarationMap": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "target": "ES2024"
+    "target": "ES2024",
+    "types": ["node", "jest"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules", "**/*.test.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
 }

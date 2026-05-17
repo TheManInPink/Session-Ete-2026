@@ -23,7 +23,7 @@
     "node-vault": "^0.10.4"
   },
   "devDependencies": {
-    "@nina-aes/typescript-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "jest": "^30.0.0",
