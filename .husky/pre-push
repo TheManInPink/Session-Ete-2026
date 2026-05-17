@@ -19,8 +19,13 @@
 # `--filter=...[HEAD~1]` : workspaces ayant changé depuis l'avant-dernier
 # commit (couvre les modifs de la branche locale qu'on s'apprête à push).
 # Si rien n'a changé, turbo retourne 0 immédiatement (cache hit).
+#
+# Note : on NE passe PAS `--passWithNoTests` via `--` ici car chaque
+# workspace l'a déjà câblé dans son script test (`jest --passWithNoTests`
+# ou `vitest run --passWithNoTests`). Vitest 4 rejette le doublon
+# (« Expected a single value for option "--passWithNoTests" »).
 echo "🧪 Tests Jest (workspaces affectés depuis HEAD~1)…"
-pnpm exec turbo run test --filter=...[HEAD~1] --cache-dir=.turbo -- --passWithNoTests || {
+pnpm exec turbo run test --filter=...[HEAD~1] --cache-dir=.turbo || {
   echo "❌ Au moins un test a échoué."
   echo "   → Inspectez l'output ci-dessus."
   echo "   → Pour relancer localement : pnpm test --filter=<workspace>"
