@@ -32,16 +32,20 @@ pnpm exec turbo run check-types --filter=...[HEAD] --cache-dir=.turbo || {
   exit 1
 }
 
-# ─── 3. Audit chaîne d'approvisionnement (CVEs CRITICAL/HIGH) ────────
+# ─── 3. Audit chaîne d'approvisionnement (CVEs CRITICAL uniquement) ──
 # Détecte les packages compromis ou vulnérables dans pnpm-lock.yaml.
 # `--prod` ignore les devDeps (souvent bruyantes).
-# NB : pnpm 10 ne supporte pas `audit signatures` (spécifique npm).
-# L'équivalent est `pnpm audit` + `pnpm-lock.yaml` integrity hashes natifs.
-echo "🔒 pnpm audit (prod, CRITICAL/HIGH)…"
-pnpm audit --audit-level=high --prod || {
-  echo "⚠️  Vulnérabilités détectées sur les dépendances prod."
-  echo "   Inspectez l'output, puis : pnpm update <package> (ou ajoutez une justification)"
-  echo "   Pour bypass exceptionnel : git commit --no-verify (NON recommandé)"
+# Niveau CRITICAL uniquement : les HIGH bloqueraient trop souvent
+# (ex. CVE next.js mineure mais notée HIGH par GitHub Advisories).
+# Les HIGH sont reviewés par le CI (cf. .github/workflows/ci.yml job
+# `security`) qui audite l'ensemble avec --audit-level=high.
+# NB : pnpm 10/11 ne supporte pas `audit signatures` (spécifique npm).
+# L'équivalent est `pnpm audit` + integrity hashes pnpm-lock.yaml.
+echo "🔒 pnpm audit (prod, CRITICAL)…"
+pnpm audit --audit-level=critical --prod || {
+  echo "❌ Vulnérabilité CRITICAL détectée sur les dépendances prod."
+  echo "   ACTION OBLIGATOIRE : pnpm update <package> + commit du lockfile."
+  echo "   Bypass exceptionnel : git commit --no-verify (justification dans le body)"
   exit 1
 }
 
