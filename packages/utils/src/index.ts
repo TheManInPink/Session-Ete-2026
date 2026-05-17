@@ -47,5 +47,8 @@ export { calculateAge } from './date';
 // ── Sécurité / journalisation ──────────────────────────────────────────────────
 export { sanitizeForLog } from './sanitize';
 
+// ── Normalisation ASCII (recherche fuzzy) ──────────────────────────────────────
+export { toAscii } from './ascii';
+
 // ── UI ─────────────────────────────────────────────────────────────────────────
 export { cn } from './cn';

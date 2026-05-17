@@ -1,25 +1,40 @@
 /**
  * @file        app.controller.ts
- * @description Contrôleur de santé du microservice identity-service
+ * @description Contrôleur racine — page d'accueil de l'API.
+ *              Le vrai /health est dans modules/health/health.controller.ts
+ *              (avec Terminus + DB + Redis + RabbitMQ + ai-service).
+ *
  * @author      Étudiant UQAR
  * @date        2026
  * @module      identity-service
  */
 
 import { Controller, Get } from '@nestjs/common';
+import { ApiExcludeEndpoint } from '@nestjs/swagger';
 
 @Controller()
 export class AppController {
   /**
-   * Endpoint de santé — permet à Docker/K3s de vérifier que le service est vivant.
-   * @returns Objet avec le statut, le nom du service et le timestamp
+   * Page d'accueil minimale — info service + liens utiles.
+   * Routée sur /api/v1/ (préfixe global).
+   *
+   * @returns Objet info service avec liens vers docs, health et metrics
    */
-  @Get('health')
-  getHealth() {
+  @Get()
+  @ApiExcludeEndpoint()
+  root(): {
+    service: string;
+    version: string;
+    docs: string;
+    health: string;
+    metrics: string;
+  } {
     return {
-      status: 'ok',
       service: 'identity-service',
-      timestamp: new Date().toISOString(),
+      version: process.env.SERVICE_VERSION ?? '0.1.0',
+      docs: '/api/docs',
+      health: '/health',
+      metrics: '/metrics',
     };
   }
 }
