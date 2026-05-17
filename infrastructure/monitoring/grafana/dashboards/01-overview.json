@@ -1,0 +1,155 @@
+{
+  "uid": "nina-overview",
+  "title": "NINA-AES — Vue d'ensemble plateforme",
+  "tags": ["nina-aes", "overview"],
+  "timezone": "Africa/Bamako",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(up, env)",
+        "current": { "selected": true, "text": "dev", "value": "dev" },
+        "includeAll": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Services UP / DOWN",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(up{job=~\"nina-services-.*\"})",
+          "legendFormat": "UP"
+        },
+        {
+          "expr": "sum(up{job=~\"nina-services-.*\"} == 0)",
+          "legendFormat": "DOWN"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 9 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "graphMode": "none", "textMode": "value_and_name" }
+    },
+    {
+      "id": 2,
+      "title": "Requêtes HTTP / seconde (global)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(http_requests_total[5m]))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Latence p95 par service (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket[5m]))) * 1000",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 300 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Taux d'erreurs 5xx (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "(sum by (service) (rate(http_requests_total{status=~\"5..\"}[5m])) / sum by (service) (rate(http_requests_total[5m]))) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Alertes actives Prometheus",
+      "type": "alertlist",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "options": {
+        "showOptions": "current",
+        "maxItems": 20,
+        "stateFilter": { "firing": true, "pending": true }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Logs récents (level=error)",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{level=\"error\"} | json | line_format \"{{.service}} | {{.msg}}\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}

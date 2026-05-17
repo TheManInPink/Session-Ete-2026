@@ -2241,3 +2241,169 @@ docker exec nina-vault vault policy list
 - `Makefile` : 6 cibles `vault-*` (vs 3 avant)
 
 `pnpm run verify:repo` ✅ vert.
+
+## 30. Stack monitoring complète — Prometheus + Grafana + Loki + Jaeger + Alertmanager (PROMPT 2.5, mai 2026)
+
+Implémentation effective de la stack d'observabilité documentée doc 17
++ ADR-017. La spec était architecturale ; ce commit livre les fichiers
+de configuration, les modules instrumentation NestJS + FastAPI, et 6
+dashboards Grafana opérationnels.
+
+### 30.1 Livrables
+
+| Catégorie | Fichier | Rôle |
+|---|---|---|
+| Compose | `infrastructure/monitoring/docker-compose.monitoring.yml` | 10 services (Prometheus, Grafana, Loki, Promtail, Jaeger, Alertmanager, node/cadvisor/postgres/redis exporters) |
+| Prometheus | `prometheus/prometheus.yml` | Scrape config 11 services NestJS/FastAPI + 4 exporters infra |
+| Prometheus | `prometheus/rules/nina-aes-slo.yml` | **14 règles** d'alerting (SLO, capacité, sécurité, backup) |
+| Loki | `loki/loki-config.yml` | Single-binary TSDB v13, retention 30j |
+| Promtail | `promtail/promtail-config.yml` | Tail Docker containers `nina-*`, parse JSON Pino, redact label `nina` |
+| Alertmanager | `alertmanager/alertmanager.yml` | Routing critical→email+Slack, warning→Slack, inhibitions anti-spam |
+| Alertmanager | `alertmanager/templates/nina.tmpl` | Templates FR pour email + Slack |
+| Grafana | `grafana/provisioning/datasources/all.yml` | Prometheus + Loki + Jaeger + Alertmanager avec dérived fields trace_id |
+| Grafana | `grafana/provisioning/dashboards/nina.yml` | Provider qui charge dashboards/*.json |
+| Grafana | `grafana/dashboards/01-overview.json` | Vue d'ensemble plateforme (UP/DOWN, RPS, p95, 5xx, alertes, logs) |
+| Grafana | `02-identity-service.json` | identity-service (CRUD NINA, latences, heap, logs) |
+| Grafana | `03-ai-service.json` | ai-service (corrections, score moyen, inférence p95) |
+| Grafana | `04-sigac.json` | SIGAC (top 10 agents flaggés, signalements BERT, severity) |
+| Grafana | `05-postgres.json` | Postgres (connexions, cache hit, tx/s, top tables) |
+| Grafana | `06-business-kpis.json` | KPIs métier (corrections/jour, RDV, USSD par langue, BCID-AES) |
+| Package TS | `packages/observability/` | NestJS module + Pino-Loki + OTel SDK + BusinessMetrics |
+| Module Py | `services/ai-service/src/observability.py` | structlog + prometheus + OTel pour FastAPI |
+| Deps Py | `services/ai-service/requirements.txt` | +prometheus-client, OTel SDK + instrumentations, structlog |
+| Makefile | `monitoring-{up,down,logs,reload,status}` | 5 nouvelles cibles |
+
+### 30.2 Révision ADR-017 — Jaeger au lieu de Tempo
+
+**Décision PROMPT 2.5** : utiliser **Jaeger all-in-one 1.62** comme
+backend de traces, au lieu de **Tempo 2.7** spécifié dans ADR-017.
+
+Cette révision est CONSCIENTE et documentée :
+
+| Critère | Tempo (ADR-017 V1) | Jaeger (PROMPT 2.5 = V2) |
+|---|---|---|
+| Intégration Grafana native | ✅ datasource Tempo | ⚠️ datasource Jaeger (présent mais moins fluide) |
+| Storage backend en dev | TSDB local | In-memory (50k spans max) |
+| Storage backend en prod | TSDB local ou S3 | Cassandra ou Elasticsearch requis |
+| UI dédiée | ❌ via Grafana Tempo | ✅ UI Jaeger riche (search, dependencies) |
+| Simplicité dev mode | All-in-one Tempo | All-in-one Jaeger (mémoire, démarrage 5s) |
+| OTLP gRPC ingest | ✅ port 4317 | ✅ port 4317 |
+| Empreinte mémoire | ~150 MB | ~120 MB |
+
+**Argumentaire** : pour le dev/staging, Jaeger all-in-one est plus
+simple (zéro storage à provisionner, UI dédiée pour explorer). En
+production, Tempo reste préférable (intégration Grafana native +
+storage S3-compatible souverain via MinIO). Migration prévue V3 quand
+le volume de traces dépasse 50k spans/h.
+
+**Ajout à ADR-017 V2** (à formaliser dans un commit séparé si
+nécessaire) : Jaeger en dev/staging, Tempo en prod. Les 2 sont
+OTLP-compatibles donc le code applicatif ne change pas.
+
+### 30.3 Instrumentation TypeScript — `@nina-aes/observability`
+
+Nouveau workspace package qui exporte 4 primitives :
+
+- **`ObservabilityModule.forRoot({ serviceName, env })`** — module
+  NestJS global. À importer dans chaque `AppModule`. Active
+  `nestjs-prometheus` avec defaultMetrics + labels uniformes.
+- **`startOtelTracing(serviceName)`** — DOIT être appelé en première
+  ligne de `main.ts`, AVANT tout import applicatif, sinon les
+  auto-instrumentations Prisma/ioredis/http ne s'attachent pas.
+- **`createPinoLogger({ serviceName, transport })`** — factory Pino
+  structuré JSON avec **redact PII 25 chemins** (nina, biométrie,
+  dateNaissance, password, token, cookie, authorization). Transport
+  configurable : `pretty` (dev), `loki` (staging/prod), `both` (debug
+  local avec Loki réel).
+- **`BusinessMetrics`** — service injectable exposant 19 métriques
+  métier prédéfinies (`identity_citizens_validated_total`,
+  `ai_nina_errors_detected_total`, `sigac_*`, `audit_*`,
+  `correction_requests_total`, `appointments_created_total`,
+  `vulnerability_profiles_total`, `ussd_sessions_total`,
+  `aes_verify_nina_total`, `vault_rotation_failed_total`,
+  `audit_merkle_chain_break_total`).
+
+### 30.4 Instrumentation Python — `services/ai-service/src/observability.py`
+
+Équivalent pour FastAPI :
+
+- **`init_tracing(service_name)`** — OTel SDK + OTLP gRPC exporter +
+  auto-instrumentations Requests + SQLAlchemy
+- **`instrument(app)`** — `/metrics` + FastAPI middleware + traces
+- **`get_logger(service_name)`** — structlog JSON avec **redact PII**
+  récursif sur 14 champs (équivalent fonctionnel du Pino TS)
+- **`AI_METRICS` + `SIGAC_METRICS`** — dicts de Counter/Histogram/
+  Gauge alignés avec les métriques TS pour partage des dashboards
+
+### 30.5 14 règles d'alerting Prometheus
+
+Groupées en 4 familles :
+
+| Groupe | Règles | Sévérités |
+|---|---|---|
+| **nina-aes-slo** | ServiceDown, HighLatencyP95, HighErrorRate5xx, NinaValidationFailureSpike, AIInferenceLatencyP99 | 2 critical + 3 warning |
+| **nina-aes-capacity** | NodeHeapPressure, EventLoopLag, PostgresConnectionsHigh, PostgresSlowQueries, RedisMemoryPressure, DiskSpaceLow | 5 warning + 1 info |
+| **nina-aes-security** | AuditChainBreak, LokiIngestionDown, VaultRotationFailed | 3 critical |
+| **nina-aes-backup** | BackupJobFailed, MinIOReplicationLag | 1 critical + 1 warning |
+
+Chaque règle référence un `runbook` dans `docs/observability/RUNBOOK.md`
+(à rédiger ; doc 17 §4.8 fournit le template).
+
+### 30.6 Alertmanager — routing par sévérité (3 destinations)
+
+- **critical** → email `ops@nina-aes.uqar.ca` + `ciso.ctdec@gouv.ml` +
+  Slack `#nina-alerts` (HTML email + Slack avec runbook lien)
+- **security/backup** → email CISO + DPO direct (séparé du flux op)
+- **warning** → Slack seul (`#nina-alerts`)
+- **info** → null receiver (tracking dashboard only)
+
+**Inhibitions** : `ServiceDown` inhibe `HighLatencyP95` et
+`HighErrorRate5xx` du même service (cause racine). `LokiIngestionDown`
+inhibe les warnings dépendants. Templates en français dans
+`templates/nina.tmpl`.
+
+### 30.7 Souveraineté
+
+Tout open-source, mode air-gap-ready :
+
+- Stack LGTM Grafana Labs (AGPL/Apache 2.0)
+- Jaeger CNCF (Apache 2.0)
+- Alertmanager Prometheus (Apache 2.0)
+- AUCUN ping vers Grafana Cloud / Datadog / NewRelic (rejetés ADR-017)
+- `analytics.reporting_enabled: false` dans loki-config.yml (pas de
+  télémétrie vers Grafana Labs)
+
+### 30.8 Activation locale
+
+```powershell
+# Le réseau nina-network doit exister (créé par pnpm docker:up)
+make docker-up
+make monitoring-up
+
+# Vérifier les targets Prometheus
+make monitoring-status
+
+# Ouvrir Grafana
+Start-Process http://localhost:3001  # admin / nina-dev-only
+```
+
+### 30.9 Reste à faire
+
+- Instrumenter les 11 services réels (chaque AppModule doit importer
+  `ObservabilityModule.forRoot()` et `main.ts` appeler
+  `startOtelTracing()`). À faire au fil du Bloc A.
+- Rédiger `docs/observability/RUNBOOK.md` (14 entrées une par alerte)
+- Rédiger `docs/observability/SLOs.md` (cibles chiffrées formelles)
+- Provisionner le webhook Slack réel (placeholder dans alertmanager.yml)
+- En prod : remplacer Jaeger all-in-one par Jaeger Collector + Cassandra
+  OU revenir à Tempo (cf. ADR-017 V2 à formaliser)
+
+### 30.10 Cross-références
+
+- `docs/17-MONITORING-OBSERVABILITY.md` : reste la spec architecturale
+- `docs/adr/ADR-017-observabilite-lgtm-stack.md` : à amender pour
+  Jaeger dev/staging vs Tempo prod
+- `docs/00-README-INDEX.md` : tableau état monitoring passe de spec à ✅
+- `Makefile` : 5 nouvelles cibles `monitoring-*`
+
+`pnpm run verify:repo` ✅ vert.

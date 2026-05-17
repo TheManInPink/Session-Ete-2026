@@ -1,0 +1,218 @@
+# ═══════════════════════════════════════════════════════════════════
+# NINA-AES Platform — Stack monitoring (séparée de la stack dev)
+# ═══════════════════════════════════════════════════════════════════
+# Compose dédié à l'observabilité. À démarrer EN PLUS du compose dev :
+#
+#   docker compose -f infrastructure/docker/docker-compose.dev.yml \
+#                  -f infrastructure/monitoring/docker-compose.monitoring.yml \
+#                  --env-file .env up -d
+#
+#   ou : make monitoring-up
+#
+# Services :
+#   prometheus       :9090   métriques + alerting rules
+#   grafana          :3001   dashboards + alertmanager UI proxy
+#   loki             :3100   stockage logs indexés par labels
+#   promtail         (none)  agent ship logs containers → Loki
+#   jaeger           :16686  UI traces distribuées + :4317 OTLP gRPC
+#   alertmanager     :9093   routing alertes Prometheus
+#   node-exporter    :9100   métriques système hôte (cpu, mem, disk)
+#   cadvisor         :8081   métriques containers Docker
+#   postgres-exporter :9187  métriques PostgreSQL (queries, locks, replication)
+#   redis-exporter   :9121   métriques Redis (memory, hit rate, evictions)
+#
+# Réseau partagé `nina-network` avec le compose dev pour permettre le
+# scraping cross-stack (ex. prometheus → identity-service:3001/metrics).
+#
+# Cf. docs/17-MONITORING-OBSERVABILITY.md + ADR-017 (révision Jaeger).
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+  # ─── Prometheus ─────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v3.4.1
+    container_name: nina-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.enable-lifecycle' # POST /-/reload sans restart
+      - '--web.enable-remote-write-receiver' # k6 output, OTel exporter
+      - '--web.external-url=http://localhost:9090'
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - nina-prometheus-data:/prometheus
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:9090/-/healthy']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks: [nina-network]
+
+  # ─── Grafana ────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:12.3.0
+    container_name: nina-grafana
+    restart: unless-stopped
+    ports:
+      - '${GRAFANA_PORT:-3001}:3000'
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-nina-dev-only}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_FEATURE_TOGGLES_ENABLE: 'traceqlEditor traceToMetrics'
+      GF_INSTALL_PLUGINS: ''
+      # Forçage du locale FR pour l'UI
+      GF_DEFAULT_LOCALE: 'fr-FR'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - nina-grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus: { condition: service_healthy }
+      loki: { condition: service_started }
+    networks: [nina-network]
+
+  # ─── Loki ───────────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: nina-loki
+    restart: unless-stopped
+    command: ['-config.file=/etc/loki/local-config.yml']
+    ports:
+      - '${LOKI_PORT:-3100}:3100'
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yml:ro
+      - nina-loki-data:/loki
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:3100/ready']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks: [nina-network]
+
+  # ─── Promtail ───────────────────────────────────────────────────
+  # Agent qui tail les logs Docker (via socket) et les envoie à Loki.
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: nina-promtail
+    restart: unless-stopped
+    command: ['-config.file=/etc/promtail/config.yml']
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+    networks: [nina-network]
+
+  # ─── Jaeger (all-in-one, dev/staging) ───────────────────────────
+  # Mode all-in-one : Collector + Query UI + Storage in-memory (max 50k
+  # spans). Pour la prod, switcher vers jaeger-collector + jaeger-query
+  # + Cassandra (cf. ADR-017 amendé).
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: nina-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+      # Accepter les traces OTLP (notre instrumentation NestJS / FastAPI)
+      COLLECTOR_OTLP_GRPC_HOST_PORT: '0.0.0.0:4317'
+      COLLECTOR_OTLP_HTTP_HOST_PORT: '0.0.0.0:4318'
+      SPAN_STORAGE_TYPE: 'memory'
+      MEMORY_MAX_TRACES: '50000'
+    ports:
+      - '${JAEGER_UI_PORT:-16686}:16686' # UI
+      - '${JAEGER_OTLP_GRPC_PORT:-4317}:4317' # OTLP gRPC
+      - '${JAEGER_OTLP_HTTP_PORT:-4318}:4318' # OTLP HTTP
+      - '14250:14250' # Jaeger gRPC (legacy)
+    networks: [nina-network]
+
+  # ─── Alertmanager ───────────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: nina-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    ports:
+      - '${ALERTMANAGER_PORT:-9093}:9093'
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - nina-alertmanager-data:/alertmanager
+    networks: [nina-network]
+
+  # ─── Exporters système / containers / DB ────────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: nina-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    ports: ['9100:9100']
+    networks: [nina-network]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    container_name: nina-cadvisor
+    restart: unless-stopped
+    ports: ['8081:8080']
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices: ['/dev/kmsg']
+    networks: [nina-network]
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: nina-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: 'postgresql://${POSTGRES_USER:-nina_admin}:${POSTGRES_PASSWORD:-nina_dev_password}@postgres:5432/postgres?sslmode=disable'
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: 'true'
+      PG_EXPORTER_EXCLUDE_DATABASES: 'template0,template1'
+    ports: ['9187:9187']
+    networks: [nina-network]
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.66.0
+    container_name: nina-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: 'redis://redis:6379'
+    ports: ['9121:9121']
+    networks: [nina-network]
+
+# ─── Volumes persistants ──────────────────────────────────────────
+volumes:
+  nina-prometheus-data:
+    name: nina-prometheus-data
+  nina-grafana-data:
+    name: nina-grafana-data
+  nina-loki-data:
+    name: nina-loki-data
+  nina-alertmanager-data:
+    name: nina-alertmanager-data
+
+# ─── Réseau partagé avec docker-compose.dev.yml ───────────────────
+networks:
+  nina-network:
+    name: nina-network
+    external: true

@@ -1,0 +1,150 @@
+{
+  "uid": "nina-postgres",
+  "title": "NINA-AES — PostgreSQL (connexions, slow queries, locks)",
+  "tags": ["nina-aes", "database", "postgres"],
+  "timezone": "Africa/Bamako",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Connexions actives / max",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(pg_stat_activity_count{datname=\"nina_aes_db\"})",
+          "legendFormat": "Actives"
+        },
+        {
+          "expr": "pg_settings_max_connections",
+          "legendFormat": "Max"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "% pool utilisé",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "(sum(pg_stat_activity_count{datname=\"nina_aes_db\"}) / pg_settings_max_connections) * 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Locks attendus",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(pg_locks_count{mode!=\"AccessShareLock\"})"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Cache hit ratio (%)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "(sum(pg_stat_database_blks_hit{datname=\"nina_aes_db\"}) / (sum(pg_stat_database_blks_hit{datname=\"nina_aes_db\"}) + sum(pg_stat_database_blks_read{datname=\"nina_aes_db\"}))) * 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 90 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Transactions/s (commits vs rollbacks)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"nina_aes_db\"}[5m])",
+          "legendFormat": "Commits"
+        },
+        {
+          "expr": "rate(pg_stat_database_xact_rollback{datname=\"nina_aes_db\"}[5m])",
+          "legendFormat": "Rollbacks"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Lignes lues / écrites (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(pg_stat_database_tup_returned{datname=\"nina_aes_db\"}[5m])",
+          "legendFormat": "SELECT returned"
+        },
+        {
+          "expr": "rate(pg_stat_database_tup_inserted{datname=\"nina_aes_db\"}[5m])",
+          "legendFormat": "INSERT"
+        },
+        {
+          "expr": "rate(pg_stat_database_tup_updated{datname=\"nina_aes_db\"}[5m])",
+          "legendFormat": "UPDATE"
+        },
+        {
+          "expr": "rate(pg_stat_database_tup_deleted{datname=\"nina_aes_db\"}[5m])",
+          "legendFormat": "DELETE"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Top tables par taille (MB)",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "topk(10, pg_table_size_bytes / 1024 / 1024)"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "MB" } }
+    }
+  ]
+}

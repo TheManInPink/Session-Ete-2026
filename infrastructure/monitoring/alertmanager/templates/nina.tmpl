@@ -1,0 +1,73 @@
+{{/* ═══════════════════════════════════════════════════════════════
+  NINA-AES Platform — Templates Alertmanager (français)
+  ═══════════════════════════════════════════════════════════════ */}}
+
+{{ define "nina.email.critical" }}
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 720px; margin: 20px auto;">
+  <h2 style="color: #c0392b;">🚨 Alerte CRITIQUE — NINA-AES</h2>
+  <p>L'alerte suivante nécessite une <strong>intervention immédiate</strong> :</p>
+  <table cellpadding="8" style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">
+    <tr style="background: #f4f6f8;">
+      <td><strong>Alerte</strong></td>
+      <td>{{ .GroupLabels.alertname }}</td>
+    </tr>
+    <tr>
+      <td><strong>Service</strong></td>
+      <td>{{ .GroupLabels.service }}</td>
+    </tr>
+    <tr style="background: #f4f6f8;">
+      <td><strong>Statut</strong></td>
+      <td>{{ .Status | toUpper }}</td>
+    </tr>
+    <tr>
+      <td><strong>Heure</strong></td>
+      <td>{{ .GroupLabels.alertname }}</td>
+    </tr>
+  </table>
+  {{ range .Alerts }}
+  <h3>{{ .Annotations.summary }}</h3>
+  <p>{{ .Annotations.description }}</p>
+  {{ if .Annotations.runbook }}
+  <p><strong>Procédure</strong> :
+    <a href="https://github.com/nina-aes/repo/blob/main/{{ .Annotations.runbook }}">
+      {{ .Annotations.runbook }}
+    </a>
+  </p>
+  {{ end }}
+  <p style="color: #666; font-size: 12px;">
+    Démarrée à : {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}<br>
+    Labels : {{ range $key, $value := .Labels }}{{ $key }}={{ $value }} {{ end }}
+  </p>
+  {{ end }}
+  <hr>
+  <p style="color: #999; font-size: 11px;">
+    Notification automatique de l'Alertmanager NINA-AES.
+    Ne pas répondre à ce mail. Contactez ops@nina-aes.uqar.ca.
+  </p>
+</body>
+</html>
+{{ end }}
+
+{{ define "nina.slack.critical" }}
+{{ range .Alerts }}
+*🚨 {{ .Annotations.summary }}*
+
+> {{ .Annotations.description }}
+
+• Service : `{{ .Labels.service }}`
+• Severity : `{{ .Labels.severity }}`
+• Démarré : `{{ .StartsAt.Format "15:04:05 UTC" }}`
+{{ if .Annotations.runbook }}• Runbook : <https://github.com/nina-aes/repo/blob/main/{{ .Annotations.runbook }}|{{ .Annotations.runbook }}>{{ end }}
+{{ end }}
+{{ end }}
+
+{{ define "nina.slack.warning" }}
+{{ range .Alerts }}
+*⚠️ {{ .Annotations.summary }}*
+
+{{ .Annotations.description }}
+
+Service : `{{ .Labels.service }}` · Domain : `{{ .Labels.domain }}`
+{{ end }}
+{{ end }}

@@ -1,0 +1,114 @@
+{
+  "uid": "nina-business",
+  "title": "NINA-AES — KPIs métier (corrections, RDV, USSD)",
+  "tags": ["nina-aes", "business", "kpi"],
+  "timezone": "Africa/Bamako",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Corrections soumises (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "increase(correction_requests_total[24h])"
+        }
+      ],
+      "options": { "graphMode": "area", "colorMode": "value" }
+    },
+    {
+      "id": 2,
+      "title": "Corrections approuvées / rejetées (ratio)",
+      "type": "piechart",
+      "gridPos": { "h": 10, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (status) (correction_requests_total{status=~\"approved|rejected\"})",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "RDV CTDEC pris (24h)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "increase(appointments_created_total[24h])"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Sessions USSD (24h, par langue)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (language) (increase(ussd_sessions_total[24h]))",
+          "legendFormat": "{{language}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Corrections par jour (30j)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (status) (increase(correction_requests_total[1d]))",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Citoyens vulnérables déclarés (par catégorie)",
+      "type": "bargauge",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (category) (vulnerability_profiles_total)",
+          "legendFormat": "{{category}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Heatmap RDV par cercle Mali",
+      "type": "heatmap",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (cercle) (increase(appointments_created_total[1d]))"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Verify-NINA cross-border (BCID-AES)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (requester_country) (rate(aes_verify_nina_total[1h]))",
+          "legendFormat": "{{requester_country}}"
+        }
+      ]
+    }
+  ]
+}

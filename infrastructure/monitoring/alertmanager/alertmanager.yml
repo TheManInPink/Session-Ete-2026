@@ -1,0 +1,131 @@
+# ═══════════════════════════════════════════════════════════════════
+# Alertmanager 0.28 — Configuration NINA-AES Platform
+# ═══════════════════════════════════════════════════════════════════
+# Stratégie de routing :
+#
+#   critical → email CISO CTDEC + Slack #nina-alerts (heures non-ouvrées
+#              déclenche aussi un SMS via webhook ; en V1 dev, juste mail)
+#   warning  → Slack #nina-alerts seul, heures ouvrées
+#   info     → tracking only (pas de notif, juste Grafana panel)
+#
+# Templates en français (cf. templates/nina.tmpl).
+# Inhibitions configurées pour éviter le spam :
+#   - ServiceDown inhibe HighLatencyP95 / HighErrorRate5xx (cause racine)
+#   - LokiIngestionDown inhibe les warnings dépendants
+# ═══════════════════════════════════════════════════════════════════
+
+global:
+  resolve_timeout: 5m
+  # Email (utiliser MailDev en dev — port 1025)
+  smtp_smarthost: '${SMTP_HOST:-maildev:1025}'
+  smtp_from: 'alertmanager@nina-aes.uqar.ca'
+  smtp_require_tls: false # MailDev n'a pas de TLS en dev
+  # Slack webhook (placeholder dev — vrai webhook en Vault prod)
+  slack_api_url: '${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/PLACEHOLDER/DEV/MODE}'
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# ─── Routing tree ─────────────────────────────────────────────────
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    # ── Critical → email + Slack (priorité max) ─────────────────
+    - match:
+        severity: critical
+      receiver: 'critical-pager'
+      group_wait: 10s # Rapidité prioritaire pour critical
+      repeat_interval: 1h
+      continue: true # Continuer le matching (pour aussi notifier Slack)
+
+    # ── Sécurité (Merkle, Vault, Loki) → email CISO direct ──────
+    - match_re:
+        domain: ^(security|backup)$
+      receiver: 'security-team'
+      group_wait: 10s
+      repeat_interval: 30m
+      continue: true
+
+    # ── Warning → Slack seul ────────────────────────────────────
+    - match:
+        severity: warning
+      receiver: 'slack-warnings'
+      group_interval: 10m
+      repeat_interval: 6h
+
+    # ── Info → silencieux (tracking dashboard only) ─────────────
+    - match:
+        severity: info
+      receiver: 'null'
+
+# ─── Inhibitions (anti-spam) ──────────────────────────────────────
+inhibit_rules:
+  # ServiceDown inhibe les warnings du même service
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: 'High(LatencyP95|ErrorRate5xx)'
+    equal: ['service']
+
+  # LokiIngestionDown inhibe les alertes dépendantes
+  - source_match:
+      alertname: 'LokiIngestionDown'
+    target_match_re:
+      alertname: '(NinaValidation|AIInference).*'
+    equal: ['cluster']
+
+# ─── Receivers ────────────────────────────────────────────────────
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'ops@nina-aes.uqar.ca'
+        send_resolved: true
+        headers:
+          Subject: '[NINA-AES] {{ .Status | toUpper }} — {{ .GroupLabels.alertname }}'
+
+  - name: 'critical-pager'
+    email_configs:
+      - to: 'ops@nina-aes.uqar.ca, ciso.ctdec@gouv.ml'
+        send_resolved: true
+        headers:
+          Subject: '🚨 [CRITICAL NINA-AES] {{ .GroupLabels.alertname }} sur {{ .GroupLabels.service }}'
+        html: '{{ template "nina.email.critical" . }}'
+    slack_configs:
+      - channel: '#nina-alerts'
+        send_resolved: true
+        color: 'danger'
+        title: '🚨 [CRITICAL] {{ .GroupLabels.alertname }}'
+        text: '{{ template "nina.slack.critical" . }}'
+
+  - name: 'security-team'
+    email_configs:
+      - to: 'ciso.ctdec@gouv.ml, dpo.ctdec@gouv.ml'
+        send_resolved: true
+        headers:
+          Subject: '🔒 [SECURITY NINA-AES] {{ .GroupLabels.alertname }}'
+
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#nina-alerts'
+        send_resolved: true
+        color: 'warning'
+        title: '⚠️ [WARN] {{ .GroupLabels.alertname }} — {{ .GroupLabels.service }}'
+        text: '{{ template "nina.slack.warning" . }}'
+
+  - name: 'null'
+    # Aucun envoi — juste pour Grafana dashboard
+
+# ─── Timezone (pour les horodatages dans les templates) ──────────
+time_intervals:
+  - name: heures-ouvrees-bamako
+    time_intervals:
+      - times:
+          - start_time: '08:00'
+            end_time: '18:00'
+        weekdays: ['monday:friday']
+        location: 'Africa/Bamako'

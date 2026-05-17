@@ -1,0 +1,124 @@
+# ═══════════════════════════════════════════════════════════════════
+# Prometheus 3.4 — Configuration NINA-AES Platform
+# ═══════════════════════════════════════════════════════════════════
+# scrape_interval 15s : compromis volumétrie/réactivité (recommandé
+# pour 11 services). Pour les exporters lourds (cadvisor) on passe
+# à 30s, et pour postgres-exporter à 60s.
+#
+# Toutes les cibles utilisent leur nom de service Docker comme
+# hostname (résolu via le réseau nina-network partagé).
+# ═══════════════════════════════════════════════════════════════════
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: nina-aes-dev
+    env: ${ENV:-dev}
+    region: bamako
+
+# Routage vers Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+      timeout: 10s
+
+# Règles d'alerting + recording
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+# ─── Scrape configs ──────────────────────────────────────────────
+scrape_configs:
+  # Auto-scrape Prometheus lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ─── 11 microservices NestJS / FastAPI (port 30NN/metrics) ─────
+  # NB : tant que les services NestJS ne sont pas démarrés, leurs
+  # cibles seront DOWN dans Prometheus — c'est normal en dev quand
+  # on ne lance qu'un sous-ensemble.
+  - job_name: 'nina-services-nestjs'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'identity-service:3001'
+          - 'auth-service:3002'
+          - 'document-service:3004'
+          - 'notification-service:3005'
+          - 'interop-service:3006'
+          - 'audit-service:3007'
+          - 'appointment-service:3008'
+          - 'governance-service:3010'
+          - 'vulnerability-service:3011'
+        labels:
+          stack: nestjs
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([a-z\-]+):.*'
+        target_label: service
+        replacement: '$1'
+
+  - job_name: 'nina-services-fastapi'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'ai-service:3003'
+          - 'anticorruption-service:3009'
+        labels:
+          stack: fastapi
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([a-z\-]+):.*'
+        target_label: service
+        replacement: '$1'
+
+  # ─── Infrastructure ────────────────────────────────────────────
+  - job_name: 'postgres'
+    scrape_interval: 60s # queries pg_stat_* coûteuses, échantillonner
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: postgres
+
+  - job_name: 'redis'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: redis
+
+  - job_name: 'node-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: host
+
+  - job_name: 'cadvisor'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: containers
+
+  # ─── Self-metrics des composants observabilité ────────────────
+  - job_name: 'loki'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['loki:3100']
+
+  - job_name: 'jaeger'
+    scrape_interval: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['jaeger:14269']
+
+  - job_name: 'grafana'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['grafana:3000']

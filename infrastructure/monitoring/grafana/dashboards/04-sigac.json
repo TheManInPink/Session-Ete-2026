@@ -1,0 +1,90 @@
+{
+  "uid": "nina-sigac",
+  "title": "NINA-AES — SIGAC (anti-corruption, scoring agents, signalements)",
+  "tags": ["nina-aes", "service", "sigac"],
+  "timezone": "Africa/Bamako",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Top 10 agents flaggés (anomalie > 75)",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "topk(10, sigac_agent_anomaly_score) > 75",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Score d'intégrité moyen par région",
+      "type": "bargauge",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "avg by (region) (sigac_integrity_score)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Signalements reçus (par classification BERT)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (classification) (rate(sigac_whistleblower_reports_total[1h]))",
+          "legendFormat": "{{classification}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Signalements à traiter (severity)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (severity) (sigac_pending_reports)",
+          "legendFormat": "{{severity}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

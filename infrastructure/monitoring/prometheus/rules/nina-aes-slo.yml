@@ -1,0 +1,219 @@
+# ═══════════════════════════════════════════════════════════════════
+# Règles d'alerting Prometheus — NINA-AES Platform
+# ═══════════════════════════════════════════════════════════════════
+# 14 règles couvrant : SLO (latence, erreurs, disponibilité), capacité
+# (CPU, mémoire, disque, queue, connexions), sécurité (rupture Merkle,
+# perte traçabilité), métier (pics validations NINA, échecs IA).
+#
+# Convention severity :
+#   - critical : pager humain en heures non-ouvrées (email + SMS)
+#   - warning  : Slack heures ouvrées, à traiter < 4h
+#   - info     : tracking only, pas de notif (juste dashboard)
+#
+# Chaque règle référence un runbook dans docs/observability/RUNBOOK.md.
+# ═══════════════════════════════════════════════════════════════════
+
+groups:
+  # ─── SLO applicatifs (services Bloc A) ──────────────────────────
+  - name: nina-aes-slo
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"nina-services-(nestjs|fastapi)"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          domain: availability
+        annotations:
+          summary: 'Service {{ $labels.service }} DOWN depuis 2 min'
+          description: |
+            Le service {{ $labels.service }} ({{ $labels.instance }}) ne répond
+            plus aux scrapes Prometheus depuis 2 minutes.
+          runbook: 'docs/observability/RUNBOOK.md#service-down'
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, service) (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          domain: performance
+        annotations:
+          summary: 'p95 latence > 500ms sur {{ $labels.service }}'
+          description: 'p95 actuelle : {{ $value | humanizeDuration }}'
+          runbook: 'docs/observability/RUNBOOK.md#high-latency-p95'
+
+      - alert: HighErrorRate5xx
+        expr: |
+          sum by (service) (rate(http_requests_total{status=~"5.."}[5m]))
+          / sum by (service) (rate(http_requests_total[5m]))
+          > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          domain: reliability
+        annotations:
+          summary: 'Taux 5xx > 1% sur {{ $labels.service }}'
+          description: 'Erreur rate : {{ $value | humanizePercentage }}'
+          runbook: 'docs/observability/RUNBOOK.md#error-rate-5xx'
+
+      - alert: NinaValidationFailureSpike
+        expr: rate(identity_citizens_validated_total{result="failure"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          domain: business
+        annotations:
+          summary: 'Pic NINA invalides sur identity-service'
+          description: |
+            > 1 validation/s échoue depuis 5 min. Possible attaque ou
+            bug applicatif récent (cf. git log --since 1.hour).
+          runbook: 'docs/observability/RUNBOOK.md#nina-validation-spike'
+
+      - alert: AIInferenceLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(ai_inference_duration_seconds_bucket[5m]))
+          ) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          domain: performance
+        annotations:
+          summary: 'p99 inference IA > 2s'
+          description: 'Modèle dégradé ou file inférence saturée.'
+
+  # ─── Capacité & runtime (Node.js, Postgres, Redis) ─────────────
+  - name: nina-aes-capacity
+    interval: 30s
+    rules:
+      - alert: NodeHeapPressure
+        expr: nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          domain: runtime
+        annotations:
+          summary: 'Heap Node > 90% sur {{ $labels.service }}'
+          description: 'Risque imminent OOMKilled. Inspecter heap dump.'
+
+      - alert: EventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          domain: runtime
+        annotations:
+          summary: 'Event loop lag > 100ms sur {{ $labels.service }}'
+
+      - alert: PostgresConnectionsHigh
+        expr: |
+          sum by (datname) (pg_stat_activity_count)
+          / on() group_right() pg_settings_max_connections
+          > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          domain: database
+        annotations:
+          summary: 'Pool Postgres > 80% sur {{ $labels.datname }}'
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_database_blk_read_time[5m]) > 1000
+        for: 10m
+        labels:
+          severity: info
+          domain: database
+        annotations:
+          summary: 'Queries lentes Postgres (I/O > 1s/s sur blocs)'
+
+      - alert: RedisMemoryPressure
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          domain: cache
+        annotations:
+          summary: 'Redis mémoire > 85%'
+          description: 'Risque évictions. Vérifier TTL des sessions USSD.'
+
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} /
+           node_filesystem_size_bytes{mountpoint="/"}) < 0.10
+        for: 5m
+        labels:
+          severity: warning
+          domain: host
+        annotations:
+          summary: 'Disque hôte < 10% libre'
+
+  # ─── Sécurité (critique) ───────────────────────────────────────
+  - name: nina-aes-security
+    interval: 30s
+    rules:
+      - alert: AuditChainBreak
+        expr: increase(audit_merkle_chain_break_total[1h]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          domain: security
+        annotations:
+          summary: '🚨 Rupture chaîne Merkle audit — INTERVENTION IMMÉDIATE'
+          description: |
+            Une vérification a détecté une rupture dans la chaîne Merkle
+            de l'audit. Procédure d'isolation + CISO CTDEC + ANSSI Mali.
+          runbook: 'docs/observability/RUNBOOK.md#audit-chain-break'
+
+      - alert: LokiIngestionDown
+        expr: rate(loki_distributor_lines_received_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          domain: observability
+        annotations:
+          summary: 'Loki ne reçoit plus de logs — perte de traçabilité'
+          description: |
+            Aucun log ingéré depuis 5 min. Trail forensic compromis.
+            Vérifier promtail + connectivité Loki + retention disque.
+
+      - alert: VaultRotationFailed
+        expr: increase(vault_rotation_failed_total[24h]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          domain: security
+        annotations:
+          summary: 'Rotation Vault échouée'
+          description: |
+            Le CronJob de rotation Vault a échoué. Inspecter les logs
+            du job vault-rotation + état des Transit keys.
+
+  # ─── Backup & DRP (cf. doc 19) ─────────────────────────────────
+  - name: nina-aes-backup
+    interval: 30s
+    rules:
+      - alert: BackupJobFailed
+        expr: increase(pgbackrest_backup_failed_total[24h]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          domain: backup
+        annotations:
+          summary: 'Backup pgBackRest échoué (24h)'
+          description: |
+            Le CronJob de backup quotidien a échoué. RPO < 1h en danger.
+            Inspecter `pgbackrest --stanza=nina info`.
+
+      - alert: MinIOReplicationLag
+        expr: minio_replication_lag_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          domain: backup
+        annotations:
+          summary: 'MinIO replication lag > 5 min'
+          description: 'DR drill compromis. Vérifier liens réseau DC primaire ↔ secondaire.'

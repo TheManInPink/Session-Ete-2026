@@ -46,6 +46,11 @@ playwright/.cache/
 .turbo/cache/
 .turbo/daemon/
 .turbo/runs/
+# Turborepo 2.x stocke aussi les artefacts de cache à la racine de .turbo/
+# (manifests + meta + tar.zst) — à ignorer aussi.
+.turbo/*-manifest.json
+.turbo/*-meta.json
+.turbo/*.tar.zst
 
 # ── Python ──
 __pycache__/

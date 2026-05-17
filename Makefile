@@ -14,6 +14,7 @@
         lint lint-fix format format-check check-types \
         test test-cov test-watch \
         docker-up docker-down docker-logs docker-ps docker-down-v \
+        monitoring-up monitoring-down monitoring-logs monitoring-reload monitoring-status \
         db-generate db-migrate db-seed db-studio db-reset db-validate \
         seed-locations-generate audit-cercles enrich-cercles enrich-cercles-write \
         vault-init vault-seed vault-rotate vault-unseal vault-status vault-bootstrap \
@@ -35,6 +36,11 @@ VAULT_ADDR = http://localhost:8200
 
 # Dossier de sortie des certificats mTLS dev.
 CERTS_DIR = secrets/aes
+
+# Stack monitoring (Prometheus + Grafana + Loki + Jaeger + Alertmanager).
+MONITORING_COMPOSE = docker compose --env-file .env \
+	-f infrastructure/docker/docker-compose.dev.yml \
+	-f infrastructure/monitoring/docker-compose.monitoring.yml
 
 # Cible par défaut : affiche l'aide.
 help: ## Affiche cette aide
@@ -159,6 +165,32 @@ docker-ps: ## Liste les conteneurs en cours d'exécution
 
 docker-down-v: ## Arrête ET supprime les volumes (⚠️ PERTE DE DONNÉES)
 	$(DOCKER_COMPOSE) down -v
+
+# ── Stack monitoring (LGTM + Jaeger + Alertmanager) ────────────────────────
+monitoring-up: ## Démarre Prometheus + Grafana + Loki + Jaeger + Alertmanager + exporters
+	$(MONITORING_COMPOSE) up -d
+	@echo ""
+	@echo "🎯 Stack monitoring démarrée :"
+	@echo "   Grafana       : http://localhost:3001 (admin / nina-dev-only)"
+	@echo "   Prometheus    : http://localhost:9090"
+	@echo "   Loki          : http://localhost:3100"
+	@echo "   Jaeger UI     : http://localhost:16686"
+	@echo "   Alertmanager  : http://localhost:9093"
+	@echo ""
+	@echo "Dashboards Grafana provisionnés : NINA-AES/ → 01-overview.json, etc."
+
+monitoring-down: ## Arrête uniquement les services monitoring
+	$(MONITORING_COMPOSE) stop prometheus grafana loki promtail jaeger alertmanager \
+		node-exporter cadvisor postgres-exporter redis-exporter
+
+monitoring-logs: ## Logs en temps réel de la stack monitoring
+	$(MONITORING_COMPOSE) logs -f prometheus grafana loki jaeger alertmanager
+
+monitoring-reload: ## Recharge la config Prometheus sans restart (rules + targets)
+	@curl -X POST http://localhost:9090/-/reload && echo "✅ Prometheus reloaded"
+
+monitoring-status: ## Statut détaillé des targets Prometheus
+	@curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, instance: .labels.instance, health: .health}'
 
 # ── Base de données ────────────────────────────────────────────────────────
 db-generate: ## Génère le client Prisma

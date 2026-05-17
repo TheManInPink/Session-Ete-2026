@@ -1,0 +1,104 @@
+{
+  "uid": "nina-ai",
+  "title": "NINA-AES — ai-service (corrections, IA score, inférence)",
+  "tags": ["nina-aes", "service", "ai"],
+  "timezone": "Africa/Bamako",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-3h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Corrections proposées (par classe d'erreur)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (error_class) (rate(ai_nina_errors_detected_total[5m]))",
+          "legendFormat": "{{error_class}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Score de confiance moyen (5min)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "avg(ai_confidence_score)",
+          "legendFormat": "Score"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Latence inférence p95 (ms)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_inference_duration_seconds_bucket[5m]))) * 1000"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 4,
+      "title": "Throughput batch (records/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(ai_records_processed_total[5m])"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Mémoire process Python (MB)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes{service=\"ai-service\"} / 1024 / 1024"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "MB" } }
+    },
+    {
+      "id": 6,
+      "title": "Logs ai-service (warn + error)",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 15 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{service=\"ai-service\", level=~\"warn|error\"} | json",
+          "refId": "A"
+        }
+      ],
+      "options": { "showTime": true, "sortOrder": "Descending" }
+    }
+  ]
+}
