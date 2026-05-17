@@ -3,18 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "description": "Utilitaires partagés (NINA, Merkle, crypto, sanitize) pour la plateforme NINA-AES.",
-  "keywords": ["nina", "aes", "platform", "utils", "merkle", "jwt"],
+  "keywords": [
+    "nina",
+    "aes",
+    "platform",
+    "utils",
+    "merkle",
+    "jwt"
+  ],
   "author": "Étudiant UQAR",
   "license": "UNLICENSED",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rimraf dist .turbo",
