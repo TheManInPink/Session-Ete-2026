@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils.js';
 
 export interface SparklineProps {
   /** Séquence de valeurs numériques. Min 2 points pour tracer une ligne. */

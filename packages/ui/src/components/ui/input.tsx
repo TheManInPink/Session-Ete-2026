@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils.js';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   /** Variant visuelle conditionnée par l'état de validation. */

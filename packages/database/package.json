@@ -43,7 +43,7 @@
     "db:validate": "prisma validate",
     "lint": "eslint \"src/**/*.ts\" \"prisma/*.ts\"",
     "check-types": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

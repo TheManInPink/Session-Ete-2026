@@ -25,7 +25,7 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils.js';
 
 /** Centroïdes des 20 régions/cercles Mali (level=1 dans mali.geojson). */
 const MALI_REGIONS = [

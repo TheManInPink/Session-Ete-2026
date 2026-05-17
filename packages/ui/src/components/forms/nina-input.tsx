@@ -13,9 +13,9 @@
 
 import { normalizeNina, validateNina, type ParsedNina } from '@nina-aes/utils';
 import * as React from 'react';
-import { cn } from '../../lib/utils';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { cn } from '../../lib/utils.js';
+import { Input } from '../ui/input.js';
+import { Label } from '../ui/label.js';
 
 export interface NinaInputProps {
   /** Identifiant HTML (par défaut "nina"). */

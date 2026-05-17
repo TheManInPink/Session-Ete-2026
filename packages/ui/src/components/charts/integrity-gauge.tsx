@@ -11,7 +11,7 @@
 
 import * as React from 'react';
 import { Check, X } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils.js';
 
 export interface IntegrityGaugeProps {
   /** Nom affichable de l'agent. */
