@@ -32,4 +32,4 @@ opentelemetry-exporter-otlp-proto-grpc>=1.30.0
 opentelemetry-instrumentation-fastapi>=0.51b0
 opentelemetry-instrumentation-requests>=0.51b0
 opentelemetry-instrumentation-sqlalchemy>=0.51b0
-structlog>=25.1.0
+structlog>=25.5.0
