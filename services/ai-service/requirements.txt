@@ -25,7 +25,7 @@ hvac>=2.4.1
 
 # Observabilité — métriques + tracing + logs structurés
 # Utilisé par src/observability.py (cf. ADR-017 + doc 17)
-prometheus-client>=0.21.0
+prometheus-client>=0.25.0
 prometheus-fastapi-instrumentator>=7.0.2
 opentelemetry-sdk>=1.30.0
 opentelemetry-exporter-otlp-proto-grpc>=1.30.0
