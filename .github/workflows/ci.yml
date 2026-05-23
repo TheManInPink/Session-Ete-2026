@@ -131,7 +131,11 @@ jobs:
         run: pnpm --filter @nina-aes/database exec prisma migrate deploy
 
       - name: Run Jest (packages + services Bloc A)
-        run: pnpm test -- --coverage --passWithNoTests
+        # `--passWithNoTests` est déjà dans le script `test` de chaque
+        # package (jest l'accepte en double silencieusement, mais vitest@4
+        # rejette les flags dupliqués -> ERR "received [true, true]" sur
+        # @nina-aes/database). On ne passe plus que --coverage.
+        run: pnpm test -- --coverage
 
       - name: Upload coverage artifact
         if: always()
@@ -207,13 +211,15 @@ jobs:
         uses: ./.github/actions/setup-node-pnpm
 
       - name: Run Jest frontend (citizen + admin + governance + packages/ui)
+        # Idem job test-backend : --passWithNoTests déjà dans chaque script,
+        # le re-passer fait planter vitest@4 (cf. commentaire au job précédent).
         run: |
           pnpm test \
             --filter=@nina-aes/citizen \
             --filter=@nina-aes/admin \
             --filter=@nina-aes/governance \
             --filter=@nina-aes/ui \
-            -- --coverage --passWithNoTests
+            -- --coverage
 
       - name: Upload frontend coverage
         if: always()

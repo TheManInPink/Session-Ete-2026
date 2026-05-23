@@ -21,7 +21,7 @@ Pillow>=12.2.0
 
 # Sécurité — HashiCorp Vault (client officiel)
 # Utilisé par src/vault.py pour récupérer les secrets dynamiques.
-hvac>=2.4.1
+hvac>=2.4.0
 
 # Observabilité — métriques + tracing + logs structurés
 # Utilisé par src/observability.py (cf. ADR-017 + doc 17)

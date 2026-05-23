@@ -15,4 +15,4 @@ transformers>=5.5.0
 
 # Sécurité — HashiCorp Vault (chiffrement des signalements lanceurs d'alerte)
 # Utilise services/ai-service/src/vault.py (réutilisé)
-hvac>=2.4.1
+hvac>=2.4.0
