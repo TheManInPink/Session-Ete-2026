@@ -15,7 +15,7 @@
 #
 # Option fichier séparé (mêmes clés que `.env`) : voir `.env.docker.example`.
 #   docker compose --env-file infrastructure/docker/.env.docker -f infrastructure/docker/docker-compose.dev.yml up -d
-# 
+#
 #   docker compose -f docker-compose.dev.yml up -d
 #   docker compose -f docker-compose.dev.yml down
 #   docker compose -f docker-compose.dev.yml logs -f postgres
@@ -48,7 +48,7 @@ services:
     container_name: nina-postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-nina_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nina_dev_2026!}
@@ -56,7 +56,7 @@ services:
       # Locale ICU française pour le tri alphabétique correct des noms maliens.
       # ICU est portable (pas besoin de générer la locale dans l'image), utilisé
       # par PostgreSQL 16+. `--data-checksums` détecte la corruption disque.
-      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=fr-FR --encoding=UTF8 --data-checksums"
+      POSTGRES_INITDB_ARGS: '--locale-provider=icu --icu-locale=fr-FR --encoding=UTF8 --data-checksums'
       # Fuseau horaire de Bamako (GMT+0, pas de changement d'heure)
       TZ: Africa/Bamako
     volumes:
@@ -73,7 +73,8 @@ services:
       - ../scripts/seed-locations.sql:/docker-entrypoint-initdb.d/02-seed-locations.sql:ro
     healthcheck:
       # pg_isready vérifie que PostgreSQL accepte les connexions
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nina_admin} -d ${POSTGRES_DB:-nina_aes_db}"]
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-nina_admin} -d ${POSTGRES_DB:-nina_aes_db}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,7 +90,7 @@ services:
     container_name: nina-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - '${REDIS_PORT:-6379}:6379'
     command: >
       redis-server
       --requirepass ${REDIS_PASSWORD:-redis_dev_2026!}
@@ -99,7 +100,7 @@ services:
     volumes:
       - nina-redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_dev_2026!}", "ping"]
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-redis_dev_2026!}', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -124,9 +125,9 @@ services:
     restart: unless-stopped
     ports:
       # Port AMQP (utilisé par les microservices)
-      - "${RABBITMQ_PORT:-5672}:5672"     # AMQP
+      - '${RABBITMQ_PORT:-5672}:5672' # AMQP
       # Port de l'interface web de management
-      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"   # Management UI → http://localhost:15672
+      - '${RABBITMQ_MANAGEMENT_PORT:-15672}:15672' # Management UI → http://localhost:15672
     environment:
       # Alias des variables applicatives RABBITMQ_USER / RABBITMQ_PASSWORD (.env racine)
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-${RABBITMQ_USER:-nina_rabbit}}
@@ -137,7 +138,7 @@ services:
       - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping", "check_running"]
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'check_running']
       interval: 15s
       timeout: 10s
       retries: 5
@@ -157,9 +158,9 @@ services:
     restart: unless-stopped
     ports:
       # API S3 (utilisée par les microservices)
-      - "${MINIO_API_PORT:-9000}:9000"     # API S3
+      - '${MINIO_API_PORT:-9000}:9000' # API S3
       # Console web d'administration
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"     # Console Web → http://localhost:9001
+      - '${MINIO_CONSOLE_PORT:-9001}:9001' # Console Web → http://localhost:9001
     environment:
       # MINIO_ACCESS_KEY / MINIO_SECRET_KEY (apps) ≡ MINIO_ROOT_* (conteneur)
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-${MINIO_ACCESS_KEY:-nina_minio_admin}}
@@ -169,7 +170,7 @@ services:
     # Démarrer MinIO en mode serveur avec la console activée
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 15s
       timeout: 10s
       retries: 5
@@ -191,7 +192,7 @@ services:
     container_name: nina-elasticsearch
     restart: unless-stopped
     ports:
-      - "${ES_PORT:-9200}:9200"
+      - '${ES_PORT:-9200}:9200'
     environment:
       - discovery.type=single-node
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}}
@@ -206,7 +207,11 @@ services:
     volumes:
       - nina-elasticsearch-data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test:
+        [
+          'CMD-SHELL',
+          "curl -s -u elastic:${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'",
+        ]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -234,7 +239,7 @@ services:
     container_name: nina-kibana
     restart: unless-stopped
     ports:
-      - "${KIBANA_PORT:-5601}:5601"     # UI Web → http://localhost:5601
+      - '${KIBANA_PORT:-5601}:5601' # UI Web → http://localhost:5601
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
       # Kibana doit s'authentifier auprès d'Elasticsearch (xpack.security activé).
@@ -245,11 +250,20 @@ services:
       ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD:-${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}}}
       SERVER_NAME: nina-kibana
       SERVER_HOST: 0.0.0.0
+      # Clés de chiffrement (≥32 chars) requises par Fleet, alerting et reporting.
+      # Sans elles, le setup Fleet boucle sur FleetEncryptedSavedObjectEncryptionKeyRequired.
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY}
+      XPACK_SECURITY_ENCRYPTIONKEY: ${KIBANA_SECURITY_ENCRYPTION_KEY}
+      XPACK_REPORTING_ENCRYPTIONKEY: ${KIBANA_REPORTING_ENCRYPTION_KEY}
     depends_on:
       elasticsearch:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status | grep -q '\"level\":\"available\"' || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          'curl -s http://localhost:5601/api/status | grep -q ''"level":"available"'' || exit 1',
+        ]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -288,7 +302,7 @@ services:
       "
     networks:
       - nina-network
-    restart: "no"
+    restart: 'no'
 
   # ──────────────────────────────────────────────────────────────
   # Keycloak 26.5 — Serveur d'identité (OAuth2 / OIDC / RBAC)
@@ -307,21 +321,22 @@ services:
     container_name: nina-keycloak
     restart: unless-stopped
     ports:
-      - "${KC_PORT:-8080}:8080"     # Console → http://localhost:8080
+      - '${KC_PORT:-8080}:8080' # Console → http://localhost:8080
     environment:
       # Connexion à PostgreSQL (base "keycloak" créée par init-db.sql)
       KC_DB: ${KC_DB:-postgres}
       KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres:5432/keycloak}
       KC_DB_USERNAME: ${KC_DB_USERNAME:-${POSTGRES_USER:-nina_admin}}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-nina_dev_2026!}}
-       # Mode développement (HTTP, pas de certificat TLS requis)
+      KC_DB_PASSWORD:
+        ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-nina_dev_2026!}}
+        # Mode développement (HTTP, pas de certificat TLS requis)
       KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
-      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT: 'false'
       # KC_HTTP_ENABLED: "true"
       KC_HTTP_ENABLED: ${KC_HTTP_ENABLED:-true}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-${KEYCLOAK_ADMIN:-admin}}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-${KEYCLOAK_ADMIN_PASSWORD:-keycloak_admin_2026!}}
-      KC_HEALTH_ENABLED: "true"
+      KC_HEALTH_ENABLED: 'true'
       # KEYCLOAK_ADMIN: admin
       # KEYCLOAK_ADMIN_PASSWORD: admin_dev
       KC_PROXY_HEADERS: xforwarded
@@ -333,7 +348,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'"]
+      test:
+        [
+          'CMD-SHELL',
+          "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'",
+        ]
       interval: 20s
       timeout: 10s
       retries: 10
@@ -348,7 +367,7 @@ services:
     container_name: nina-vault
     restart: unless-stopped
     ports:
-      - "${VAULT_PORT:-8200}:8200"     # API + UI → http://localhost:8200
+      - '${VAULT_PORT:-8200}:8200' # API + UI → http://localhost:8200
     environment:
       # Token root du mode dev. Surchargeable via .env mais "nina-dev" par
       # défaut pour cohérence avec le prompt 2.1 d'infrastructure.
@@ -357,7 +376,7 @@ services:
     cap_add:
       - IPC_LOCK
     healthcheck:
-      test: ["CMD", "vault", "status"]
+      test: ['CMD-SHELL', 'VAULT_ADDR=http://127.0.0.1:8200 vault status']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -376,11 +395,11 @@ services:
     restart: unless-stopped
     ports:
       # Interface web pour lire les emails interceptés
-      - "${MAILDEV_WEB_PORT:-1080}:1080"     # UI Web → http://localhost:1080
+      - '${MAILDEV_WEB_PORT:-1080}:1080' # UI Web → http://localhost:1080
       # Port SMTP (les microservices envoient ici)
-      - "${MAILDEV_SMTP_PORT:-1025}:1025"     # SMTP
+      - '${MAILDEV_SMTP_PORT:-1025}:1025' # SMTP
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:1080/healthz || exit 1"]
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:1080/healthz || exit 1']
       interval: 15s
       timeout: 5s
       retries: 3
