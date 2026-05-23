@@ -91,7 +91,10 @@ export const citizenDtoSchema = z.object({
   profession: z.string().min(1).max(200),
   parents: z.array(parentSchema).min(1).max(4),
   photoUrl: z.string().url().optional(),
-  fingerprintHash: z.string().regex(/^[0-9a-f]{64}$/i).optional(),
+  fingerprintHash: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i)
+    .optional(),
   vulnerabilityCategory: z.nativeEnum(VulnerabilityCategory).optional(),
   preferredLanguage: z.nativeEnum(Language).optional(),
   metadata: z.record(z.string(), z.string()).optional(),
@@ -303,9 +306,7 @@ export type AppointmentUpsertDto = z.infer<typeof appointmentUpsertSchema>;
 /** Type inféré — alerte corruption. */
 export type CorruptionAlertCreateDto = z.infer<typeof corruptionAlertCreateSchema>;
 /** Type inféré — directive. */
-export type GovernanceDirectiveCreateDto = z.infer<
-  typeof governanceDirectiveCreateSchema
->;
+export type GovernanceDirectiveCreateDto = z.infer<typeof governanceDirectiveCreateSchema>;
 /** Type inféré — message gouvernance. */
 export type GovernanceMessageIngestDto = z.infer<typeof governanceMessageIngestSchema>;
 /** Type inféré — pièce jointe gouvernance. */

@@ -11,7 +11,10 @@
     "./request": "./src/request.ts",
     "./messages/*.json": "./messages/*.json"
   },
-  "files": ["src", "messages"],
+  "files": [
+    "src",
+    "messages"
+  ],
   "scripts": {
     "check-types": "tsc --noEmit"
   },

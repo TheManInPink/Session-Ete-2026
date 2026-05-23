@@ -196,12 +196,7 @@ export interface Appointment {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /** Cycle de vie d'une alerte SIGAC. */
-export type CorruptionAlertStatus =
-  | 'OPEN'
-  | 'TRIAGE'
-  | 'INVESTIGATING'
-  | 'RESOLVED'
-  | 'DISMISSED';
+export type CorruptionAlertStatus = 'OPEN' | 'TRIAGE' | 'INVESTIGATING' | 'RESOLVED' | 'DISMISSED';
 
 /** Signalement structuré d'un fait de corruption (SIGAC). */
 export interface CorruptionAlert {

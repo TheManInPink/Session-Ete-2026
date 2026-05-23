@@ -104,8 +104,14 @@
       "birthPlace": { "label": "Lieu de naissance", "help": "Ville ou village de naissance" },
       "residence_cercle": { "label": "Cercle de résidence", "help": "Subdivision administrative" },
       "residence_commune": { "label": "Commune de résidence", "help": "Commune actuelle" },
-      "fatherName": { "label": "Nom du père", "help": "Tel qu'inscrit sur votre acte de naissance" },
-      "motherName": { "label": "Nom de la mère", "help": "Tel qu'inscrit sur votre acte de naissance" },
+      "fatherName": {
+        "label": "Nom du père",
+        "help": "Tel qu'inscrit sur votre acte de naissance"
+      },
+      "motherName": {
+        "label": "Nom de la mère",
+        "help": "Tel qu'inscrit sur votre acte de naissance"
+      },
       "profession": { "label": "Profession", "help": "Activité principale actuelle" }
     },
     "summary": {

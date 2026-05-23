@@ -6,7 +6,7 @@
  * @module      @nina-aes/auth
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import type { AuthConfig } from '../types';
@@ -19,7 +19,7 @@ const RefreshResponseSchema = z.object({
 });
 
 export function buildRefreshHandler(config: AuthConfig) {
-  return async function POST(_req: NextRequest) {
+  return async function POST() {
     const jar = await cookies();
     const refresh = jar.get('refresh_token')?.value;
     if (!refresh) {
@@ -54,10 +54,18 @@ export function buildRefreshHandler(config: AuthConfig) {
     const res = NextResponse.json({ ok: true, expiresIn: tokens.expires_in });
     const secure = process.env.NODE_ENV === 'production';
     res.cookies.set('access_token', tokens.access_token, {
-      httpOnly: true, secure, sameSite: 'lax', path: '/', maxAge: tokens.expires_in,
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: tokens.expires_in,
     });
     res.cookies.set('refresh_token', tokens.refresh_token, {
-      httpOnly: true, secure, sameSite: 'lax', path: '/api/auth/refresh', maxAge: tokens.refresh_expires_in,
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/api/auth/refresh',
+      maxAge: tokens.refresh_expires_in,
     });
     return res;
   };

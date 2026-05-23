@@ -32,7 +32,8 @@ export class ApiError extends Error {
     payload: ApiErrorBody | string;
     correlationId: string;
   }) {
-    const body = typeof params.payload === 'object' && params.payload !== null ? params.payload : null;
+    const body =
+      typeof params.payload === 'object' && params.payload !== null ? params.payload : null;
     super(body?.message ?? params.statusText);
     this.name = 'ApiError';
     this.status = params.status;

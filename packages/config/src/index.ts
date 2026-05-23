@@ -83,15 +83,10 @@ const DURATION_REGEX = /^(\d+(ms|s|m|h|d)|\d+)$/;
  */
 export const envSchema = z.object({
   // ── Environnement ─────────────────────────────────────────────────────
-  NODE_ENV: z
-    .enum(['development', 'staging', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
 
   // ── Bases de données & infrastructures ─────────────────────────────────
-  DATABASE_URL: z
-    .string()
-    .url()
-    .default('postgresql://nina:nina_dev@localhost:5432/nina_aes'),
+  DATABASE_URL: z.string().url().default('postgresql://nina:nina_dev@localhost:5432/nina_aes'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   RABBITMQ_URL: z.string().default('amqp://nina:nina_dev@localhost:5672'),
   ELASTICSEARCH_URL: z.string().url().default('http://localhost:9200'),
@@ -142,10 +137,7 @@ export const envSchema = z.object({
 
   // ── Observabilité ─────────────────────────────────────────────────────
   PROMETHEUS_PORT: z.coerce.number().int().positive().default(9090),
-  JAEGER_ENDPOINT: z
-    .string()
-    .url()
-    .default('http://localhost:14268/api/traces'),
+  JAEGER_ENDPOINT: z.string().url().default('http://localhost:14268/api/traces'),
 });
 
 /** Type inféré du schéma complet (à consommer par les microservices). */
@@ -277,8 +269,7 @@ export const SERVICE_PORTS = {
   INTEROP_SERVICE: Number(process.env.INTEROP_SERVICE_PORT) || 3006,
   AUDIT_SERVICE: Number(process.env.AUDIT_SERVICE_PORT) || 3007,
   APPOINTMENT_SERVICE: Number(process.env.APPOINTMENT_SERVICE_PORT) || 3008,
-  ANTICORRUPTION_SERVICE:
-    Number(process.env.ANTICORRUPTION_SERVICE_PORT) || 3009,
+  ANTICORRUPTION_SERVICE: Number(process.env.ANTICORRUPTION_SERVICE_PORT) || 3009,
   GOVERNANCE_SERVICE: Number(process.env.GOVERNANCE_SERVICE_PORT) || 3010,
   VULNERABILITY_SERVICE: Number(process.env.VULNERABILITY_SERVICE_PORT) || 3011,
 } as const;

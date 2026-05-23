@@ -25,7 +25,11 @@ export const EvidenceAttachmentSchema = z.object({
   url: z.string().url(),
   filename: z.string().max(200),
   contentType: z.string().max(100),
-  sizeBytes: z.number().int().positive().max(50 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(50 * 1024 * 1024),
   sha256: z.string().regex(/^[0-9a-f]{64}$/i),
 });
 

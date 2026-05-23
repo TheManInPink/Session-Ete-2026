@@ -39,9 +39,7 @@ describe('NINA — calcul lettre de contrôle', () => {
   });
 
   it('est déterministe pour les mêmes 14 chiffres', () => {
-    expect(computeControlLetter('18903102015042')).toBe(
-      computeControlLetter('18903102015042'),
-    );
+    expect(computeControlLetter('18903102015042')).toBe(computeControlLetter('18903102015042'));
   });
 });
 

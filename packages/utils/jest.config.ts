@@ -21,11 +21,7 @@ const config: Config = {
       },
     ],
   },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/index.ts',
-    '!src/**/__tests__/**',
-  ],
+  collectCoverageFrom: ['src/**/*.ts', '!src/index.ts', '!src/**/__tests__/**'],
   coverageThreshold: {
     global: { branches: 80, functions: 85, lines: 85, statements: 85 },
   },

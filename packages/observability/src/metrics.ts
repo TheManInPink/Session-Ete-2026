@@ -53,7 +53,7 @@ export class BusinessMetrics {
   /** Latence inférence IA (pipeline 5 étapes). */
   readonly aiInferenceDuration = new Histogram({
     name: 'ai_inference_duration_seconds',
-    help: 'Latence d\'une inférence IA complète',
+    help: "Latence d'une inférence IA complète",
     buckets: [0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
   });
 
@@ -73,7 +73,7 @@ export class BusinessMetrics {
   /** Total entrées audit (par action). */
   readonly auditEntriesTotal = new Counter({
     name: 'audit_entries_total',
-    help: 'Nombre total d\'entrées dans l\'audit log',
+    help: "Nombre total d'entrées dans l'audit log",
     labelNames: ['action', 'severity'] as const,
   });
 
@@ -86,21 +86,21 @@ export class BusinessMetrics {
   /** Anomalies agents détectées par Isolation Forest (par seuil). */
   readonly sigacAgentAnomaly = new Gauge({
     name: 'sigac_agent_anomaly_score',
-    help: 'Score d\'anomalie d\'un agent (0-100, > 75 = flag)',
+    help: "Score d'anomalie d'un agent (0-100, > 75 = flag)",
     labelNames: ['user_id', 'region'] as const,
   });
 
   /** Score d'intégrité agrégé par région. */
   readonly sigacIntegrityScore = new Gauge({
     name: 'sigac_integrity_score',
-    help: 'Score d\'intégrité agrégé (0-100)',
+    help: "Score d'intégrité agrégé (0-100)",
     labelNames: ['region'] as const,
   });
 
   /** Signalements lanceurs d'alerte (par classification BERT). */
   readonly sigacReports = new Counter({
     name: 'sigac_whistleblower_reports_total',
-    help: 'Signalements lanceurs d\'alerte reçus',
+    help: "Signalements lanceurs d'alerte reçus",
     labelNames: ['classification', 'severity'] as const,
   });
 

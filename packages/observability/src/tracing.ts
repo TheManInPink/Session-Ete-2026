@@ -23,10 +23,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-} from '@opentelemetry/semantic-conventions';
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 let sdk: NodeSDK | undefined;
 
@@ -49,15 +46,12 @@ export function startOtelTracing(
   }
 
   const endpoint =
-    options?.otlpEndpoint ??
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??
-    'http://jaeger:4317';
+    options?.otlpEndpoint ?? process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://jaeger:4317';
 
   sdk = new NodeSDK({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: serviceName,
-      [ATTR_SERVICE_VERSION]:
-        options?.serviceVersion ?? process.env.SERVICE_VERSION ?? '0.1.0',
+      [ATTR_SERVICE_VERSION]: options?.serviceVersion ?? process.env.SERVICE_VERSION ?? '0.1.0',
       'deployment.environment': process.env.ENV ?? 'dev',
     }),
     traceExporter: new OTLPTraceExporter({ url: endpoint }),

@@ -55,7 +55,7 @@ export class ObservabilityModule {
           defaultLabels: {
             service: config.serviceName,
             version: config.serviceVersion ?? 'unknown',
-            env: config.env ?? (process.env.ENV ?? 'dev'),
+            env: config.env ?? process.env.ENV ?? 'dev',
           },
           path: config.metricsPath ?? '/metrics',
         }),

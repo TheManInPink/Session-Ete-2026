@@ -23,10 +23,7 @@
  * @throws {Error} Si la date de naissance est postérieure à la référence
  *                 ou si le format est invalide.
  */
-export function calculateAge(
-  birthDate: Date | string,
-  referenceDate: Date = new Date(),
-): number {
+export function calculateAge(birthDate: Date | string, referenceDate: Date = new Date()): number {
   const birth = birthDate instanceof Date ? birthDate : new Date(birthDate);
   if (Number.isNaN(birth.getTime())) {
     throw new Error(`Date de naissance invalide : "${String(birthDate)}"`);

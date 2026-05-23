@@ -36,7 +36,8 @@ export async function getSession(config: AuthConfig): Promise<Session | null> {
   // Toujours lire cookies() d'abord (cacheComponents requirement).
   const jar = await cookies();
 
-  const authMode = config.authMode ?? ((process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak');
+  const authMode =
+    config.authMode ?? ((process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak');
   if (authMode === 'mock') return getMockSession(config);
 
   const accessToken = jar.get('access_token')?.value;

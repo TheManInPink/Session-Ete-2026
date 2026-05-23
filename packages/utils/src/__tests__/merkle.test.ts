@@ -4,11 +4,7 @@
  * @module      @nina-aes/utils
  */
 
-import {
-  computeMerkleHash,
-  generateMerkleHash,
-  verifyMerkleChain,
-} from '../merkle';
+import { computeMerkleHash, generateMerkleHash, verifyMerkleChain } from '../merkle';
 
 /** Construit une chaîne valide de N entrées pour les tests. */
 function buildChain(n: number): Array<{ data: string; hash: string; previousHash: string }> {

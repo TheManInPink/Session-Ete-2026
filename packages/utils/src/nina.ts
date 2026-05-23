@@ -114,9 +114,7 @@ export function maskNina(nina: string, visibleStart = 2, visibleEnd = 2): string
  */
 export function computeControlLetter(digits: string): string {
   if (!/^\d{14}$/.test(digits)) {
-    throw new Error(
-      `Les 14 premiers caractères doivent être des chiffres. Reçu : "${digits}"`,
-    );
+    throw new Error(`Les 14 premiers caractères doivent être des chiffres. Reçu : "${digits}"`);
   }
 
   let sum = 0;

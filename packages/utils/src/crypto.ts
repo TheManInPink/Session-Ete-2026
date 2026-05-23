@@ -82,8 +82,7 @@ export function signWithRS256(
   const payloadB64 = base64url(JSON.stringify(claims));
   const signingInput = `${headerB64}.${payloadB64}`;
 
-  const key =
-    typeof privateKey === 'string' ? createPrivateKey(privateKey) : privateKey;
+  const key = typeof privateKey === 'string' ? createPrivateKey(privateKey) : privateKey;
   const signer = createSign('RSA-SHA256');
   signer.update(signingInput);
   signer.end();
@@ -101,16 +100,12 @@ export function signWithRS256(
  * @returns Charge utile décodée.
  * @throws {Error} Signature invalide, format malformé, ou jeton expiré.
  */
-export function verifyRS256(
-  token: string,
-  publicKey: string | KeyObject,
-): JsonObject {
+export function verifyRS256(token: string, publicKey: string | KeyObject): JsonObject {
   const parts = token.split('.');
   if (parts.length !== 3) throw new Error('JWT malformé : 3 segments attendus');
   const [headerB64, payloadB64, signatureB64] = parts as [string, string, string];
 
-  const key =
-    typeof publicKey === 'string' ? createPublicKey(publicKey) : publicKey;
+  const key = typeof publicKey === 'string' ? createPublicKey(publicKey) : publicKey;
   const verifier = createVerify('RSA-SHA256');
   verifier.update(`${headerB64}.${payloadB64}`);
   verifier.end();
@@ -120,9 +115,7 @@ export function verifyRS256(
     throw new Error('Signature JWT RS256 invalide');
   }
 
-  const payload = JSON.parse(
-    Buffer.from(payloadB64, 'base64url').toString('utf8'),
-  ) as JsonObject;
+  const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as JsonObject;
 
   if (typeof payload.exp === 'number' && payload.exp < Math.floor(Date.now() / 1000)) {
     throw new Error('JWT expiré');
@@ -145,12 +138,8 @@ export function verifyRS256(
  * @param privateKey - Clé privée Ed25519 (PEM PKCS8 ou KeyObject).
  * @returns Signature en base64url (sans header — ce n'est pas un JWT).
  */
-export function signWithEd25519(
-  payload: JsonObject,
-  privateKey: string | KeyObject,
-): string {
-  const key =
-    typeof privateKey === 'string' ? createPrivateKey(privateKey) : privateKey;
+export function signWithEd25519(payload: JsonObject, privateKey: string | KeyObject): string {
+  const key = typeof privateKey === 'string' ? createPrivateKey(privateKey) : privateKey;
   const message = Buffer.from(JSON.stringify(payload), 'utf8');
   // Ed25519 : `algorithm` doit être null (le digest est implicite).
   const signature = edSign(null, message, key);
@@ -170,8 +159,7 @@ export function verifyEd25519(
   signatureB64: string,
   publicKey: string | KeyObject,
 ): boolean {
-  const key =
-    typeof publicKey === 'string' ? createPublicKey(publicKey) : publicKey;
+  const key = typeof publicKey === 'string' ? createPublicKey(publicKey) : publicKey;
   const message = Buffer.from(JSON.stringify(payload), 'utf8');
   const signature = Buffer.from(signatureB64, 'base64url');
   return edVerify(null, message, key, signature);
@@ -192,7 +180,6 @@ export function verifyEd25519(
  * @returns Digest SHA-256 hexadécimal (64 caractères).
  */
 export function hashBiometric(template: Buffer | string): string {
-  const buf =
-    typeof template === 'string' ? Buffer.from(template, 'base64') : template;
+  const buf = typeof template === 'string' ? Buffer.from(template, 'base64') : template;
   return createHash('sha256').update(buf).digest('hex');
 }

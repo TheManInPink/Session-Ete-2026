@@ -16,16 +16,7 @@
 import { Language, SUPPORTED_LANGUAGES } from '@nina-aes/shared-types';
 
 /** Codes langue lowercase utilisés dans les URLs Next.js (`/fr/dashboard`). */
-export const locales = [
-  'fr',
-  'bm',
-  'snk',
-  'ff',
-  'tmq',
-  'hau',
-  'mos',
-  'dje',
-] as const;
+export const locales = ['fr', 'bm', 'snk', 'ff', 'tmq', 'hau', 'mos', 'dje'] as const;
 
 export type Locale = (typeof locales)[number];
 

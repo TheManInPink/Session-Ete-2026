@@ -33,7 +33,13 @@ export function buildCallbackHandler(config: AuthConfig) {
     const stored = jar.get('oidc_state')?.value;
     if (!stored) return redirectToLogin(req, 'no_session');
 
-    let parsedState: { codeVerifier: string; state: string; nonce: string; next: string; locale: string };
+    let parsedState: {
+      codeVerifier: string;
+      state: string;
+      nonce: string;
+      next: string;
+      locale: string;
+    };
     try {
       parsedState = JSON.parse(stored);
     } catch {
@@ -69,16 +75,30 @@ export function buildCallbackHandler(config: AuthConfig) {
       return redirectToLogin(req, 'id_token_invalid');
     }
 
-    const res = NextResponse.redirect(new URL(`/${parsedState.locale}${parsedState.next}`, req.url));
+    const res = NextResponse.redirect(
+      new URL(`/${parsedState.locale}${parsedState.next}`, req.url),
+    );
     const secure = process.env.NODE_ENV === 'production';
     res.cookies.set('access_token', tokens.access_token, {
-      httpOnly: true, secure, sameSite: 'lax', path: '/', maxAge: tokens.expires_in,
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: tokens.expires_in,
     });
     res.cookies.set('refresh_token', tokens.refresh_token, {
-      httpOnly: true, secure, sameSite: 'lax', path: '/api/auth/refresh', maxAge: tokens.refresh_expires_in,
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/api/auth/refresh',
+      maxAge: tokens.refresh_expires_in,
     });
     res.cookies.set('id_token', tokens.id_token, {
-      httpOnly: true, secure, sameSite: 'lax', path: '/api/auth/logout', maxAge: tokens.refresh_expires_in,
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/api/auth/logout',
+      maxAge: tokens.refresh_expires_in,
     });
     res.cookies.delete('oidc_state');
     return res;

@@ -29,7 +29,10 @@ import { defaultLocale, locales, normalizeLocale, type Locale } from './index';
  * traduites — tout le reste tombe automatiquement en FR sans déclencher
  * `getMessageFallback` (qui ne renvoie qu'un placeholder textuel).
  */
-function deepMerge<T extends Record<string, unknown>>(base: T, override: Record<string, unknown>): T {
+function deepMerge<T extends Record<string, unknown>>(
+  base: T,
+  override: Record<string, unknown>,
+): T {
   const out: Record<string, unknown> = { ...base };
   for (const [key, value] of Object.entries(override)) {
     const baseVal = out[key];
@@ -54,8 +57,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
   const locale: Locale = normalizeLocale(requested);
 
   // FR est toujours chargé en base (traduction de référence, complète).
-  const baseMessages = (await import(`../messages/${defaultLocale}.json`, { with: { type: 'json' } }))
-    .default as Record<string, unknown>;
+  const baseMessages = (
+    await import(`../messages/${defaultLocale}.json`, { with: { type: 'json' } })
+  ).default as Record<string, unknown>;
 
   // Si la locale demandée n'est pas FR, on charge sa traduction partielle
   // et on la superpose à la base FR — clé par clé, en profondeur.
@@ -94,7 +98,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
     // partiellement traduites (BM/SNK/FF/...). Le fallback FR est appliqué.
     onError(error) {
       if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
         console.warn('[i18n]', error.message);
       }
     },

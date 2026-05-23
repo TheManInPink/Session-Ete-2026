@@ -111,9 +111,7 @@ async function upsertLocation(input: {
       select: { id: true },
     });
     if (!parent) {
-      throw new Error(
-        `[seed] Parent "${input.parentCode}" introuvable pour "${input.code}"`,
-      );
+      throw new Error(`[seed] Parent "${input.parentCode}" introuvable pour "${input.code}"`);
     }
     parentId = parent.id;
   }
@@ -185,7 +183,7 @@ const COMMUNES_PEDAGOGIQUES: Record<string, string[]> = {
   'ML-02-05': ['Kolokani', 'Didiéni', 'Guihoyo', 'Massantola', 'Nossombougou'],
 
   // ── Région Dioïla (ML-14, anciennement sous Koulikoro) ────────────────────
-  'ML-14-01': ['Dioïla', 'Kilidougou', 'Massigui', 'N\'Garadougou'],
+  'ML-14-01': ['Dioïla', 'Kilidougou', 'Massigui', "N'Garadougou"],
   'ML-14-02': ['Fana', 'Banco', 'Diébé', 'Niantjila'],
 
   // ── Région Nara (ML-15, anciennement sous Koulikoro) ──────────────────────
@@ -194,19 +192,19 @@ const COMMUNES_PEDAGOGIQUES: Record<string, string[]> = {
   // ── Région Sikasso (ML-03) ────────────────────────────────────────────────
   'ML-03-01': ['Sikasso', 'Danderesso', 'Kaboila', 'Kafouziéla', 'Klela', 'Natien', 'Zaniéna'],
   'ML-03-02': ['Kadiolo', 'Diou', 'Dioumatènè', 'Fourou', 'Loulouni', 'Zégoua'],
-  'ML-03-03': ['Kolondiéba', 'Bougoula', 'Fakola', 'Kadiana', 'N\'Golodiana'],
+  'ML-03-03': ['Kolondiéba', 'Bougoula', 'Fakola', 'Kadiana', "N'Golodiana"],
 
   // ── Région Bougouni (ML-16, anciennement sous Sikasso) ────────────────────
   'ML-16-01': ['Bougouni', 'Débélin', 'Faragouaran', 'Garalo', 'Koumantou', 'Sanso'],
   'ML-16-02': ['Yanfolila', 'Baya', 'Gouanan', 'Koussan', 'Wassoulou-Ballé'],
 
   // ── Région Koutiala (ML-17, anciennement sous Sikasso) ────────────────────
-  'ML-17-01': ['Koutiala', 'Diédougou', 'Fakolo', 'Kafo', 'M\'Péssoba', 'Songo-Doubacoré'],
+  'ML-17-01': ['Koutiala', 'Diédougou', 'Fakolo', 'Kafo', "M'Péssoba", 'Songo-Doubacoré'],
   'ML-17-02': ['Yorosso', 'Boura', 'Karangasso', 'Koumbia', 'Mahou'],
 
   // ── Région Ségou (ML-04) ──────────────────────────────────────────────────
   'ML-04-01': ['Ségou', 'Cinzana', 'Diédougou', 'Farako', 'Markala', 'Pelengana', 'Sébougou'],
-  'ML-04-02': ['Baraouéli', 'Boidié', 'Gouendo', 'Kalaké', 'N\'Gassola'],
+  'ML-04-02': ['Baraouéli', 'Boidié', 'Gouendo', 'Kalaké', "N'Gassola"],
   'ML-04-03': ['Bla', 'Béguéné', 'Diaramana', 'Fani', 'Kazangasso', 'Touna'],
   'ML-04-04': ['Macina', 'Boky-Wéré', 'Kokry-Centre', 'Kolongo', 'Monipébougou'],
   'ML-04-05': ['Niono', 'Mariko', 'Pogo', 'Siribala', 'Sokolo', 'Yérédon-Saniona'],
@@ -232,12 +230,12 @@ const COMMUNES_PEDAGOGIQUES: Record<string, string[]> = {
   // ── Région Tombouctou (ML-06) ─────────────────────────────────────────────
   'ML-06-01': ['Tombouctou', 'Alafia', 'Ber', 'Bourem-Inaly', 'Lafia'],
   'ML-06-02': ['Diré', 'Binga', 'Bourem-Sidi-Amar', 'Haïbongo', 'Tindirma'],
-  'ML-06-03': ['Goundam', 'Adarmalane', 'Bintagoungou', 'Douékiré', 'Essakane', 'M\'Bouna'],
+  'ML-06-03': ['Goundam', 'Adarmalane', 'Bintagoungou', 'Douékiré', 'Essakane', "M'Bouna"],
   'ML-06-04': ['Gourma-Rharous', 'Bambara-Maoudé', 'Gossi', 'Inadiatafane', 'Rharous'],
   'ML-06-05': ['Niafunké', 'Banikane', 'Dianké', 'Léré', 'Soboundou'],
 
   // ── Région Gao (ML-07) ────────────────────────────────────────────────────
-  'ML-07-01': ['Gao', 'Anchawadj', 'Gabéro', 'Gounzoureye', 'N\'Tillit', 'Sonni-Ali-Ber'],
+  'ML-07-01': ['Gao', 'Anchawadj', 'Gabéro', 'Gounzoureye', "N'Tillit", 'Sonni-Ali-Ber'],
   'ML-07-02': ['Ansongo', 'Bara', 'Bourra', 'Ouattagouna', 'Talataye', 'Tessit'],
   'ML-07-03': ['Bourem', 'Bamba', 'Taboye', 'Téméra'],
 
@@ -250,12 +248,59 @@ const COMMUNES_PEDAGOGIQUES: Record<string, string[]> = {
   'ML-08-03': ['Tessalit', 'Adjelhoc', 'Timtaghene'],
 
   // ── District de Bamako (ML-09) — 6 communes urbaines = niveau 2 ──────────
-  'ML-09-01': ['Banconi', 'Boulkassoumbougou', 'Djélibougou', 'Doumanzana', 'Fadjiguila', 'Korofina-Nord', 'Sikoro'],
-  'ML-09-02': ['Bagadadji', 'Bakaribougou', 'Bougouba', 'Hippodrome', 'Médina-Coura', 'Missira', 'Niaréla'],
-  'ML-09-03': ['Bamako-Coura', 'Centre-Commercial', 'Dravéla', 'N\'Tomikorobougou', 'Point-G', 'Samé'],
-  'ML-09-04': ['Djicoroni-Para', 'Hamdallaye', 'Lafiabougou', 'Sébénikoro', 'Sibiribougou', 'Taliko'],
-  'ML-09-05': ['Badalabougou', 'Baco-Djicoroni', 'Daoudabougou', 'Kalaban-Coura', 'Quartier-Mali', 'Sabalibougou', 'Torokorobougou'],
-  'ML-09-06': ['Banankabougou', 'Djanèkèla', 'Faladié', 'Magnambougou', 'Missabougou', 'Sénou', 'Sogoniko', 'Yirimadio'],
+  'ML-09-01': [
+    'Banconi',
+    'Boulkassoumbougou',
+    'Djélibougou',
+    'Doumanzana',
+    'Fadjiguila',
+    'Korofina-Nord',
+    'Sikoro',
+  ],
+  'ML-09-02': [
+    'Bagadadji',
+    'Bakaribougou',
+    'Bougouba',
+    'Hippodrome',
+    'Médina-Coura',
+    'Missira',
+    'Niaréla',
+  ],
+  'ML-09-03': [
+    'Bamako-Coura',
+    'Centre-Commercial',
+    'Dravéla',
+    "N'Tomikorobougou",
+    'Point-G',
+    'Samé',
+  ],
+  'ML-09-04': [
+    'Djicoroni-Para',
+    'Hamdallaye',
+    'Lafiabougou',
+    'Sébénikoro',
+    'Sibiribougou',
+    'Taliko',
+  ],
+  'ML-09-05': [
+    'Badalabougou',
+    'Baco-Djicoroni',
+    'Daoudabougou',
+    'Kalaban-Coura',
+    'Quartier-Mali',
+    'Sabalibougou',
+    'Torokorobougou',
+  ],
+  'ML-09-06': [
+    'Banankabougou',
+    'Djanèkèla',
+    'Faladié',
+    'Magnambougou',
+    'Missabougou',
+    'Sénou',
+    'Sogoniko',
+    'Yirimadio',
+  ],
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -274,21 +319,21 @@ const INSTITUTIONS: Array<{
 }> = [
   {
     code: 'CTDEC-BAMAKO',
-    name: 'Centre de Traitement des Données de l\'État Civil',
+    name: "Centre de Traitement des Données de l'État Civil",
     type: 'CTDEC',
     locationCode: 'ML-09',
     address: 'Rue Baba Diarra, BP 215, Bamako',
   },
   {
     code: 'DNEC-BAMAKO',
-    name: 'Direction Nationale de l\'État Civil',
+    name: "Direction Nationale de l'État Civil",
     type: 'DNEC',
     locationCode: 'ML-09',
     address: 'Bamako, Mali',
   },
   {
     code: 'MAT-BAMAKO',
-    name: 'Ministère de l\'Administration Territoriale et de la Décentralisation',
+    name: "Ministère de l'Administration Territoriale et de la Décentralisation",
     type: 'MINISTRY',
     locationCode: 'ML-09',
     address: 'Bamako, Mali',
@@ -319,21 +364,62 @@ const USERS: Array<{
   username: string;
   firstName: string;
   lastName: string;
-  role:
-    | 'CITIZEN'
-    | 'AGENT'
-    | 'SUPERVISOR'
-    | 'ADMIN'
-    | 'AUDITOR'
-    | 'ANTICORRUPTION_INSPECTOR';
+  role: 'CITIZEN' | 'AGENT' | 'SUPERVISOR' | 'ADMIN' | 'AUDITOR' | 'ANTICORRUPTION_INSPECTOR';
   institutionCode?: string;
 }> = [
-  { keycloakId: 'seed-citizen-001',    email: 'citoyen.demo@nina-aes.ml',      username: 'citoyen.demo',    firstName: 'Fatoumata', lastName: 'Diallo',      role: 'CITIZEN' },
-  { keycloakId: 'seed-agent-001',      email: 'agent1@ctdec.gouv.ml',          username: 'agent.keita',     firstName: 'Modibo',    lastName: 'Keita',       role: 'AGENT',      institutionCode: 'CTDEC-BAMAKO' },
-  { keycloakId: 'seed-supervisor-001', email: 'supervisor1@ctdec.gouv.ml',     username: 'sup.traore',      firstName: 'Aminata',   lastName: 'Traoré',      role: 'SUPERVISOR', institutionCode: 'CTDEC-BAMAKO' },
-  { keycloakId: 'seed-admin-001',      email: 'admin1@dnec.gouv.ml',           username: 'admin.coulibaly', firstName: 'Ibrahima',  lastName: 'Coulibaly',   role: 'ADMIN',      institutionCode: 'DNEC-BAMAKO' },
-  { keycloakId: 'seed-auditor-001',    email: 'auditor1@mat.gouv.ml',          username: 'auditor.sissoko', firstName: 'Mariam',    lastName: 'Sissoko',     role: 'AUDITOR',    institutionCode: 'MAT-BAMAKO' },
-  { keycloakId: 'seed-inspector-001',  email: 'inspector1@sigac.gouv.ml',      username: 'insp.cisse',      firstName: 'Oumar',     lastName: 'Cissé',       role: 'ANTICORRUPTION_INSPECTOR', institutionCode: 'MAT-BAMAKO' },
+  {
+    keycloakId: 'seed-citizen-001',
+    email: 'citoyen.demo@nina-aes.ml',
+    username: 'citoyen.demo',
+    firstName: 'Fatoumata',
+    lastName: 'Diallo',
+    role: 'CITIZEN',
+  },
+  {
+    keycloakId: 'seed-agent-001',
+    email: 'agent1@ctdec.gouv.ml',
+    username: 'agent.keita',
+    firstName: 'Modibo',
+    lastName: 'Keita',
+    role: 'AGENT',
+    institutionCode: 'CTDEC-BAMAKO',
+  },
+  {
+    keycloakId: 'seed-supervisor-001',
+    email: 'supervisor1@ctdec.gouv.ml',
+    username: 'sup.traore',
+    firstName: 'Aminata',
+    lastName: 'Traoré',
+    role: 'SUPERVISOR',
+    institutionCode: 'CTDEC-BAMAKO',
+  },
+  {
+    keycloakId: 'seed-admin-001',
+    email: 'admin1@dnec.gouv.ml',
+    username: 'admin.coulibaly',
+    firstName: 'Ibrahima',
+    lastName: 'Coulibaly',
+    role: 'ADMIN',
+    institutionCode: 'DNEC-BAMAKO',
+  },
+  {
+    keycloakId: 'seed-auditor-001',
+    email: 'auditor1@mat.gouv.ml',
+    username: 'auditor.sissoko',
+    firstName: 'Mariam',
+    lastName: 'Sissoko',
+    role: 'AUDITOR',
+    institutionCode: 'MAT-BAMAKO',
+  },
+  {
+    keycloakId: 'seed-inspector-001',
+    email: 'inspector1@sigac.gouv.ml',
+    username: 'insp.cisse',
+    firstName: 'Oumar',
+    lastName: 'Cissé',
+    role: 'ANTICORRUPTION_INSPECTOR',
+    institutionCode: 'MAT-BAMAKO',
+  },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────────

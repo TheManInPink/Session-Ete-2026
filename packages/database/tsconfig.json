@@ -17,14 +17,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": [
-    "src/**/*",
-    "prisma/*.ts",
-    "prisma.config.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    ".turbo"
-  ]
+  "include": ["src/**/*", "prisma/*.ts", "prisma.config.ts"],
+  "exclude": ["node_modules", "dist", ".turbo"]
 }

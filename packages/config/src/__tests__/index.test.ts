@@ -53,9 +53,9 @@ describe('envSchema — rejets', () => {
 
 describe('validateEnv — message d’erreur', () => {
   it('inclut le chemin de chaque champ invalide', () => {
-    expect(() =>
-      validateEnv(envSchema, { JWT_SECRET: 'x', VAULT_ADDR: 'nope' }),
-    ).toThrow(/JWT_SECRET[\s\S]+VAULT_ADDR/);
+    expect(() => validateEnv(envSchema, { JWT_SECRET: 'x', VAULT_ADDR: 'nope' })).toThrow(
+      /JWT_SECRET[\s\S]+VAULT_ADDR/,
+    );
   });
 });
 

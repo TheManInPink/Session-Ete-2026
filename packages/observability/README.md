@@ -82,13 +82,13 @@ logger.info({ nina: '18903102015042V', operation: 'create' }, 'Citizen créé');
 
 ## Variables d'environnement
 
-| Variable | Défaut | Description |
-|---|---|---|
-| `SERVICE_VERSION` | `0.1.0` | Label Prometheus + OTel |
-| `ENV` | `dev` | Label uniforme `dev/staging/prod` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://jaeger:4317` | OTLP gRPC |
-| `LOKI_URL` | `http://loki:3100` | URL Pino transport Loki |
-| `LOG_LEVEL` | `info` | Niveau Pino |
+| Variable                      | Défaut               | Description                       |
+| ----------------------------- | -------------------- | --------------------------------- |
+| `SERVICE_VERSION`             | `0.1.0`              | Label Prometheus + OTel           |
+| `ENV`                         | `dev`                | Label uniforme `dev/staging/prod` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://jaeger:4317` | OTLP gRPC                         |
+| `LOKI_URL`                    | `http://loki:3100`   | URL Pino transport Loki           |
+| `LOG_LEVEL`                   | `info`               | Niveau Pino                       |
 
 ## Doc associée
 

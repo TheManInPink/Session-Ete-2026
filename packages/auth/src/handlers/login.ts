@@ -33,7 +33,8 @@ export function buildLoginHandler(config: AuthConfig) {
     const nextPath = url.searchParams.get('next') ?? config.defaultNext ?? '/dashboard';
     const locale = url.searchParams.get('locale') ?? config.defaultLocale ?? 'fr';
 
-    const authMode = config.authMode ?? ((process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak');
+    const authMode =
+      config.authMode ?? ((process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak');
     if (authMode === 'mock') {
       return NextResponse.redirect(new URL(`/${locale}${nextPath}`, req.url));
     }
@@ -51,17 +52,13 @@ export function buildLoginHandler(config: AuthConfig) {
     const nonce = randomString(16);
 
     const jar = await cookies();
-    jar.set(
-      'oidc_state',
-      JSON.stringify({ codeVerifier, state, nonce, next: nextPath, locale }),
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 300,
-      },
-    );
+    jar.set('oidc_state', JSON.stringify({ codeVerifier, state, nonce, next: nextPath, locale }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 300,
+    });
 
     const authUrl = new URL(`${issuer}/protocol/openid-connect/auth`);
     authUrl.searchParams.set('client_id', config.clientId);

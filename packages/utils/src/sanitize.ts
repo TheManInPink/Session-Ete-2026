@@ -80,9 +80,7 @@ function maskPhone(phone: string): string {
   const digits = phone.replace(/\D+/g, '');
   if (digits.length <= 4) return '*'.repeat(digits.length);
   const tail = digits.slice(-4);
-  const prefix = phone.startsWith('+')
-    ? phone.match(/^\+\d{1,3}/)?.[0] ?? '+'
-    : '';
+  const prefix = phone.startsWith('+') ? (phone.match(/^\+\d{1,3}/)?.[0] ?? '+') : '';
   return `${prefix}${'*'.repeat(Math.max(0, digits.length - 4 - prefix.replace(/\D/g, '').length))}${tail}`;
 }
 

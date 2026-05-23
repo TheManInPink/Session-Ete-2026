@@ -37,12 +37,14 @@ export class CorrectionClient {
    *
    * @param params - Filtres (status, page, pageSize).
    */
-  async list(params: {
-    nina?: string;
-    status?: string;
-    page?: number;
-    pageSize?: number;
-  } = {}): Promise<CorrectionList> {
+  async list(
+    params: {
+      nina?: string;
+      status?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ): Promise<CorrectionList> {
     return this.http.request<CorrectionList>({
       method: 'GET',
       path: '/api/v1/corrections',
