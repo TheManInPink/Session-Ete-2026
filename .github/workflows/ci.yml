@@ -173,7 +173,7 @@ jobs:
       # releases spaCy (https://github.com/explosion/spaCy/releases) et
       # remonter à 3.14 quand les wheels seront publiées.
       - name: Setup Python 3.13 (en attente des wheels spaCy cp314)
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -435,7 +435,7 @@ jobs:
 
       # ─── Bandit (Python static analysis) ─────────────────────────
       - name: Setup Python 3.14
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
