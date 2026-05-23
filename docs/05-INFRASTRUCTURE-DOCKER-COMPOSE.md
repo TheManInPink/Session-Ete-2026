@@ -1,23 +1,40 @@
 # 05 — Infrastructure Docker Compose
 
-> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §4.
-> Points à connaître avant de copier les commandes de ce document :
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §4. Points à connaître avant
+> de copier les commandes de ce document :
 >
-> - **Image Postgres** : utiliser `postgis/postgis:18-3.6` (l'image alpine
->   officielle ne fournit pas PostGIS et n'a pas la locale `fr_FR.UTF-8`).
-> - **Locale Postgres** : ICU obligatoire (`--locale-provider=icu
->   --icu-locale=fr-FR --encoding=UTF8 --data-checksums`).
-> - **Volume Postgres** : monter `/var/lib/postgresql` (parent), pas `/data`
->   (Postgres 18 a changé son layout).
-> - **Compose & .env** : préfixer **toutes** les commandes par
->   `--env-file .env` (le `.env` racine n'est pas découvert automatiquement
->   par compose v2 quand le YAML est dans `infrastructure/docker/`). Le
->   script `pnpm docker:up` inclut déjà `--env-file .env`.
-> - **Interpolations** `${VAR :-default}` avec espace = **invalide** —
->   toujours coller `${VAR:-default}` sans espace.
-> - **Images obsolètes** à corriger dans `docker-compose.dev.yml` initial :
->   `bitnami/minio:latest` (n'existe plus → `quay.io/minio/minio:latest`),
->   `hashicorp/vault:2.0` (inexistant → `hashicorp/vault:1.18`).
+> - **Image Postgres** : utiliser `postgis/postgis:18-3.6` (l'image alpine officielle ne fournit pas
+>   PostGIS et n'a pas la locale `fr_FR.UTF-8`).
+> - **Locale Postgres** : ICU obligatoire
+>   (`--locale-provider=icu --icu-locale=fr-FR --encoding=UTF8 --data-checksums`).
+> - **Volume Postgres** : monter `/var/lib/postgresql` (parent), pas `/data` (Postgres 18 a changé
+>   son layout).
+> - **Compose & .env** : préfixer **toutes** les commandes par `--env-file .env` (le `.env` racine
+>   n'est pas découvert automatiquement par compose v2 quand le YAML est dans
+>   `infrastructure/docker/`). Le script `pnpm docker:up` inclut déjà `--env-file .env`.
+> - **Interpolations** `${VAR :-default}` avec espace = **invalide** — toujours coller
+>   `${VAR:-default}` sans espace.
+> - **Images obsolètes** à corriger dans `docker-compose.dev.yml` initial : `bitnami/minio:latest`
+>   (n'existe plus → `quay.io/minio/minio:latest`), `hashicorp/vault:2.0` (inexistant →
+>   `hashicorp/vault:1.18`).
+> - **Healthchecks corrigés (mai 2026)** :
+>   - `rabbitmq` : `rabbitmq-diagnostics -q check_running` (l'ancien `ping check_running` mélangeait
+>     deux sous-commandes et faisait toujours échouer le healthcheck).
+>   - `vault` : préfixer par `VAULT_ADDR=http://127.0.0.1:8200` (le binaire `vault status` par
+>     défaut parle HTTPS alors que `start-dev` écoute en HTTP).
+>   - `keycloak` : sonder le port management **9000** (`/health/ready`), pas le port API 8080 — KC
+>     25+ n'expose plus les endpoints health sur 8080.
+> - **Kibana — clés de chiffrement obligatoires** : sans
+>   `XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY`, `XPACK_SECURITY_ENCRYPTIONKEY` et
+>   `XPACK_REPORTING_ENCRYPTIONKEY` (≥32 chars chacune), le plugin Fleet boucle sur
+>   `FleetEncryptedSavedObjectEncryptionKeyRequired`. Variables alimentées par
+>   `KIBANA_ENCRYPTION_KEY`, `KIBANA_SECURITY_ENCRYPTION_KEY`, `KIBANA_REPORTING_ENCRYPTION_KEY` du
+>   `.env`. **Doivent rester stables** entre redémarrages, sinon les objets chiffrés (intégrations
+>   Fleet, règles d'alerting) deviennent illisibles.
+> - **Reset password `kibana_system`** : après premier boot d'Elasticsearch, exécuter
+>   `docker exec nina-elasticsearch curl -s -u "elastic:$ELASTIC_PASSWORD" -X POST "http://localhost:9200/_security/user/kibana_system/_password" -H "Content-Type: application/json" -d '{"password":"<même valeur que ELASTIC_PASSWORD>"}'`
+>   puis recréer le conteneur Kibana. Sans ça, Kibana retourne `"level":"unavailable"`
+>   (security_exception).
 
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00, 01, 02, 03 et
 > 04 complétés ; Docker Desktop installé et fonctionnel **Durée estimée** : 8 à 12 heures pour un
