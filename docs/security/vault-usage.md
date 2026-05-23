@@ -1,31 +1,29 @@
 # vault-usage.md — Comment ajouter et gérer un secret Vault
 
-> Guide opérationnel pour l'étudiant + futurs admins CTDEC.
-> Compagnon de `docs/15-SECURITY-HARDENING.md` (architecture) et
-> `docs/adr/ADR-019-backup-recovery-strategy.md` (rotation).
+> Guide opérationnel pour l'étudiant + futurs admins CTDEC. Compagnon de
+> `docs/15-SECURITY-HARDENING.md` (architecture) et `docs/adr/ADR-019-backup-recovery-strategy.md`
+> (rotation).
 >
-> **Audience** : développeurs qui veulent stocker un nouveau secret,
-> administrateurs qui doivent rotater une clé, auditeurs qui veulent
-> comprendre la chaîne de confiance.
+> **Audience** : développeurs qui veulent stocker un nouveau secret, administrateurs qui doivent
+> rotater une clé, auditeurs qui veulent comprendre la chaîne de confiance.
 
 ---
 
 ## 1. Décider du bon engine
 
-NINA-AES utilise **5 engines Vault** activés par `vault-init.sh`.
-Choisir le bon engine selon le type de secret :
+NINA-AES utilise **5 engines Vault** activés par `vault-init.sh`. Choisir le bon engine selon le
+type de secret :
 
-| Type de secret | Engine | Mount path | Exemple |
-|---|---|---|---|
-| Config / API keys / connection strings | **kv-v2** | `kv/data/` | `kv/data/africastalking` |
-| Certificats X.509 mTLS | **pki** | `pki/` | `pki/issue/identity-service` |
-| Credentials Postgres dynamiques (TTL 24h) | **database** | `database/creds/` | `database/creds/identity-app` |
-| Chiffrement / signature (clé reste dans Vault) | **transit** | `transit/` | `transit/encrypt/sigac-whistleblower` |
-| Codes MFA (TOTP) pour les agents | **totp** | `totp/` | `totp/code/agent-CTDEC-007` |
+| Type de secret                                 | Engine       | Mount path        | Exemple                               |
+| ---------------------------------------------- | ------------ | ----------------- | ------------------------------------- |
+| Config / API keys / connection strings         | **kv-v2**    | `kv/data/`        | `kv/data/africastalking`              |
+| Certificats X.509 mTLS                         | **pki**      | `pki/`            | `pki/issue/identity-service`          |
+| Credentials Postgres dynamiques (TTL 24h)      | **database** | `database/creds/` | `database/creds/identity-app`         |
+| Chiffrement / signature (clé reste dans Vault) | **transit**  | `transit/`        | `transit/encrypt/sigac-whistleblower` |
+| Codes MFA (TOTP) pour les agents               | **totp**     | `totp/`           | `totp/code/agent-CTDEC-007`           |
 
-**Règle d'or** : si une clé privée doit signer ou déchiffrer, **utiliser
-transit** plutôt que kv. La clé ne quitte JAMAIS Vault (résistance
-post-compromission applicatif).
+**Règle d'or** : si une clé privée doit signer ou déchiffrer, **utiliser transit** plutôt que kv. La
+clé ne quitte JAMAIS Vault (résistance post-compromission applicatif).
 
 ---
 
@@ -169,16 +167,14 @@ vault write transit/keys/jwt-signing-rs256/config \
   min_decryption_version=3
 ```
 
-**ATTENTION** : ne pas exécuter `min_decryption_version` sur
-`sigac-whistleblower` sans procédure de réémission des signalements en
-attente (cf. ADR-023 §Conséquences négatives).
+**ATTENTION** : ne pas exécuter `min_decryption_version` sur `sigac-whistleblower` sans procédure de
+réémission des signalements en attente (cf. ADR-023 §Conséquences négatives).
 
 ---
 
 ## 5. Rotation automatique (CronJob 90 jours)
 
-Le CronJob K3s `vault-rotation` (cf.
-`infrastructure/k8s/cronjobs/vault-rotation.yaml`) exécute
+Le CronJob K3s `vault-rotation` (cf. `infrastructure/k8s/cronjobs/vault-rotation.yaml`) exécute
 `infrastructure/vault/rotate-secrets.sh` tous les 90 jours :
 
 - Rotation `transit/keys/jwt-signing-rs256` (auth-service)
@@ -187,9 +183,8 @@ Le CronJob K3s `vault-rotation` (cf.
 - Rotation `secret_id` AppRole des 5 services principaux Bloc A
 - Rollout restart des deployments concernés
 
-**Logs** : visible dans Loki via query `{ app: "vault-rotation" }`.
-**Alertes** : si rotation échoue, Alertmanager déclenche
-`VaultRotationFailed` (cf. doc 17 §4.6).
+**Logs** : visible dans Loki via query `{ app: "vault-rotation" }`. **Alertes** : si rotation
+échoue, Alertmanager déclenche `VaultRotationFailed` (cf. doc 17 §4.6).
 
 ---
 
@@ -209,8 +204,8 @@ vault kv get -version=3 kv/jwt/private
 vault kv metadata get kv/jwt/private
 ```
 
-Toutes les lectures sont **auditées** dans le Vault audit log
-(`/vault/logs/audit.log` → shippé vers Loki via Promtail).
+Toutes les lectures sont **auditées** dans le Vault audit log (`/vault/logs/audit.log` → shippé vers
+Loki via Promtail).
 
 ---
 
@@ -241,18 +236,15 @@ grep "<chemin>" /vault/logs/audit.log | jq .
 
 ## 8. Bonnes pratiques (à ne pas négliger)
 
-1. **Aucun secret en clair dans le code** ni dans les commits Git.
-   Le hook `gitleaks` (cf. doc 16 §4.5) bloque sur push.
+1. **Aucun secret en clair dans le code** ni dans les commits Git. Le hook `gitleaks` (cf. doc 16
+   §4.5) bloque sur push.
 2. **Préférer Transit à kv-v2** pour les clés cryptographiques.
 3. **Toujours utiliser AppRole** en prod (jamais le root token).
-4. **Auditer chaque secret lu** via le Vault audit log activé sur tous
-   les engines (`vault audit enable file file_path=/vault/logs/audit.log`).
-5. **Sealed Secrets pour Kubernetes** (cf. doc 20 §4.5) — jamais de
-   Secret YAML en clair dans Git.
-6. **Rotation au moins tous les 90 jours** pour toutes les clés
-   signantes + creds applicatifs.
-7. **MFA obligatoire** pour les humains accédant à la policy `admin`
-   (Keycloak OIDC + Duo / TOTP).
+4. **Auditer chaque secret lu** via le Vault audit log activé sur tous les engines
+   (`vault audit enable file file_path=/vault/logs/audit.log`).
+5. **Sealed Secrets pour Kubernetes** (cf. doc 20 §4.5) — jamais de Secret YAML en clair dans Git.
+6. **Rotation au moins tous les 90 jours** pour toutes les clés signantes + creds applicatifs.
+7. **MFA obligatoire** pour les humains accédant à la policy `admin` (Keycloak OIDC + Duo / TOTP).
 
 ---
 

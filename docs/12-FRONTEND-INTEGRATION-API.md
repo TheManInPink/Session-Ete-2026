@@ -1,17 +1,19 @@
 # 12 — Frontend Integration API (Next.js 16 + React 19 + shadcn/ui + Design System AES)
 
-> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) pour l'état
-> effectif. Avant toute modification de ce document :
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) pour l'état effectif. Avant
+> toute modification de ce document :
 >
 > - Lire [`CHANGELOG.md`](./CHANGELOG.md) (versions réelles, écarts résolus)
 > - Lire [`../MAINTENANCE.md`](../MAINTENANCE.md) §3 (mapping « quand modifier quoi »)
-> - Le design system canonique est [`design-system/design-system.md`](./design-system/design-system.md)
->   + [`design-system/tokens.json`](./design-system/tokens.json) (Style Dictionary)
+> - Le design system canonique est
+>   [`design-system/design-system.md`](./design-system/design-system.md)
+>   - [`design-system/tokens.json`](./design-system/tokens.json) (Style Dictionary)
 > - Les wireframes des 12 écrans sont dans [`design-system/screens.md`](./design-system/screens.md)
-> - Les prompts Figma Make sont dans [`design-system/figma-prompts.md`](./design-system/figma-prompts.md)
+> - Les prompts Figma Make sont dans
+>   [`design-system/figma-prompts.md`](./design-system/figma-prompts.md)
 >
-> Toute évolution structurelle (nouvelle app, nouveau client API, nouveau parcours)
-> doit être propagée dans `MAINTENANCE.md` §3.
+> Toute évolution structurelle (nouvelle app, nouveau client API, nouveau parcours) doit être
+> propagée dans `MAINTENANCE.md` §3.
 
 > **Projet** : NINA-AES Platform **Document** : 12/26 **Apps** : `apps/citizen` (port 4001) ·
 > `apps/admin` (port 4002) · `apps/governance` (port 4003) **Stack** : Next.js 16.1 · React 19.2 ·
@@ -61,17 +63,17 @@ décideur gouvernemental peut consulter les KPI consolidés.
 
 ### Ce que tu vas apprendre
 
-| Compétence                            | Niveau        | Application au projet                                 |
-| ------------------------------------- | ------------- | ----------------------------------------------------- |
-| Next.js 16 App Router + Server Actions | Avancé       | RSC par défaut, server actions pour mutations         |
-| TanStack Query 5.90 (+ prefetch SSR)  | Avancé        | Cache côté client, invalidation granulaire            |
-| shadcn/ui composant-by-composant      | Avancé        | Copie de code, theming CSS-variables, pas de runtime  |
-| Tailwind CSS 4 (Oxide engine)         | Avancé        | Classe utilitaires, design tokens AES, dark mode      |
-| Client HTTP typé (fetch + Zod parse)  | Expert        | Type safety bout en bout backend→frontend             |
-| Refresh token silencieux              | Expert        | Détection 401, refresh transparent, queue de requêtes |
-| next-intl 5 multi-langues             | Avancé        | 8 langues nationales, routage `/fr/`, fallback        |
-| A11y (ARIA, focus trap, lecteurs d'écran) | Avancé    | WCAG 2.2 AA, composants Radix sous shadcn             |
-| Tests E2E Playwright                  | Avancé        | Parcours citoyen complet + admin IA                   |
+| Compétence                                | Niveau | Application au projet                                 |
+| ----------------------------------------- | ------ | ----------------------------------------------------- |
+| Next.js 16 App Router + Server Actions    | Avancé | RSC par défaut, server actions pour mutations         |
+| TanStack Query 5.90 (+ prefetch SSR)      | Avancé | Cache côté client, invalidation granulaire            |
+| shadcn/ui composant-by-composant          | Avancé | Copie de code, theming CSS-variables, pas de runtime  |
+| Tailwind CSS 4 (Oxide engine)             | Avancé | Classe utilitaires, design tokens AES, dark mode      |
+| Client HTTP typé (fetch + Zod parse)      | Expert | Type safety bout en bout backend→frontend             |
+| Refresh token silencieux                  | Expert | Détection 401, refresh transparent, queue de requêtes |
+| next-intl 5 multi-langues                 | Avancé | 8 langues nationales, routage `/fr/`, fallback        |
+| A11y (ARIA, focus trap, lecteurs d'écran) | Avancé | WCAG 2.2 AA, composants Radix sous shadcn             |
+| Tests E2E Playwright                      | Avancé | Parcours citoyen complet + admin IA                   |
 
 ### Livrable à la fin de ce document
 
@@ -95,11 +97,11 @@ décideur gouvernemental peut consulter les KPI consolidés.
 Le cahier des charges distingue **trois familles d'utilisateurs** aux besoins radicalement
 différents :
 
-| App          | Persona                                     | Device cible          | Bande passante | Niveau technique | Volumétrie  |
-| ------------ | ------------------------------------------- | --------------------- | -------------- | ---------------- | ----------- |
-| `citizen`    | Citoyen malien, diaspora AES                | Mobile 3G prioritaire | 100–500 kbps   | Bas              | ~500k users |
-| `admin`      | Agent CTDEC, superviseur, inspecteur        | Desktop/laptop 4G/WiFi| 5–50 Mbps      | Intermédiaire    | ~2 000 users|
-| `governance` | Directeur, ministre, gouverneur régional    | Desktop 4G/Fibre      | 10–100 Mbps    | Haut             | ~150 users  |
+| App          | Persona                                  | Device cible           | Bande passante | Niveau technique | Volumétrie   |
+| ------------ | ---------------------------------------- | ---------------------- | -------------- | ---------------- | ------------ |
+| `citizen`    | Citoyen malien, diaspora AES             | Mobile 3G prioritaire  | 100–500 kbps   | Bas              | ~500k users  |
+| `admin`      | Agent CTDEC, superviseur, inspecteur     | Desktop/laptop 4G/WiFi | 5–50 Mbps      | Intermédiaire    | ~2 000 users |
+| `governance` | Directeur, ministre, gouverneur régional | Desktop 4G/Fibre       | 10–100 Mbps    | Haut             | ~150 users   |
 
 Construire une **seule SPA** qui couvre ces 3 cas (rôles dynamiques, menus conditionnels) mène
 systématiquement à :
@@ -117,8 +119,8 @@ Chaque app est un **projet Next.js 16 autonome** dans le monorepo Turborepo. Ell
 - **Le client API** (`@nina-aes/api-client`) — fetch wrappers typés,
 - **Les types métier** (`@nina-aes/shared-types`) — Citizen, Correction, Document, etc.,
 - **Les fichiers i18n** (`@nina-aes/i18n`) — 8 langues,
-- **La config Tailwind/ESLint/TSConfig** (via `@nina-aes/tailwind-config`, `@nina-aes/eslint-config`,
-  `@nina-aes/typescript-config`).
+- **La config Tailwind/ESLint/TSConfig** (via `@nina-aes/tailwind-config`,
+  `@nina-aes/eslint-config`, `@nina-aes/typescript-config`).
 
 Mais elles **ne partagent ni bundle ni session ni domaine** :
 
@@ -131,13 +133,13 @@ avec ses propres scopes et rôles minimaux (principe du moindre privilège, cf. 
 
 ### 2.3 Pourquoi Next.js 16 plutôt que Remix / SvelteKit / Nuxt 4 ?
 
-| Framework    | Avantages                                           | Inconvénients (pour NINA-AES)                                     |
-| ------------ | --------------------------------------------------- | ----------------------------------------------------------------- |
-| **Next.js 16** ✅ | App Router stable, RSC natifs, SSR streaming, Turbopack prod ready | Verbosité sur server actions — acceptable                   |
-| Remix (v3)   | Excellent sur la séparation loader/action           | Ecosystème Admin/UI plus mince que shadcn/Tailwind v4             |
-| SvelteKit 3  | Bundle minuscule (~30 KB)                           | Écosystème TS plus pauvre, TanStack Query pas officiel            |
-| Nuxt 4       | Vue écosystème, auto-imports                        | Vue ≠ stack dominante équipe solo qui maîtrise React              |
-| Astro 5      | MPA hybride, islands                                | Inadapté aux apps très interactives (dashboard IA, formulaires)   |
+| Framework         | Avantages                                                          | Inconvénients (pour NINA-AES)                                   |
+| ----------------- | ------------------------------------------------------------------ | --------------------------------------------------------------- |
+| **Next.js 16** ✅ | App Router stable, RSC natifs, SSR streaming, Turbopack prod ready | Verbosité sur server actions — acceptable                       |
+| Remix (v3)        | Excellent sur la séparation loader/action                          | Ecosystème Admin/UI plus mince que shadcn/Tailwind v4           |
+| SvelteKit 3       | Bundle minuscule (~30 KB)                                          | Écosystème TS plus pauvre, TanStack Query pas officiel          |
+| Nuxt 4            | Vue écosystème, auto-imports                                       | Vue ≠ stack dominante équipe solo qui maîtrise React            |
+| Astro 5           | MPA hybride, islands                                               | Inadapté aux apps très interactives (dashboard IA, formulaires) |
 
 Next.js 16 apporte en avril 2026 :
 
@@ -154,61 +156,61 @@ Next.js 16 apporte en avril 2026 :
 
 ### 3.1 Dépendances core (partagées entre les 3 apps)
 
-| Package              | Version   | Rôle                                                |
-| -------------------- | --------- | --------------------------------------------------- |
-| `next`               | `16.1.0`  | Framework React avec App Router                     |
-| `react`              | `19.2.0`  | Lib UI, hooks `use()`, `useActionState`             |
-| `react-dom`          | `19.2.0`  | Rendu DOM                                           |
-| `typescript`         | `5.9.2`   | Typage strict `"strict": true`                      |
-| `tailwindcss`        | `4.2.1`   | CSS utility + Oxide engine (Rust)                   |
-| `@tailwindcss/postcss`| `4.2.1`  | Plugin PostCSS v4                                   |
-| `lightningcss`       | `1.30.0`  | Minification CSS native                             |
-| `@tanstack/react-query` | `5.90.1` | Cache client + mutations                         |
-| `@tanstack/react-query-devtools` | `5.90.1` | Devtools dev-only                         |
-| `zustand`            | `5.1.0`   | State management global léger                       |
-| `zod`                | `4.3.0`   | Validation runtime + inférence types                |
-| `react-hook-form`    | `8.0.2`   | Formulaires contrôlés                               |
-| `@hookform/resolvers`| `4.1.0`   | Résolveur Zod pour RHF                              |
-| `next-intl`          | `5.2.0`   | i18n routing + messages + pluralization             |
-| `lucide-react`       | `0.460.0` | Icônes                                              |
-| `class-variance-authority` | `0.9.0` | Variants CSS pour composants shadcn            |
-| `clsx`               | `2.1.2`   | Concaténation conditionnelle de classes             |
-| `tailwind-merge`     | `2.6.0`   | Merge sans conflits Tailwind                        |
-| `sonner`             | `1.7.0`   | Toasts (remplace react-hot-toast)                   |
-| `date-fns`           | `4.1.0`   | Formatage dates + locales FR/BM/etc.                |
-| `@radix-ui/react-dialog` | `1.1.5` | Primitive dialog (sous shadcn)                   |
-| `@radix-ui/react-dropdown-menu` | `2.1.5` | Primitive menu                            |
-| `@radix-ui/react-toast` | `1.2.5` | Primitive toast                                    |
-| `@radix-ui/react-select` | `2.2.0` | Primitive select accessible                       |
+| Package                          | Version   | Rôle                                    |
+| -------------------------------- | --------- | --------------------------------------- |
+| `next`                           | `16.1.0`  | Framework React avec App Router         |
+| `react`                          | `19.2.0`  | Lib UI, hooks `use()`, `useActionState` |
+| `react-dom`                      | `19.2.0`  | Rendu DOM                               |
+| `typescript`                     | `5.9.2`   | Typage strict `"strict": true`          |
+| `tailwindcss`                    | `4.2.1`   | CSS utility + Oxide engine (Rust)       |
+| `@tailwindcss/postcss`           | `4.2.1`   | Plugin PostCSS v4                       |
+| `lightningcss`                   | `1.30.0`  | Minification CSS native                 |
+| `@tanstack/react-query`          | `5.90.1`  | Cache client + mutations                |
+| `@tanstack/react-query-devtools` | `5.90.1`  | Devtools dev-only                       |
+| `zustand`                        | `5.1.0`   | State management global léger           |
+| `zod`                            | `4.3.0`   | Validation runtime + inférence types    |
+| `react-hook-form`                | `8.0.2`   | Formulaires contrôlés                   |
+| `@hookform/resolvers`            | `4.1.0`   | Résolveur Zod pour RHF                  |
+| `next-intl`                      | `5.2.0`   | i18n routing + messages + pluralization |
+| `lucide-react`                   | `0.460.0` | Icônes                                  |
+| `class-variance-authority`       | `0.9.0`   | Variants CSS pour composants shadcn     |
+| `clsx`                           | `2.1.2`   | Concaténation conditionnelle de classes |
+| `tailwind-merge`                 | `2.6.0`   | Merge sans conflits Tailwind            |
+| `sonner`                         | `1.7.0`   | Toasts (remplace react-hot-toast)       |
+| `date-fns`                       | `4.1.0`   | Formatage dates + locales FR/BM/etc.    |
+| `@radix-ui/react-dialog`         | `1.1.5`   | Primitive dialog (sous shadcn)          |
+| `@radix-ui/react-dropdown-menu`  | `2.1.5`   | Primitive menu                          |
+| `@radix-ui/react-toast`          | `1.2.5`   | Primitive toast                         |
+| `@radix-ui/react-select`         | `2.2.0`   | Primitive select accessible             |
 
 ### 3.2 Dépendances spécifiques par app
 
-| App          | Dépendances supplémentaires                                                     |
-| ------------ | ------------------------------------------------------------------------------- |
-| `citizen`    | `react-qr-code` (affichage QR fiche), `next-pwa` (offline basique)              |
-| `admin`      | `@tanstack/react-table` (tableaux avancés), `recharts` 3.0 (graphiques IA)      |
-| `governance` | `recharts` 3.0, `@visx/visx` (dashboards exécutifs), `pdf-lib-client` (export)  |
+| App          | Dépendances supplémentaires                                                    |
+| ------------ | ------------------------------------------------------------------------------ |
+| `citizen`    | `react-qr-code` (affichage QR fiche), `next-pwa` (offline basique)             |
+| `admin`      | `@tanstack/react-table` (tableaux avancés), `recharts` 3.0 (graphiques IA)     |
+| `governance` | `recharts` 3.0, `@visx/visx` (dashboards exécutifs), `pdf-lib-client` (export) |
 
 ### 3.3 Dépendances dev (mutualisées via `@nina-aes/eslint-config` et similaires)
 
-| Package                       | Version   | Rôle                                     |
-| ----------------------------- | --------- | ---------------------------------------- |
-| `vitest`                      | `2.2.0`   | Tests unitaires rapides                  |
-| `@testing-library/react`      | `16.2.0`  | Tests composants React                   |
-| `@testing-library/jest-dom`   | `6.6.0`   | Matchers DOM                             |
-| `@playwright/test`            | `1.52.0`  | Tests E2E                                |
-| `msw`                         | `2.7.0`   | Mock API côté tests                      |
-| `@axe-core/playwright`        | `4.10.0`  | Audit a11y automatisé                    |
-| `lighthouse-ci`               | `0.15.0`  | Perf budget en CI                        |
+| Package                     | Version  | Rôle                    |
+| --------------------------- | -------- | ----------------------- |
+| `vitest`                    | `2.2.0`  | Tests unitaires rapides |
+| `@testing-library/react`    | `16.2.0` | Tests composants React  |
+| `@testing-library/jest-dom` | `6.6.0`  | Matchers DOM            |
+| `@playwright/test`          | `1.52.0` | Tests E2E               |
+| `msw`                       | `2.7.0`  | Mock API côté tests     |
+| `@axe-core/playwright`      | `4.10.0` | Audit a11y automatisé   |
+| `lighthouse-ci`             | `0.15.0` | Perf budget en CI       |
 
 ### 3.4 Pourquoi TanStack Query + Zustand plutôt que Redux Toolkit ?
 
-- **Redux Toolkit + RTK Query** impose un store global obligatoire, plus de boilerplate
-  (slices, thunks) et ne maîtrise pas la cache HTTP finement (pas de stale-while-revalidate natif).
+- **Redux Toolkit + RTK Query** impose un store global obligatoire, plus de boilerplate (slices,
+  thunks) et ne maîtrise pas la cache HTTP finement (pas de stale-while-revalidate natif).
 - **TanStack Query** est le **standard 2026** pour la data fetching : cache par clé, retry,
   invalidation granulaire, devtools, SSR prefetch, optimistic updates natifs.
-- **Zustand** couvre les rares besoins d'état global non-serveur (langue UI, thème, toast queue).
-  5 KB gzip, zéro boilerplate, hooks natifs.
+- **Zustand** couvre les rares besoins d'état global non-serveur (langue UI, thème, toast queue). 5
+  KB gzip, zéro boilerplate, hooks natifs.
 
 Règle pragmatique : **data serveur → TanStack Query**, **UI state local → `useState`**, **UI state
 global → Zustand**.
@@ -268,10 +270,12 @@ global → Zustand**.
    (caméra), les tableaux TanStack, et les graphiques Recharts sont côté client.
 4. **Partial Prerendering (PPR)** — pages gouvernance : la coque est statique (rendue au build), les
    cartes KPI streamées dynamiquement. Première peinture en <200 ms même sur 3G.
-5. **Session côté serveur** — le JWT est stocké en cookie httpOnly + Secure + SameSite=Lax, **jamais**
-   en `localStorage`. Refresh token en cookie httpOnly avec path `/api/auth/refresh` uniquement.
-6. **CSP stricte** — `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data:
-   blob:; connect-src 'self' https://api.nina-aes.ml wss://api.nina-aes.ml`. Aucun `unsafe-inline`.
+5. **Session côté serveur** — le JWT est stocké en cookie httpOnly + Secure + SameSite=Lax,
+   **jamais** en `localStorage`. Refresh token en cookie httpOnly avec path `/api/auth/refresh`
+   uniquement.
+6. **CSP stricte** —
+   `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data: blob:; connect-src 'self' https://api.nina-aes.ml wss://api.nina-aes.ml`.
+   Aucun `unsafe-inline`.
 
 ### 4.3 Flux type — Affichage fiche citoyen (RSC + streaming)
 
@@ -329,77 +333,78 @@ différentes configurations. On extrait une palette commune sans prendre parti.
 @layer base {
   :root {
     /* AES principal (vert sahélien) */
-    --aes-primary-50:  oklch(0.97 0.02 145);
+    --aes-primary-50: oklch(0.97 0.02 145);
     --aes-primary-100: oklch(0.93 0.05 145);
-    --aes-primary-200: oklch(0.85 0.10 145);
+    --aes-primary-200: oklch(0.85 0.1 145);
     --aes-primary-300: oklch(0.75 0.15 145);
     --aes-primary-400: oklch(0.65 0.17 145);
-    --aes-primary-500: oklch(0.55 0.18 145);  /* couleur signature */
+    --aes-primary-500: oklch(0.55 0.18 145); /* couleur signature */
     --aes-primary-600: oklch(0.48 0.18 145);
-    --aes-primary-700: oklch(0.40 0.16 145);
+    --aes-primary-700: oklch(0.4 0.16 145);
     --aes-primary-800: oklch(0.32 0.13 145);
     --aes-primary-900: oklch(0.22 0.09 145);
     --aes-primary-950: oklch(0.14 0.06 145);
 
     /* AES accent (or/jaune) */
-    --aes-accent-500: oklch(0.82 0.17 85);  /* lumineux mais non blanchissant */
+    --aes-accent-500: oklch(0.82 0.17 85); /* lumineux mais non blanchissant */
 
     /* AES critique (rouge signalement) */
     --aes-danger-500: oklch(0.55 0.22 25);
 
     /* Neutres */
-    --aes-neutral-0:   oklch(1 0 0);
-    --aes-neutral-50:  oklch(0.98 0 0);
+    --aes-neutral-0: oklch(1 0 0);
+    --aes-neutral-50: oklch(0.98 0 0);
     --aes-neutral-100: oklch(0.96 0 0);
     --aes-neutral-200: oklch(0.92 0 0);
     --aes-neutral-300: oklch(0.85 0 0);
-    --aes-neutral-400: oklch(0.70 0 0);
+    --aes-neutral-400: oklch(0.7 0 0);
     --aes-neutral-500: oklch(0.55 0 0);
     --aes-neutral-600: oklch(0.42 0 0);
-    --aes-neutral-700: oklch(0.30 0 0);
-    --aes-neutral-800: oklch(0.20 0 0);
+    --aes-neutral-700: oklch(0.3 0 0);
+    --aes-neutral-800: oklch(0.2 0 0);
     --aes-neutral-900: oklch(0.12 0 0);
     --aes-neutral-950: oklch(0.07 0 0);
 
     /* Sémantique */
-    --color-background:       var(--aes-neutral-50);
-    --color-foreground:       var(--aes-neutral-900);
-    --color-muted:            var(--aes-neutral-100);
+    --color-background: var(--aes-neutral-50);
+    --color-foreground: var(--aes-neutral-900);
+    --color-muted: var(--aes-neutral-100);
     --color-muted-foreground: var(--aes-neutral-600);
-    --color-border:           var(--aes-neutral-200);
-    --color-ring:             var(--aes-primary-500);
-    --color-primary:          var(--aes-primary-600);
+    --color-border: var(--aes-neutral-200);
+    --color-ring: var(--aes-primary-500);
+    --color-primary: var(--aes-primary-600);
     --color-primary-foreground: var(--aes-neutral-0);
-    --color-accent:           var(--aes-accent-500);
-    --color-destructive:      var(--aes-danger-500);
+    --color-accent: var(--aes-accent-500);
+    --color-destructive: var(--aes-danger-500);
     --color-destructive-foreground: var(--aes-neutral-0);
   }
 
   .dark {
-    --color-background:       var(--aes-neutral-950);
-    --color-foreground:       var(--aes-neutral-50);
-    --color-muted:            var(--aes-neutral-900);
+    --color-background: var(--aes-neutral-950);
+    --color-foreground: var(--aes-neutral-50);
+    --color-muted: var(--aes-neutral-900);
     --color-muted-foreground: var(--aes-neutral-400);
-    --color-border:           var(--aes-neutral-800);
-    --color-ring:             var(--aes-primary-400);
-    --color-primary:          var(--aes-primary-400);
+    --color-border: var(--aes-neutral-800);
+    --color-ring: var(--aes-primary-400);
+    --color-primary: var(--aes-primary-400);
     --color-primary-foreground: var(--aes-neutral-950);
-    --color-accent:           var(--aes-accent-500);
-    --color-destructive:      var(--aes-danger-500);
+    --color-accent: var(--aes-accent-500);
+    --color-destructive: var(--aes-danger-500);
   }
 }
 ```
 
 ### 5.3 Typographie
 
-| Usage              | Police             | Poids  | Taille          | Interligne |
-| ------------------ | ------------------ | ------ | --------------- | ---------- |
-| Titre principal    | Inter var 4.0      | 700    | `text-3xl` (30px) | `1.2`    |
-| Sous-titre         | Inter var 4.0      | 600    | `text-xl` (20px)  | `1.3`    |
-| Corps              | Inter var 4.0      | 400    | `text-base` (16px) | `1.6`   |
-| Mono (NINA, hash)  | JetBrains Mono     | 400    | `text-sm` (14px)  | `1.5`    |
+| Usage             | Police         | Poids | Taille             | Interligne |
+| ----------------- | -------------- | ----- | ------------------ | ---------- |
+| Titre principal   | Inter var 4.0  | 700   | `text-3xl` (30px)  | `1.2`      |
+| Sous-titre        | Inter var 4.0  | 600   | `text-xl` (20px)   | `1.3`      |
+| Corps             | Inter var 4.0  | 400   | `text-base` (16px) | `1.6`      |
+| Mono (NINA, hash) | JetBrains Mono | 400   | `text-sm` (14px)   | `1.5`      |
 
 `Inter` est choisi pour :
+
 - **Support Unicode exhaustif** (bambara et soninké en écriture latine étendue, diacritiques
   fulfulde),
 - **Variable font** (1 seul fichier pour tous les poids, ~150 KB vs 600 KB pour 7 poids statiques),
@@ -425,34 +430,34 @@ Le choix shadcn/ui (vs Material UI, Ant Design, Chakra) repose sur :
 - **Thémable via CSS variables** — pas de ThemeProvider JS,
 - **Open source MIT**.
 
-Liste des composants à copier en priorité (via `pnpm dlx shadcn@canary add <component>` puis déplacer
-dans `packages/ui`) :
+Liste des composants à copier en priorité (via `pnpm dlx shadcn@canary add <component>` puis
+déplacer dans `packages/ui`) :
 
-| Composant     | Utilisation                                            |
-| ------------- | ------------------------------------------------------ |
-| `button`      | CTA partout                                            |
-| `input`       | Formulaires NINA, recherche                            |
-| `label`       | Accessibilité labels                                   |
-| `form`        | Intégration RHF + Zod                                  |
-| `dialog`      | Confirmation corrections, QR scanner modal             |
-| `dropdown-menu` | Menu user, sélecteur langue                          |
-| `select`      | Région / cercle / commune                              |
-| `toast`       | Retour d'actions (via `sonner` intégré)                |
-| `table`       | Tableau corrections admin (TanStack Table)             |
-| `badge`       | Statut correction (pending, approved, rejected)        |
-| `card`        | Fiche citoyen, KPI governance                          |
-| `tabs`        | Dashboard IA (métriques / SHAP / historique)           |
-| `sheet`       | Panneau latéral admin mobile                           |
-| `skeleton`    | États de chargement                                    |
-| `separator`   | Division visuelle                                      |
-| `tooltip`     | Explication SHAP feature, info NINA                    |
-| `popover`     | Calendrier (rendez-vous)                               |
-| `calendar`    | `react-day-picker` + thème AES                         |
-| `alert`       | Notices d'erreur / info                                |
-| `alert-dialog` | Confirmation destructive (rejet correction)           |
-| `progress`    | Upload PDF / génération IA                             |
-| `pagination`  | Liste corrections, audits                              |
-| `command`     | Palette recherche (Ctrl+K)                             |
+| Composant       | Utilisation                                     |
+| --------------- | ----------------------------------------------- |
+| `button`        | CTA partout                                     |
+| `input`         | Formulaires NINA, recherche                     |
+| `label`         | Accessibilité labels                            |
+| `form`          | Intégration RHF + Zod                           |
+| `dialog`        | Confirmation corrections, QR scanner modal      |
+| `dropdown-menu` | Menu user, sélecteur langue                     |
+| `select`        | Région / cercle / commune                       |
+| `toast`         | Retour d'actions (via `sonner` intégré)         |
+| `table`         | Tableau corrections admin (TanStack Table)      |
+| `badge`         | Statut correction (pending, approved, rejected) |
+| `card`          | Fiche citoyen, KPI governance                   |
+| `tabs`          | Dashboard IA (métriques / SHAP / historique)    |
+| `sheet`         | Panneau latéral admin mobile                    |
+| `skeleton`      | États de chargement                             |
+| `separator`     | Division visuelle                               |
+| `tooltip`       | Explication SHAP feature, info NINA             |
+| `popover`       | Calendrier (rendez-vous)                        |
+| `calendar`      | `react-day-picker` + thème AES                  |
+| `alert`         | Notices d'erreur / info                         |
+| `alert-dialog`  | Confirmation destructive (rejet correction)     |
+| `progress`      | Upload PDF / génération IA                      |
+| `pagination`    | Liste corrections, audits                       |
+| `command`       | Palette recherche (Ctrl+K)                      |
 
 ### 5.6 Exemple — composant `AesLogo`
 
@@ -461,21 +466,18 @@ neutre :
 
 ```tsx
 // packages/ui/src/components/brand/aes-logo.tsx
-import { cn } from "@nina-aes/ui/lib/utils";
+import { cn } from '@nina-aes/ui/lib/utils';
 
 interface AesLogoProps {
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
   className?: string;
 }
 
-export function AesLogo({ size = "md", showText = true, className }: AesLogoProps) {
+export function AesLogo({ size = 'md', showText = true, className }: AesLogoProps) {
   const dims = { sm: 24, md: 32, lg: 48 }[size];
   return (
-    <span
-      className={cn("inline-flex items-center gap-2", className)}
-      aria-label="NINA-AES"
-    >
+    <span className={cn('inline-flex items-center gap-2', className)} aria-label="NINA-AES">
       <svg
         width={dims}
         height={dims}
@@ -506,11 +508,12 @@ export function AesLogo({ size = "md", showText = true, className }: AesLogoProp
 
 - **Contraste** : validé par un script `scripts/check-contrast.ts` (exécuté en CI) qui parcourt
   `tokens.css` et calcule le contraste OKLCH de chaque paire fg/bg sémantique.
-- **Focus ring visible** : `:focus-visible { outline: 2px solid var(--color-ring); outline-offset:
-  2px; }` partout. Jamais de `outline: none` sans alternative visuelle.
+- **Focus ring visible** :
+  `:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }` partout. Jamais de
+  `outline: none` sans alternative visuelle.
 - **Taille minimale cible tactile** : 44 × 44 px (iOS HIG) pour les boutons citoyens.
-- **Mouvement réduit** : `@media (prefers-reduced-motion: reduce) { … }` désactive les
-  animations non essentielles.
+- **Mouvement réduit** : `@media (prefers-reduced-motion: reduce) { … }` désactive les animations
+  non essentielles.
 
 ---
 
@@ -680,37 +683,37 @@ nina-aes-platform/
 
 ```ts
 // packages/tailwind-config/preset.ts
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss';
 
 export default {
-  darkMode: "class",
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        background: "var(--color-background)",
-        foreground: "var(--color-foreground)",
+        background: 'var(--color-background)',
+        foreground: 'var(--color-foreground)',
         muted: {
-          DEFAULT: "var(--color-muted)",
-          foreground: "var(--color-muted-foreground)",
+          DEFAULT: 'var(--color-muted)',
+          foreground: 'var(--color-muted-foreground)',
         },
         primary: {
-          DEFAULT: "var(--color-primary)",
-          foreground: "var(--color-primary-foreground)",
+          DEFAULT: 'var(--color-primary)',
+          foreground: 'var(--color-primary-foreground)',
         },
-        accent: "var(--color-accent)",
-        border: "var(--color-border)",
-        ring: "var(--color-ring)",
+        accent: 'var(--color-accent)',
+        border: 'var(--color-border)',
+        ring: 'var(--color-ring)',
         destructive: {
-          DEFAULT: "var(--color-destructive)",
-          foreground: "var(--color-destructive-foreground)",
+          DEFAULT: 'var(--color-destructive)',
+          foreground: 'var(--color-destructive-foreground)',
         },
       },
       fontFamily: {
-        sans: ["Inter Variable", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono Variable", "ui-monospace", "monospace"],
+        sans: ['Inter Variable', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono Variable', 'ui-monospace', 'monospace'],
       },
       screens: {
-        xs: "380px",
+        xs: '380px',
       },
     },
   },
@@ -721,15 +724,15 @@ Chaque app importe :
 
 ```ts
 // apps/citizen/tailwind.config.ts
-import preset from "@nina-aes/tailwind-config/preset";
-import type { Config } from "tailwindcss";
+import preset from '@nina-aes/tailwind-config/preset';
+import type { Config } from 'tailwindcss';
 
 export default {
   presets: [preset],
   content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "../../packages/ui/src/**/*.{ts,tsx}",
+    './app/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    '../../packages/ui/src/**/*.{ts,tsx}',
   ],
 } satisfies Config;
 ```
@@ -751,10 +754,10 @@ export default {
 
 ```ts
 // packages/api-client/src/core/http-client.ts
-import { ApiError, ApiNetworkError, ApiValidationError } from "./errors";
-import { generateCorrelationId } from "./correlation-id";
-import { retryWithBackoff } from "./retry";
-import type { ZodType } from "zod";
+import { ApiError, ApiNetworkError, ApiValidationError } from './errors';
+import { generateCorrelationId } from './correlation-id';
+import { retryWithBackoff } from './retry';
+import type { ZodType } from 'zod';
 
 export interface HttpClientOptions {
   baseUrl: string;
@@ -766,7 +769,7 @@ export interface HttpClientOptions {
 }
 
 export interface RequestOptions<TBody = unknown> {
-  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
   query?: Record<string, string | number | boolean | undefined>;
   body?: TBody;
@@ -790,17 +793,17 @@ export class HttpClient {
 
     const performRequest = async (): Promise<Response> => {
       const headers: Record<string, string> = {
-        Accept: "application/json",
-        "X-Correlation-Id": correlationId,
-        "User-Agent": this.opts.userAgent ?? "nina-aes-client/1.0",
+        Accept: 'application/json',
+        'X-Correlation-Id': correlationId,
+        'User-Agent': this.opts.userAgent ?? 'nina-aes-client/1.0',
         ...options.headers,
       };
 
       if (options.body !== undefined) {
-        headers["Content-Type"] = "application/json";
+        headers['Content-Type'] = 'application/json';
       }
       if (options.idempotencyKey) {
-        headers["Idempotency-Key"] = options.idempotencyKey;
+        headers['Idempotency-Key'] = options.idempotencyKey;
       }
       if (!options.skipAuth && this.opts.getAccessToken) {
         const token = await this.opts.getAccessToken();
@@ -808,11 +811,11 @@ export class HttpClient {
       }
 
       return fetch(url, {
-        method: options.method ?? "GET",
+        method: options.method ?? 'GET',
         headers,
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
         signal: options.signal ?? controller.signal,
-        cache: "no-store",
+        cache: 'no-store',
       });
     };
 
@@ -832,8 +835,8 @@ export class HttpClient {
 
       return await this.parseResponse<TResult>(response, options, correlationId);
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        throw new ApiNetworkError("Request timeout", { correlationId, timeoutMs: timeout });
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new ApiNetworkError('Request timeout', { correlationId, timeoutMs: timeout });
       }
       if (err instanceof ApiError || err instanceof ApiValidationError) throw err;
       throw new ApiNetworkError((err as Error).message, { correlationId });
@@ -842,7 +845,7 @@ export class HttpClient {
     }
   }
 
-  private buildUrl(path: string, query?: RequestOptions["query"]): string {
+  private buildUrl(path: string, query?: RequestOptions['query']): string {
     const url = new URL(path, this.opts.baseUrl);
     if (query) {
       for (const [k, v] of Object.entries(query)) {
@@ -857,8 +860,8 @@ export class HttpClient {
     options: RequestOptions,
     correlationId: string,
   ): Promise<TResult> {
-    const contentType = response.headers.get("content-type") ?? "";
-    const isJson = contentType.includes("application/json");
+    const contentType = response.headers.get('content-type') ?? '';
+    const isJson = contentType.includes('application/json');
     const raw = isJson ? await response.json() : await response.text();
 
     if (!response.ok) {
@@ -889,18 +892,18 @@ export class HttpClient {
 
 ```ts
 // packages/api-client/src/identity/identity.schema.ts
-import { z } from "zod";
+import { z } from 'zod';
 
-export const NinaSchema = z.string().regex(/^\d{14}[A-Z]$/, "Format NINA invalide");
+export const NinaSchema = z.string().regex(/^\d{14}[A-Z]$/, 'Format NINA invalide');
 
 export const CitizenSchema = z.object({
   id: z.string().uuid(),
   nina: NinaSchema,
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
-  birthDate: z.string().date(),            // Zod 4 format date ISO
+  birthDate: z.string().date(), // Zod 4 format date ISO
   birthPlace: z.string().min(1).max(200),
-  sex: z.enum(["M", "F", "X"]),
+  sex: z.enum(['M', 'F', 'X']),
   fatherName: z.string().max(200).nullable(),
   motherName: z.string().max(200).nullable(),
   residence: z.object({
@@ -927,20 +930,20 @@ export type CitizenSearchResult = z.infer<typeof CitizenSearchResultSchema>;
 
 ```ts
 // packages/api-client/src/identity/identity.client.ts
-import type { HttpClient } from "../core/http-client";
+import type { HttpClient } from '../core/http-client';
 import {
   CitizenSchema,
   CitizenSearchResultSchema,
   type Citizen,
   type CitizenSearchResult,
-} from "./identity.schema";
+} from './identity.schema';
 
 export class IdentityClient {
   constructor(private readonly http: HttpClient) {}
 
   async getByNina(nina: string): Promise<Citizen> {
     return this.http.request<Citizen>({
-      method: "GET",
+      method: 'GET',
       path: `/api/v1/citizens/${encodeURIComponent(nina)}`,
       schema: CitizenSchema,
     });
@@ -953,8 +956,8 @@ export class IdentityClient {
     pageSize?: number;
   }): Promise<CitizenSearchResult> {
     return this.http.request<CitizenSearchResult>({
-      method: "GET",
-      path: "/api/v1/citizens/search",
+      method: 'GET',
+      path: '/api/v1/citizens/search',
       query: params,
       schema: CitizenSearchResultSchema,
     });
@@ -966,14 +969,14 @@ export class IdentityClient {
 
 ```ts
 // packages/api-client/src/index.ts
-import { HttpClient, type HttpClientOptions } from "./core/http-client";
-import { IdentityClient } from "./identity/identity.client";
-import { AuthClient } from "./auth/auth.client";
-import { DocumentClient } from "./document/document.client";
-import { CorrectionClient } from "./correction/correction.client";
-import { AppointmentClient } from "./appointment/appointment.client";
-import { AiClient } from "./ai/ai.client";
-import { AuditClient } from "./audit/audit.client";
+import { HttpClient, type HttpClientOptions } from './core/http-client';
+import { IdentityClient } from './identity/identity.client';
+import { AuthClient } from './auth/auth.client';
+import { DocumentClient } from './document/document.client';
+import { CorrectionClient } from './correction/correction.client';
+import { AppointmentClient } from './appointment/appointment.client';
+import { AiClient } from './ai/ai.client';
+import { AuditClient } from './audit/audit.client';
 
 export interface ApiClient {
   identity: IdentityClient;
@@ -998,29 +1001,29 @@ export function createApiClient(opts: HttpClientOptions): ApiClient {
   };
 }
 
-export * from "./identity/identity.schema";
-export * from "./correction/correction.schema";
-export * from "./document/document.schema";
-export * from "./appointment/appointment.schema";
-export * from "./ai/ai.schema";
-export * from "./audit/audit.schema";
-export * from "./core/errors";
+export * from './identity/identity.schema';
+export * from './correction/correction.schema';
+export * from './document/document.schema';
+export * from './appointment/appointment.schema';
+export * from './ai/ai.schema';
+export * from './audit/audit.schema';
+export * from './core/errors';
 ```
 
 ### 7.5 Utilisation côté serveur (RSC) et côté client
 
 ```ts
 // apps/citizen/lib/api.ts
-import { createApiClient } from "@nina-aes/api-client";
-import { cookies } from "next/headers";
+import { createApiClient } from '@nina-aes/api-client';
+import { cookies } from 'next/headers';
 
 export async function getServerApi() {
   const jar = await cookies();
-  const token = jar.get("access_token")?.value ?? null;
+  const token = jar.get('access_token')?.value ?? null;
   return createApiClient({
-    baseUrl: process.env.API_BASE_URL!,          // interne, ex: http://traefik:80
+    baseUrl: process.env.API_BASE_URL!, // interne, ex: http://traefik:80
     getAccessToken: () => token,
-    userAgent: "nina-citizen-ssr/1.0",
+    userAgent: 'nina-citizen-ssr/1.0',
     defaultTimeoutMs: 10_000,
     maxRetries: 1,
   });
@@ -1033,21 +1036,21 @@ export async function getServerApi() {
 
 ```ts
 // apps/citizen/lib/api-client.ts   ("use client")
-"use client";
-import { createApiClient } from "@nina-aes/api-client";
+'use client';
+import { createApiClient } from '@nina-aes/api-client';
 
 export const clientApi = createApiClient({
-  baseUrl: "/bff",                               // passe par les route handlers Next.js
-  getAccessToken: () => null,                    // les cookies httpOnly sont forwardés par le BFF
-  userAgent: "nina-citizen-spa/1.0",
+  baseUrl: '/bff', // passe par les route handlers Next.js
+  getAccessToken: () => null, // les cookies httpOnly sont forwardés par le BFF
+  userAgent: 'nina-citizen-spa/1.0',
   defaultTimeoutMs: 15_000,
   maxRetries: 2,
 });
 ```
 
-Le pattern **BFF (Backend for Frontend)** : les appels client passent par des route handlers
-Next.js (`app/api/bff/**`) qui injectent le cookie `access_token` côté serveur. Le token ne
-transite **jamais** dans le navigateur — conforme à la norme `cookie-to-header` sécurisée.
+Le pattern **BFF (Backend for Frontend)** : les appels client passent par des route handlers Next.js
+(`app/api/bff/**`) qui injectent le cookie `access_token` côté serveur. Le token ne transite
+**jamais** dans le navigateur — conforme à la norme `cookie-to-header` sécurisée.
 
 ---
 
@@ -1082,43 +1085,47 @@ transite **jamais** dans le navigateur — conforme à la norme `cookie-to-heade
 
 ```ts
 // apps/citizen/app/api/auth/callback/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { z } from "zod";
-import { verifyIdToken } from "@/lib/auth/verify-id-token";
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { z } from 'zod';
+import { verifyIdToken } from '@/lib/auth/verify-id-token';
 
 const TokenResponseSchema = z.object({
   access_token: z.string(),
   refresh_token: z.string(),
   id_token: z.string(),
-  token_type: z.literal("Bearer"),
+  token_type: z.literal('Bearer'),
   expires_in: z.number().int().positive(),
   refresh_expires_in: z.number().int().positive(),
 });
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
   if (!code || !state) {
-    return NextResponse.redirect(new URL("/login?error=missing_code", req.url));
+    return NextResponse.redirect(new URL('/login?error=missing_code', req.url));
   }
 
   const jar = await cookies();
-  const stored = jar.get("pkce")?.value;
-  if (!stored) return NextResponse.redirect(new URL("/login?error=no_session", req.url));
-  const { code_verifier, nonce, state: savedState } = JSON.parse(stored) as {
+  const stored = jar.get('pkce')?.value;
+  if (!stored) return NextResponse.redirect(new URL('/login?error=no_session', req.url));
+  const {
+    code_verifier,
+    nonce,
+    state: savedState,
+  } = JSON.parse(stored) as {
     code_verifier: string;
     nonce: string;
     state: string;
   };
   if (savedState !== state) {
-    return NextResponse.redirect(new URL("/login?error=state_mismatch", req.url));
+    return NextResponse.redirect(new URL('/login?error=state_mismatch', req.url));
   }
 
   const tokenUrl = `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
   const body = new URLSearchParams({
-    grant_type: "authorization_code",
+    grant_type: 'authorization_code',
     client_id: process.env.KEYCLOAK_CLIENT_ID!,
     code,
     redirect_uri: `${process.env.APP_PUBLIC_URL}/api/auth/callback`,
@@ -1126,34 +1133,34 @@ export async function GET(req: NextRequest) {
   });
 
   const tokenRes = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   });
   if (!tokenRes.ok) {
-    return NextResponse.redirect(new URL("/login?error=token_exchange", req.url));
+    return NextResponse.redirect(new URL('/login?error=token_exchange', req.url));
   }
   const parsed = TokenResponseSchema.parse(await tokenRes.json());
 
   // Vérifie ID token signature + nonce + aud
   await verifyIdToken(parsed.id_token, { expectedNonce: nonce });
 
-  const res = NextResponse.redirect(new URL("/fr/dashboard", req.url));
-  res.cookies.set("access_token", parsed.access_token, {
+  const res = NextResponse.redirect(new URL('/fr/dashboard', req.url));
+  res.cookies.set('access_token', parsed.access_token, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
-    path: "/",
+    sameSite: 'lax',
+    path: '/',
     maxAge: parsed.expires_in,
   });
-  res.cookies.set("refresh_token", parsed.refresh_token, {
+  res.cookies.set('refresh_token', parsed.refresh_token, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
-    path: "/api/auth/refresh",
+    sameSite: 'lax',
+    path: '/api/auth/refresh',
     maxAge: parsed.refresh_expires_in,
   });
-  res.cookies.delete("pkce");
+  res.cookies.delete('pkce');
   return res;
 }
 ```
@@ -1167,27 +1174,27 @@ Déclenché :
 
 ```ts
 // apps/citizen/app/api/auth/refresh/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(req: NextRequest) {
   const jar = await cookies();
-  const refresh = jar.get("refresh_token")?.value;
+  const refresh = jar.get('refresh_token')?.value;
   if (!refresh) return NextResponse.json({ ok: false }, { status: 401 });
 
   const res = await fetch(`${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: "refresh_token",
+      grant_type: 'refresh_token',
       client_id: process.env.KEYCLOAK_CLIENT_ID!,
       refresh_token: refresh,
     }),
   });
   if (!res.ok) {
     const out = NextResponse.json({ ok: false }, { status: 401 });
-    out.cookies.delete("access_token");
-    out.cookies.delete("refresh_token");
+    out.cookies.delete('access_token');
+    out.cookies.delete('refresh_token');
     return out;
   }
   const tokens = (await res.json()) as {
@@ -1198,18 +1205,18 @@ export async function POST(req: NextRequest) {
   };
 
   const out = NextResponse.json({ ok: true });
-  out.cookies.set("access_token", tokens.access_token, {
+  out.cookies.set('access_token', tokens.access_token, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
-    path: "/",
+    sameSite: 'lax',
+    path: '/',
     maxAge: tokens.expires_in,
   });
-  out.cookies.set("refresh_token", tokens.refresh_token, {
+  out.cookies.set('refresh_token', tokens.refresh_token, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
-    path: "/api/auth/refresh",
+    sameSite: 'lax',
+    path: '/api/auth/refresh',
     maxAge: tokens.refresh_expires_in,
   });
   return out;
@@ -1220,17 +1227,17 @@ export async function POST(req: NextRequest) {
 
 ```ts
 // apps/citizen/app/api/auth/logout/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(req: NextRequest) {
   const jar = await cookies();
-  const refresh = jar.get("refresh_token")?.value;
+  const refresh = jar.get('refresh_token')?.value;
   // Back-channel : invalide la session côté Keycloak
   if (refresh) {
     await fetch(`${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/logout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         client_id: process.env.KEYCLOAK_CLIENT_ID!,
         refresh_token: refresh,
@@ -1239,8 +1246,8 @@ export async function POST(req: NextRequest) {
   }
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.delete("access_token");
-  res.cookies.delete("refresh_token");
+  res.cookies.delete('access_token');
+  res.cookies.delete('refresh_token');
   // Front-channel : le client redirigera vers Keycloak /logout pour vider la session SSO
   return res;
 }
@@ -1250,14 +1257,14 @@ export async function POST(req: NextRequest) {
 
 ```ts
 // apps/citizen/middleware.ts
-import createIntlMiddleware from "next-intl/middleware";
-import { NextRequest, NextResponse } from "next/server";
-import { locales, defaultLocale } from "@nina-aes/i18n";
+import createIntlMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
+import { locales, defaultLocale } from '@nina-aes/i18n';
 
 const intl = createIntlMiddleware({
   locales: [...locales],
   defaultLocale,
-  localePrefix: "always",
+  localePrefix: 'always',
 });
 
 const PUBLIC_PATHS = [
@@ -1270,11 +1277,11 @@ const PUBLIC_PATHS = [
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isPublic = PUBLIC_PATHS.some((re) => re.test(pathname));
-  const token = req.cookies.get("access_token")?.value;
+  const token = req.cookies.get('access_token')?.value;
 
   if (!isPublic && !token) {
-    const url = new URL("/fr/login", req.url);
-    url.searchParams.set("next", pathname);
+    const url = new URL('/fr/login', req.url);
+    url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }
 
@@ -1282,7 +1289,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico|robots.txt|.*\\..*).*)"],
+  matcher: ['/((?!_next|favicon.ico|robots.txt|.*\\..*).*)'],
 };
 ```
 
@@ -1321,7 +1328,7 @@ export async function retryWithBackoff(
       await delay(base * 2 ** attempt + Math.random() * 100);
     }
   }
-  throw lastErr ?? new Error("retry exhausted");
+  throw lastErr ?? new Error('retry exhausted');
 }
 
 function delay(ms: number) {
@@ -1337,7 +1344,7 @@ export function generateCorrelationId(): string {
   // préfixe "c-" + ULID-like horodaté + 6 bytes aléatoires
   const ts = Date.now().toString(36);
   const rand = crypto.getRandomValues(new Uint8Array(6));
-  const hex = Array.from(rand, (b) => b.toString(16).padStart(2, "0")).join("");
+  const hex = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
   return `c-${ts}-${hex}`;
 }
 ```
@@ -1370,11 +1377,12 @@ export class ApiError extends Error {
     payload: ApiErrorBody | string;
     correlationId: string;
   }) {
-    const asObj = typeof params.payload === "object" && params.payload !== null
-      ? (params.payload as ApiErrorBody)
-      : null;
+    const asObj =
+      typeof params.payload === 'object' && params.payload !== null
+        ? (params.payload as ApiErrorBody)
+        : null;
     super(asObj?.message ?? params.statusText);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.status = params.status;
     this.statusText = params.statusText;
     this.payload = params.payload;
@@ -1395,7 +1403,7 @@ export class ApiNetworkError extends Error {
   readonly timeoutMs?: number;
   constructor(message: string, meta: { correlationId?: string; timeoutMs?: number } = {}) {
     super(message);
-    this.name = "ApiNetworkError";
+    this.name = 'ApiNetworkError';
     this.correlationId = meta.correlationId;
     this.timeoutMs = meta.timeoutMs;
   }
@@ -1407,15 +1415,15 @@ export class ApiValidationError extends Error {
   readonly correlationId: string;
   constructor(params: {
     endpoint: string;
-    issues: ApiValidationError["issues"];
+    issues: ApiValidationError['issues'];
     correlationId: string;
   }) {
     super(
       `Réponse API invalide sur ${params.endpoint} (${params.issues.length} issue${
-        params.issues.length > 1 ? "s" : ""
+        params.issues.length > 1 ? 's' : ''
       })`,
     );
-    this.name = "ApiValidationError";
+    this.name = 'ApiValidationError';
     this.endpoint = params.endpoint;
     this.issues = params.issues;
     this.correlationId = params.correlationId;
@@ -1427,12 +1435,12 @@ export class ApiValidationError extends Error {
 
 ```tsx
 // apps/citizen/app/error.tsx
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { ApiError, ApiNetworkError, ApiValidationError } from "@nina-aes/api-client";
-import { useTranslations } from "next-intl";
+import { useEffect } from 'react';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { ApiError, ApiNetworkError, ApiValidationError } from '@nina-aes/api-client';
+import { useTranslations } from 'next-intl';
 
 export default function GlobalError({
   error,
@@ -1441,12 +1449,12 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const t = useTranslations("errors");
+  const t = useTranslations('errors');
 
   useEffect(() => {
     // On log côté client, un Server Action côté serveur enverra à Loki
     if (error instanceof ApiValidationError) {
-      console.warn("API schema drift", {
+      console.warn('API schema drift', {
         correlationId: error.correlationId,
         endpoint: error.endpoint,
         issues: error.issues,
@@ -1458,20 +1466,22 @@ export default function GlobalError({
 
   const title =
     error instanceof ApiNetworkError
-      ? t("network.title")
+      ? t('network.title')
       : error instanceof ApiError && error.isUserError
-      ? t("user.title")
-      : t("server.title");
+        ? t('user.title')
+        : t('server.title');
 
   const corrId =
-    error instanceof ApiError || error instanceof ApiNetworkError || error instanceof ApiValidationError
+    error instanceof ApiError ||
+    error instanceof ApiNetworkError ||
+    error instanceof ApiValidationError
       ? error.correlationId
       : null;
 
   return (
     <main className="mx-auto max-w-lg px-4 py-16 text-center">
       <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="mt-3 text-muted-foreground">{t("genericHelp")}</p>
+      <p className="mt-3 text-muted-foreground">{t('genericHelp')}</p>
       {corrId && (
         <p className="mt-4 font-mono text-xs text-muted-foreground">
           ID support : <span className="select-all">{corrId}</span>
@@ -1479,7 +1489,7 @@ export default function GlobalError({
       )}
       <div className="mt-6 flex justify-center gap-3">
         <Button onClick={reset} variant="default">
-          {t("retry")}
+          {t('retry')}
         </Button>
       </div>
     </main>
@@ -1495,11 +1505,11 @@ export default function GlobalError({
 
 ```tsx
 // packages/ui/src/providers/query-provider.tsx
-"use client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState, type ReactNode } from "react";
-import { ApiError } from "@nina-aes/api-client";
+'use client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { useState, type ReactNode } from 'react';
+import { ApiError } from '@nina-aes/api-client';
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -1507,8 +1517,8 @@ export function QueryProvider({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000,          // 30 s
-            gcTime: 5 * 60_000,         // 5 min
+            staleTime: 30_000, // 30 s
+            gcTime: 5 * 60_000, // 5 min
             retry: (failureCount, error) => {
               if (error instanceof ApiError && error.isUserError) return false;
               return failureCount < 2;
@@ -1524,7 +1534,7 @@ export function QueryProvider({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       {children}
-      {process.env.NODE_ENV === "development" && <ReactQueryDevtools initialIsOpen={false} />}
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }
@@ -1534,14 +1544,14 @@ export function QueryProvider({ children }: { children: ReactNode }) {
 
 ```ts
 // apps/citizen/hooks/use-citizen.ts
-"use client";
-import { useQuery } from "@tanstack/react-query";
-import { clientApi } from "@/lib/api-client";
-import type { Citizen } from "@nina-aes/api-client";
+'use client';
+import { useQuery } from '@tanstack/react-query';
+import { clientApi } from '@/lib/api-client';
+import type { Citizen } from '@nina-aes/api-client';
 
 export function useCitizen(nina: string | null) {
   return useQuery<Citizen>({
-    queryKey: ["citizen", nina],
+    queryKey: ['citizen', nina],
     queryFn: () => clientApi.identity.getByNina(nina!),
     enabled: !!nina,
     staleTime: 60_000,
@@ -1553,20 +1563,20 @@ export function useCitizen(nina: string | null) {
 
 ```ts
 // apps/citizen/hooks/use-correction.ts
-"use client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { clientApi } from "@/lib/api-client";
-import type { CorrectionRequestDto } from "@nina-aes/api-client";
-import { toast } from "sonner";
+'use client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { clientApi } from '@/lib/api-client';
+import type { CorrectionRequestDto } from '@nina-aes/api-client';
+import { toast } from 'sonner';
 
 export function useSubmitCorrection() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (dto: CorrectionRequestDto) => clientApi.correction.submit(dto),
     onSuccess: (created) => {
-      toast.success("Demande envoyée");
-      qc.invalidateQueries({ queryKey: ["citizen", created.nina] });
-      qc.invalidateQueries({ queryKey: ["corrections", "mine"] });
+      toast.success('Demande envoyée');
+      qc.invalidateQueries({ queryKey: ['citizen', created.nina] });
+      qc.invalidateQueries({ queryKey: ['corrections', 'mine'] });
     },
     onError: (err) => {
       toast.error(err.message);
@@ -1579,15 +1589,15 @@ export function useSubmitCorrection() {
 
 ```ts
 // apps/citizen/lib/store/ui-store.ts
-"use client";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+'use client';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface UiState {
-  locale: "fr" | "bm" | "snk" | "ff" | "tmq" | "hau" | "mos" | "dje";
+  locale: 'fr' | 'bm' | 'snk' | 'ff' | 'tmq' | 'hau' | 'mos' | 'dje';
   highContrast: boolean;
   reducedMotion: boolean;
-  setLocale: (l: UiState["locale"]) => void;
+  setLocale: (l: UiState['locale']) => void;
   toggleHighContrast: () => void;
   setReducedMotion: (v: boolean) => void;
 }
@@ -1595,14 +1605,14 @@ interface UiState {
 export const useUiStore = create<UiState>()(
   persist(
     (set) => ({
-      locale: "fr",
+      locale: 'fr',
       highContrast: false,
       reducedMotion: false,
       setLocale: (locale) => set({ locale }),
       toggleHighContrast: () => set((s) => ({ highContrast: !s.highContrast })),
       setReducedMotion: (reducedMotion) => set({ reducedMotion }),
     }),
-    { name: "nina-ui-state" },
+    { name: 'nina-ui-state' },
   ),
 );
 ```
@@ -1611,16 +1621,16 @@ export const useUiStore = create<UiState>()(
 
 ```tsx
 // apps/citizen/app/[locale]/(authenticated)/nina/[nina]/page.tsx
-import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
-import { getServerApi } from "@/lib/api";
-import { CitizenView } from "@/components/citizen-view";
+import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query';
+import { getServerApi } from '@/lib/api';
+import { CitizenView } from '@/components/citizen-view';
 
 export default async function CitizenPage({ params }: { params: Promise<{ nina: string }> }) {
   const { nina } = await params;
   const api = await getServerApi();
   const qc = new QueryClient();
   await qc.prefetchQuery({
-    queryKey: ["citizen", nina],
+    queryKey: ['citizen', nina],
     queryFn: () => api.identity.getByNina(nina),
   });
   return (
@@ -1639,15 +1649,15 @@ export default async function CitizenPage({ params }: { params: Promise<{ nina: 
 
 ```tsx
 // apps/citizen/app/[locale]/(authenticated)/nina/page.tsx
-import { NinaSearchForm } from "@/components/nina-search-form";
-import { getTranslations } from "next-intl/server";
+import { NinaSearchForm } from '@/components/nina-search-form';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page() {
-  const t = await getTranslations("citizen.search");
+  const t = await getTranslations('citizen.search');
   return (
     <main className="mx-auto max-w-lg px-4 py-10">
-      <h1 className="text-3xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-muted-foreground">{t("help")}</p>
+      <h1 className="text-3xl font-bold">{t('title')}</h1>
+      <p className="mt-2 text-muted-foreground">{t('help')}</p>
       <div className="mt-6">
         <NinaSearchForm />
       </div>
@@ -1658,27 +1668,27 @@ export default async function Page() {
 
 ```tsx
 // apps/citizen/components/nina-search-form.tsx
-"use client";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { Input } from "@nina-aes/ui/components/ui/input";
-import { Label } from "@nina-aes/ui/components/ui/label";
-import { useTranslations } from "next-intl";
+'use client';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { Input } from '@nina-aes/ui/components/ui/input';
+import { Label } from '@nina-aes/ui/components/ui/label';
+import { useTranslations } from 'next-intl';
 
 const Schema = z.object({
   nina: z
     .string()
     .trim()
-    .regex(/^\d{14}[A-Z]$/, "Format NINA invalide (14 chiffres + 1 lettre)"),
+    .regex(/^\d{14}[A-Z]$/, 'Format NINA invalide (14 chiffres + 1 lettre)'),
 });
 type Values = z.infer<typeof Schema>;
 
 export function NinaSearchForm() {
   const router = useRouter();
-  const t = useTranslations("citizen.search");
+  const t = useTranslations('citizen.search');
   const {
     register,
     handleSubmit,
@@ -1692,7 +1702,7 @@ export function NinaSearchForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       <div>
-        <Label htmlFor="nina">{t("ninaLabel")}</Label>
+        <Label htmlFor="nina">{t('ninaLabel')}</Label>
         <Input
           id="nina"
           autoComplete="off"
@@ -1700,8 +1710,8 @@ export function NinaSearchForm() {
           spellCheck={false}
           className="font-mono tracking-wider"
           aria-invalid={!!errors.nina}
-          aria-describedby={errors.nina ? "nina-error" : undefined}
-          {...register("nina")}
+          aria-describedby={errors.nina ? 'nina-error' : undefined}
+          {...register('nina')}
         />
         {errors.nina && (
           <p id="nina-error" role="alert" className="mt-1 text-sm text-destructive">
@@ -1710,7 +1720,7 @@ export function NinaSearchForm() {
         )}
       </div>
       <Button type="submit" disabled={isSubmitting} className="w-full">
-        {t("submit")}
+        {t('submit')}
       </Button>
     </form>
   );
@@ -1721,21 +1731,21 @@ export function NinaSearchForm() {
 
 ```tsx
 // apps/citizen/components/citizen-view.tsx
-"use client";
-import { useCitizen } from "@/hooks/use-citizen";
-import { Card } from "@nina-aes/ui/components/ui/card";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { Badge } from "@nina-aes/ui/components/ui/badge";
-import Link from "next/link";
-import { useTranslations, useFormatter } from "next-intl";
+'use client';
+import { useCitizen } from '@/hooks/use-citizen';
+import { Card } from '@nina-aes/ui/components/ui/card';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { Badge } from '@nina-aes/ui/components/ui/badge';
+import Link from 'next/link';
+import { useTranslations, useFormatter } from 'next-intl';
 
 export function CitizenView({ nina }: { nina: string }) {
   const { data: citizen, isLoading, error } = useCitizen(nina);
-  const t = useTranslations("citizen.view");
+  const t = useTranslations('citizen.view');
   const f = useFormatter();
 
   if (isLoading) return <FicheSkeleton />;
-  if (error || !citizen) return <p role="alert">{t("notFound")}</p>;
+  if (error || !citizen) return <p role="alert">{t('notFound')}</p>;
 
   return (
     <article className="mx-auto max-w-2xl px-4 py-10">
@@ -1746,32 +1756,36 @@ export function CitizenView({ nina }: { nina: string }) {
           </h1>
           <p className="mt-1 font-mono text-sm text-muted-foreground">{citizen.nina}</p>
         </div>
-        <Badge variant={citizen.photoUrl ? "default" : "secondary"}>
-          {citizen.photoUrl ? t("photoOk") : t("noPhoto")}
+        <Badge variant={citizen.photoUrl ? 'default' : 'secondary'}>
+          {citizen.photoUrl ? t('photoOk') : t('noPhoto')}
         </Badge>
       </header>
 
       <Card className="mt-6 p-6">
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label={t("birthDate")}>
-            {f.dateTime(new Date(citizen.birthDate), { year: "numeric", month: "long", day: "numeric" })}
+          <Field label={t('birthDate')}>
+            {f.dateTime(new Date(citizen.birthDate), {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
           </Field>
-          <Field label={t("sex")}>{citizen.sex}</Field>
-          <Field label={t("birthPlace")}>{citizen.birthPlace}</Field>
-          <Field label={t("residence")}>
+          <Field label={t('sex')}>{citizen.sex}</Field>
+          <Field label={t('birthPlace')}>{citizen.birthPlace}</Field>
+          <Field label={t('residence')}>
             {citizen.residence.commune} / {citizen.residence.cercle} / {citizen.residence.region}
           </Field>
-          <Field label={t("father")}>{citizen.fatherName ?? "—"}</Field>
-          <Field label={t("mother")}>{citizen.motherName ?? "—"}</Field>
+          <Field label={t('father')}>{citizen.fatherName ?? '—'}</Field>
+          <Field label={t('mother')}>{citizen.motherName ?? '—'}</Field>
         </dl>
       </Card>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <Button asChild>
-          <Link href={`./${nina}/pdf`}>{t("downloadPdf")}</Link>
+          <Link href={`./${nina}/pdf`}>{t('downloadPdf')}</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href={`./${nina}/correction`}>{t("requestCorrection")}</Link>
+          <Link href={`./${nina}/correction`}>{t('requestCorrection')}</Link>
         </Button>
       </div>
     </article>
@@ -1806,19 +1820,19 @@ function FicheSkeleton() {
 
 ```tsx
 // apps/citizen/app/[locale]/(authenticated)/nina/[nina]/correction/page.tsx
-import { CorrectionForm } from "@/components/correction-form";
-import { getServerApi } from "@/lib/api";
-import { getTranslations } from "next-intl/server";
+import { CorrectionForm } from '@/components/correction-form';
+import { getServerApi } from '@/lib/api';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page({ params }: { params: Promise<{ nina: string }> }) {
   const { nina } = await params;
   const api = await getServerApi();
   const citizen = await api.identity.getByNina(nina);
-  const t = await getTranslations("citizen.correction");
+  const t = await getTranslations('citizen.correction');
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-muted-foreground">{t("help")}</p>
+      <h1 className="text-2xl font-bold">{t('title')}</h1>
+      <p className="mt-2 text-muted-foreground">{t('help')}</p>
       <CorrectionForm citizen={citizen} className="mt-6" />
     </main>
   );
@@ -1827,21 +1841,21 @@ export default async function Page({ params }: { params: Promise<{ nina: string 
 
 ```tsx
 // apps/citizen/components/correction-form.tsx
-"use client";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import type { Citizen } from "@nina-aes/api-client";
-import { Input } from "@nina-aes/ui/components/ui/input";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { Label } from "@nina-aes/ui/components/ui/label";
-import { useSubmitCorrection } from "@/hooks/use-correction";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+'use client';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import type { Citizen } from '@nina-aes/api-client';
+import { Input } from '@nina-aes/ui/components/ui/input';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { Label } from '@nina-aes/ui/components/ui/label';
+import { useSubmitCorrection } from '@/hooks/use-correction';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 const Schema = z
   .object({
-    field: z.enum(["firstName", "lastName", "birthDate", "birthPlace", "fatherName", "motherName"]),
+    field: z.enum(['firstName', 'lastName', 'birthDate', 'birthPlace', 'fatherName', 'motherName']),
     proposedValue: z.string().trim().min(1).max(200),
     reason: z.string().trim().min(10).max(500),
     evidenceUrl: z.string().url().optional(),
@@ -1853,7 +1867,7 @@ type Values = z.infer<typeof Schema>;
 export function CorrectionForm({ citizen, className }: { citizen: Citizen; className?: string }) {
   const router = useRouter();
   const mutation = useSubmitCorrection();
-  const t = useTranslations("citizen.correction");
+  const t = useTranslations('citizen.correction');
   const {
     register,
     handleSubmit,
@@ -1861,8 +1875,8 @@ export function CorrectionForm({ citizen, className }: { citizen: Citizen; class
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(Schema) });
 
-  const field = watch("field");
-  const currentValue = field ? String((citizen as Record<string, unknown>)[field] ?? "—") : "—";
+  const field = watch('field');
+  const currentValue = field ? String((citizen as Record<string, unknown>)[field] ?? '—') : '—';
 
   const onSubmit = handleSubmit((values) =>
     mutation.mutate(
@@ -1882,47 +1896,47 @@ export function CorrectionForm({ citizen, className }: { citizen: Citizen; class
     <form onSubmit={onSubmit} className={className} noValidate>
       <div className="grid gap-6">
         <div>
-          <Label htmlFor="field">{t("fieldLabel")}</Label>
+          <Label htmlFor="field">{t('fieldLabel')}</Label>
           <select
             id="field"
             className="block w-full rounded-md border border-input bg-background px-3 py-2"
-            {...register("field")}
+            {...register('field')}
           >
             <option value="">—</option>
-            <option value="firstName">{t("fields.firstName")}</option>
-            <option value="lastName">{t("fields.lastName")}</option>
-            <option value="birthDate">{t("fields.birthDate")}</option>
-            <option value="birthPlace">{t("fields.birthPlace")}</option>
-            <option value="fatherName">{t("fields.fatherName")}</option>
-            <option value="motherName">{t("fields.motherName")}</option>
+            <option value="firstName">{t('fields.firstName')}</option>
+            <option value="lastName">{t('fields.lastName')}</option>
+            <option value="birthDate">{t('fields.birthDate')}</option>
+            <option value="birthPlace">{t('fields.birthPlace')}</option>
+            <option value="fatherName">{t('fields.fatherName')}</option>
+            <option value="motherName">{t('fields.motherName')}</option>
           </select>
           {errors.field && <Error>{errors.field.message}</Error>}
         </div>
 
         <div>
-          <Label>{t("currentValue")}</Label>
+          <Label>{t('currentValue')}</Label>
           <p className="mt-1 rounded bg-muted px-3 py-2 font-mono text-sm">{currentValue}</p>
         </div>
 
         <div>
-          <Label htmlFor="proposedValue">{t("proposedValue")}</Label>
-          <Input id="proposedValue" {...register("proposedValue")} />
+          <Label htmlFor="proposedValue">{t('proposedValue')}</Label>
+          <Input id="proposedValue" {...register('proposedValue')} />
           {errors.proposedValue && <Error>{errors.proposedValue.message}</Error>}
         </div>
 
         <div>
-          <Label htmlFor="reason">{t("reason")}</Label>
+          <Label htmlFor="reason">{t('reason')}</Label>
           <textarea
             id="reason"
             rows={4}
             className="block w-full rounded-md border border-input bg-background px-3 py-2"
-            {...register("reason")}
+            {...register('reason')}
           />
           {errors.reason && <Error>{errors.reason.message}</Error>}
         </div>
 
         <Button type="submit" disabled={isSubmitting || mutation.isPending}>
-          {mutation.isPending ? t("sending") : t("submit")}
+          {mutation.isPending ? t('sending') : t('submit')}
         </Button>
       </div>
     </form>
@@ -1942,20 +1956,20 @@ function Error({ children }: { children: React.ReactNode }) {
 
 ```tsx
 // apps/citizen/app/[locale]/(authenticated)/nina/[nina]/pdf/page.tsx
-import { getServerApi } from "@/lib/api";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { getTranslations } from "next-intl/server";
+import { getServerApi } from '@/lib/api';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page({ params }: { params: Promise<{ nina: string }> }) {
   const { nina } = await params;
   const api = await getServerApi();
   const { url, expiresAt, sha256 } = await api.document.getFdiDownloadUrl(nina);
-  const t = await getTranslations("citizen.pdf");
+  const t = await getTranslations('citizen.pdf');
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-muted-foreground">{t("help")}</p>
+      <h1 className="text-2xl font-bold">{t('title')}</h1>
+      <p className="mt-2 text-muted-foreground">{t('help')}</p>
       <div className="mt-6 overflow-hidden rounded-lg border">
         <iframe
           title="Fiche descriptive individuelle"
@@ -1967,11 +1981,11 @@ export default async function Page({ params }: { params: Promise<{ nina: string 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <Button asChild>
           <a href={url} download={`FDI-${nina}.pdf`}>
-            {t("download")}
+            {t('download')}
           </a>
         </Button>
         <p className="text-xs text-muted-foreground">
-          {t("expiresAt", { date: new Date(expiresAt).toLocaleString() })}
+          {t('expiresAt', { date: new Date(expiresAt).toLocaleString() })}
           <br />
           SHA-256 : <span className="font-mono">{sha256.slice(0, 16)}…</span>
         </p>
@@ -1989,13 +2003,13 @@ export default async function Page({ params }: { params: Promise<{ nina: string 
 
 ```tsx
 // apps/admin/app/[locale]/(authenticated)/layout.tsx
-import { ReactNode } from "react";
-import { AdminSidebar } from "@/components/admin-sidebar";
-import { requireRole } from "@/lib/auth/require-role";
-import { QueryProvider } from "@nina-aes/ui/providers/query-provider";
+import { ReactNode } from 'react';
+import { AdminSidebar } from '@/components/admin-sidebar';
+import { requireRole } from '@/lib/auth/require-role';
+import { QueryProvider } from '@nina-aes/ui/providers/query-provider';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  await requireRole(["agent", "supervisor", "auditor", "admin"]);
+  await requireRole(['agent', 'supervisor', 'auditor', 'admin']);
   return (
     <QueryProvider>
       <div className="grid min-h-screen grid-cols-[240px_1fr]">
@@ -2011,29 +2025,29 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
 ```tsx
 // apps/admin/app/[locale]/(authenticated)/corrections/page.tsx
-import { CorrectionsTable } from "@/components/corrections/corrections-table";
-import { getServerApi } from "@/lib/api";
-import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
-import { getTranslations } from "next-intl/server";
+import { CorrectionsTable } from '@/components/corrections/corrections-table';
+import { getServerApi } from '@/lib/api';
+import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string; page?: string }>;
 }) {
-  const { status = "pending_ai", page = "1" } = await searchParams;
+  const { status = 'pending_ai', page = '1' } = await searchParams;
   const api = await getServerApi();
   const qc = new QueryClient();
   const query = { status, page: Number(page), pageSize: 25 };
   await qc.prefetchQuery({
-    queryKey: ["corrections", query],
+    queryKey: ['corrections', query],
     queryFn: () => api.correction.list(query),
   });
-  const t = await getTranslations("admin.corrections");
+  const t = await getTranslations('admin.corrections');
   return (
     <>
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
       </header>
       <HydrationBoundary state={dehydrate(qc)}>
         <CorrectionsTable initialQuery={query} />
@@ -2045,20 +2059,20 @@ export default async function Page({
 
 ```tsx
 // apps/admin/components/corrections/corrections-table.tsx
-"use client";
-import { useQuery } from "@tanstack/react-query";
+'use client';
+import { useQuery } from '@tanstack/react-query';
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
-import { clientApi } from "@/lib/api-client";
-import type { CorrectionRequest } from "@nina-aes/api-client";
-import { Badge } from "@nina-aes/ui/components/ui/badge";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import Link from "next/link";
-import { useTranslations, useFormatter } from "next-intl";
+} from '@tanstack/react-table';
+import { clientApi } from '@/lib/api-client';
+import type { CorrectionRequest } from '@nina-aes/api-client';
+import { Badge } from '@nina-aes/ui/components/ui/badge';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import Link from 'next/link';
+import { useTranslations, useFormatter } from 'next-intl';
 
 const columnHelper = createColumnHelper<CorrectionRequest>();
 
@@ -2067,41 +2081,49 @@ export function CorrectionsTable({
 }: {
   initialQuery: { status: string; page: number; pageSize: number };
 }) {
-  const t = useTranslations("admin.corrections");
+  const t = useTranslations('admin.corrections');
   const f = useFormatter();
   const { data } = useQuery({
-    queryKey: ["corrections", initialQuery],
+    queryKey: ['corrections', initialQuery],
     queryFn: () => clientApi.correction.list(initialQuery),
   });
 
   const columns = [
-    columnHelper.accessor("nina", {
-      header: "NINA",
+    columnHelper.accessor('nina', {
+      header: 'NINA',
       cell: (c) => <span className="font-mono text-sm">{c.getValue()}</span>,
     }),
-    columnHelper.accessor("field", { header: t("field") }),
-    columnHelper.accessor("aiScore", {
-      header: t("score"),
+    columnHelper.accessor('field', { header: t('field') }),
+    columnHelper.accessor('aiScore', {
+      header: t('score'),
       cell: (c) => {
         const score = c.getValue();
         const variant =
-          score == null ? "secondary" : score >= 80 ? "default" : score >= 40 ? "secondary" : "destructive";
-        return <Badge variant={variant}>{score == null ? "—" : `${Math.round(score)} / 100`}</Badge>;
+          score == null
+            ? 'secondary'
+            : score >= 80
+              ? 'default'
+              : score >= 40
+                ? 'secondary'
+                : 'destructive';
+        return (
+          <Badge variant={variant}>{score == null ? '—' : `${Math.round(score)} / 100`}</Badge>
+        );
       },
     }),
-    columnHelper.accessor("status", {
-      header: t("status"),
+    columnHelper.accessor('status', {
+      header: t('status'),
       cell: (c) => <Badge>{c.getValue()}</Badge>,
     }),
-    columnHelper.accessor("createdAt", {
-      header: t("createdAt"),
+    columnHelper.accessor('createdAt', {
+      header: t('createdAt'),
       cell: (c) => f.relativeTime(new Date(c.getValue())),
     }),
     columnHelper.display({
-      id: "actions",
+      id: 'actions',
       cell: (c) => (
         <Button asChild variant="ghost" size="sm">
-          <Link href={`./corrections/${c.row.original.id}`}>{t("open")}</Link>
+          <Link href={`./corrections/${c.row.original.id}`}>{t('open')}</Link>
         </Button>
       ),
     }),
@@ -2148,9 +2170,9 @@ export function CorrectionsTable({
 
 ```tsx
 // apps/admin/app/[locale]/(authenticated)/corrections/[id]/page.tsx
-import { getServerApi } from "@/lib/api";
-import { CorrectionDecisionPanel } from "@/components/corrections/correction-decision-panel";
-import { getTranslations } from "next-intl/server";
+import { getServerApi } from '@/lib/api';
+import { CorrectionDecisionPanel } from '@/components/corrections/correction-decision-panel';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -2159,11 +2181,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     api.correction.getById(id),
     api.ai.getExplanationFor(id).catch(() => null),
   ]);
-  const t = await getTranslations("admin.corrections");
+  const t = await getTranslations('admin.corrections');
   return (
     <>
       <h1 className="text-2xl font-bold">
-        {t("detailTitle")} <span className="font-mono text-base">{correction.nina}</span>
+        {t('detailTitle')} <span className="font-mono text-base">{correction.nina}</span>
       </h1>
       <CorrectionDecisionPanel correction={correction} aiExplanation={aiExplanation} />
     </>
@@ -2173,13 +2195,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
 ```tsx
 // apps/admin/components/corrections/correction-decision-panel.tsx
-"use client";
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { clientApi } from "@/lib/api-client";
-import type { CorrectionRequest, AiExplanation } from "@nina-aes/api-client";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { Card } from "@nina-aes/ui/components/ui/card";
+'use client';
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { clientApi } from '@/lib/api-client';
+import type { CorrectionRequest, AiExplanation } from '@nina-aes/api-client';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { Card } from '@nina-aes/ui/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2190,11 +2212,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@nina-aes/ui/components/ui/alert-dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@nina-aes/ui/components/ui/tabs";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+} from '@nina-aes/ui/components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@nina-aes/ui/components/ui/tabs';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export function CorrectionDecisionPanel({
   correction,
@@ -2203,16 +2225,16 @@ export function CorrectionDecisionPanel({
   correction: CorrectionRequest;
   aiExplanation: AiExplanation | null;
 }) {
-  const t = useTranslations("admin.corrections");
+  const t = useTranslations('admin.corrections');
   const router = useRouter();
   const qc = useQueryClient();
-  const [rejectReason, setRejectReason] = useState("");
+  const [rejectReason, setRejectReason] = useState('');
 
   const approve = useMutation({
     mutationFn: () => clientApi.correction.approve(correction.id),
     onSuccess: () => {
-      toast.success(t("approved"));
-      qc.invalidateQueries({ queryKey: ["corrections"] });
+      toast.success(t('approved'));
+      qc.invalidateQueries({ queryKey: ['corrections'] });
       router.refresh();
     },
   });
@@ -2220,24 +2242,24 @@ export function CorrectionDecisionPanel({
   const reject = useMutation({
     mutationFn: () => clientApi.correction.reject(correction.id, { reason: rejectReason }),
     onSuccess: () => {
-      toast.success(t("rejected"));
-      qc.invalidateQueries({ queryKey: ["corrections"] });
-      router.push("../");
+      toast.success(t('rejected'));
+      qc.invalidateQueries({ queryKey: ['corrections'] });
+      router.push('../');
     },
   });
 
   return (
     <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card className="p-6">
-        <h2 className="text-lg font-semibold">{t("valuesTitle")}</h2>
+        <h2 className="text-lg font-semibold">{t('valuesTitle')}</h2>
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">{t("field")}</dt>
+          <dt className="text-muted-foreground">{t('field')}</dt>
           <dd className="font-mono">{correction.field}</dd>
-          <dt className="text-muted-foreground">{t("currentValue")}</dt>
+          <dt className="text-muted-foreground">{t('currentValue')}</dt>
           <dd>{correction.currentValue}</dd>
-          <dt className="text-muted-foreground">{t("proposedValue")}</dt>
+          <dt className="text-muted-foreground">{t('proposedValue')}</dt>
           <dd className="font-semibold">{correction.proposedValue}</dd>
-          <dt className="text-muted-foreground">{t("reason")}</dt>
+          <dt className="text-muted-foreground">{t('reason')}</dt>
           <dd>{correction.reason}</dd>
         </dl>
       </Card>
@@ -2245,14 +2267,14 @@ export function CorrectionDecisionPanel({
       <Card className="p-6">
         <Tabs defaultValue="ai">
           <TabsList>
-            <TabsTrigger value="ai">{t("tabs.ai")}</TabsTrigger>
-            <TabsTrigger value="audit">{t("tabs.audit")}</TabsTrigger>
+            <TabsTrigger value="ai">{t('tabs.ai')}</TabsTrigger>
+            <TabsTrigger value="audit">{t('tabs.audit')}</TabsTrigger>
           </TabsList>
           <TabsContent value="ai" className="mt-4">
             {aiExplanation ? (
               <AiExplanationBlock explanation={aiExplanation} />
             ) : (
-              <p className="text-sm text-muted-foreground">{t("noAi")}</p>
+              <p className="text-sm text-muted-foreground">{t('noAi')}</p>
             )}
           </TabsContent>
           <TabsContent value="audit">{/* Timeline audit_logs pour cette correction */}</TabsContent>
@@ -2261,32 +2283,32 @@ export function CorrectionDecisionPanel({
 
       <div className="col-span-full flex flex-wrap gap-3">
         <Button onClick={() => approve.mutate()} disabled={approve.isPending}>
-          {t("approve")}
+          {t('approve')}
         </Button>
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive">{t("reject")}</Button>
+            <Button variant="destructive">{t('reject')}</Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t("rejectConfirmTitle")}</AlertDialogTitle>
-              <AlertDialogDescription>{t("rejectConfirmDesc")}</AlertDialogDescription>
+              <AlertDialogTitle>{t('rejectConfirmTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('rejectConfirmDesc')}</AlertDialogDescription>
             </AlertDialogHeader>
             <textarea
               className="mt-4 w-full rounded border px-3 py-2 text-sm"
               rows={3}
-              placeholder={t("rejectReasonPlaceholder")}
+              placeholder={t('rejectReasonPlaceholder')}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
             />
             <AlertDialogFooter>
-              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => reject.mutate()}
                 disabled={rejectReason.trim().length < 10}
               >
-                {t("confirmReject")}
+                {t('confirmReject')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -2309,8 +2331,8 @@ function AiExplanationBlock({ explanation }: { explanation: AiExplanation }) {
           {explanation.topFeatures.slice(0, 5).map((f) => (
             <li key={f.name} className="flex items-center justify-between text-sm">
               <span className="font-mono">{f.name}</span>
-              <span className={f.impact >= 0 ? "text-destructive" : "text-primary"}>
-                {f.impact >= 0 ? "+" : ""}
+              <span className={f.impact >= 0 ? 'text-destructive' : 'text-primary'}>
+                {f.impact >= 0 ? '+' : ''}
                 {f.impact.toFixed(2)}
               </span>
             </li>
@@ -2326,17 +2348,17 @@ function AiExplanationBlock({ explanation }: { explanation: AiExplanation }) {
 
 ```tsx
 // apps/admin/app/[locale]/(authenticated)/ai/page.tsx
-import { AiMetricsBoard } from "@/components/ai/ai-metrics-board";
-import { getServerApi } from "@/lib/api";
-import { getTranslations } from "next-intl/server";
+import { AiMetricsBoard } from '@/components/ai/ai-metrics-board';
+import { getServerApi } from '@/lib/api';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page() {
   const api = await getServerApi();
   const metrics = await api.ai.getMetrics24h();
-  const t = await getTranslations("admin.ai");
+  const t = await getTranslations('admin.ai');
   return (
     <>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <h1 className="text-2xl font-bold">{t('title')}</h1>
       <AiMetricsBoard initial={metrics} />
     </>
   );
@@ -2345,18 +2367,18 @@ export default async function Page() {
 
 ```tsx
 // apps/admin/components/ai/ai-metrics-board.tsx
-"use client";
-import { useQuery } from "@tanstack/react-query";
-import { clientApi } from "@/lib/api-client";
-import type { AiMetrics24h } from "@nina-aes/api-client";
-import { Card } from "@nina-aes/ui/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { useTranslations } from "next-intl";
+'use client';
+import { useQuery } from '@tanstack/react-query';
+import { clientApi } from '@/lib/api-client';
+import type { AiMetrics24h } from '@nina-aes/api-client';
+import { Card } from '@nina-aes/ui/components/ui/card';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTranslations } from 'next-intl';
 
 export function AiMetricsBoard({ initial }: { initial: AiMetrics24h }) {
-  const t = useTranslations("admin.ai");
+  const t = useTranslations('admin.ai');
   const { data } = useQuery({
-    queryKey: ["ai-metrics-24h"],
+    queryKey: ['ai-metrics-24h'],
     queryFn: () => clientApi.ai.getMetrics24h(),
     initialData: initial,
     refetchInterval: 30_000,
@@ -2364,12 +2386,12 @@ export function AiMetricsBoard({ initial }: { initial: AiMetrics24h }) {
 
   return (
     <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-      <Kpi label={t("analyzed24h")} value={data.totalAnalyzed} />
-      <Kpi label={t("anomalies24h")} value={data.totalAnomalies} accent />
-      <Kpi label={t("avgLatencyMs")} value={`${data.avgLatencyMs} ms`} />
-      <Kpi label={t("avgScore")} value={data.avgScore.toFixed(1)} />
+      <Kpi label={t('analyzed24h')} value={data.totalAnalyzed} />
+      <Kpi label={t('anomalies24h')} value={data.totalAnomalies} accent />
+      <Kpi label={t('avgLatencyMs')} value={`${data.avgLatencyMs} ms`} />
+      <Kpi label={t('avgScore')} value={data.avgScore.toFixed(1)} />
       <Card className="col-span-full p-4">
-        <p className="font-medium">{t("hourlyDistribution")}</p>
+        <p className="font-medium">{t('hourlyDistribution')}</p>
         <div className="mt-4 h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.byHour}>
@@ -2385,11 +2407,19 @@ export function AiMetricsBoard({ initial }: { initial: AiMetrics24h }) {
   );
 }
 
-function Kpi({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
+function Kpi({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: React.ReactNode;
+  accent?: boolean;
+}) {
   return (
     <Card className="p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${accent ? "text-destructive" : ""}`}>{value}</p>
+      <p className={`mt-1 text-2xl font-bold ${accent ? 'text-destructive' : ''}`}>{value}</p>
     </Card>
   );
 }
@@ -2403,11 +2433,11 @@ function Kpi({ label, value, accent }: { label: string; value: React.ReactNode; 
 
 ```tsx
 // apps/governance/app/[locale]/(authenticated)/dashboard/page.tsx
-import { getServerApi } from "@/lib/api";
-import { ExecutiveKpiGrid } from "@/components/executive-kpi-grid";
-import { RegionHeatmap } from "@/components/region-heatmap";
-import { WeeklyTrend } from "@/components/weekly-trend";
-import { getTranslations } from "next-intl/server";
+import { getServerApi } from '@/lib/api';
+import { ExecutiveKpiGrid } from '@/components/executive-kpi-grid';
+import { RegionHeatmap } from '@/components/region-heatmap';
+import { WeeklyTrend } from '@/components/weekly-trend';
+import { getTranslations } from 'next-intl/server';
 
 export default async function Page() {
   const api = await getServerApi();
@@ -2416,12 +2446,12 @@ export default async function Page() {
     api.governance.getByRegion(),
     api.governance.getWeeklyTrend(),
   ]);
-  const t = await getTranslations("governance.dashboard");
+  const t = await getTranslations('governance.dashboard');
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl font-bold">{t("title")}</h1>
-        <p className="mt-1 text-muted-foreground">{t("subtitle")}</p>
+        <h1 className="text-3xl font-bold">{t('title')}</h1>
+        <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
       </header>
       <ExecutiveKpiGrid kpis={kpis} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -2441,30 +2471,33 @@ pour signature :
 
 ```tsx
 // apps/governance/components/directives/new-directive-form.tsx
-"use client";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { clientApi } from "@/lib/api-client";
-import { toast } from "sonner";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { Input } from "@nina-aes/ui/components/ui/input";
-import { Label } from "@nina-aes/ui/components/ui/label";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+'use client';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useMutation } from '@tanstack/react-query';
+import { clientApi } from '@/lib/api-client';
+import { toast } from 'sonner';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { Input } from '@nina-aes/ui/components/ui/input';
+import { Label } from '@nina-aes/ui/components/ui/label';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 const Schema = z.object({
   title: z.string().trim().min(5).max(200),
-  reference: z.string().trim().regex(/^\d{4}\/[A-Z]{2,5}\/\d{1,4}$/, "Référence invalide"),
+  reference: z
+    .string()
+    .trim()
+    .regex(/^\d{4}\/[A-Z]{2,5}\/\d{1,4}$/, 'Référence invalide'),
   body: z.string().trim().min(50),
-  scope: z.enum(["national", "regional", "local"]),
+  scope: z.enum(['national', 'regional', 'local']),
   regionCode: z.string().optional(),
 });
 type Values = z.infer<typeof Schema>;
 
 export function NewDirectiveForm() {
-  const t = useTranslations("governance.directives");
+  const t = useTranslations('governance.directives');
   const router = useRouter();
   const {
     register,
@@ -2472,46 +2505,46 @@ export function NewDirectiveForm() {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(Schema) });
-  const scope = watch("scope");
+  const scope = watch('scope');
 
   const create = useMutation({
     mutationFn: (v: Values) => clientApi.governance.createDirective(v),
     onSuccess: (d) => {
-      toast.success(t("created"));
+      toast.success(t('created'));
       router.push(`./${d.id}/sign`);
     },
   });
 
   return (
     <form onSubmit={handleSubmit((v) => create.mutate(v))} className="space-y-6" noValidate>
-      <FormField label={t("title")} error={errors.title?.message}>
-        <Input {...register("title")} />
+      <FormField label={t('title')} error={errors.title?.message}>
+        <Input {...register('title')} />
       </FormField>
-      <FormField label={t("reference")} error={errors.reference?.message}>
-        <Input {...register("reference")} />
+      <FormField label={t('reference')} error={errors.reference?.message}>
+        <Input {...register('reference')} />
       </FormField>
-      <FormField label={t("scope")} error={errors.scope?.message}>
-        <select {...register("scope")} className="block w-full rounded border px-3 py-2">
+      <FormField label={t('scope')} error={errors.scope?.message}>
+        <select {...register('scope')} className="block w-full rounded border px-3 py-2">
           <option value="">—</option>
-          <option value="national">{t("scopes.national")}</option>
-          <option value="regional">{t("scopes.regional")}</option>
-          <option value="local">{t("scopes.local")}</option>
+          <option value="national">{t('scopes.national')}</option>
+          <option value="regional">{t('scopes.regional')}</option>
+          <option value="local">{t('scopes.local')}</option>
         </select>
       </FormField>
-      {(scope === "regional" || scope === "local") && (
-        <FormField label={t("regionCode")} error={errors.regionCode?.message}>
-          <Input {...register("regionCode")} />
+      {(scope === 'regional' || scope === 'local') && (
+        <FormField label={t('regionCode')} error={errors.regionCode?.message}>
+          <Input {...register('regionCode')} />
         </FormField>
       )}
-      <FormField label={t("body")} error={errors.body?.message}>
+      <FormField label={t('body')} error={errors.body?.message}>
         <textarea
-          {...register("body")}
+          {...register('body')}
           rows={8}
           className="block w-full rounded border px-3 py-2"
         />
       </FormField>
       <Button type="submit" disabled={isSubmitting || create.isPending}>
-        {t("continueSign")}
+        {t('continueSign')}
       </Button>
     </form>
   );
@@ -2548,42 +2581,50 @@ function FormField({
 
 ```ts
 // packages/i18n/src/config.ts
-export const locales = ["fr", "bm", "snk", "ff", "tmq", "hau", "mos", "dje"] as const;
+export const locales = ['fr', 'bm', 'snk', 'ff', 'tmq', 'hau', 'mos', 'dje'] as const;
 export type Locale = (typeof locales)[number];
-export const defaultLocale: Locale = "fr";
+export const defaultLocale: Locale = 'fr';
 
 export const localeLabels: Record<Locale, string> = {
-  fr: "Français",
-  bm: "Bamanankan",
-  snk: "Sooninkanxanne",
-  ff: "Fulfulde",
-  tmq: "Tamasheq",
-  hau: "Hausa",
-  mos: "Mooré",
-  dje: "Zarma",
+  fr: 'Français',
+  bm: 'Bamanankan',
+  snk: 'Sooninkanxanne',
+  ff: 'Fulfulde',
+  tmq: 'Tamasheq',
+  hau: 'Hausa',
+  mos: 'Mooré',
+  dje: 'Zarma',
 };
 ```
 
 ```ts
 // packages/i18n/src/request.ts
-import { getRequestConfig } from "next-intl/server";
-import { locales, defaultLocale, type Locale } from "./config";
+import { getRequestConfig } from 'next-intl/server';
+import { locales, defaultLocale, type Locale } from './config';
 
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = (await requestLocale) as Locale | undefined;
-  const locale: Locale = locales.includes(requested as Locale) ? (requested as Locale) : defaultLocale;
+  const locale: Locale = locales.includes(requested as Locale)
+    ? (requested as Locale)
+    : defaultLocale;
   const messages = (await import(`../messages/${locale}.json`)).default as Record<string, unknown>;
   return {
     locale,
     messages,
-    timeZone: "Africa/Bamako",
+    timeZone: 'Africa/Bamako',
     formats: {
       dateTime: {
-        short: { day: "numeric", month: "short", year: "numeric" },
-        full: { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" },
+        short: { day: 'numeric', month: 'short', year: 'numeric' },
+        full: {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        },
       },
       number: {
-        percent: { style: "percent", maximumFractionDigits: 1 },
+        percent: { style: 'percent', maximumFractionDigits: 1 },
       },
     },
   };
@@ -2682,38 +2723,38 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
 ```tsx
 // apps/citizen/components/language-switcher.tsx
-"use client";
-import { useRouter, usePathname } from "next/navigation";
-import { locales, localeLabels, type Locale } from "@nina-aes/i18n";
+'use client';
+import { useRouter, usePathname } from 'next/navigation';
+import { locales, localeLabels, type Locale } from '@nina-aes/i18n';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@nina-aes/ui/components/ui/dropdown-menu";
-import { Button } from "@nina-aes/ui/components/ui/button";
-import { Globe } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
-import { useUiStore } from "@/lib/store/ui-store";
+} from '@nina-aes/ui/components/ui/dropdown-menu';
+import { Button } from '@nina-aes/ui/components/ui/button';
+import { Globe } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useUiStore } from '@/lib/store/ui-store';
 
 export function LanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
   const current = useLocale() as Locale;
   const setLocale = useUiStore((s) => s.setLocale);
-  const t = useTranslations("common");
+  const t = useTranslations('common');
 
   const switchTo = (locale: Locale) => {
     setLocale(locale);
-    const parts = pathname.split("/");
+    const parts = pathname.split('/');
     parts[1] = locale;
-    router.push(parts.join("/"));
+    router.push(parts.join('/'));
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label={t("language")}>
+        <Button variant="ghost" size="sm" aria-label={t('language')}>
           <Globe className="mr-2 h-4 w-4" />
           {localeLabels[current]}
         </Button>
@@ -2723,7 +2764,7 @@ export function LanguageSwitcher() {
           <DropdownMenuItem
             key={l}
             onClick={() => switchTo(l)}
-            className={l === current ? "font-semibold" : ""}
+            className={l === current ? 'font-semibold' : ''}
           >
             {localeLabels[l]}
           </DropdownMenuItem>
@@ -2751,46 +2792,48 @@ export function LanguageSwitcher() {
 
 ### 15.1 Règles appliquées systématiquement
 
-| Règle                                | Application dans NINA-AES                                                                    |
-| ------------------------------------ | -------------------------------------------------------------------------------------------- |
-| **1.4.3 Contraste**                  | Tokens OKLCH vérifiés par script CI (tous ≥ 4.5:1)                                           |
-| **1.4.10 Reflow**                    | Tous les écrans responsives jusqu'à 320 px de large                                          |
-| **1.4.11 Contraste non-textuel**     | Bordures des inputs ≥ 3:1                                                                    |
-| **2.1.1 Clavier**                    | Tous les composants Radix/shadcn sont navigables au clavier                                  |
-| **2.4.3 Ordre focus**                | Ordre DOM = ordre logique — pas de `tabindex > 0`                                            |
-| **2.4.7 Focus visible**              | `:focus-visible` sur tous les éléments interactifs                                           |
-| **2.5.5 Taille cible tactile**       | `min-h-[44px]` sur les boutons citoyen mobile                                                |
-| **3.3.1 Messages d'erreur**          | Message associé au champ via `aria-describedby`                                              |
-| **3.3.2 Étiquettes**                 | Tout input a un `<Label>` associé                                                            |
-| **4.1.2 Nom, rôle, valeur**          | Composants Radix exposent les ARIA attributs natifs                                          |
-| **4.1.3 Status messages**            | Toasts avec `role="status"` (via sonner) + `aria-live="polite"`                              |
+| Règle                            | Application dans NINA-AES                                       |
+| -------------------------------- | --------------------------------------------------------------- |
+| **1.4.3 Contraste**              | Tokens OKLCH vérifiés par script CI (tous ≥ 4.5:1)              |
+| **1.4.10 Reflow**                | Tous les écrans responsives jusqu'à 320 px de large             |
+| **1.4.11 Contraste non-textuel** | Bordures des inputs ≥ 3:1                                       |
+| **2.1.1 Clavier**                | Tous les composants Radix/shadcn sont navigables au clavier     |
+| **2.4.3 Ordre focus**            | Ordre DOM = ordre logique — pas de `tabindex > 0`               |
+| **2.4.7 Focus visible**          | `:focus-visible` sur tous les éléments interactifs              |
+| **2.5.5 Taille cible tactile**   | `min-h-[44px]` sur les boutons citoyen mobile                   |
+| **3.3.1 Messages d'erreur**      | Message associé au champ via `aria-describedby`                 |
+| **3.3.2 Étiquettes**             | Tout input a un `<Label>` associé                               |
+| **4.1.2 Nom, rôle, valeur**      | Composants Radix exposent les ARIA attributs natifs             |
+| **4.1.3 Status messages**        | Toasts avec `role="status"` (via sonner) + `aria-live="polite"` |
 
 ### 15.2 Tests axe-core en CI
 
 ```ts
 // apps/citizen/e2e/a11y.spec.ts
-import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
-test.describe("Accessibilité citoyen", () => {
+test.describe('Accessibilité citoyen', () => {
   test("page recherche NINA n'a pas de violations", async ({ page }) => {
-    await page.goto("/fr/nina");
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag22aa"]).analyze();
+    await page.goto('/fr/nina');
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
+      .analyze();
     expect(results.violations).toEqual([]);
   });
 
-  test("page fiche a la hiérarchie de titres correcte", async ({ page }) => {
-    await page.goto("/fr/nina/12345678901234A");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.locator("main")).toBeVisible();
+  test('page fiche a la hiérarchie de titres correcte', async ({ page }) => {
+    await page.goto('/fr/nina/12345678901234A');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.locator('main')).toBeVisible();
   });
 });
 ```
 
 ### 15.3 Tests lecteur d'écran
 
-Un test manuel avec NVDA (Windows) + VoiceOver (macOS) + TalkBack (Android) est exécuté **avant chaque
-release majeure** sur les 3 parcours critiques :
+Un test manuel avec NVDA (Windows) + VoiceOver (macOS) + TalkBack (Android) est exécuté **avant
+chaque release majeure** sur les 3 parcours critiques :
 
 1. Login + recherche NINA + consultation fiche,
 2. Validation d'une correction par un agent,
@@ -2861,70 +2904,68 @@ describe("useCitizen", () => {
 
 ```ts
 // packages/api-client/src/core/http-client.test.ts
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { HttpClient } from "./http-client";
-import { ApiError, ApiValidationError } from "./errors";
-import { z } from "zod";
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { HttpClient } from './http-client';
+import { ApiError, ApiValidationError } from './errors';
+import { z } from 'zod';
 
 const Schema = z.object({ ok: z.literal(true), value: z.number() });
 
-describe("HttpClient", () => {
+describe('HttpClient', () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
   });
 
-  it("parse la réponse contre un schéma Zod", async () => {
+  it('parse la réponse contre un schéma Zod', async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ ok: true, value: 42 }), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { 'content-type': 'application/json' },
       }),
     );
-    const client = new HttpClient({ baseUrl: "http://api" });
-    const out = await client.request({ path: "/x", schema: Schema });
+    const client = new HttpClient({ baseUrl: 'http://api' });
+    const out = await client.request({ path: '/x', schema: Schema });
     expect(out).toEqual({ ok: true, value: 42 });
   });
 
-  it("lève ApiValidationError si réponse invalide", async () => {
+  it('lève ApiValidationError si réponse invalide', async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ ok: true, value: "not a number" }), {
+      new Response(JSON.stringify({ ok: true, value: 'not a number' }), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { 'content-type': 'application/json' },
       }),
     );
-    const client = new HttpClient({ baseUrl: "http://api" });
-    await expect(client.request({ path: "/x", schema: Schema })).rejects.toBeInstanceOf(
+    const client = new HttpClient({ baseUrl: 'http://api' });
+    await expect(client.request({ path: '/x', schema: Schema })).rejects.toBeInstanceOf(
       ApiValidationError,
     );
   });
 
-  it("lève ApiError sur 400", async () => {
+  it('lève ApiError sur 400', async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ code: "INVALID", message: "bad" }), {
+      new Response(JSON.stringify({ code: 'INVALID', message: 'bad' }), {
         status: 400,
-        headers: { "content-type": "application/json" },
+        headers: { 'content-type': 'application/json' },
       }),
     );
-    const client = new HttpClient({ baseUrl: "http://api" });
-    await expect(client.request({ path: "/x" })).rejects.toMatchObject({
+    const client = new HttpClient({ baseUrl: 'http://api' });
+    await expect(client.request({ path: '/x' })).rejects.toMatchObject({
       status: 400,
-      code: "INVALID",
+      code: 'INVALID',
     });
   });
 
-  it("retry sur 502 puis renvoie la réponse sur 200", async () => {
-    fetchMock
-      .mockResolvedValueOnce(new Response("oops", { status: 502 }))
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ ok: true, value: 7 }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-      );
-    const client = new HttpClient({ baseUrl: "http://api", maxRetries: 1 });
-    const out = await client.request({ path: "/x", schema: Schema });
+  it('retry sur 502 puis renvoie la réponse sur 200', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('oops', { status: 502 })).mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, value: 7 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const client = new HttpClient({ baseUrl: 'http://api', maxRetries: 1 });
+    const out = await client.request({ path: '/x', schema: Schema });
     expect(out.value).toBe(7);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -2935,39 +2976,39 @@ describe("HttpClient", () => {
 
 ```ts
 // apps/citizen/e2e/happy-path.spec.ts
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
 
-test.describe("Parcours citoyen complet", () => {
+test.describe('Parcours citoyen complet', () => {
   test.beforeEach(async ({ page, context }) => {
     // Auth mockée : cookie injecté via helper
     await context.addCookies([
       {
-        name: "access_token",
+        name: 'access_token',
         value: process.env.E2E_TEST_TOKEN!,
-        domain: "localhost",
-        path: "/",
+        domain: 'localhost',
+        path: '/',
         httpOnly: true,
         secure: false,
-        sameSite: "Lax",
+        sameSite: 'Lax',
       },
     ]);
-    await page.goto("/fr/dashboard");
+    await page.goto('/fr/dashboard');
   });
 
-  test("un citoyen retrouve sa fiche et demande une correction", async ({ page }) => {
-    await page.getByRole("link", { name: /rechercher/i }).click();
+  test('un citoyen retrouve sa fiche et demande une correction', async ({ page }) => {
+    await page.getByRole('link', { name: /rechercher/i }).click();
     await expect(page).toHaveURL(/\/fr\/nina$/);
-    await page.getByLabel("Numéro NINA").fill("12345678901234A");
-    await page.getByRole("button", { name: "Rechercher" }).click();
+    await page.getByLabel('Numéro NINA').fill('12345678901234A');
+    await page.getByRole('button', { name: 'Rechercher' }).click();
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Fatoumata");
-    await expect(page.getByText("12345678901234A")).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Fatoumata');
+    await expect(page.getByText('12345678901234A')).toBeVisible();
 
-    await page.getByRole("link", { name: /correction/i }).click();
-    await page.getByLabel("Champ à corriger").selectOption("birthPlace");
-    await page.getByLabel("Nouvelle valeur proposée").fill("Sikasso");
-    await page.getByLabel(/Motif/i).fill("Erreur sur la commune depuis la numérisation");
-    await page.getByRole("button", { name: /Envoyer/i }).click();
+    await page.getByRole('link', { name: /correction/i }).click();
+    await page.getByLabel('Champ à corriger').selectOption('birthPlace');
+    await page.getByLabel('Nouvelle valeur proposée').fill('Sikasso');
+    await page.getByLabel(/Motif/i).fill('Erreur sur la commune depuis la numérisation');
+    await page.getByRole('button', { name: /Envoyer/i }).click();
 
     await expect(page.getByText(/Demande envoyée/i)).toBeVisible();
   });
@@ -2978,39 +3019,39 @@ test.describe("Parcours citoyen complet", () => {
 
 ```ts
 // apps/citizen/e2e/visual.spec.ts
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
 
-test.describe("Visual regression", () => {
-  test("landing page match snapshot", async ({ page }) => {
-    await page.goto("/fr/");
-    await expect(page).toHaveScreenshot("landing-fr.png", { maxDiffPixelRatio: 0.005 });
+test.describe('Visual regression', () => {
+  test('landing page match snapshot', async ({ page }) => {
+    await page.goto('/fr/');
+    await expect(page).toHaveScreenshot('landing-fr.png', { maxDiffPixelRatio: 0.005 });
   });
 
-  test("fiche citoyen match snapshot (données mockées)", async ({ page }) => {
-    await page.route("**/api/v1/citizens/**", async (route) => {
+  test('fiche citoyen match snapshot (données mockées)', async ({ page }) => {
+    await page.route('**/api/v1/citizens/**', async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: "application/json",
+        contentType: 'application/json',
         body: JSON.stringify({
-          id: "abc",
-          nina: "12345678901234A",
-          firstName: "Fatoumata",
-          lastName: "Diallo",
-          birthDate: "1998-04-12",
-          birthPlace: "Bamako",
-          sex: "F",
+          id: 'abc',
+          nina: '12345678901234A',
+          firstName: 'Fatoumata',
+          lastName: 'Diallo',
+          birthDate: '1998-04-12',
+          birthPlace: 'Bamako',
+          sex: 'F',
           fatherName: null,
           motherName: null,
-          residence: { region: "District", cercle: "Bamako", commune: "Commune IV" },
+          residence: { region: 'District', cercle: 'Bamako', commune: 'Commune IV' },
           photoUrl: null,
-          createdAt: "2026-01-01T00:00:00Z",
-          updatedAt: "2026-04-01T00:00:00Z",
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-04-01T00:00:00Z',
           version: 1,
         }),
       });
     });
-    await page.goto("/fr/nina/12345678901234A");
-    await expect(page).toHaveScreenshot("fiche-citoyen.png", { maxDiffPixelRatio: 0.005 });
+    await page.goto('/fr/nina/12345678901234A');
+    await expect(page).toHaveScreenshot('fiche-citoyen.png', { maxDiffPixelRatio: 0.005 });
   });
 });
 ```
@@ -3022,20 +3063,20 @@ test.describe("Visual regression", () => {
 module.exports = {
   ci: {
     collect: {
-      startServerCommand: "pnpm start",
-      url: ["http://localhost:4001/fr/", "http://localhost:4001/fr/login"],
+      startServerCommand: 'pnpm start',
+      url: ['http://localhost:4001/fr/', 'http://localhost:4001/fr/login'],
       numberOfRuns: 3,
     },
     assert: {
       assertions: {
-        "categories:performance": ["error", { minScore: 0.9 }],
-        "categories:accessibility": ["error", { minScore: 0.95 }],
-        "categories:best-practices": ["error", { minScore: 0.9 }],
-        "total-byte-weight": ["error", { maxNumericValue: 500 * 1024 }],
-        "unused-javascript": ["warn", { maxNumericValue: 50 * 1024 }],
+        'categories:performance': ['error', { minScore: 0.9 }],
+        'categories:accessibility': ['error', { minScore: 0.95 }],
+        'categories:best-practices': ['error', { minScore: 0.9 }],
+        'total-byte-weight': ['error', { maxNumericValue: 500 * 1024 }],
+        'unused-javascript': ['warn', { maxNumericValue: 50 * 1024 }],
       },
     },
-    upload: { target: "temporary-public-storage" },
+    upload: { target: 'temporary-public-storage' },
   },
 };
 ```
@@ -3049,31 +3090,30 @@ module.exports = {
 ```markdown
 # Mini-rapport — Document 12 (Frontend Integration API)
 
-**Auteur** : _ _ _ _
-**Date** : _ _ _ _
-**Durée réelle** : _ _ h
-**Durée estimée** : 16 – 24 h
+**Auteur** : \_ \_ \_ _ **Date** : _ \_ \_ _ **Durée réelle** : _ \_ h **Durée estimée** : 16 – 24 h
 
 ## Livrables produits
 
 - `apps/citizen` port 4001 : démarre, login Keycloak OK, 6 pages principales opérationnelles
 - `apps/admin` port 4002 : démarre, validation corrections OK, dashboard IA affiche 24h
 - `apps/governance` port 4003 : démarre, KPI consolidés, directive signable
-- `packages/api-client` : 7 clients typés (identity, auth, document, correction, appointment, ai, audit) avec parsing Zod
-- `packages/ui` : 24 composants shadcn copiés + 5 composants métiers (AesLogo, NinaInput, KpiCard, CitizenCard, QrViewer)
+- `packages/api-client` : 7 clients typés (identity, auth, document, correction, appointment, ai,
+  audit) avec parsing Zod
+- `packages/ui` : 24 composants shadcn copiés + 5 composants métiers (AesLogo, NinaInput, KpiCard,
+  CitizenCard, QrViewer)
 - `packages/i18n` : 8 locales peuplées (fr complet, autres = squelette à traduire)
 
 ## Métriques obtenues
 
 | App        | First Load JS | Lighthouse perf | Lighthouse a11y | Tests unit | Tests E2E |
 | ---------- | ------------- | --------------- | --------------- | ---------- | --------- |
-| citizen    | _ _ KB        | _ _             | _ _             | _ _ %      | _ _ /3    |
-| admin      | _ _ KB        | _ _             | _ _             | _ _ %      | _ _ /3    |
-| governance | _ _ KB        | _ _             | _ _             | _ _ %      | _ _ /3    |
+| citizen    | \_ \_ KB      | \_ \_           | \_ \_           | \_ \_ %    | \_ \_ /3  |
+| admin      | \_ \_ KB      | \_ \_           | \_ \_           | \_ \_ %    | \_ \_ /3  |
+| governance | \_ \_ KB      | \_ \_           | \_ \_           | \_ \_ %    | \_ \_ /3  |
 
 ## Problèmes rencontrés
 
-- ---
+---
 
 ## Prochaine étape
 
@@ -3082,7 +3122,8 @@ module.exports = {
 
 ### 17.2 Checklist de fin d'étape
 
-- [ ] ✅ Les 3 apps démarrent simultanément (`pnpm turbo dev --filter=citizen --filter=admin --filter=governance`)
+- [ ] ✅ Les 3 apps démarrent simultanément
+      (`pnpm turbo dev --filter=citizen --filter=admin --filter=governance`)
 - [ ] ✅ Login Keycloak OIDC + PKCE opérationnel avec cookies httpOnly + Secure
 - [ ] ✅ Refresh silencieux testé (attendre 14 min, faire une requête, refresh auto)
 - [ ] ✅ Logout propre (session Keycloak terminée + cookies supprimés)
@@ -3103,8 +3144,8 @@ module.exports = {
 
 ## 18. Pour aller plus loin
 
-1. **Streaming RSC avancé** : utiliser `<Suspense>` pour streamer les KPI governance
-   indépendamment, afin que la coque apparaisse < 200 ms même avec une API lente.
+1. **Streaming RSC avancé** : utiliser `<Suspense>` pour streamer les KPI governance indépendamment,
+   afin que la coque apparaisse < 200 ms même avec une API lente.
 2. **Server Actions transactionnelles** : refactorer la soumission de correction pour utiliser
    `useActionState` de React 19 — supprime la dépendance à `useMutation` pour ce cas simple.
 3. **Offline partiel** via `next-pwa` : cacher la dernière fiche consultée par le citoyen en
@@ -3119,8 +3160,8 @@ module.exports = {
 8. **Feature flags** via Unleash : router 5 % des citoyens sur une nouvelle variante du formulaire
    de correction, mesurer le taux de soumission.
 9. **Réponse speech-to-text** pour l'USSD en accessibilité renforcée (Bloc E — borne kiosque).
-10. **SVG drapeaux des pays AES** dynamique selon la résidence du citoyen dans la fiche — sans
-    parti pris politique, juste informatif.
+10. **SVG drapeaux des pays AES** dynamique selon la résidence du citoyen dans la fiche — sans parti
+    pris politique, juste informatif.
 
 ---
 

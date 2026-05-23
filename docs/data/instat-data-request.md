@@ -1,10 +1,9 @@
 # Workflow d'enrichissement via INSTAT Mali
 
-> **Statut V1 (mai 2026)** : INSTAT n'expose pas de catalogue téléchargeable
-> public. Les données administratives complètes (159 cercles, 466
-> arrondissements, 819 communes, 12 712 villages avec coordonnées) nécessitent
-> une **demande officielle** auprès de l'Institut National de la Statistique
-> du Mali.
+> **Statut V1 (mai 2026)** : INSTAT n'expose pas de catalogue téléchargeable public. Les données
+> administratives complètes (159 cercles, 466 arrondissements, 819 communes, 12 712 villages avec
+> coordonnées) nécessitent une **demande officielle** auprès de l'Institut National de la
+> Statistique du Mali.
 >
 > Ce document fournit le template et le workflow pour faire cette demande.
 
@@ -12,13 +11,13 @@
 
 ## 1. Pourquoi passer par INSTAT ?
 
-| Niveau              | Coverage publique actuelle                | Source INSTAT requise pour                |
-| ------------------- | ----------------------------------------- | ----------------------------------------- |
-| Régions (20)        | ✅ 100 % (loi 2023 + Wikipedia)            | Validation officielle                     |
-| Cercles (159)       | ⚠️ 64 noms confirmés + 50 polygones (CC BY)| 95 cercles restants + coordonnées RGPH    |
-| Arrondissements (466) | ❌ 0                                       | RGPH 2009/2024 — **demande requise**      |
-| Communes (819)      | ⚠️ 10 échantillons                         | RGPH — **demande requise**                |
-| Villages (12 712)   | ❌ 0                                       | Microdata RGPH — **demande très formelle**|
+| Niveau                | Coverage publique actuelle                  | Source INSTAT requise pour                 |
+| --------------------- | ------------------------------------------- | ------------------------------------------ |
+| Régions (20)          | ✅ 100 % (loi 2023 + Wikipedia)             | Validation officielle                      |
+| Cercles (159)         | ⚠️ 64 noms confirmés + 50 polygones (CC BY) | 95 cercles restants + coordonnées RGPH     |
+| Arrondissements (466) | ❌ 0                                        | RGPH 2009/2024 — **demande requise**       |
+| Communes (819)        | ⚠️ 10 échantillons                          | RGPH — **demande requise**                 |
+| Villages (12 712)     | ❌ 0                                        | Microdata RGPH — **demande très formelle** |
 
 INSTAT est la **seule** source officielle qui peut fournir :
 
@@ -28,26 +27,25 @@ INSTAT est la **seule** source officielle qui peut fournir :
 4. Les codes administratifs internes utilisés par les autres ministères
 5. Les données démographiques associées (population par localité)
 
-Sans ces données, les sites comme la cartographie heatmap par arrondissement,
-les RDV CTDEC par commune, et la suggestion de centre RAVEC le plus proche
-restent **incomplets**.
+Sans ces données, les sites comme la cartographie heatmap par arrondissement, les RDV CTDEC par
+commune, et la suggestion de centre RAVEC le plus proche restent **incomplets**.
 
 ---
 
 ## 2. Points de contact officiels
 
-| Canal                  | Adresse                                      | Usage                          |
-| ---------------------- | -------------------------------------------- | ------------------------------ |
-| Email officiel         | `direction@instat.ml`                        | Demande formelle, accord       |
-| Téléphone              | `+223 20 22 24 55`                           | Suivi, relance                 |
-| Adresse postale        | INSTAT, Rue 7, Porte 18, Bamako              | Courrier officiel papier (rare)|
-| Microdata catalog      | `microdata.instat.ml`                        | Inscription pour datasets RGPH |
-| Open Data Africa Mali  | `mali.opendataforafrica.org`                 | Datasets agrégés (pas microdata)|
-| Plateforme PxWeb       | `pxweb.instat.ml`                            | Indicateurs statistiques       |
+| Canal                 | Adresse                         | Usage                            |
+| --------------------- | ------------------------------- | -------------------------------- |
+| Email officiel        | `direction@instat.ml`           | Demande formelle, accord         |
+| Téléphone             | `+223 20 22 24 55`              | Suivi, relance                   |
+| Adresse postale       | INSTAT, Rue 7, Porte 18, Bamako | Courrier officiel papier (rare)  |
+| Microdata catalog     | `microdata.instat.ml`           | Inscription pour datasets RGPH   |
+| Open Data Africa Mali | `mali.opendataforafrica.org`    | Datasets agrégés (pas microdata) |
+| Plateforme PxWeb      | `pxweb.instat.ml`               | Indicateurs statistiques         |
 
-**Conseil pratique** : commencer par s'inscrire sur `microdata.instat.ml`
-(libre, 5 min) avant la demande formelle. L'inscription donne accès aux
-métadonnées et permet de cibler la demande précisément.
+**Conseil pratique** : commencer par s'inscrire sur `microdata.instat.ml` (libre, 5 min) avant la
+demande formelle. L'inscription donne accès aux métadonnées et permet de cibler la demande
+précisément.
 
 ---
 
@@ -153,8 +151,8 @@ wc -l data/_raw/instat-rgph5/*.csv
 
 ### 4.2 Conversion vers format projet
 
-Créer un script `scripts/import-from-instat.mjs` (template à dériver de
-`generate-seed-sql.mjs`) qui :
+Créer un script `scripts/import-from-instat.mjs` (template à dériver de `generate-seed-sql.mjs`) qui
+:
 
 1. Lit les CSV INSTAT
 2. Normalise les noms (NFC, espaces, casse)
@@ -201,31 +199,29 @@ pnpm --filter @nina-aes/database db:seed
 
 ## 5. Sources alternatives en attendant la réponse INSTAT
 
-Si la réponse INSTAT tarde (commun : 4-12 semaines), enrichir
-partiellement via :
+Si la réponse INSTAT tarde (commun : 4-12 semaines), enrichir partiellement via :
 
-| Source                    | Coverage attendue                          | Effort           |
-| ------------------------- | ------------------------------------------ | ---------------- |
-| Wikipedia FR (scrap)      | ~80 % des cercles (noms + chefs-lieux)    | 4 h (script Python) |
-| geoBoundaries ADM3        | Polygones arrondissements si disponibles  | 2 h              |
-| OpenStreetMap Overpass    | Villages (~80 % coverage)                 | 8 h + ~5 MB data |
-| OCHA HDX                  | Shapefile officiel ADM (inscription CC BY)| 2 h              |
+| Source                 | Coverage attendue                          | Effort              |
+| ---------------------- | ------------------------------------------ | ------------------- |
+| Wikipedia FR (scrap)   | ~80 % des cercles (noms + chefs-lieux)     | 4 h (script Python) |
+| geoBoundaries ADM3     | Polygones arrondissements si disponibles   | 2 h                 |
+| OpenStreetMap Overpass | Villages (~80 % coverage)                  | 8 h + ~5 MB data    |
+| OCHA HDX               | Shapefile officiel ADM (inscription CC BY) | 2 h                 |
 
-**Recommandation** : faire la demande INSTAT **maintenant** (délai
-incompressible) et enrichir partiellement via geoBoundaries ADM3 ou
-Wikipedia en parallèle.
+**Recommandation** : faire la demande INSTAT **maintenant** (délai incompressible) et enrichir
+partiellement via geoBoundaries ADM3 ou Wikipedia en parallèle.
 
 ---
 
 ## 6. Suivi de la demande
 
-| Date      | Étape                       | Statut          |
-| --------- | --------------------------- | --------------- |
-| YYYY-MM-DD| Envoi courriel à `direction@instat.ml` | ⏳ À faire |
-| YYYY-MM-DD| Accusé de réception INSTAT  |                 |
-| YYYY-MM-DD| Demande de précisions       |                 |
-| YYYY-MM-DD| Réception données           |                 |
-| YYYY-MM-DD| Intégration v1              |                 |
+| Date       | Étape                                  | Statut     |
+| ---------- | -------------------------------------- | ---------- |
+| YYYY-MM-DD | Envoi courriel à `direction@instat.ml` | ⏳ À faire |
+| YYYY-MM-DD | Accusé de réception INSTAT             |            |
+| YYYY-MM-DD | Demande de précisions                  |            |
+| YYYY-MM-DD | Réception données                      |            |
+| YYYY-MM-DD | Intégration v1                         |            |
 
 Tenir à jour ce tableau au fil des échanges.
 
@@ -235,7 +231,7 @@ Tenir à jour ce tableau au fil des échanges.
 
 - **Microdata INSTAT** : <https://microdata.instat.ml> (inscription)
 - **Loi N°2023-001 du 13 mars 2023** : Journal Officiel du Mali
-- **CTDEC** : `direction.ctdec@gouv.ml` (peut aussi fournir des données
-  internes à des fins de prototypage si projet validé par la DNEC)
-- **Convention de partenariat type CTDEC-UQAR** : à demander à votre
-  professeur tuteur si une convention encadrante existe déjà
+- **CTDEC** : `direction.ctdec@gouv.ml` (peut aussi fournir des données internes à des fins de
+  prototypage si projet validé par la DNEC)
+- **Convention de partenariat type CTDEC-UQAR** : à demander à votre professeur tuteur si une
+  convention encadrante existe déjà

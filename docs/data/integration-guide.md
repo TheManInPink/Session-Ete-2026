@@ -1,8 +1,8 @@
 # Guide d'intégration des données administratives Mali
 
-> **Compagnon de** `mali-divisions.md` (référentiel + sources).
-> Ce document explique **comment consommer** les fichiers `data/mali/*` dans
-> chaque couche du projet (frontend, backend, base de données, IA).
+> **Compagnon de** `mali-divisions.md` (référentiel + sources). Ce document explique **comment
+> consommer** les fichiers `data/mali/*` dans chaque couche du projet (frontend, backend, base de
+> données, IA).
 
 ---
 
@@ -33,12 +33,13 @@
             └──────────────────┘
 ```
 
-**Règle d'or** : aucun service ne doit jamais coder en dur le nom d'une région
-ou d'un cercle malien. Toujours passer par :
+**Règle d'or** : aucun service ne doit jamais coder en dur le nom d'une région ou d'un cercle
+malien. Toujours passer par :
+
 1. **`data/mali/*.json`** (source) →
 2. **`Location` table Prisma** (cache requêtable) ou
-3. **`@nina-aes/data`** alias pnpm (import direct du JSON pour les besoins
-   purement lecture côté frontend).
+3. **`@nina-aes/data`** alias pnpm (import direct du JSON pour les besoins purement lecture côté
+   frontend).
 
 ---
 
@@ -61,13 +62,13 @@ pnpm --filter @nina-aes/database db:seed
 
 Résultat attendu (à comparer avec le `wc -l` final) :
 
-| Niveau | Type      | Nombre attendu après seed |
-| ------ | --------- | ------------------------: |
-| 0      | Pays      |                         1 |
-| 1      | Région    |                **20** (19 + District) |
-| 2      | Cercle    |                **65** (post-2023, partiel) |
-| 3      | Commune   |              **~150** (échantillon pédagogique) |
-| Total  | Locations |                  **236** |
+| Niveau | Type      |          Nombre attendu après seed |
+| ------ | --------- | ---------------------------------: |
+| 0      | Pays      |                                  1 |
+| 1      | Région    |             **20** (19 + District) |
+| 2      | Cercle    |        **65** (post-2023, partiel) |
+| 3      | Commune   | **~150** (échantillon pédagogique) |
+| Total  | Locations |                            **236** |
 
 Validation :
 
@@ -81,13 +82,11 @@ docker exec nina-postgres psql -U nina_admin -d nina_aes_db -c "
 
 ### 2.1bis Bootstrap SQL (sans Prisma) — schéma `geo_ref`
 
-Avant que les microservices NestJS (et donc Prisma) soient déployés,
-certains scénarios ont besoin de requêter le référentiel : tests
-d'intégration BDD-only, scripts de DR (Disaster Recovery), vues
-matérialisées analytiques. Pour ces cas, le seed SQL
-`infrastructure/scripts/seed-locations.sql` (généré depuis les JSON)
-charge un schéma **isolé** `geo_ref` au premier démarrage Postgres
-(monté en `/docker-entrypoint-initdb.d/02-seed-locations.sql`).
+Avant que les microservices NestJS (et donc Prisma) soient déployés, certains scénarios ont besoin
+de requêter le référentiel : tests d'intégration BDD-only, scripts de DR (Disaster Recovery), vues
+matérialisées analytiques. Pour ces cas, le seed SQL `infrastructure/scripts/seed-locations.sql`
+(généré depuis les JSON) charge un schéma **isolé** `geo_ref` au premier démarrage Postgres (monté
+en `/docker-entrypoint-initdb.d/02-seed-locations.sql`).
 
 ```powershell
 # Auto-exécuté au premier `docker:up`. Pour réappliquer manuellement :
@@ -126,15 +125,14 @@ make seed-locations-generate
 # OU directement : node scripts/generate-seed-sql.mjs
 ```
 
-> 📝 Le seed Prisma (`packages/database/prisma/seed.ts`) reste la voie
-> **principale** de chargement runtime ; il consomme directement les JSON
-> et peuple `public.locations`. Le schéma `geo_ref` est un complément
-> pour les usages infra-first décrits ci-dessus.
+> 📝 Le seed Prisma (`packages/database/prisma/seed.ts`) reste la voie **principale** de chargement
+> runtime ; il consomme directement les JSON et peuple `public.locations`. Le schéma `geo_ref` est
+> un complément pour les usages infra-first décrits ci-dessus.
 
 ### 2.2 Re-seed après mise à jour des fichiers JSON
 
-Les seeds sont **idempotents** (`upsert` sur la clé `code`). Pour
-re-synchroniser après modification de `regions.json` ou `cercles.json` :
+Les seeds sont **idempotents** (`upsert` sur la clé `code`). Pour re-synchroniser après modification
+de `regions.json` ou `cercles.json` :
 
 ```powershell
 # Côté Prisma (public.locations) :
@@ -147,8 +145,8 @@ docker exec -i nina-postgres psql -U nina_admin -d nina_aes_db `
 
 ### 2.3 Recherche fuzzy par trigram (PostgreSQL)
 
-Le seed remplit automatiquement `nameAscii` (version sans diacritiques) qui est
-indexée GIN trigram. Exemple de requête fuzzy directe (mot mal orthographié) :
+Le seed remplit automatiquement `nameAscii` (version sans diacritiques) qui est indexée GIN trigram.
+Exemple de requête fuzzy directe (mot mal orthographié) :
 
 ```sql
 SELECT code, name, similarity(name_ascii, 'SIKASO') AS sim
@@ -166,9 +164,8 @@ LIMIT 5;
 
 ### 3.1 Cache au démarrage
 
-`identity-service`, `appointment-service` et `vulnerability-service` doivent
-charger en **cache Redis** la liste des régions + cercles au démarrage, avec
-TTL 24 h (recharge nocturne) :
+`identity-service`, `appointment-service` et `vulnerability-service` doivent charger en **cache
+Redis** la liste des régions + cercles au démarrage, avec TTL 24 h (recharge nocturne) :
 
 ```typescript
 // services/identity-service/src/locations/locations.cache.ts
@@ -209,17 +206,17 @@ export class LocationsCache implements OnModuleInit {
     const locations = await prisma.location.findMany({
       where: { level: { in: [1, 2] } },
       select: {
-        id: true, code: true, name: true, level: true, parentId: true,
-        latitude: true, longitude: true,
+        id: true,
+        code: true,
+        name: true,
+        level: true,
+        parentId: true,
+        latitude: true,
+        longitude: true,
       },
       orderBy: [{ level: 'asc' }, { name: 'asc' }],
     });
-    await this.redis.set(
-      LocationsCache.KEY,
-      JSON.stringify(locations),
-      'EX',
-      LocationsCache.TTL,
-    );
+    await this.redis.set(LocationsCache.KEY, JSON.stringify(locations), 'EX', LocationsCache.TTL);
     return locations;
   }
 }
@@ -227,24 +224,27 @@ export class LocationsCache implements OnModuleInit {
 
 ### 3.2 Validation côté service (Zod)
 
-Quand un citoyen soumet un `birthPlaceId` ou `residenceId`, valider qu'il
-existe bien dans le référentiel :
+Quand un citoyen soumet un `birthPlaceId` ou `residenceId`, valider qu'il existe bien dans le
+référentiel :
 
 ```typescript
 // services/identity-service/src/citizens/citizens.validator.ts
 import { z } from 'zod';
 
 /** Référence à une Location existante. */
-export const locationRefSchema = z.string().uuid().refine(
-  async (id) => {
-    const exists = await prisma.location.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    return !!exists;
-  },
-  { message: 'Location introuvable dans le référentiel administratif.' },
-);
+export const locationRefSchema = z
+  .string()
+  .uuid()
+  .refine(
+    async (id) => {
+      const exists = await prisma.location.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+      return !!exists;
+    },
+    { message: 'Location introuvable dans le référentiel administratif.' },
+  );
 ```
 
 ### 3.3 Calcul de distance (centre RAVEC ↔ citoyen)
@@ -263,19 +263,18 @@ export function haversineKm(
   a: { lat: number | Decimal; lng: number | Decimal },
   b: { lat: number | Decimal; lng: number | Decimal },
 ): number {
-  const toNum = (x: number | Decimal) => typeof x === 'number' ? x : x.toNumber();
-  const φ1 = toNum(a.lat) * Math.PI / 180;
-  const φ2 = toNum(b.lat) * Math.PI / 180;
-  const Δφ = (toNum(b.lat) - toNum(a.lat)) * Math.PI / 180;
-  const Δλ = (toNum(b.lng) - toNum(a.lng)) * Math.PI / 180;
+  const toNum = (x: number | Decimal) => (typeof x === 'number' ? x : x.toNumber());
+  const φ1 = (toNum(a.lat) * Math.PI) / 180;
+  const φ2 = (toNum(b.lat) * Math.PI) / 180;
+  const Δφ = ((toNum(b.lat) - toNum(a.lat)) * Math.PI) / 180;
+  const Δλ = ((toNum(b.lng) - toNum(a.lng)) * Math.PI) / 180;
   const x = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   return 2 * 6371 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 ```
 
-> 📝 **Pour la prod** : passer à PostGIS (`ST_DistanceSphere`) qui gère
-> nativement les calculs géodésiques sur la colonne `geom geography(Point,4326)`
-> déjà déclarée dans le schéma Prisma.
+> 📝 **Pour la prod** : passer à PostGIS (`ST_DistanceSphere`) qui gère nativement les calculs
+> géodésiques sur la colonne `geom geography(Point,4326)` déjà déclarée dans le schéma Prisma.
 
 ---
 
@@ -283,8 +282,7 @@ export function haversineKm(
 
 ### 4.1 Alias pnpm pour import direct des JSON
 
-**`tsconfig.base.json`** (à créer dans `packages/typescript-config/` si pas
-déjà fait) :
+**`tsconfig.base.json`** (à créer dans `packages/typescript-config/` si pas déjà fait) :
 
 ```json
 {
@@ -424,12 +422,12 @@ export function MaliMapLeaflet() {
 
 Pour la carte choroplèthe complète (régions ↔ cercles ↔ communes) :
 
-| Zoom Leaflet | Niveau affiché          | Source                           |
-| ------------ | ----------------------- | -------------------------------- |
-| 1 – 5        | Pays (1 marker)         | feature kind=`country`           |
-| 5 – 7        | Régions (20 markers)    | features kind=`region`+`district`|
-| 7 – 9        | Cercles (65 markers)    | features kind=`cercle`           |
-| 9 +          | Communes (échantillon)  | requête API `/locations?level=3` |
+| Zoom Leaflet | Niveau affiché         | Source                            |
+| ------------ | ---------------------- | --------------------------------- |
+| 1 – 5        | Pays (1 marker)        | feature kind=`country`            |
+| 5 – 7        | Régions (20 markers)   | features kind=`region`+`district` |
+| 7 – 9        | Cercles (65 markers)   | features kind=`cercle`            |
+| 9 +          | Communes (échantillon) | requête API `/locations?level=3`  |
 
 ```typescript
 import { useMapEvents } from 'react-leaflet';
@@ -453,8 +451,8 @@ function ZoomBasedLayer() {
 
 ## 5. Couche IA — fuzzy matching
 
-Le `ai-service` (FastAPI) charge les noms de régions/cercles au démarrage et
-expose un endpoint de suggestion :
+Le `ai-service` (FastAPI) charge les noms de régions/cercles au démarrage et expose un endpoint de
+suggestion :
 
 ```python
 # services/ai-service/app/locations/fuzzy.py
@@ -492,8 +490,8 @@ def suggest(query: str, limit: int = 5) -> list[tuple[str, int]]:
     )
 ```
 
-Ce module est consommé par le pipeline de correction (cf. doc 11) pour
-suggérer la valeur correcte quand un citoyen saisit "Sikaso" → "Sikasso 95".
+Ce module est consommé par le pipeline de correction (cf. doc 11) pour suggérer la valeur correcte
+quand un citoyen saisit "Sikaso" → "Sikasso 95".
 
 ---
 
@@ -535,13 +533,13 @@ git commit -m "data(mali): enrichit cercles avec X nouvelles entrées (vYYYY.MM.
 
 ## 8. Erreurs courantes
 
-| Symptôme                                                         | Cause probable                                                  | Solution                                                  |
-| ---------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------- |
-| `seed.ts` crashe avec `Parent "ML-XX" introuvable`               | Cercle référence une région absente de `regions.json`           | Vérifier `region_code` du cercle, ajouter la région       |
-| Carte affiche un marker au mauvais endroit                       | `centroide.estime: true` — coordonnée approximative             | Vérifier dans GeoNames + corriger dans `cercles.json`     |
-| `prisma migrate` se plaint du soft-delete                        | Index trigram créé avant l'extension `pg_trgm`                  | Vérifier que le schema déclare bien `extensions = [...]`  |
-| Recherche fuzzy renvoie 0 résultats                              | `nameAscii` non rempli (toAscii() KO sur certains caractères)   | Ajouter le caractère exotique dans `toAscii()` regex      |
-| Frontend importe `mali.geojson` mais TS se plaint                | `resolveJsonModule: false`                                      | `tsconfig.json` → `"resolveJsonModule": true`             |
+| Symptôme                                           | Cause probable                                                | Solution                                                 |
+| -------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| `seed.ts` crashe avec `Parent "ML-XX" introuvable` | Cercle référence une région absente de `regions.json`         | Vérifier `region_code` du cercle, ajouter la région      |
+| Carte affiche un marker au mauvais endroit         | `centroide.estime: true` — coordonnée approximative           | Vérifier dans GeoNames + corriger dans `cercles.json`    |
+| `prisma migrate` se plaint du soft-delete          | Index trigram créé avant l'extension `pg_trgm`                | Vérifier que le schema déclare bien `extensions = [...]` |
+| Recherche fuzzy renvoie 0 résultats                | `nameAscii` non rempli (toAscii() KO sur certains caractères) | Ajouter le caractère exotique dans `toAscii()` regex     |
+| Frontend importe `mali.geojson` mais TS se plaint  | `resolveJsonModule: false`                                    | `tsconfig.json` → `"resolveJsonModule": true`            |
 
 ---
 

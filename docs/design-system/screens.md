@@ -1,12 +1,11 @@
 # NINA-AES — Maquettes des 12 écrans (spec Figma + dev)
 
-> Compagnon de `design-system.md`. Pour chaque écran : **layout** (wireframe ASCII +
-> notes Figma) · **composants** utilisés · **données fictives maliennes** · **interactions**
-> · **states** (loading / error / empty / success) · **responsive** (mobile / tablet /
-> desktop) · **a11y**.
+> Compagnon de `design-system.md`. Pour chaque écran : **layout** (wireframe ASCII + notes Figma) ·
+> **composants** utilisés · **données fictives maliennes** · **interactions** · **states** (loading
+> / error / empty / success) · **responsive** (mobile / tablet / desktop) · **a11y**.
 >
-> Ces wireframes servent de cahier de charges pour le designer Figma puis directement de
-> spec d'implémentation pour le PROMPT 5.1 qui produira le code Next.js.
+> Ces wireframes servent de cahier de charges pour le designer Figma puis directement de spec
+> d'implémentation pour le PROMPT 5.1 qui produira le code Next.js.
 
 ---
 
@@ -14,8 +13,8 @@
 
 ### PC-01 — Accueil
 
-**Objectif** : page d'entrée publique. Doit signer immédiatement l'identité AES, proposer
-la recherche NINA en grand, et expliquer la valeur du portail.
+**Objectif** : page d'entrée publique. Doit signer immédiatement l'identité AES, proposer la
+recherche NINA en grand, et expliquer la valeur du portail.
 
 **Layout (desktop ≥ 1024 px)** :
 
@@ -46,39 +45,42 @@ la recherche NINA en grand, et expliquer la valeur du portail.
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Composants** : `Header` (custom) · `Button` (5 variants) · `NinaInput` ·
-`LanguageSelector` · `Card` (4 actions) · 3× section éducative (illustrations Lucide
-custom) · `AESCountrySwitcher` (footer).
+**Composants** : `Header` (custom) · `Button` (5 variants) · `NinaInput` · `LanguageSelector` ·
+`Card` (4 actions) · 3× section éducative (illustrations Lucide custom) · `AESCountrySwitcher`
+(footer).
 
 **Données fictives** : aucune (page publique).
 
 **Interactions** :
+
 - `NinaInput` autofocus au chargement
-- Hero : animation `motion.duration.xslow` + `motion.easing.spring` au mount, désactivée
-  si `prefers-reduced-motion: reduce`
+- Hero : animation `motion.duration.xslow` + `motion.easing.spring` au mount, désactivée si
+  `prefers-reduced-motion: reduce`
 - Cartes d'action : hover → `shadow.md` + `translateY(-2px)`, click → navigate
 - `LanguageSelector` : dropdown avec drapeau emoji + nom natif
 
 **States** :
-- *loading* : Skeleton sur le hero pendant 200 ms max
-- *error* : si l'API `/healthz` échoue, bannière warning « Service en maintenance »
-- *empty/success* : N/A (page statique)
+
+- _loading_ : Skeleton sur le hero pendant 200 ms max
+- _error_ : si l'API `/healthz` échoue, bannière warning « Service en maintenance »
+- _empty/success_ : N/A (page statique)
 
 **Responsive** :
-- `xs (360 px)` : hero plein écran, NinaInput sur 1 ligne (input seul + bouton dessous),
-  cartes d'action en `grid-cols-1`
+
+- `xs (360 px)` : hero plein écran, NinaInput sur 1 ligne (input seul + bouton dessous), cartes
+  d'action en `grid-cols-1`
 - `md (768 px)` : cartes en `grid-cols-2`
 - `lg (1024 px)` : cartes en `grid-cols-4`, layout final
 
-**A11y** : skip-link en début, hero `<h1>` unique sur la page, contraste texte hero
-6:1 minimum, `LanguageSelector` ouvrable au clavier (Espace / Entrée).
+**A11y** : skip-link en début, hero `<h1>` unique sur la page, contraste texte hero 6:1 minimum,
+`LanguageSelector` ouvrable au clavier (Espace / Entrée).
 
 ---
 
 ### PC-02 — Résultat de recherche NINA
 
-**Objectif** : afficher la fiche d'identité après une recherche réussie, permettre de
-télécharger la FDI ou de signaler une erreur.
+**Objectif** : afficher la fiche d'identité après une recherche réussie, permettre de télécharger la
+FDI ou de signaler une erreur.
 
 **Layout (desktop ≥ 1024 px)** :
 
@@ -109,29 +111,32 @@ télécharger la FDI ou de signaler une erreur.
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Composants** : `Breadcrumb` · `CitizenCard` (custom) · `Avatar` size `xl` ·
-`NinaDisplay` format=`grouped` · `Badge` ai-verified · 8-niveaux breadcrumb géographique
-(custom) · 2× `Button` solid + outline.
+**Composants** : `Breadcrumb` · `CitizenCard` (custom) · `Avatar` size `xl` · `NinaDisplay`
+format=`grouped` · `Badge` ai-verified · 8-niveaux breadcrumb géographique (custom) · 2× `Button`
+solid + outline.
 
 **Données fictives** : Citizen seedé, ex. NINA `18903102015042Z` (Fatoumata Diallo).
 
 **Interactions** :
+
 - Click photo → modal preview pleine taille
 - Click « Télécharger FDI » → `Button loading` puis téléchargement signed URL MinIO
 - Click « Signaler une erreur » → navigate vers PC-03 avec NINA pré-rempli
 
 **States** :
-- *loading* : Skeleton sur tout le bloc (forme du card)
-- *error* (404) : EmptyState « NINA non trouvé » + retour PC-01
-- *empty* : N/A (s'il n'y a pas de résultat → 404)
+
+- _loading_ : Skeleton sur tout le bloc (forme du card)
+- _error_ (404) : EmptyState « NINA non trouvé » + retour PC-01
+- _empty_ : N/A (s'il n'y a pas de résultat → 404)
 
 **Responsive** :
+
 - `xs` : photo en haut, infos dessous, actions en pile
 - `md` : layout 2-colonnes commencé
 - `lg` : layout final
 
-**A11y** : photo a un `alt="Photo de Fatoumata Diallo"` (nom du citoyen), tous les liens
-breadcrumb sont focusables, badge IA expose son score via `aria-label`.
+**A11y** : photo a un `alt="Photo de Fatoumata Diallo"` (nom du citoyen), tous les liens breadcrumb
+sont focusables, badge IA expose son score via `aria-label`.
 
 ---
 
@@ -164,38 +169,41 @@ breadcrumb sont focusables, badge IA expose son score via `aria-label`.
 ```
 
 **4 étapes** :
-1. **Choix du champ** — `Combobox` avec liste des champs corrigibles (firstName, lastName,
-   commune, …) ; chacun affiche la valeur actuelle.
-2. **Nouvelle valeur** (illustré ci-dessus) — `Input` ou `Combobox` selon le champ +
-   `AiScorePanel` mis à jour à chaque frappe via debounce 300 ms.
+
+1. **Choix du champ** — `Combobox` avec liste des champs corrigibles (firstName, lastName, commune,
+   …) ; chacun affiche la valeur actuelle.
+2. **Nouvelle valeur** (illustré ci-dessus) — `Input` ou `Combobox` selon le champ + `AiScorePanel`
+   mis à jour à chaque frappe via debounce 300 ms.
 3. **Upload justificatif** — `UploadZone` (drag-drop), 10 Mo max, PDF/JPG/PNG/HEIC.
-4. **Confirmation** — récap + checkbox « Je certifie sur l'honneur l'exactitude » +
-   `Button` solid « Soumettre ».
+4. **Confirmation** — récap + checkbox « Je certifie sur l'honneur l'exactitude » + `Button` solid «
+   Soumettre ».
 
-**Composants** : `Stepper` · `Card` · `Combobox` · `Input` · `AiScorePanel` ·
-`UploadZone` · `Button` · `Checkbox`.
+**Composants** : `Stepper` · `Card` · `Combobox` · `Input` · `AiScorePanel` · `UploadZone` ·
+`Button` · `Checkbox`.
 
-**Données fictives** : champ `cercle`, valeur actuelle `"Sikaso"`, valeur proposée
-`"Sikasso"` ; le score IA est calculé live.
+**Données fictives** : champ `cercle`, valeur actuelle `"Sikaso"`, valeur proposée `"Sikasso"` ; le
+score IA est calculé live.
 
 **Interactions** :
+
 - Navigation stepper bidirectionnelle (clic sur une étape passée pour y retourner)
 - Score IA recalculé via TanStack Query mutation debounced
 - Upload : preview thumbnail + barre de progression
 - Submit final : `Button loading` + redirection vers PC-05 (suivi)
 
 **States** :
-- *loading IA* : score affiche `Spinner sm` à la place du nombre
-- *error IA* : Alert warning « Score indisponible — votre demande sera examinée
-  manuellement »
-- *error upload* : Toast danger + retry button
+
+- _loading IA_ : score affiche `Spinner sm` à la place du nombre
+- _error IA_ : Alert warning « Score indisponible — votre demande sera examinée manuellement »
+- _error upload_ : Toast danger + retry button
 
 **Responsive** :
+
 - `xs` : stepper en horizontal scroll, comparaison avant/après en pile
 - `md` : stepper visible complet, comparaison côte-à-côte
 
-**A11y** : `aria-current="step"` sur étape courante, `Stepper` navigable au clavier,
-upload zone supporte le clavier (Espace ouvre le file picker).
+**A11y** : `aria-current="step"` sur étape courante, `Stepper` navigable au clavier, upload zone
+supporte le clavier (Espace ouvre le file picker).
 
 ---
 
@@ -233,31 +241,34 @@ upload zone supporte le clavier (Espace ouvre le file picker).
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Modal de confirmation** : QR code du RDV + détails + bouton « Ajouter au calendrier »
-(.ics) et « Envoyer par SMS ».
+**Modal de confirmation** : QR code du RDV + détails + bouton « Ajouter au calendrier » (.ics) et «
+Envoyer par SMS ».
 
-**Composants** : `MaliMap` (D3) · `Card` (centre sélectionné) · `Calendar` (shadcn) ·
-`PrioritySlot` · `Button` solid · `Dialog` (confirmation) · QR code SVG.
+**Composants** : `MaliMap` (D3) · `Card` (centre sélectionné) · `Calendar` (shadcn) · `PrioritySlot`
+· `Button` solid · `Dialog` (confirmation) · QR code SVG.
 
-**Données fictives** : centres seedés (CTDEC Bamako, Mairie Comm. IV, Gouvernorat
-Kayes) ; créneaux fictifs.
+**Données fictives** : centres seedés (CTDEC Bamako, Mairie Comm. IV, Gouvernorat Kayes) ; créneaux
+fictifs.
 
 **Interactions** :
+
 - Click région → centres filtrés + map zoom
 - Click créneau → met en surbrillance + active le bouton confirmer
 - Confirmation → mutation API + ouverture modal QR code
 
 **States** :
-- *empty* : « Aucun créneau disponible cette semaine — proposer la suivante »
-- *vulnérable* : badge automatique « Vous êtes prioritaire » si `vulnerabilityCategory`
-  présent sur le profil
+
+- _empty_ : « Aucun créneau disponible cette semaine — proposer la suivante »
+- _vulnérable_ : badge automatique « Vous êtes prioritaire » si `vulnerabilityCategory` présent sur
+  le profil
 
 **Responsive** :
+
 - `xs` : map en haut, calendrier dessous (full width)
 - `lg` : layout 2 colonnes ci-dessus
 
-**A11y** : la map est aussi accessible via une liste équivalente (toggle), créneaux
-sélectionnables au clavier (flèches haut/bas).
+**A11y** : la map est aussi accessible via une liste équivalente (toggle), créneaux sélectionnables
+au clavier (flèches haut/bas).
 
 ---
 
@@ -292,17 +303,19 @@ sélectionnables au clavier (flèches haut/bas).
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Composants** : `Card` (par demande) · `CorrectionTimeline` (custom) · `Badge` statut ·
-`Button` outline / ghost.
+**Composants** : `Card` (par demande) · `CorrectionTimeline` (custom) · `Badge` statut · `Button`
+outline / ghost.
 
 **Données fictives** : 2 demandes (1 correction + 1 RDV) liées au citoyen Fatoumata Diallo.
 
 **Interactions** :
+
 - Auto-refresh toutes les 30 s (TanStack Query `refetchInterval`)
 - Notif push browser si statut change pendant que la page est ouverte
 
 **States** :
-- *empty* : EmptyState « Aucune demande en cours » + CTA vers PC-03
+
+- _empty_ : EmptyState « Aucune demande en cours » + CTA vers PC-03
 
 ---
 
@@ -336,14 +349,14 @@ sélectionnables au clavier (flèches haut/bas).
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Modal post-soumission** : token chiffré (ex. `WGRZ-1XK2-FN8M`) + QR code à
-scanner / sauvegarder + bouton « Télécharger en PDF protégé par mot de passe ».
+**Modal post-soumission** : token chiffré (ex. `WGRZ-1XK2-FN8M`) + QR code à scanner / sauvegarder +
+bouton « Télécharger en PDF protégé par mot de passe ».
 
-**Composants** : Banner Alert info (mode anonyme) · `RadioGroup` catégorie · `Textarea`
-description · `UploadZone` · `Button` · `Dialog` confirmation avec token.
+**Composants** : Banner Alert info (mode anonyme) · `RadioGroup` catégorie · `Textarea` description
+· `UploadZone` · `Button` · `Dialog` confirmation avec token.
 
-**A11y** : Banner mode anonyme est `role="status"` (lu en priorité), formulaire utilisable
-sans cookie / sans JS si possible (fallback POST classique).
+**A11y** : Banner mode anonyme est `role="status"` (lu en priorité), formulaire utilisable sans
+cookie / sans JS si possible (fallback POST classique).
 
 ---
 
@@ -375,18 +388,20 @@ sans cookie / sans JS si possible (fallback POST classique).
 └──────────────┴─────────────────────────────────────────────────────────────┘
 ```
 
-**Composants** : `AdminSidebar` (custom) · 4× `Card` KPI avec sparkline SVG inline ·
-`AreaChart` Recharts · `MaliHeatmap` · feed scrollable d'`AlertSeverityBadge`.
+**Composants** : `AdminSidebar` (custom) · 4× `Card` KPI avec sparkline SVG inline · `AreaChart`
+Recharts · `MaliHeatmap` · feed scrollable d'`AlertSeverityBadge`.
 
-**Données fictives** : KPIs du jour (12 489 NINA actifs, 84 corrections en attente, 17
-alertes, 326 RDV).
+**Données fictives** : KPIs du jour (12 489 NINA actifs, 84 corrections en attente, 17 alertes, 326
+RDV).
 
 **Interactions** :
+
 - Click KPI → drill-down vers la liste correspondante
 - Hover sparkline → tooltip avec valeur exacte
 - Feed alertes : auto-update via Server-Sent Events (SSE)
 
 **Responsive** :
+
 - `xs` : sidebar transformée en drawer (icône burger), KPIs en pile
 - `lg` : layout final
 
@@ -394,8 +409,8 @@ alertes, 326 RDV).
 
 ### AD-02 — Gestion corrections (DataGrid)
 
-**Layout** : DataGrid pleine largeur avec barre de filtres en haut et drawer latéral
-qui s'ouvre au clic d'une ligne.
+**Layout** : DataGrid pleine largeur avec barre de filtres en haut et drawer latéral qui s'ouvre au
+clic d'une ligne.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
@@ -438,9 +453,9 @@ qui s'ouvre au clic d'une ligne.
 └──────────────────────────────────────────┘
 ```
 
-**Composants** : `DataGrid` (custom Radix Table) · multi-filtres `Combobox` · `Drawer`
-right · `CitizenCard` compact · `NinaDisplay` · `AiScorePanel` · `CorrectionTimeline` ·
-`Button` solid danger / success.
+**Composants** : `DataGrid` (custom Radix Table) · multi-filtres `Combobox` · `Drawer` right ·
+`CitizenCard` compact · `NinaDisplay` · `AiScorePanel` · `CorrectionTimeline` · `Button` solid
+danger / success.
 
 **Interactions** : sélection multiple → actions en lot (approuver / rejeter / assigner).
 
@@ -475,10 +490,11 @@ right · `CitizenCard` compact · `NinaDisplay` · `AiScorePanel` · `Correction
 ```
 
 **Composants** : `MaliHeatmap` · `IntegrityScoreGauge` (× 10) · liste `AlertSeverityBadge`
-+ description tronquée.
 
-**Interactions** : click région map → filter alertes ; click agent → drill-down profil ;
-click alerte → ouvre dossier d'investigation.
+- description tronquée.
+
+**Interactions** : click région map → filter alertes ; click agent → drill-down profil ; click
+alerte → ouvre dossier d'investigation.
 
 ---
 
@@ -509,8 +525,8 @@ click alerte → ouvre dossier d'investigation.
 └────────────┴─────────────────────────────┴─────────────────────────────┘
 ```
 
-**Composants** : Liste `Card` conversations · `SignedMessageBubble` (custom) · panneau
-détail avec fingerprint clé publique tooltip · `Badge` classification urgence.
+**Composants** : Liste `Card` conversations · `SignedMessageBubble` (custom) · panneau détail avec
+fingerprint clé publique tooltip · `Badge` classification urgence.
 
 ---
 
@@ -536,14 +552,14 @@ détail avec fingerprint clé publique tooltip · `Badge` classification urgence
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Composants** : `DirectiveCard` (custom) draggable via `@dnd-kit/core` · 5 colonnes
-Kanban · `Avatar` destinataire · `Badge` deadline / escalade.
+**Composants** : `DirectiveCard` (custom) draggable via `@dnd-kit/core` · 5 colonnes Kanban ·
+`Avatar` destinataire · `Badge` deadline / escalade.
 
-**Interactions** : drag-and-drop entre colonnes (mute si pas la permission), click card →
-modal détail.
+**Interactions** : drag-and-drop entre colonnes (mute si pas la permission), click card → modal
+détail.
 
-**A11y** : drag-and-drop accessible au clavier (Espace pour ramasser, flèches pour
-déplacer, Espace pour déposer — convention `@dnd-kit/accessibility`).
+**A11y** : drag-and-drop accessible au clavier (Espace pour ramasser, flèches pour déplacer, Espace
+pour déposer — convention `@dnd-kit/accessibility`).
 
 ---
 
@@ -580,37 +596,35 @@ déplacer, Espace pour déposer — convention `@dnd-kit/accessibility`).
 ```
 
 **Composants** : `UssdSimulator` (custom) qui appelle `POST /ussd` du `ussd-service` ·
-`KioskKeyboard` adapté (12 touches) · panneau debug à droite (sessionId Redis, text
-accumulé).
+`KioskKeyboard` adapté (12 touches) · panneau debug à droite (sessionId Redis, text accumulé).
 
-**Interactions** : Tap touche → ajoute au champ saisie ; bouton « Répondre » → envoie au
-service ; transition slide entre menus avec `motion.duration.fast`.
+**Interactions** : Tap touche → ajoute au champ saisie ; bouton « Répondre » → envoie au service ;
+transition slide entre menus avec `motion.duration.fast`.
 
-**A11y** : keyboard physique aussi accepté (touche `1` du clavier PC = touche `1` du
-sim), focus visible sur les touches.
+**A11y** : keyboard physique aussi accepté (touche `1` du clavier PC = touche `1` du sim), focus
+visible sur les touches.
 
 ---
 
 ## Récapitulatif d'implémentation
 
-| Écran    | App        | Composants métier critiques                         | Endpoint API                        |
-|----------|------------|-----------------------------------------------------|-------------------------------------|
-| PC-01    | citizen    | NinaInput, LanguageSelector                         | —                                   |
-| PC-02    | citizen    | CitizenCard, NinaDisplay                            | GET /citizens/by-nina/:nina         |
-| PC-03    | citizen    | AiScorePanel, UploadZone, Stepper                   | POST /correction-requests           |
-| PC-04    | citizen    | MaliMap, PrioritySlot, Calendar                     | POST /appointments                  |
-| PC-05    | citizen    | CorrectionTimeline                                  | GET /me/requests                    |
-| PC-06    | citizen    | WhistleblowerForm                                   | POST /alerts/anonymous              |
-| AD-01    | admin      | KPI Cards, MaliHeatmap, AlertSeverityBadge feed     | GET /admin/dashboard                |
-| AD-02    | admin      | DataGrid, AiScorePanel, CorrectionTimeline          | GET / PATCH /corrections            |
-| AD-03    | admin      | MaliHeatmap, IntegrityScoreGauge, alerts feed       | GET /alerts, GET /agents/scores     |
-| GOV-01   | governance | SignedMessageBubble                                 | GET / POST /messages                |
-| GOV-02   | governance | DirectiveCard (Kanban)                              | GET / PATCH /directives             |
-| USSD-01  | dev tool   | UssdSimulator, KioskKeyboard                        | POST /ussd                          |
+| Écran   | App        | Composants métier critiques                     | Endpoint API                    |
+| ------- | ---------- | ----------------------------------------------- | ------------------------------- |
+| PC-01   | citizen    | NinaInput, LanguageSelector                     | —                               |
+| PC-02   | citizen    | CitizenCard, NinaDisplay                        | GET /citizens/by-nina/:nina     |
+| PC-03   | citizen    | AiScorePanel, UploadZone, Stepper               | POST /correction-requests       |
+| PC-04   | citizen    | MaliMap, PrioritySlot, Calendar                 | POST /appointments              |
+| PC-05   | citizen    | CorrectionTimeline                              | GET /me/requests                |
+| PC-06   | citizen    | WhistleblowerForm                               | POST /alerts/anonymous          |
+| AD-01   | admin      | KPI Cards, MaliHeatmap, AlertSeverityBadge feed | GET /admin/dashboard            |
+| AD-02   | admin      | DataGrid, AiScorePanel, CorrectionTimeline      | GET / PATCH /corrections        |
+| AD-03   | admin      | MaliHeatmap, IntegrityScoreGauge, alerts feed   | GET /alerts, GET /agents/scores |
+| GOV-01  | governance | SignedMessageBubble                             | GET / POST /messages            |
+| GOV-02  | governance | DirectiveCard (Kanban)                          | GET / PATCH /directives         |
+| USSD-01 | dev tool   | UssdSimulator, KioskKeyboard                    | POST /ussd                      |
 
-**Ordre d'implémentation recommandé** (PROMPT 5.x) : PC-01 → PC-02 → PC-03 → PC-05 →
-AD-02 → PC-04 → AD-01 → AD-03 → GOV-02 → GOV-01 → PC-06 → USSD-01.
+**Ordre d'implémentation recommandé** (PROMPT 5.x) : PC-01 → PC-02 → PC-03 → PC-05 → AD-02 → PC-04 →
+AD-01 → AD-03 → GOV-02 → GOV-01 → PC-06 → USSD-01.
 
-**Le doc 12** (`12-FRONTEND-INTEGRATION-API.md`) couvre le câblage de tous ces écrans à
-l'API ; **le doc 13** (`13-MOBILE-APP-EXPO.md`) traite l'adaptation mobile des écrans
-PC-01 / PC-02 / PC-05.
+**Le doc 12** (`12-FRONTEND-INTEGRATION-API.md`) couvre le câblage de tous ces écrans à l'API ; **le
+doc 13** (`13-MOBILE-APP-EXPO.md`) traite l'adaptation mobile des écrans PC-01 / PC-02 / PC-05.

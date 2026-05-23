@@ -1,18 +1,16 @@
 # 15 — Sécurité (mTLS, Vault, OWASP, scans, rotation des secrets)
 
-> **Bloc concerné** : Transversal (tous les blocs A → F) — durcissement appliqué une fois le
-> Bloc A fonctionnel.
-> **Prérequis** : documents 00 → 14 complétés ; cluster K3s **ou** Docker Compose local
-> opérationnel ; `@nina-aes/config` qui valide les variables sensibles.
-> **Durée estimée** : 24 à 32 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : Transversal (tous les blocs A → F) — durcissement appliqué une fois le Bloc A
+> fonctionnel. **Prérequis** : documents 00 → 14 complétés ; cluster K3s **ou** Docker Compose local
+> opérationnel ; `@nina-aes/config` qui valide les variables sensibles. **Durée estimée** : 24 à 32
+> heures pour un étudiant seul. **Livrables de cette étape** :
 >
-> - HashiCorp Vault opérationnel avec moteurs activés : KV v2, Transit (chiffrement de PII),
->   PKI (CA interne mTLS), Database (rotation auto des credentials Postgres)
-> - mTLS strict entre services NestJS (sidecar `linkerd2-proxy` ou Caddy) — chaque service
->   présente un cert client X.509 émis par la PKI Vault
-> - Politiques de rotation : JWT signing key (90 jours), Postgres password (24 h), refresh
->   tokens utilisateur (7 j sliding)
+> - HashiCorp Vault opérationnel avec moteurs activés : KV v2, Transit (chiffrement de PII), PKI (CA
+>   interne mTLS), Database (rotation auto des credentials Postgres)
+> - mTLS strict entre services NestJS (sidecar `linkerd2-proxy` ou Caddy) — chaque service présente
+>   un cert client X.509 émis par la PKI Vault
+> - Politiques de rotation : JWT signing key (90 jours), Postgres password (24 h), refresh tokens
+>   utilisateur (7 j sliding)
 > - Hardening OWASP Top 10 — checklist + middlewares NestJS / Next.js
 > - Scans automatisés : Trivy (images Docker), Semgrep (code), npm-audit (deps), Bandit (Python)
 > - Document `docs/security/SECURITY-RUNBOOK.md` (incidents, rotation manuelle, rollback)
@@ -22,48 +20,48 @@
 
 ## 1. Objectif pédagogique
 
-NINA-AES traite **des données d'identité d'État**. Une fuite n'est pas un « incident produit »
-mais un risque pour la souveraineté nationale et la sécurité des citoyens (les NINA peuvent
-permettre l'usurpation d'identité, le ciblage de minorités, etc.). Ce document n'est donc pas
-optionnel : c'est la couche qui transforme un MVP fonctionnel en un système **gouvernemental
-défendable** devant un audit ANSSI/OCLEI.
+NINA-AES traite **des données d'identité d'État**. Une fuite n'est pas un « incident produit » mais
+un risque pour la souveraineté nationale et la sécurité des citoyens (les NINA peuvent permettre
+l'usurpation d'identité, le ciblage de minorités, etc.). Ce document n'est donc pas optionnel :
+c'est la couche qui transforme un MVP fonctionnel en un système **gouvernemental défendable** devant
+un audit ANSSI/OCLEI.
 
 Trois leçons pédagogiques :
 
-1. **Pas de secrets en dur** — pas dans `.env.example`, pas dans Git, pas dans une issue. Tous
-   les secrets passent par Vault et sont **récupérés au démarrage** par chaque pod via une
+1. **Pas de secrets en dur** — pas dans `.env.example`, pas dans Git, pas dans une issue. Tous les
+   secrets passent par Vault et sont **récupérés au démarrage** par chaque pod via une
    authentification Kubernetes ServiceAccount (en prod) ou un token root limité (en dev).
 2. **Zero-trust intra-cluster** — un pod compromis ne doit pas pouvoir se faire passer pour un
    autre. mTLS + identité courte durée (cert renouvelé toutes les 4 h) sont la garantie.
 3. **OWASP Top 10 par défaut** — chaque microservice applique un middleware standard avant son
-   premier déploiement. On documente une fois, on applique partout via `@nina-aes/security`
-   (package partagé livré dans cette étape).
+   premier déploiement. On documente une fois, on applique partout via `@nina-aes/security` (package
+   partagé livré dans cette étape).
 
 > 💡 **Pourquoi pas attendre la prod ?** Les vulnérabilités s'incrustent. Un endpoint sans
-> rate-limit en MVP devient un endpoint sans rate-limit en prod parce que « ça marche ». Mieux
-> vaut ajouter Helmet + Throttler + auth dès le doc 07 et n'avoir qu'à les **valider** ici.
+> rate-limit en MVP devient un endpoint sans rate-limit en prod parce que « ça marche ». Mieux vaut
+> ajouter Helmet + Throttler + auth dès le doc 07 et n'avoir qu'à les **valider** ici.
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Technologie                    | Version    | Rôle                                                          | Documentation                                   |
-| ------------------------------ | ---------- | ------------------------------------------------------------- | ----------------------------------------------- |
-| **HashiCorp Vault**            | 1.18       | Gestion centralisée des secrets, Transit, PKI, DB rotation    | https://developer.hashicorp.com/vault           |
-| **Linkerd**                    | 2.16       | Service mesh léger, mTLS automatique, rotation 24 h           | https://linkerd.io/                             |
-| **cert-manager**               | 1.18       | Émission/renouvellement automatique des certs (K3s prod)      | https://cert-manager.io/                        |
-| **Helmet (NestJS)**            | 8.0        | En-têtes HTTP de sécurité (CSP, HSTS, X-Frame-Options, …)     | https://helmetjs.github.io/                     |
-| **@nestjs/throttler**          | 6.4        | Rate-limit par IP / par utilisateur                           | https://docs.nestjs.com/security/rate-limiting  |
-| **Argon2id (argon2)**          | 0.41       | Hashage des secrets bas niveau (pas pour les passwords — Keycloak gère ça) | https://github.com/ranisalt/node-argon2 |
-| **Trivy**                      | 0.59       | Scan vulnérabilités images Docker + dépendances               | https://aquasecurity.github.io/trivy/           |
-| **Semgrep**                    | 1.110      | Static analysis (rules OWASP, secrets accidentels)            | https://semgrep.dev/                            |
-| **gitleaks**                   | 8.27       | Détection de secrets dans l'historique git                    | https://github.com/gitleaks/gitleaks            |
-| **Bandit**                     | 1.8        | Analyse statique Python (services FastAPI)                    | https://bandit.readthedocs.io/                  |
-| **npm audit / pnpm audit**     | n/a        | Audit deps Node                                               | (intégré pnpm 10)                               |
-| **OWASP ZAP**                  | 2.16       | Scan dynamique d'API (DAST)                                   | https://www.zaproxy.org/                        |
+| Technologie                | Version | Rôle                                                                       | Documentation                                  |
+| -------------------------- | ------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| **HashiCorp Vault**        | 1.18    | Gestion centralisée des secrets, Transit, PKI, DB rotation                 | https://developer.hashicorp.com/vault          |
+| **Linkerd**                | 2.16    | Service mesh léger, mTLS automatique, rotation 24 h                        | https://linkerd.io/                            |
+| **cert-manager**           | 1.18    | Émission/renouvellement automatique des certs (K3s prod)                   | https://cert-manager.io/                       |
+| **Helmet (NestJS)**        | 8.0     | En-têtes HTTP de sécurité (CSP, HSTS, X-Frame-Options, …)                  | https://helmetjs.github.io/                    |
+| **@nestjs/throttler**      | 6.4     | Rate-limit par IP / par utilisateur                                        | https://docs.nestjs.com/security/rate-limiting |
+| **Argon2id (argon2)**      | 0.41    | Hashage des secrets bas niveau (pas pour les passwords — Keycloak gère ça) | https://github.com/ranisalt/node-argon2        |
+| **Trivy**                  | 0.59    | Scan vulnérabilités images Docker + dépendances                            | https://aquasecurity.github.io/trivy/          |
+| **Semgrep**                | 1.110   | Static analysis (rules OWASP, secrets accidentels)                         | https://semgrep.dev/                           |
+| **gitleaks**               | 8.27    | Détection de secrets dans l'historique git                                 | https://github.com/gitleaks/gitleaks           |
+| **Bandit**                 | 1.8     | Analyse statique Python (services FastAPI)                                 | https://bandit.readthedocs.io/                 |
+| **npm audit / pnpm audit** | n/a     | Audit deps Node                                                            | (intégré pnpm 10)                              |
+| **OWASP ZAP**              | 2.16    | Scan dynamique d'API (DAST)                                                | https://www.zaproxy.org/                       |
 
-> 🔒 Tous les outils sont open-source / souverains. Aucune dépendance à une service américain
-> non substituable (pas de Snyk Cloud, pas de Datadog, etc.).
+> 🔒 Tous les outils sont open-source / souverains. Aucune dépendance à une service américain non
+> substituable (pas de Snyk Cloud, pas de Datadog, etc.).
 
 ---
 
@@ -145,9 +143,9 @@ end note
 
 ### Étape 4.1 — Vault : initialisation et moteurs
 
-**Pourquoi** : Vault est le coffre-fort racine. Sans lui, on stocke encore des secrets dans
-`.env`. On active les 5 moteurs nécessaires : KV v2 (key-value), Transit (chiffrement de PII),
-PKI (CA mTLS), Database (rotation Postgres), TOTP (codes MFA agents).
+**Pourquoi** : Vault est le coffre-fort racine. Sans lui, on stocke encore des secrets dans `.env`.
+On active les 5 moteurs nécessaires : KV v2 (key-value), Transit (chiffrement de PII), PKI (CA
+mTLS), Database (rotation Postgres), TOTP (codes MFA agents).
 
 ```powershell
 cd C:\Users\lonel\Projet-En-Informatique\Session-Ete-2026\nina-aes-platform
@@ -289,10 +287,9 @@ export function applyHardening(
 
 ### Étape 4.3 — mTLS intra-cluster (Linkerd)
 
-**Pourquoi** : sans mTLS, un attaquant qui compromet un pod peut se faire passer pour
-n'importe quel service via une simple requête HTTP. Linkerd injecte un sidecar qui chiffre
-**toutes** les connexions TCP et présente un cert X.509 émis par sa propre CA, avec rotation
-toutes les 24 h.
+**Pourquoi** : sans mTLS, un attaquant qui compromet un pod peut se faire passer pour n'importe quel
+service via une simple requête HTTP. Linkerd injecte un sidecar qui chiffre **toutes** les
+connexions TCP et présente un cert X.509 émis par sa propre CA, avec rotation toutes les 24 h.
 
 ```powershell
 # Installation Linkerd 2.16 dans le cluster
@@ -314,9 +311,9 @@ kubectl -n services rollout restart deployment
 
 ### Étape 4.4 — Rotation des secrets (Postgres + JWT)
 
-**Pourquoi** : un mot de passe Postgres figé pendant 6 mois est un risque dormant. Vault peut
-créer un rôle Postgres dynamique, livrer un couple `username/password` qui expire après 24 h,
-et le révoquer automatiquement. Idem pour la clé privée JWT (90 jours).
+**Pourquoi** : un mot de passe Postgres figé pendant 6 mois est un risque dormant. Vault peut créer
+un rôle Postgres dynamique, livrer un couple `username/password` qui expire après 24 h, et le
+révoquer automatiquement. Idem pour la clé privée JWT (90 jours).
 
 ```bash
 # infrastructure/vault/scripts/postgres-rotation.sh
@@ -353,26 +350,28 @@ export async function fetchVaultSecret(path: string): Promise<Record<string, unk
   });
   if (!res.ok) throw new Error(`Vault read failed (${res.status}) for ${path}`);
   const data = (await res.json()) as { data: { data: unknown } | unknown };
-  return ('data' in (data as Record<string, unknown>)
-    ? ((data as { data: { data?: unknown } }).data.data ?? data.data)
-    : data) as Record<string, unknown>;
+  return (
+    'data' in (data as Record<string, unknown>)
+      ? ((data as { data: { data?: unknown } }).data.data ?? data.data)
+      : data
+  ) as Record<string, unknown>;
 }
 ```
 
 ### Étape 4.5 — Hardening OWASP Top 10 (checklist appliquée)
 
-| OWASP Top 10:2021                 | Mesure NINA-AES                                                                           | Endroit                              |
-| --------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------ |
-| A01 Broken Access Control         | RBAC Keycloak + guards NestJS `@Roles(UserRole.SUPERVISOR)`                               | `auth-service` + chaque service      |
-| A02 Cryptographic Failures        | TDE Postgres, TLS 1.3 only, mTLS intra-cluster, Argon2id pour secrets, RSA-2048 / Ed25519 | Vault + Linkerd                      |
-| A03 Injection                     | Prisma (paramétré), Zod sur tous les inputs, ValidationPipe global                        | `@nina-aes/security` + chaque DTO    |
-| A04 Insecure Design               | Threat model documenté (cf. ADR-018), revue de design avant chaque service                | `docs/security/THREAT-MODEL.md`      |
-| A05 Security Misconfiguration     | Helmet, CSP stricte, ports non-utilisés fermés, debug désactivé en prod                   | `applyHardening` + Dockerfiles       |
-| A06 Vulnerable Components         | Trivy + pnpm audit + Dependabot                                                           | CI GitHub Actions                    |
-| A07 Identification & Auth Failures| Keycloak 26 + MFA TOTP (`mfaSecret` Vault) + lock-out 5 essais                            | `auth-service`                       |
-| A08 Software & Data Integrity     | Images signées (cosign), sigstore, Merkle audit log                                       | Doc 09 + CI                          |
-| A09 Logging & Monitoring          | Pino + Loki, audit chaîné, SIEM via Grafana                                               | Doc 17                               |
-| A10 SSRF                          | Whitelist d'URL en CORS_CONFIG ; pas de fetch server-side d'URLs utilisateur arbitraires  | `@nina-aes/config`                   |
+| OWASP Top 10:2021                  | Mesure NINA-AES                                                                           | Endroit                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------- |
+| A01 Broken Access Control          | RBAC Keycloak + guards NestJS `@Roles(UserRole.SUPERVISOR)`                               | `auth-service` + chaque service   |
+| A02 Cryptographic Failures         | TDE Postgres, TLS 1.3 only, mTLS intra-cluster, Argon2id pour secrets, RSA-2048 / Ed25519 | Vault + Linkerd                   |
+| A03 Injection                      | Prisma (paramétré), Zod sur tous les inputs, ValidationPipe global                        | `@nina-aes/security` + chaque DTO |
+| A04 Insecure Design                | Threat model documenté (cf. ADR-018), revue de design avant chaque service                | `docs/security/THREAT-MODEL.md`   |
+| A05 Security Misconfiguration      | Helmet, CSP stricte, ports non-utilisés fermés, debug désactivé en prod                   | `applyHardening` + Dockerfiles    |
+| A06 Vulnerable Components          | Trivy + pnpm audit + Dependabot                                                           | CI GitHub Actions                 |
+| A07 Identification & Auth Failures | Keycloak 26 + MFA TOTP (`mfaSecret` Vault) + lock-out 5 essais                            | `auth-service`                    |
+| A08 Software & Data Integrity      | Images signées (cosign), sigstore, Merkle audit log                                       | Doc 09 + CI                       |
+| A09 Logging & Monitoring           | Pino + Loki, audit chaîné, SIEM via Grafana                                               | Doc 17                            |
+| A10 SSRF                           | Whitelist d'URL en CORS_CONFIG ; pas de fetch server-side d'URLs utilisateur arbitraires  | `@nina-aes/config`                |
 
 ### Étape 4.6 — Scans automatisés (CI)
 
@@ -440,11 +439,12 @@ docker run --rm -v ${PWD}/security-reports:/zap/wrk:rw `
    factice fonctionne avec un token applicatif (politique limitée).
 2. **mTLS** : `linkerd viz tap deploy/identity-service` montre `tls=true` sur **toutes** les
    requêtes. `kubectl exec` dans un pod sans cert → connexion refusée.
-3. **Rotation Postgres** : à T+24h, `vault read database/creds/identity-service` renvoie de
-   nouveaux credentials, l'ancien rôle est révoqué dans Postgres (`\du` ne le liste plus).
+3. **Rotation Postgres** : à T+24h, `vault read database/creds/identity-service` renvoie de nouveaux
+   credentials, l'ancien rôle est révoqué dans Postgres (`\du` ne le liste plus).
 4. **Helmet** : `curl -I http://localhost:3001/` montre `Strict-Transport-Security`,
    `X-Frame-Options: DENY`, `Content-Security-Policy: …` présents.
-5. **Rate-limit** : 200 requêtes en 1 minute → 429 après le 100ᵉ (config `RATE_LIMIT_CONFIG.medium`).
+5. **Rate-limit** : 200 requêtes en 1 minute → 429 après le 100ᵉ (config
+   `RATE_LIMIT_CONFIG.medium`).
 6. **Trivy CI** : un push avec une dep vulnérable HIGH **bloque** la merge (exit-code 1).
 7. **gitleaks** : commit volontairement un faux token AWS → le pre-commit hook le rejette.
 
@@ -452,14 +452,14 @@ docker run --rm -v ${PWD}/security-reports:/zap/wrk:rw `
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                    | Cause probable                                                            | Solution                                                                              |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Vault `* sealed`                                              | Pod redémarré sans unseal automatique                                     | Auto-unseal AWS KMS / Transit (recommandé en prod) ; sinon script de re-unseal au boot. |
-| Linkerd : `connection refused`                                | Sidecar non injecté (namespace non annoté)                                | `kubectl annotate namespace <ns> linkerd.io/inject=enabled` puis `rollout restart`.  |
-| Helmet casse le frontend (CSP)                                | `script-src` trop strict pour les inline scripts Next.js                   | Activer `nonce-based CSP` côté Next.js (cf. doc 12) ou ajouter `'unsafe-inline'` en dev seulement. |
-| Trivy en CI : faux positif sur dep transitive                | DB Trivy plus à jour que la registry npm                                  | Pinner la version Trivy ; ajouter `.trivyignore` documenté avec ticket de suivi.     |
-| MFA TOTP : « code invalide » alors que correct                | Drift d'horloge serveur                                                   | NTP obligatoire sur tous les nœuds K3s ; window TOTP `±1 step` (30 s).               |
-| Postgres password rotation casse les apps                     | Connexion long-lived sans re-auth                                         | Pool Prisma : `pool_timeout=10` + reconnect on auth-error ; lifecycle hook qui recharge le secret. |
+| Symptôme                                       | Cause probable                                           | Solution                                                                                           |
+| ---------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Vault `* sealed`                               | Pod redémarré sans unseal automatique                    | Auto-unseal AWS KMS / Transit (recommandé en prod) ; sinon script de re-unseal au boot.            |
+| Linkerd : `connection refused`                 | Sidecar non injecté (namespace non annoté)               | `kubectl annotate namespace <ns> linkerd.io/inject=enabled` puis `rollout restart`.                |
+| Helmet casse le frontend (CSP)                 | `script-src` trop strict pour les inline scripts Next.js | Activer `nonce-based CSP` côté Next.js (cf. doc 12) ou ajouter `'unsafe-inline'` en dev seulement. |
+| Trivy en CI : faux positif sur dep transitive  | DB Trivy plus à jour que la registry npm                 | Pinner la version Trivy ; ajouter `.trivyignore` documenté avec ticket de suivi.                   |
+| MFA TOTP : « code invalide » alors que correct | Drift d'horloge serveur                                  | NTP obligatoire sur tous les nœuds K3s ; window TOTP `±1 step` (30 s).                             |
+| Postgres password rotation casse les apps      | Connexion long-lived sans re-auth                        | Pool Prisma : `pool_timeout=10` + reconnect on auth-error ; lifecycle hook qui recharge le secret. |
 
 ---
 
@@ -521,8 +521,8 @@ docker run --rm -v ${PWD}/security-reports:/zap/wrk:rw `
   `cosign attest` — exigence croissante des audits gouvernementaux.
 - **Sigstore** : signer les images Docker (`cosign sign`) et vérifier la signature au déploiement
   via une admission controller K3s.
-- **Honeypot interne** : déployer un faux endpoint `/admin/legacy` qui logge toute tentative
-  → indicateur d'attaque interne.
+- **Honeypot interne** : déployer un faux endpoint `/admin/legacy` qui logge toute tentative →
+  indicateur d'attaque interne.
 - **Bug bounty** : en mode privé, inviter quelques pentesters UQAR à tester l'API publique.
 - **Lectures recommandées** :
   - https://owasp.org/Top10/

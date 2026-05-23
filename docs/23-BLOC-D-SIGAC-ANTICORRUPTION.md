@@ -1,42 +1,35 @@
 # 23 — Bloc D : SIGAC anti-corruption (Isolation Forest + LSTM + BERT + lanceurs d'alerte chiffrés)
 
-> **Bloc concerné** : D (Priorité P2) — Système Intégré de Gouvernance
-> Anti-Corruption.
-> **Prérequis** : Bloc A complet (notamment audit-service ADR-014) ;
-> ai-service livré doc 11 (pipeline ML existant pour NINA errors) ;
-> sécurité doc 15 (Vault Transit pour chiffrement asymétrique signaleurs).
-> **Durée estimée** : 14 à 20 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : D (Priorité P2) — Système Intégré de Gouvernance Anti-Corruption.
+> **Prérequis** : Bloc A complet (notamment audit-service ADR-014) ; ai-service livré doc 11
+> (pipeline ML existant pour NINA errors) ; sécurité doc 15 (Vault Transit pour chiffrement
+> asymétrique signaleurs). **Durée estimée** : 14 à 20 heures pour un étudiant seul. **Livrables de
+> cette étape** :
 >
-> - **`anticorruption-service` (port 3009, FastAPI Python)** — déjà
->   scaffold présent (cf. CHANGELOG §2), à étoffer avec 4 composants ML.
+> - **`anticorruption-service` (port 3009, FastAPI Python)** — déjà scaffold présent (cf. CHANGELOG
+>   §2), à étoffer avec 4 composants ML.
 > - **3 modèles ML complémentaires** :
->   - **Isolation Forest** (scikit-learn 1.7) — détection d'anomalies
->     comportementales sur les agents (qui valide trop, qui rejette trop,
->     qui exporte des listes inhabituelles)
->   - **LSTM** (PyTorch 2.5) — analyse temporelle des patterns d'activité
->     (pics anormaux d'enrôlement, séquences suspectes)
->   - **BERT multilingue** (`bert-base-multilingual-cased` ou
->     `Davlan/afro-xlmr-base` pour bambara/peul) — classification NLP
->     des signalements textuels
-> - **Scoring d'intégrité 5 facteurs** par agent (0-100, calculé hebdo) :
->   anomalie comportementale, exhaustivité audit, signalements reçus,
->   feedback citoyens, conformité formation
-> - **Canal de signalement `*123*ALERTE#`** (USSD) anonyme avec
->   chiffrement asymétrique (Vault Transit Ed25519) — seul le procureur
->   désigné peut déchiffrer
-> - **Workflow lanceur d'alerte** : sandbox cryptographique, pas de
->   leak de l'identité du signaleur dans les logs internes
-> - **Dashboard SIGAC** dans `apps/governance` (réservé `INSPECTOR`,
->   `PROSECUTOR`)
+>   - **Isolation Forest** (scikit-learn 1.7) — détection d'anomalies comportementales sur les
+>     agents (qui valide trop, qui rejette trop, qui exporte des listes inhabituelles)
+>   - **LSTM** (PyTorch 2.5) — analyse temporelle des patterns d'activité (pics anormaux
+>     d'enrôlement, séquences suspectes)
+>   - **BERT multilingue** (`bert-base-multilingual-cased` ou `Davlan/afro-xlmr-base` pour
+>     bambara/peul) — classification NLP des signalements textuels
+> - **Scoring d'intégrité 5 facteurs** par agent (0-100, calculé hebdo) : anomalie comportementale,
+>   exhaustivité audit, signalements reçus, feedback citoyens, conformité formation
+> - **Canal de signalement `*123*ALERTE#`** (USSD) anonyme avec chiffrement asymétrique (Vault
+>   Transit Ed25519) — seul le procureur désigné peut déchiffrer
+> - **Workflow lanceur d'alerte** : sandbox cryptographique, pas de leak de l'identité du signaleur
+>   dans les logs internes
+> - **Dashboard SIGAC** dans `apps/governance` (réservé `INSPECTOR`, `PROSECUTOR`)
 > - `docs/adr/ADR-023-sigac-ml-stack-lanceurs-alerte.md`
 
 ---
 
 ## 1. Objectif pédagogique
 
-La corruption est le risque institutionnel #1 d'un système d'identité
-gouvernemental. Un agent CTDEC corrompu peut :
+La corruption est le risque institutionnel #1 d'un système d'identité gouvernemental. Un agent CTDEC
+corrompu peut :
 
 - Délivrer des NINA fictifs (faux citoyens) en échange de pot-de-vin
 - Modifier les données d'un citoyen réel (changement d'identité)
@@ -45,48 +38,43 @@ gouvernemental. Un agent CTDEC corrompu peut :
 
 Trois leçons pédagogiques :
 
-1. **Le ML ne remplace pas l'enquête, il la cible**. Isolation Forest +
-   LSTM + BERT ne « détectent pas la corruption ». Ils **flaggent des
-   anomalies** qui justifient une investigation humaine par l'OCLEI
-   (Office Central de Lutte contre l'Enrichissement Illicite). Le score
-   d'intégrité n'est PAS une décision administrative.
+1. **Le ML ne remplace pas l'enquête, il la cible**. Isolation Forest + LSTM + BERT ne « détectent
+   pas la corruption ». Ils **flaggent des anomalies** qui justifient une investigation humaine par
+   l'OCLEI (Office Central de Lutte contre l'Enrichissement Illicite). Le score d'intégrité n'est
+   PAS une décision administrative.
 
-2. **Protéger le lanceur d'alerte = chiffrer + minimiser**. Un signaleur
-   doit pouvoir reporter une fraude sans qu'aucun admin système ne
-   puisse savoir QUI a signalé. Conception : chiffrement asymétrique
-   client-side, seul le procureur a la clé privée.
+2. **Protéger le lanceur d'alerte = chiffrer + minimiser**. Un signaleur doit pouvoir reporter une
+   fraude sans qu'aucun admin système ne puisse savoir QUI a signalé. Conception : chiffrement
+   asymétrique client-side, seul le procureur a la clé privée.
 
-3. **L'audit Merkle (ADR-014) est la base de toute détection**. Sans
-   chaîne d'audit immuable, un agent corrompu peut effacer ses traces.
-   SIGAC consomme directement la table `audit_logs` (read-only) et y
-   applique les modèles ML.
+3. **L'audit Merkle (ADR-014) est la base de toute détection**. Sans chaîne d'audit immuable, un
+   agent corrompu peut effacer ses traces. SIGAC consomme directement la table `audit_logs`
+   (read-only) et y applique les modèles ML.
 
-> 💡 **Différence avec ADR-015** : ADR-015 = stack ML pour détecter les
-> ERREURS NINA (orthographe, doublons). ADR-023 = stack ML pour détecter
-> les COMPORTEMENTS suspects + classifier des signalements. Pipelines
-> distincts, modèles différents.
+> 💡 **Différence avec ADR-015** : ADR-015 = stack ML pour détecter les ERREURS NINA (orthographe,
+> doublons). ADR-023 = stack ML pour détecter les COMPORTEMENTS suspects + classifier des
+> signalements. Pipelines distincts, modèles différents.
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Composant                              | Version    | Rôle                                              |
-| -------------------------------------- | ---------- | ------------------------------------------------- |
-| **FastAPI**                            | `0.135`    | `anticorruption-service` (port 3009)              |
-| **scikit-learn**                       | `1.7.x`    | Isolation Forest pour anomalie agents             |
-| **PyTorch**                            | `2.5.x`    | LSTM analyse séries temporelles                   |
-| **Transformers (Hugging Face)**        | `4.50.x`   | BERT multilingue / AfroXLMR pour NLP             |
-| **`Davlan/afro-xlmr-base`**            | -          | Modèle pré-entraîné bambara/peul/haoussa         |
-| **MLflow**                             | `2.20.x`   | Tracking expériences + registry modèles           |
-| **PyJWT / cryptography (Python)**      | `43.x`     | Chiffrement asymétrique signalements              |
-| **Africa's Talking USSD**              | -          | Canal `*123*ALERTE#` (cf. doc 14)                 |
-| **Celery + Redis**                     | `5.x`      | Worker async pour scoring batch hebdo            |
-| **PostgreSQL**                         | `18`       | Stockage scores + signalements chiffrés          |
-| **Vault Transit Ed25519**              | `1.20`     | Clé asymétrique procureur                         |
+| Composant                         | Version  | Rôle                                     |
+| --------------------------------- | -------- | ---------------------------------------- |
+| **FastAPI**                       | `0.135`  | `anticorruption-service` (port 3009)     |
+| **scikit-learn**                  | `1.7.x`  | Isolation Forest pour anomalie agents    |
+| **PyTorch**                       | `2.5.x`  | LSTM analyse séries temporelles          |
+| **Transformers (Hugging Face)**   | `4.50.x` | BERT multilingue / AfroXLMR pour NLP     |
+| **`Davlan/afro-xlmr-base`**       | -        | Modèle pré-entraîné bambara/peul/haoussa |
+| **MLflow**                        | `2.20.x` | Tracking expériences + registry modèles  |
+| **PyJWT / cryptography (Python)** | `43.x`   | Chiffrement asymétrique signalements     |
+| **Africa's Talking USSD**         | -        | Canal `*123*ALERTE#` (cf. doc 14)        |
+| **Celery + Redis**                | `5.x`    | Worker async pour scoring batch hebdo    |
+| **PostgreSQL**                    | `18`     | Stockage scores + signalements chiffrés  |
+| **Vault Transit Ed25519**         | `1.20`   | Clé asymétrique procureur                |
 
-> 🔒 Tous les modèles sont **fine-tunables localement** sur GPU CTDEC
-> (pas de cloud GPU US). Hugging Face Hub utilisé en mirror local
-> (`huggingface-hub-mirror` self-hosted).
+> 🔒 Tous les modèles sont **fine-tunables localement** sur GPU CTDEC (pas de cloud GPU US). Hugging
+> Face Hub utilisé en mirror local (`huggingface-hub-mirror` self-hosted).
 
 ---
 
@@ -336,8 +324,8 @@ class ActivityLSTM(nn.Module):
         return self.sigmoid(self.fc(last)).squeeze(-1)
 ```
 
-**Entraînement** : sur audit_logs des 12 derniers mois, label = jour
-ayant donné lieu à un signalement fondé.
+**Entraînement** : sur audit_logs des 12 derniers mois, label = jour ayant donné lieu à un
+signalement fondé.
 
 ---
 
@@ -369,10 +357,9 @@ class WhistleClassifier:
         return LABELS[idx], float(probs[idx])
 ```
 
-> 💡 **Fine-tuning** : on alimente le modèle avec un dataset synthétique
-> de ~5 000 signalements pré-annotés (en français + bambara translittéré),
-> généré algorithmiquement à partir de templates métier. Pas de leak de
-> vraies données NINA.
+> 💡 **Fine-tuning** : on alimente le modèle avec un dataset synthétique de ~5 000 signalements
+> pré-annotés (en français + bambara translittéré), généré algorithmiquement à partir de templates
+> métier. Pas de leak de vraies données NINA.
 
 ---
 
@@ -436,10 +423,9 @@ async function handleAlerteMenu(session: UssdSession, input: string): Promise<Us
 }
 ```
 
-> 🔒 **Important** : la session USSD ne stocke JAMAIS le `phoneNumber`
-> dans le `whistleblower_reports`. Africa's Talking conserve le numéro
-> côté opérateur (pour la facturation), mais nos logs internes
-> n'enregistrent qu'un UUID anonyme.
+> 🔒 **Important** : la session USSD ne stocke JAMAIS le `phoneNumber` dans le
+> `whistleblower_reports`. Africa's Talking conserve le numéro côté opérateur (pour la facturation),
+> mais nos logs internes n'enregistrent qu'un UUID anonyme.
 
 ---
 
@@ -449,8 +435,8 @@ async function handleAlerteMenu(session: UssdSession, input: string): Promise<Us
 
 - **Heatmap intégrité par région** : couleur = score moyen agents
 - **Top 10 agents flaggés** : tableau avec drill-down sur audit_logs
-- **Signalements à traiter** : queue procureur (ciphertext non
-  déchiffrable côté UI, juste classification + severity)
+- **Signalements à traiter** : queue procureur (ciphertext non déchiffrable côté UI, juste
+  classification + severity)
 
 ---
 
@@ -480,25 +466,24 @@ curl https://localhost:3010/sigac/dashboard | jq .
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                | Cause probable                                  | Solution                                                |
-| ------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| Isolation Forest flagge trop d'agents (>10 %)          | Contamination trop élevée                       | Baisser `contamination=0.01` ; re-fitter                |
-| LSTM ne converge pas                                    | Séries trop courtes (< 30 jours)                | Padding + masking ; ou attendre 60+ jours de données   |
-| BERT mauvaise classif sur bambara                       | Modèle fine-tuné insuffisamment                | Ajouter 1k exemples bambara + ré-entraîner             |
-| Procureur ne peut pas déchiffrer                        | Mauvaise version clé (rotation)                 | Identifier `cipherKid` puis utiliser cette version    |
-| Numéro téléphone leaké dans logs                        | Logger pas configuré redact (cf. doc 17)        | Vérifier `LOG_REDACT_PII=true` + tester logger        |
-| Score intégrité = 0 pour un agent inactif               | Pas de features cette semaine                  | Marquer comme "INSUFFICIENT_DATA" plutôt que 0       |
-| MLflow ne stocke pas le modèle                          | URI tracking pas configurée                    | `export MLFLOW_TRACKING_URI=http://mlflow.observability` |
-| Volume signalements > 1000/jour                         | Spam / attaque DDoS USSD                       | Rate limit côté Africa's Talking + alerte               |
-| BERT lent (> 5s par classif)                            | Pas de GPU disponible                          | Quantization int8 + batch inference                    |
+| Symptôme                                      | Cause probable                           | Solution                                                 |
+| --------------------------------------------- | ---------------------------------------- | -------------------------------------------------------- |
+| Isolation Forest flagge trop d'agents (>10 %) | Contamination trop élevée                | Baisser `contamination=0.01` ; re-fitter                 |
+| LSTM ne converge pas                          | Séries trop courtes (< 30 jours)         | Padding + masking ; ou attendre 60+ jours de données     |
+| BERT mauvaise classif sur bambara             | Modèle fine-tuné insuffisamment          | Ajouter 1k exemples bambara + ré-entraîner               |
+| Procureur ne peut pas déchiffrer              | Mauvaise version clé (rotation)          | Identifier `cipherKid` puis utiliser cette version       |
+| Numéro téléphone leaké dans logs              | Logger pas configuré redact (cf. doc 17) | Vérifier `LOG_REDACT_PII=true` + tester logger           |
+| Score intégrité = 0 pour un agent inactif     | Pas de features cette semaine            | Marquer comme "INSUFFICIENT_DATA" plutôt que 0           |
+| MLflow ne stocke pas le modèle                | URI tracking pas configurée              | `export MLFLOW_TRACKING_URI=http://mlflow.observability` |
+| Volume signalements > 1000/jour               | Spam / attaque DDoS USSD                 | Rate limit côté Africa's Talking + alerte                |
+| BERT lent (> 5s par classif)                  | Pas de GPU disponible                    | Quantization int8 + batch inference                      |
 
 ---
 
 ## 7. Documentation à produire
 
 - `docs/adr/ADR-023-sigac-ml-stack-lanceurs-alerte.md`
-- `docs/sigac/WHISTLEBLOWER-PROTOCOL.md` — engagement éthique +
-  procédure procureur.
+- `docs/sigac/WHISTLEBLOWER-PROTOCOL.md` — engagement éthique + procédure procureur.
 - `docs/sigac/MODEL-CARDS.md` — fiches modèles (data, biais, limitations).
 - `docs/sigac/SCORING-RUNBOOK.md` — comment interpréter un score.
 - Mise à jour `docs/CHANGELOG.md` §21.
@@ -509,6 +494,7 @@ curl https://localhost:3010/sigac/dashboard | jq .
 
 ```markdown
 ### Rapport — Bloc D SIGAC — JJ/MM/2026
+
 - Isolation Forest : ✅ trained, F1=0.78 sur dataset test
 - LSTM : ✅ AUC=0.85
 - BERT/AfroXLMR : ✅ accuracy 89 % sur 5 classes
@@ -525,8 +511,7 @@ curl https://localhost:3010/sigac/dashboard | jq .
 - [ ] Isolation Forest entraîné + enregistré MLflow
 - [ ] LSTM PyTorch entraîné sur 12 mois audit_logs
 - [ ] BERT/AfroXLMR fine-tuné sur dataset synthétique 5k signalements
-- [ ] Endpoint USSD `*123*ALERTE#` opérationnel + numéro téléphone
-  non logué
+- [ ] Endpoint USSD `*123*ALERTE#` opérationnel + numéro téléphone non logué
 - [ ] Chiffrement Vault Transit Ed25519 ; procureur peut déchiffrer
 - [ ] Cron Celery hebdo scoring agents
 - [ ] Dashboard SIGAC dans `apps/governance` (réservé INSPECTOR/PROSECUTOR)
@@ -542,16 +527,14 @@ curl https://localhost:3010/sigac/dashboard | jq .
 
 ## 10. Pour aller plus loin
 
-- **Graph Neural Networks** : modéliser le réseau « qui valide qui »
-  via PyTorch Geometric — détecter les clans de collusion.
-- **Differential privacy** sur les scores d'intégrité agrégés exposés
-  publiquement (transparence sans rendre l'individu identifiable).
-- **Procédure de recours agent** : un agent flaggé doit avoir un canal
-  formel pour contester son score (cf. RGPD article 22 droit à
-  l'explication des décisions automatisées).
-- **Pen-test du module whistleblower** : audit indépendant pour valider
-  que l'identité du signaleur est mathématiquement impossible à
-  retrouver depuis les logs internes.
+- **Graph Neural Networks** : modéliser le réseau « qui valide qui » via PyTorch Geometric —
+  détecter les clans de collusion.
+- **Differential privacy** sur les scores d'intégrité agrégés exposés publiquement (transparence
+  sans rendre l'individu identifiable).
+- **Procédure de recours agent** : un agent flaggé doit avoir un canal formel pour contester son
+  score (cf. RGPD article 22 droit à l'explication des décisions automatisées).
+- **Pen-test du module whistleblower** : audit indépendant pour valider que l'identité du signaleur
+  est mathématiquement impossible à retrouver depuis les logs internes.
 
 ---
 

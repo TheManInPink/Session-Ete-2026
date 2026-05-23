@@ -1,11 +1,10 @@
 # 13 — Application Mobile React Native (Expo SDK 55+)
 
-> **Bloc concerné** : A (NINA Mali) — extension mobile du portail citoyen
-> **Prérequis** : documents 00 → 12 complétés ; `identity-service`, `auth-service`,
-> `document-service` accessibles depuis le poste ; un téléphone Android **ou** iOS pour le test
-> physique (l'émulateur Android suffit pour 95 % du parcours).
-> **Durée estimée** : 24 à 32 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : A (NINA Mali) — extension mobile du portail citoyen **Prérequis** : documents
+> 00 → 12 complétés ; `identity-service`, `auth-service`, `document-service` accessibles depuis le
+> poste ; un téléphone Android **ou** iOS pour le test physique (l'émulateur Android suffit pour 95
+> % du parcours). **Durée estimée** : 24 à 32 heures pour un étudiant seul. **Livrables de cette
+> étape** :
 >
 > - `apps/mobile/` (Expo SDK 55, React Native 0.78, TypeScript 6.0+)
 > - 5 écrans : Accueil · Recherche NINA · Scan QR FDI · Détail citoyen · Paramètres
@@ -25,43 +24,43 @@ L'app mobile prolonge le portail citoyen sur **Android et iOS** sans ré-implém
 métier. Trois objectifs pédagogiques précis :
 
 1. **Inclusion numérique au-delà du smartphone urbain** : l'app doit fonctionner même quand le
-   réseau est intermittent (Mali, zones rurales). On apprend ici l'**offline-first** :
-   lecture cache prioritaire, queue de mutations, réémission automatique au retour réseau.
+   réseau est intermittent (Mali, zones rurales). On apprend ici l'**offline-first** : lecture cache
+   prioritaire, queue de mutations, réémission automatique au retour réseau.
 2. **Souveraineté de la vérification d'identité** : un agent en antenne mobile peut scanner le QR
-   code de la FDI papier d'un citoyen et **vérifier la signature JWT RS256 sans appeler l'API**
-   (clé publique CTDEC livrée avec l'app, rotation gérée via une mise à jour OTA Expo). Ça
-   matérialise concrètement le principe « pas de single point of failure réseau ».
+   code de la FDI papier d'un citoyen et **vérifier la signature JWT RS256 sans appeler l'API** (clé
+   publique CTDEC livrée avec l'app, rotation gérée via une mise à jour OTA Expo). Ça matérialise
+   concrètement le principe « pas de single point of failure réseau ».
 3. **Sécurité locale du device** : le NINA stocké est protégé par la biométrie native du téléphone
    (Face ID / empreinte) avec fallback PIN. On apprend `expo-local-authentication` et le stockage
    chiffré `expo-secure-store` (Keystore Android / Keychain iOS).
 
-> 💡 **Pourquoi pas un PWA seul ?** Une PWA suffirait pour la lecture, mais (a) le scan QR caméra
-> y reste limité sur iOS, (b) la biométrie native n'y est pas exposée, (c) le mode offline d'une
-> PWA dépend du Service Worker qui se purge plus agressivement que le stockage natif, et (d) la
-> distribution via Play Store / App Store rassure les citoyens — un domaine d'État officiel
-> apparaît crédible.
+> 💡 **Pourquoi pas un PWA seul ?** Une PWA suffirait pour la lecture, mais (a) le scan QR caméra y
+> reste limité sur iOS, (b) la biométrie native n'y est pas exposée, (c) le mode offline d'une PWA
+> dépend du Service Worker qui se purge plus agressivement que le stockage natif, et (d) la
+> distribution via Play Store / App Store rassure les citoyens — un domaine d'État officiel apparaît
+> crédible.
 
 ---
 
 ## 2. Technologies utilisées (versions avril 2026)
 
-| Technologie                  | Version  | Rôle dans cette étape                                         | Documentation officielle                              |
-| ---------------------------- | -------- | ------------------------------------------------------------- | ----------------------------------------------------- |
-| **Expo SDK**                 | 55.0     | Plateforme RN managée + EAS Build + OTA updates               | https://docs.expo.dev/                                |
-| **React Native**             | 0.78     | Framework UI multiplateforme                                  | https://reactnative.dev/                              |
-| **expo-router**              | 5.0      | Routing typé file-based (équivalent App Router Next.js)       | https://docs.expo.dev/router/introduction/            |
-| **TypeScript**               | 6.0+     | Langage source                                                | https://www.typescriptlang.org/                       |
-| **expo-camera**              | 17.0     | Scan QR + accès caméra                                        | https://docs.expo.dev/versions/latest/sdk/camera/     |
-| **expo-local-authentication** | 16.0    | Verrouillage biométrique (Face ID / empreinte)                | https://docs.expo.dev/versions/latest/sdk/local-authentication/ |
-| **expo-secure-store**        | 14.0     | Stockage chiffré (Keystore / Keychain) pour tokens et clés    | https://docs.expo.dev/versions/latest/sdk/securestore/ |
-| **expo-localization**        | 17.0     | Détection langue device + bibliothèque `i18n-js`              | https://docs.expo.dev/versions/latest/sdk/localization/ |
-| **expo-auth-session**        | 7.0      | OIDC + PKCE pour mobile (Keycloak sans secret)                | https://docs.expo.dev/versions/latest/sdk/auth-session/ |
-| **op-sqlite**                | 14.0     | SQLite haute performance (cache + queue offline)              | https://github.com/OP-Engineering/op-sqlite           |
-| **TanStack Query**           | 5.90     | Cache HTTP réactif + retry exponentiel                        | https://tanstack.com/query                            |
-| **Zod**                      | 4.3      | Validation des réponses API (partagé via `@nina-aes/shared-types`) | https://zod.dev/                                  |
-| **NativeWind**               | 5.0      | Tailwind CSS pour React Native (alignement design AES)        | https://www.nativewind.dev/                           |
-| **EAS Build**                | latest   | Compilation cloud APK / IPA signés                            | https://docs.expo.dev/build/introduction/             |
-| **react-native-svg**         | 16.0     | Rendu SVG (logos AES, icônes design system)                   | https://github.com/software-mansion/react-native-svg  |
+| Technologie                   | Version | Rôle dans cette étape                                              | Documentation officielle                                        |
+| ----------------------------- | ------- | ------------------------------------------------------------------ | --------------------------------------------------------------- |
+| **Expo SDK**                  | 55.0    | Plateforme RN managée + EAS Build + OTA updates                    | https://docs.expo.dev/                                          |
+| **React Native**              | 0.78    | Framework UI multiplateforme                                       | https://reactnative.dev/                                        |
+| **expo-router**               | 5.0     | Routing typé file-based (équivalent App Router Next.js)            | https://docs.expo.dev/router/introduction/                      |
+| **TypeScript**                | 6.0+    | Langage source                                                     | https://www.typescriptlang.org/                                 |
+| **expo-camera**               | 17.0    | Scan QR + accès caméra                                             | https://docs.expo.dev/versions/latest/sdk/camera/               |
+| **expo-local-authentication** | 16.0    | Verrouillage biométrique (Face ID / empreinte)                     | https://docs.expo.dev/versions/latest/sdk/local-authentication/ |
+| **expo-secure-store**         | 14.0    | Stockage chiffré (Keystore / Keychain) pour tokens et clés         | https://docs.expo.dev/versions/latest/sdk/securestore/          |
+| **expo-localization**         | 17.0    | Détection langue device + bibliothèque `i18n-js`                   | https://docs.expo.dev/versions/latest/sdk/localization/         |
+| **expo-auth-session**         | 7.0     | OIDC + PKCE pour mobile (Keycloak sans secret)                     | https://docs.expo.dev/versions/latest/sdk/auth-session/         |
+| **op-sqlite**                 | 14.0    | SQLite haute performance (cache + queue offline)                   | https://github.com/OP-Engineering/op-sqlite                     |
+| **TanStack Query**            | 5.90    | Cache HTTP réactif + retry exponentiel                             | https://tanstack.com/query                                      |
+| **Zod**                       | 4.3     | Validation des réponses API (partagé via `@nina-aes/shared-types`) | https://zod.dev/                                                |
+| **NativeWind**                | 5.0     | Tailwind CSS pour React Native (alignement design AES)             | https://www.nativewind.dev/                                     |
+| **EAS Build**                 | latest  | Compilation cloud APK / IPA signés                                 | https://docs.expo.dev/build/introduction/                       |
+| **react-native-svg**          | 16.0    | Rendu SVG (logos AES, icônes design system)                        | https://github.com/software-mansion/react-native-svg            |
 
 > 🔒 **Souveraineté** : aucune dépendance étrangère sensible — `expo-auth-session` parle à votre
 > Keycloak on-premise, pas à un IdP externe. Le scan QR est local, la signature est vérifiée
@@ -136,8 +135,8 @@ end note
 @enduml
 ```
 
-> 📝 Le rendu visuel est dans `docs/diagrams/13-mobile-architecture.puml`
-> (à créer en complément si vous voulez la version standalone).
+> 📝 Le rendu visuel est dans `docs/diagrams/13-mobile-architecture.puml` (à créer en complément si
+> vous voulez la version standalone).
 
 ---
 
@@ -185,8 +184,8 @@ pnpm list -r --depth -1 | findstr mobile
     "web": "expo start --web",
     "lint": "expo lint",
     "check-types": "tsc --noEmit",
-    "test": "jest --watch=false"
-  }
+    "test": "jest --watch=false",
+  },
 }
 ```
 
@@ -200,20 +199,20 @@ pnpm list -r --depth -1 | findstr mobile
     "paths": {
       "@/*": ["./src/*"],
       "@nina-aes/shared-types": ["../../packages/shared-types/src"],
-      "@nina-aes/utils": ["../../packages/utils/src"]
-    }
+      "@nina-aes/utils": ["../../packages/utils/src"],
+    },
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
 }
 ```
 
-> 💡 On ne réimporte pas `@nina-aes/database` ni `@nina-aes/config` dans l'app mobile : la
-> base Prisma est côté serveur. Mobile = consommateur d'API uniquement.
+> 💡 On ne réimporte pas `@nina-aes/database` ni `@nina-aes/config` dans l'app mobile : la base
+> Prisma est côté serveur. Mobile = consommateur d'API uniquement.
 
 ### Étape 4.2 — Dépendances métier (camera, biométrie, secure-store, OIDC, SQLite)
 
-**Pourquoi** : ces six modules natifs sont la fondation de tout le reste — autant les installer
-en un seul bloc et exécuter `expo install` qui aligne les versions natives sur le SDK 55.
+**Pourquoi** : ces six modules natifs sont la fondation de tout le reste — autant les installer en
+un seul bloc et exécuter `expo install` qui aligne les versions natives sur le SDK 55.
 
 ```powershell
 cd C:\Users\lonel\Projet-En-Informatique\Session-Ete-2026\nina-aes-platform\apps\mobile
@@ -244,26 +243,26 @@ pnpm add -D @types/i18n-js
       "bundleIdentifier": "ml.gouv.ninaaes",
       "infoPlist": {
         "NSCameraUsageDescription": "Pour scanner le QR code de votre Fiche Descriptive Individuelle.",
-        "NSFaceIDUsageDescription": "Pour déverrouiller votre NINA en toute sécurité."
-      }
+        "NSFaceIDUsageDescription": "Pour déverrouiller votre NINA en toute sécurité.",
+      },
     },
     "android": {
       "package": "ml.gouv.ninaaes",
-      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
+      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"],
     },
     "plugins": [
       "expo-router",
       [
         "expo-camera",
-        { "cameraPermission": "L'app a besoin de la caméra pour scanner le QR de votre FDI." }
+        { "cameraPermission": "L'app a besoin de la caméra pour scanner le QR de votre FDI." },
       ],
       [
         "expo-local-authentication",
-        { "faceIDPermission": "Authentification biométrique pour accéder à votre NINA." }
+        { "faceIDPermission": "Authentification biométrique pour accéder à votre NINA." },
       ],
-      "expo-secure-store"
-    ]
-  }
+      "expo-secure-store",
+    ],
+  },
 }
 ```
 
@@ -311,8 +310,14 @@ const TRANSLATIONS = { fr, bm, snk, ff, tmq, hau, mos, dje };
 export function detectInitialLanguage(): Language {
   const code = Localization.getLocales()[0]?.languageCode?.toLowerCase() ?? 'fr';
   const supported: Record<string, Language> = {
-    fr: Language.FR, bm: Language.BM, snk: Language.SNK, ff: Language.FF,
-    tmh: Language.TMQ, ha: Language.HAU, mos: Language.MOS, dje: Language.DJE,
+    fr: Language.FR,
+    bm: Language.BM,
+    snk: Language.SNK,
+    ff: Language.FF,
+    tmh: Language.TMQ,
+    ha: Language.HAU,
+    mos: Language.MOS,
+    dje: Language.DJE,
   };
   return supported[code] ?? Language.FR;
 }
@@ -332,7 +337,7 @@ i18n.locale = detectInitialLanguage().toLowerCase();
   "home": { "title": "Mon NINA", "search_cta": "Rechercher mon NINA" },
   "scan": { "title": "Scanner ma fiche", "instruction": "Cadrez le QR code de la FDI" },
   "auth": { "lock_prompt": "Déverrouillez avec votre empreinte ou Face ID" },
-  "errors": { "offline": "Pas de réseau — affichage du dernier résultat connu" }
+  "errors": { "offline": "Pas de réseau — affichage du dernier résultat connu" },
 }
 ```
 
@@ -342,7 +347,7 @@ i18n.locale = detectInitialLanguage().toLowerCase();
   "home": { "title": "Ne ka NINA", "search_cta": "N ka NINA ɲinini" },
   "scan": { "title": "Sɛbɛn jate", "instruction": "QR ye ka da Sɛbɛn kan" },
   "auth": { "lock_prompt": "I bolofitinin walima Face ID ye ka da kan" },
-  "errors": { "offline": "Telefoni ka taa — jaki kɔrɔlen bɛ jira" }
+  "errors": { "offline": "Telefoni ka taa — jaki kɔrɔlen bɛ jira" },
 }
 ```
 
@@ -353,8 +358,8 @@ i18n.locale = detectInitialLanguage().toLowerCase();
 ### Étape 4.4 — Authentification OIDC + PKCE avec Keycloak
 
 **Pourquoi** : sur mobile, on **ne peut pas** stocker un secret client. PKCE (Proof Key for Code
-Exchange) résout ça : un challenge cryptographique généré par le device remplace le secret. Le
-flow respecte la spec OAuth 2.1 et est nativement supporté par Keycloak 26.
+Exchange) résout ça : un challenge cryptographique généré par le device remplace le secret. Le flow
+respecte la spec OAuth 2.1 et est nativement supporté par Keycloak 26.
 
 **Fichier(s) à créer/modifier** :
 
@@ -458,8 +463,8 @@ export function useKeycloak() {
 ### Étape 4.5 — Vérification offline du QR FDI (JWT RS256)
 
 **Pourquoi** : un agent en antenne mobile (RAVEC) doit pouvoir vérifier qu'un QR code papier est
-authentique **sans réseau**. La clé publique CTDEC est embarquée dans l'app (rotation via OTA
-Expo), permettant la vérification cryptographique locale.
+authentique **sans réseau**. La clé publique CTDEC est embarquée dans l'app (rotation via OTA Expo),
+permettant la vérification cryptographique locale.
 
 **Fichier(s) à créer/modifier** :
 
@@ -553,7 +558,10 @@ export async function verifyFdiQr(jwt: string): Promise<VerifyResult> {
 
 /** Décode base64url → string UTF-8. */
 function b64UrlDecodeUtf8(s: string): string {
-  const b64 = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(s.length + ((4 - (s.length % 4)) % 4), '=');
+  const b64 = s
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(s.length + ((4 - (s.length % 4)) % 4), '=');
   // atob est dispo en RN 0.78+ via Hermes ; sinon, polyfill base-64.
   return decodeURIComponent(escape(globalThis.atob(b64)));
 }
@@ -617,9 +625,9 @@ export const CTDEC_PUBLIC_KEY_JWK: JsonWebKey = {
 
 ### Étape 4.6 — Verrouillage biométrique de l'app
 
-**Pourquoi** : à chaque ouverture (foreground), on demande une authentification biométrique
-locale **avant** d'afficher le NINA. Si la biométrie n'est pas disponible (ancien téléphone),
-fallback sur PIN device. C'est une mesure défense en profondeur (vol du téléphone déverrouillé).
+**Pourquoi** : à chaque ouverture (foreground), on demande une authentification biométrique locale
+**avant** d'afficher le NINA. Si la biométrie n'est pas disponible (ancien téléphone), fallback sur
+PIN device. C'est une mesure défense en profondeur (vol du téléphone déverrouillé).
 
 ```typescript
 // apps/mobile/src/auth/biometric-gate.tsx
@@ -729,10 +737,9 @@ db.execute(`
 
 /** Lit une fiche depuis le cache si elle n'a pas expiré. */
 export function readCachedCitizen(nina: string): unknown | null {
-  const row = db.execute(
-    'SELECT payload, fetched_at, ttl FROM citizens_cache WHERE nina = ?',
-    [nina],
-  ).rows?.[0];
+  const row = db.execute('SELECT payload, fetched_at, ttl FROM citizens_cache WHERE nina = ?', [
+    nina,
+  ]).rows?.[0];
   if (!row) return null;
   if (Date.now() / 1000 - Number(row.fetched_at) > Number(row.ttl)) return null;
   return JSON.parse(String(row.payload));
@@ -740,10 +747,11 @@ export function readCachedCitizen(nina: string): unknown | null {
 
 /** Écrit / met à jour la fiche en cache. */
 export function writeCachedCitizen(nina: string, payload: unknown): void {
-  db.execute(
-    'INSERT OR REPLACE INTO citizens_cache (nina, payload, fetched_at) VALUES (?, ?, ?)',
-    [nina, JSON.stringify(payload), Math.floor(Date.now() / 1000)],
-  );
+  db.execute('INSERT OR REPLACE INTO citizens_cache (nina, payload, fetched_at) VALUES (?, ?, ?)', [
+    nina,
+    JSON.stringify(payload),
+    Math.floor(Date.now() / 1000),
+  ]);
 }
 
 /** Met une mutation en file (sera rejouée au retour réseau). */
@@ -760,14 +768,14 @@ export function enqueueMutation(m: {
 }
 ```
 
-> 📌 La rejouation de la queue (au retour réseau) se fait dans un hook `useReplayQueue` branché
-> sur `@react-native-community/netinfo` + un `setInterval(30s)`. Le code complet est dans
+> 📌 La rejouation de la queue (au retour réseau) se fait dans un hook `useReplayQueue` branché sur
+> `@react-native-community/netinfo` + un `setInterval(30s)`. Le code complet est dans
 > `apps/mobile/src/db/replay.ts` (à écrire par bloc de ~50 lignes — couvert plus tard).
 
 ### Étape 4.8 — Build EAS développement (APK signé)
 
-**Pourquoi** : pour tester sur un téléphone physique sans publier en store, EAS Build produit un
-APK signé en quelques minutes. C'est l'étape qui valide que les modules natifs (camera, biométrie)
+**Pourquoi** : pour tester sur un téléphone physique sans publier en store, EAS Build produit un APK
+signé en quelques minutes. C'est l'étape qui valide que les modules natifs (camera, biométrie)
 fonctionnent vraiment.
 
 ```powershell
@@ -797,19 +805,19 @@ pnpm start
       "developmentClient": true,
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_KEYCLOAK_URL": "http://10.0.2.2:8080" }
+      "env": { "EXPO_PUBLIC_KEYCLOAK_URL": "http://10.0.2.2:8080" },
     },
     "production": {
       "android": { "buildType": "app-bundle" },
-      "env": { "EXPO_PUBLIC_KEYCLOAK_URL": "https://auth.ctdec.gouv.ml" }
-    }
-  }
+      "env": { "EXPO_PUBLIC_KEYCLOAK_URL": "https://auth.ctdec.gouv.ml" },
+    },
+  },
 }
 ```
 
-> 📝 `10.0.2.2` est l'alias Android pour `localhost` du host. Pour iOS Simulator c'est
-> `localhost` directement. Pour un téléphone physique sur le même Wi-Fi, mettre l'IP locale
-> du PC (ex. `192.168.1.20`).
+> 📝 `10.0.2.2` est l'alias Android pour `localhost` du host. Pour iOS Simulator c'est `localhost`
+> directement. Pour un téléphone physique sur le même Wi-Fi, mettre l'IP locale du PC (ex.
+> `192.168.1.20`).
 
 ---
 
@@ -837,8 +845,8 @@ pnpm --filter @nina-aes/mobile start
 1. Imprimer / afficher la FDI signée d'un citoyen seedé.
 2. Dans l'app, ouvrir « Scanner ».
 3. **Attendu** : caméra s'ouvre, après scan le payload décodé apparaît avec un badge ✅ vert.
-4. Modifier 1 caractère du QR (ex. effacer un point) → badge ❌ rouge avec message
-   « Signature invalide ».
+4. Modifier 1 caractère du QR (ex. effacer un point) → badge ❌ rouge avec message « Signature
+   invalide ».
 
 ### Test 4 — Biométrie
 
@@ -856,16 +864,16 @@ pnpm --filter @nina-aes/mobile test
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                                         | Cause probable                                                                       | Solution                                                                                    |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `Unable to resolve module @nina-aes/shared-types`                                | Metro ne sait pas suivre les liens pnpm vers `../../packages/...`                    | Ajouter `metro.config.js` avec `watchFolders: [path.resolve(__dirname, '../../packages')]`. |
-| `expo-camera` plante au lancement                                                | Permissions absentes sur Android < 13                                                | Vérifier `<uses-permission android:name="android.permission.CAMERA"/>` après build.         |
-| Redirect Keycloak ne revient pas dans l'app                                      | `redirectUri` mal configuré côté Keycloak                                            | Ajouter `ninaaes://*` dans **Valid Redirect URIs** du client `nina-mobile`.                 |
-| `WebCrypto subtle is undefined`                                                  | Hermes < 0.78 n'expose pas WebCrypto                                                 | Mettre à jour vers RN 0.78+ (SDK 55) ou polyfiller avec `react-native-quick-crypto`.        |
-| Build EAS échoue avec « Gradle out of memory »                                   | Heap par défaut trop petit                                                           | Dans `android/gradle.properties` : `org.gradle.jvmargs=-Xmx4096m`.                          |
-| L'app fonctionne en debug mais pas en release                                    | Variables `EXPO_PUBLIC_*` non incluses dans le bundle release                        | Vérifier `eas.json` → `production.env`. Refaire un build EAS.                               |
-| « Network request failed » uniquement en émulateur Android                       | `localhost` n'est pas accessible dans l'émulateur                                    | Utiliser `10.0.2.2:3000` à la place de `localhost:3000`.                                    |
-| Refresh token perdu au redémarrage                                               | `expo-secure-store` `requireAuthentication: true` exige un déverrouillage à chaque accès | Mettre `requireAuthentication: false` (la biométrie protège déjà l'app).               |
+| Symptôme                                                   | Cause probable                                                                           | Solution                                                                                    |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `Unable to resolve module @nina-aes/shared-types`          | Metro ne sait pas suivre les liens pnpm vers `../../packages/...`                        | Ajouter `metro.config.js` avec `watchFolders: [path.resolve(__dirname, '../../packages')]`. |
+| `expo-camera` plante au lancement                          | Permissions absentes sur Android < 13                                                    | Vérifier `<uses-permission android:name="android.permission.CAMERA"/>` après build.         |
+| Redirect Keycloak ne revient pas dans l'app                | `redirectUri` mal configuré côté Keycloak                                                | Ajouter `ninaaes://*` dans **Valid Redirect URIs** du client `nina-mobile`.                 |
+| `WebCrypto subtle is undefined`                            | Hermes < 0.78 n'expose pas WebCrypto                                                     | Mettre à jour vers RN 0.78+ (SDK 55) ou polyfiller avec `react-native-quick-crypto`.        |
+| Build EAS échoue avec « Gradle out of memory »             | Heap par défaut trop petit                                                               | Dans `android/gradle.properties` : `org.gradle.jvmargs=-Xmx4096m`.                          |
+| L'app fonctionne en debug mais pas en release              | Variables `EXPO_PUBLIC_*` non incluses dans le bundle release                            | Vérifier `eas.json` → `production.env`. Refaire un build EAS.                               |
+| « Network request failed » uniquement en émulateur Android | `localhost` n'est pas accessible dans l'émulateur                                        | Utiliser `10.0.2.2:3000` à la place de `localhost:3000`.                                    |
+| Refresh token perdu au redémarrage                         | `expo-secure-store` `requireAuthentication: true` exige un déverrouillage à chaque accès | Mettre `requireAuthentication: false` (la biométrie protège déjà l'app).                    |
 
 ---
 
@@ -874,15 +882,15 @@ pnpm --filter @nina-aes/mobile test
 Créer **`docs/adr/ADR-016-mobile-stack-expo.md`** avec :
 
 - **Décision** : Expo SDK 55 (managed) plutôt que React Native bare ou Flutter.
-- **Justification** : EAS Build évite la maintenance Xcode/Android Studio en local (un étudiant
-  seul sous Windows) ; OTA permet de pousser des correctifs sans repasser par les stores ;
-  l'écosystème Expo couvre 100 % de notre cas (caméra, biométrie, secure-store, OIDC).
+- **Justification** : EAS Build évite la maintenance Xcode/Android Studio en local (un étudiant seul
+  sous Windows) ; OTA permet de pousser des correctifs sans repasser par les stores ; l'écosystème
+  Expo couvre 100 % de notre cas (caméra, biométrie, secure-store, OIDC).
 - **Conséquences positives** : développement rapide, builds cloud, OTA, runtime aligné iOS/Android.
-- **Conséquences négatives** : dépendance à l'infra Expo (limitable via "self-hosted EAS" si
-  besoin de souveraineté absolue) ; certains modules natifs très spécifiques peuvent nécessiter
-  un eject vers RN bare.
-- **Diagramme de séquence** : flux OIDC PKCE complet (peut être tiré de `04-sequence-…` ou de
-  votre propre `.puml`).
+- **Conséquences négatives** : dépendance à l'infra Expo (limitable via "self-hosted EAS" si besoin
+  de souveraineté absolue) ; certains modules natifs très spécifiques peuvent nécessiter un eject
+  vers RN bare.
+- **Diagramme de séquence** : flux OIDC PKCE complet (peut être tiré de `04-sequence-…` ou de votre
+  propre `.puml`).
 - **Captures** : 5 écrans de l'app (Accueil, Recherche, Scan, Détail, Paramètres).
 
 Ajouter aussi **`docs/api/13-mobile-endpoints.md`** : liste des endpoints API consommés par l'app
@@ -927,23 +935,24 @@ Ajouter aussi **`docs/api/13-mobile-endpoints.md`** : liste des endpoints API co
 - [ ] 8 fichiers de traduction présents (au moins les clés sentinelles)
 - [ ] `docs/adr/ADR-016-mobile-stack-expo.md` rédigé
 - [ ] Aucun secret / clé privée / token dans le code source (vérifié via `git secrets --scan`)
-- [ ] Commit conventionnel : `feat(mobile): app Expo SDK 55 — auth OIDC, scan QR, offline (PROMPT 1.5+)`
+- [ ] Commit conventionnel :
+      `feat(mobile): app Expo SDK 55 — auth OIDC, scan QR, offline (PROMPT 1.5+)`
 
 ---
 
 ## 10. Pour aller plus loin
 
-- **OTA Updates** : `eas update --channel production` pour pousser un nouveau JS bundle
-  (correctifs UI, rotation de la clé publique CTDEC) sans repasser par le store. Le mécanisme
-  `expo-updates` valide la signature côté device.
+- **OTA Updates** : `eas update --channel production` pour pousser un nouveau JS bundle (correctifs
+  UI, rotation de la clé publique CTDEC) sans repasser par le store. Le mécanisme `expo-updates`
+  valide la signature côté device.
 - **Flag d'audit** : à chaque vérification QR offline, on log dans `op-sqlite` un événement local
-  `{ type: "QR_VERIFY", result, ts }` ; au retour réseau, on les pousse vers `audit-service` en
-  bulk pour traçabilité (utile dans les antennes mobiles RAVEC).
+  `{ type: "QR_VERIFY", result, ts }` ; au retour réseau, on les pousse vers `audit-service` en bulk
+  pour traçabilité (utile dans les antennes mobiles RAVEC).
 - **Mode kiosque agent** : un futur écran « Mode antenne » (visible si rôle=AGENT dans le JWT)
   permettrait à un agent CTDEC d'ouvrir un mode multi-citoyens (file d'attente, scan rapide,
   delivery FDI à domicile — cf. séquence `05-sequence-vulnerable-person.puml`).
-- **Fallback non-smartphone** : pour les utilisateurs sans téléphone Android/iOS, le canal
-  USSD (doc 14) couvre le même cas d'usage. L'app mobile **n'est pas le seul** point d'accès.
+- **Fallback non-smartphone** : pour les utilisateurs sans téléphone Android/iOS, le canal USSD
+  (doc 14) couvre le même cas d'usage. L'app mobile **n'est pas le seul** point d'accès.
 - **Lectures recommandées** :
   - https://docs.expo.dev/develop/development-builds/introduction/
   - https://www.rfc-editor.org/rfc/rfc7636 (PKCE)

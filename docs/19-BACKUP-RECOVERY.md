@@ -1,29 +1,23 @@
 # 19 — Sauvegardes et reprise après sinistre (pg_dump · MinIO réplication · Redis snapshots · DRP)
 
-> **Bloc concerné** : Transversal (tous les blocs A → F) — appliqué dès que
-> PostgreSQL contient des données seed/test métier ; durci pour le passage en
-> production.
-> **Prérequis** : documents 00 → 18 complétés ; HashiCorp Vault opérationnel
-> (doc 15) pour la clé de chiffrement des dumps ; stack observabilité
-> (doc 17) pour surveiller les jobs de sauvegarde.
-> **Durée estimée** : 10 à 14 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : Transversal (tous les blocs A → F) — appliqué dès que PostgreSQL contient des
+> données seed/test métier ; durci pour le passage en production. **Prérequis** : documents 00 → 18
+> complétés ; HashiCorp Vault opérationnel (doc 15) pour la clé de chiffrement des dumps ; stack
+> observabilité (doc 17) pour surveiller les jobs de sauvegarde. **Durée estimée** : 10 à 14 heures
+> pour un étudiant seul. **Livrables de cette étape** :
 >
-> - **pg_dump chiffré quotidien** de `nina_aes_db` + `keycloak` via
->   `pgbackrest 2.55` ou `wal-g 3.1` (Postgres 18 — full + incremental WAL)
-> - **Chiffrement AES-256-GCM** des dumps avec clé Vault Transit
->   (rotation 90j)
-> - **Réplication MinIO bucket** `nina-documents` vers MinIO secondaire
->   (mode `active-active` ou `replication`)
-> - **Snapshots Redis** : RDB + AOF (Append-Only File) — TTL des sessions
->   USSD respecté, queues éphémères ignorées
-> - **Stockage off-site** : copie chiffrée vers S3-compatible souverain
->   (Scaleway Paris, OVH Strasbourg, ou MinIO secondaire CTDEC)
-> - **Rétention** : 7j journaliers + 4 hebdo + 12 mensuels + 7 annuels
->   (grand-père/père/fils)
-> - **Scripts restore testés mensuellement** : 1 script bash + 1 test E2E
->   qui spin-up un container Postgres, restore le dernier dump, vérifie
->   l'intégrité (hash + count).
+> - **pg_dump chiffré quotidien** de `nina_aes_db` + `keycloak` via `pgbackrest 2.55` ou `wal-g 3.1`
+>   (Postgres 18 — full + incremental WAL)
+> - **Chiffrement AES-256-GCM** des dumps avec clé Vault Transit (rotation 90j)
+> - **Réplication MinIO bucket** `nina-documents` vers MinIO secondaire (mode `active-active` ou
+>   `replication`)
+> - **Snapshots Redis** : RDB + AOF (Append-Only File) — TTL des sessions USSD respecté, queues
+>   éphémères ignorées
+> - **Stockage off-site** : copie chiffrée vers S3-compatible souverain (Scaleway Paris, OVH
+>   Strasbourg, ou MinIO secondaire CTDEC)
+> - **Rétention** : 7j journaliers + 4 hebdo + 12 mensuels + 7 annuels (grand-père/père/fils)
+> - **Scripts restore testés mensuellement** : 1 script bash + 1 test E2E qui spin-up un container
+>   Postgres, restore le dernier dump, vérifie l'intégrité (hash + count).
 > - **Plan de reprise après sinistre (DRP)** documenté :
 >   - **RTO** (Recovery Time Objective) : **< 4 h**
 >   - **RPO** (Recovery Point Objective) : **< 1 h**
@@ -34,55 +28,51 @@
 
 ## 1. Objectif pédagogique
 
-Un système d'identité d'État qui perd les données d'enrôlement est
-**irrécupérable** — pas seulement techniquement (les FDI doivent être
-ré-émises, les RDV reprogrammés, l'audit Merkle reconstruit), mais
-**institutionnellement** (perte de confiance, contentieux juridique,
-agrément ANSSI suspendu). Trois principes pédagogiques :
+Un système d'identité d'État qui perd les données d'enrôlement est **irrécupérable** — pas seulement
+techniquement (les FDI doivent être ré-émises, les RDV reprogrammés, l'audit Merkle reconstruit),
+mais **institutionnellement** (perte de confiance, contentieux juridique, agrément ANSSI suspendu).
+Trois principes pédagogiques :
 
-1. **Un backup non testé n'est pas un backup**. La fréquence des dumps
-   importe peu si la procédure de restore n'a jamais été exécutée. Cette
-   étape livre un test automatique mensuel qui exécute le scénario complet
-   (dump → upload → download → restore → vérification).
+1. **Un backup non testé n'est pas un backup**. La fréquence des dumps importe peu si la procédure
+   de restore n'a jamais été exécutée. Cette étape livre un test automatique mensuel qui exécute le
+   scénario complet (dump → upload → download → restore → vérification).
 
-2. **3-2-1 rule**. Trois copies des données, sur deux supports différents,
-   dont une off-site. Concrètement :
+2. **3-2-1 rule**. Trois copies des données, sur deux supports différents, dont une off-site.
+   Concrètement :
    - **Copie 1** : DB primaire `nina_aes_db` sur Postgres K3s CTDEC
    - **Copie 2** : MinIO interne CTDEC (`backups-bucket`, chiffré)
-   - **Copie 3** : MinIO secondaire (datacenter géographiquement distant
-     — Ouagadougou si Mali principal, ou bucket Scaleway/OVH chiffré)
+   - **Copie 3** : MinIO secondaire (datacenter géographiquement distant — Ouagadougou si Mali
+     principal, ou bucket Scaleway/OVH chiffré)
 
-3. **Le DRP est un exercice, pas un document**. Documenter le RTO/RPO ne
-   suffit pas. Cette étape inclut un **test trimestriel** où on coupe
-   volontairement un nœud Postgres et on chronomètre la reprise. Si on
-   dépasse les 4 h, le DRP est ajusté.
+3. **Le DRP est un exercice, pas un document**. Documenter le RTO/RPO ne suffit pas. Cette étape
+   inclut un **test trimestriel** où on coupe volontairement un nœud Postgres et on chronomètre la
+   reprise. Si on dépasse les 4 h, le DRP est ajusté.
 
-> 💡 **Souveraineté** : les copies off-site doivent rester dans un
-> datacenter souverain ou allié. Pas de S3 AWS, pas de Azure Blob, pas
-> de Google Cloud Storage. La liste retenue : MinIO secondaire CTDEC,
-> Scaleway Paris, OVH Strasbourg, Cellar Clever Cloud. Tous opèrent
-> sous juridiction européenne ou africaine.
+> 💡 **Souveraineté** : les copies off-site doivent rester dans un datacenter souverain ou allié.
+> Pas de S3 AWS, pas de Azure Blob, pas de Google Cloud Storage. La liste retenue : MinIO secondaire
+> CTDEC, Scaleway Paris, OVH Strasbourg, Cellar Clever Cloud. Tous opèrent sous juridiction
+> européenne ou africaine.
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Outil                       | Version  | Rôle                                                        |
-| --------------------------- | -------- | ----------------------------------------------------------- |
-| **pgBackRest**              | `2.55.x` | Backups Postgres avec full + diff + WAL archive             |
-| **wal-g** (alternative)     | `3.1.x`  | Backups + WAL push vers S3-compat, plus léger que pgBackRest |
-| **PostgreSQL**              | `18.x`   | Already running (cf. doc 05 / ADR-005)                      |
-| **MinIO**                   | `2025-09-07` | Object storage S3-compat — replication built-in         |
-| **mc (MinIO Client)**       | `2025-09` | CLI mc admin replicate, mc cp                              |
-| **Redis**                   | `8.6`    | RDB snapshots + AOF (Append-Only File)                      |
-| **HashiCorp Vault**         | `1.20`   | Clé de chiffrement Transit (rotation 90j)                   |
-| **age (encryption)**        | `1.2.0`  | Chiffrement fichiers en + de pg_dump natif                  |
-| **restic** (alternative)    | `0.18.x` | Backup tool générique avec dedup + chiffrement              |
-| **K3s CronJob**             | `1.33`   | Orchestration jobs backup quotidiens                        |
-| **Prometheus blackbox-exporter** | `0.27` | Surveillance dispo des endpoints S3 de backup            |
+| Outil                            | Version      | Rôle                                                         |
+| -------------------------------- | ------------ | ------------------------------------------------------------ |
+| **pgBackRest**                   | `2.55.x`     | Backups Postgres avec full + diff + WAL archive              |
+| **wal-g** (alternative)          | `3.1.x`      | Backups + WAL push vers S3-compat, plus léger que pgBackRest |
+| **PostgreSQL**                   | `18.x`       | Already running (cf. doc 05 / ADR-005)                       |
+| **MinIO**                        | `2025-09-07` | Object storage S3-compat — replication built-in              |
+| **mc (MinIO Client)**            | `2025-09`    | CLI mc admin replicate, mc cp                                |
+| **Redis**                        | `8.6`        | RDB snapshots + AOF (Append-Only File)                       |
+| **HashiCorp Vault**              | `1.20`       | Clé de chiffrement Transit (rotation 90j)                    |
+| **age (encryption)**             | `1.2.0`      | Chiffrement fichiers en + de pg_dump natif                   |
+| **restic** (alternative)         | `0.18.x`     | Backup tool générique avec dedup + chiffrement               |
+| **K3s CronJob**                  | `1.33`       | Orchestration jobs backup quotidiens                         |
+| **Prometheus blackbox-exporter** | `0.27`       | Surveillance dispo des endpoints S3 de backup                |
 
-> 🔒 Tous open-source / souverains. age est l'outil de chiffrement
-> recommandé par modern crypto (XChaCha20-Poly1305, courbe X25519).
+> 🔒 Tous open-source / souverains. age est l'outil de chiffrement recommandé par modern crypto
+> (XChaCha20-Poly1305, courbe X25519).
 
 ---
 
@@ -160,12 +150,11 @@ end note
 
 ### Étape 4.1 — Activer le WAL archiving Postgres + pgBackRest
 
-**Pourquoi** : sans WAL archive, on peut restaurer à 02:00 ce matin mais
-pas à 03:47 ce matin (point dans le temps). Le WAL archive permet le
-**Point-In-Time Recovery (PITR)** → RPO < 1 h tenu.
+**Pourquoi** : sans WAL archive, on peut restaurer à 02:00 ce matin mais pas à 03:47 ce matin (point
+dans le temps). Le WAL archive permet le **Point-In-Time Recovery (PITR)** → RPO < 1 h tenu.
 
-**Fichier(s) à modifier** : `infrastructure/docker/postgres/postgresql.conf`
-(ajouts), `pgbackrest.conf`.
+**Fichier(s) à modifier** : `infrastructure/docker/postgres/postgresql.conf` (ajouts),
+`pgbackrest.conf`.
 
 ```ini
 # infrastructure/docker/postgres/postgresql.conf — ajouts
@@ -233,7 +222,7 @@ metadata:
   name: backup-postgres-daily
   namespace: nina-aes
 spec:
-  schedule: '0 2 * * *'           # 02:00 UTC tous les jours
+  schedule: '0 2 * * *' # 02:00 UTC tous les jours
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 7
   failedJobsHistoryLimit: 3
@@ -270,7 +259,7 @@ spec:
 ```yaml
 metadata: { name: backup-postgres-weekly }
 spec:
-  schedule: '0 3 * * 0'           # dimanche 03:00 UTC
+  schedule: '0 3 * * 0' # dimanche 03:00 UTC
   # ... pareil mais type=diff au lieu de full
 ```
 
@@ -278,10 +267,9 @@ spec:
 
 ### Étape 4.3 — Redis snapshots (RDB + AOF)
 
-**Pourquoi** : les sessions USSD vivent en Redis (TTL 5 min, cf. doc 14).
-Une perte de Redis = utilisateurs USSD doivent recommencer leur saisie.
-Le AOF (Append-Only File) permet une restauration **fine** (chaque commande
-journalisée), le RDB un dump périodique.
+**Pourquoi** : les sessions USSD vivent en Redis (TTL 5 min, cf. doc 14). Une perte de Redis =
+utilisateurs USSD doivent recommencer leur saisie. Le AOF (Append-Only File) permet une restauration
+**fine** (chaque commande journalisée), le RDB un dump périodique.
 
 **Fichier(s) à modifier** : `infrastructure/docker/redis/redis.conf` (ajouts).
 
@@ -310,7 +298,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata: { name: backup-redis-snapshot, namespace: nina-aes }
 spec:
-  schedule: '15 2 * * *'           # 02:15 UTC
+  schedule: '15 2 * * *' # 02:15 UTC
   jobTemplate:
     spec:
       template:
@@ -342,10 +330,9 @@ spec:
 
 ### Étape 4.4 — Réplication MinIO bucket
 
-**Pourquoi** : les documents (FDI signées, photos d'identité, scans CNI
-de pièces justificatives) sont volumineux et ne tiennent pas dans pg_dump.
-On utilise la réplication MinIO **native** (mode `active-passive` :
-écritures sur DC primaire, miroir async sur DC secondaire).
+**Pourquoi** : les documents (FDI signées, photos d'identité, scans CNI de pièces justificatives)
+sont volumineux et ne tiennent pas dans pg_dump. On utilise la réplication MinIO **native** (mode
+`active-passive` : écritures sur DC primaire, miroir async sur DC secondaire).
 
 ```bash
 # 1) Provisionner les buckets sur les 2 MinIO
@@ -386,10 +373,9 @@ mc admin replicate status minio-internal
 
 ### Étape 4.5 — Chiffrement supplémentaire avec `age` (cold storage)
 
-**Pourquoi** : les dumps poussés vers le cold storage (Scaleway Paris, OVH)
-quittent le datacenter CTDEC. Même si pgBackRest chiffre en AES-256-CBC,
-on ajoute une couche `age` (clé asymétrique) pour que seul le porteur de
-la clé privée — distribuée en Shamir's 3/5 aux 5 admins CTDEC — puisse
+**Pourquoi** : les dumps poussés vers le cold storage (Scaleway Paris, OVH) quittent le datacenter
+CTDEC. Même si pgBackRest chiffre en AES-256-CBC, on ajoute une couche `age` (clé asymétrique) pour
+que seul le porteur de la clé privée — distribuée en Shamir's 3/5 aux 5 admins CTDEC — puisse
 déchiffrer.
 
 ```bash
@@ -495,7 +481,7 @@ echo "[✓] Restore test OK — RTO mesuré : $(( $(date +%s) - START_TIME )) s"
 ```yaml
 metadata: { name: restore-test-monthly, namespace: nina-aes }
 spec:
-  schedule: '0 4 1 * *'            # 1er du mois, 04:00 UTC
+  schedule: '0 4 1 * *' # 1er du mois, 04:00 UTC
   jobTemplate:
     spec:
       template:
@@ -503,12 +489,12 @@ spec:
           restartPolicy: Never
           containers:
             - name: restore-test
-              image: ghcr.io/nina-aes/restore-test:latest    # image qui embarque le script
+              image: ghcr.io/nina-aes/restore-test:latest # image qui embarque le script
               command: ['/usr/local/bin/restore-test.sh']
 ```
 
-L'output est shippé vers Loki (doc 17) — Alertmanager déclenche
-`RestoreTestFailed` si exit code ≠ 0.
+L'output est shippé vers Loki (doc 17) — Alertmanager déclenche `RestoreTestFailed` si exit code
+≠ 0.
 
 ---
 
@@ -516,31 +502,33 @@ L'output est shippé vers Loki (doc 17) — Alertmanager déclenche
 
 **Fichier à créer** : `docs/observability/DRP-RUNBOOK.md`
 
-```markdown
+````markdown
 # DRP RUNBOOK — Disaster Recovery Plan NINA-AES
 
 > **RTO cible** : < 4 h · **RPO cible** : < 1 h
 
 ## Scénario A — Crash Postgres primaire (perte totale du nœud)
 
-**Détection** : alerte `ServiceDown` sur `postgres-exporter` ; le service
-identity-service retourne 5xx massivement.
+**Détection** : alerte `ServiceDown` sur `postgres-exporter` ; le service identity-service retourne
+5xx massivement.
 
 **Procédure (durée cible 90 min)** :
 
 1. **T+0** : déclencher la cellule de crise (CISO CTDEC + DBA on-call).
 2. **T+5** : isoler le nœud crashé (`kubectl cordon node-postgres-primary`).
-3. **T+10** : provisionner un nouveau pod Postgres (`postgis/postgis:18-3.6`)
-   sur un nœud sain (StatefulSet `nina-postgres` → replica 2 mais nous
-   utilisons 1 — donc on créé un manifest temporaire).
+3. **T+10** : provisionner un nouveau pod Postgres (`postgis/postgis:18-3.6`) sur un nœud sain
+   (StatefulSet `nina-postgres` → replica 2 mais nous utilisons 1 — donc on créé un manifest
+   temporaire).
 4. **T+15** : exécuter le restore pgBackRest :
    ```bash
    pgbackrest --stanza=nina --type=time --target="2026-MM-DD HH:MM:SS UTC" restore
    ```
+````
+
 5. **T+45** : start Postgres en mode recovery, attendre `pg_is_in_recovery() = f`.
 6. **T+60** : valider intégrité (`SELECT COUNT(*) FROM citizens`, etc.).
-7. **T+75** : repointer les services NestJS vers le nouveau pod (mise à
-   jour `DATABASE_URL` via Vault dynamic secret).
+7. **T+75** : repointer les services NestJS vers le nouveau pod (mise à jour `DATABASE_URL` via
+   Vault dynamic secret).
 8. **T+85** : smoke test API (`curl /api/nina/health`).
 9. **T+90** : déclarer la reprise. RTO = 90 min < 4 h cible.
 
@@ -551,7 +539,8 @@ identity-service retourne 5xx massivement.
 ## Scénario C — Corruption du WAL archive (à 03:47 ce matin)
 
 …
-```
+
+````
 
 ---
 
@@ -575,10 +564,9 @@ docker stop nina-minio
 
 # Trimestre 4 — Crash global (perte K3s entière)
 # → restore complet depuis cold storage (Scaleway), durée mesurée
-```
+````
 
-Le résultat de chaque drill est consigné dans
-`docs/observability/DRP-DRILL-LOG.md`.
+Le résultat de chaque drill est consigné dans `docs/observability/DRP-DRILL-LOG.md`.
 
 ---
 
@@ -613,36 +601,35 @@ ls docs/observability/DRP-RUNBOOK.md
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                       | Cause probable                                | Solution                                                |
-| -------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
-| `pgbackrest stanza-create` : `ERROR: archive_command must be set` | Postgres pas configuré pour le WAL archive   | Ajouter `archive_mode=on` + `archive_command=...` dans `postgresql.conf` et redémarrer |
-| Backup full quotidien prend > 4 h                              | Pas de compression / I/O lent                  | `compress-type=zst` + provisionner SSD NVMe pour `repo1-path` |
-| WAL archive disque saturé                                       | Retention pas configurée                      | `repo1-retention-full=7` + `pgbackrest expire` dans le cron |
-| Restore : `ERROR: WAL segment ... not found`                    | WAL trop ancien purgé avant le full backup     | Toujours vérifier `pgbackrest --stanza=nina check` avant nuit |
-| MinIO replication stuck                                          | Lien réseau coupé entre les 2 DC              | `mc admin replicate resync start minio-internal --site minio-secondaire` |
-| Redis : AOF fichier > 50 GB                                     | `auto-aof-rewrite-percentage` pas atteint     | `redis-cli BGREWRITEAOF` manuel ; surveiller `aof_pending_rewrite` |
-| age : `decryption failed`                                        | Clé privée corrompue ou mauvaise              | Vérifier `age-keygen -y < ~/.age/nina-backup.key` → public match |
-| CronJob backup en `Error` toutes les nuits                       | Secret expiré (rotation Vault)                 | Renouveler via `vault kv put secret/backups/...`        |
-| Test restore-test échoue avec count=0                            | Backup pris avant le seed                      | Décaler le 1er backup post-seed ; ou marquer le test comme « warmup phase » |
-| Cold storage upload échoue intermittemment                       | Bande passante saturée                        | Programmer en heures creuses (02-05 UTC) ; bandwidth-limit `mc --limit 10MiB` |
-| DRP drill T1 dépasse 4 h                                         | Étape manuelle non scriptée                   | Identifier le goulot (souvent : provisionning pod + restore WAL) → automatiser |
+| Symptôme                                                          | Cause probable                             | Solution                                                                               |
+| ----------------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `pgbackrest stanza-create` : `ERROR: archive_command must be set` | Postgres pas configuré pour le WAL archive | Ajouter `archive_mode=on` + `archive_command=...` dans `postgresql.conf` et redémarrer |
+| Backup full quotidien prend > 4 h                                 | Pas de compression / I/O lent              | `compress-type=zst` + provisionner SSD NVMe pour `repo1-path`                          |
+| WAL archive disque saturé                                         | Retention pas configurée                   | `repo1-retention-full=7` + `pgbackrest expire` dans le cron                            |
+| Restore : `ERROR: WAL segment ... not found`                      | WAL trop ancien purgé avant le full backup | Toujours vérifier `pgbackrest --stanza=nina check` avant nuit                          |
+| MinIO replication stuck                                           | Lien réseau coupé entre les 2 DC           | `mc admin replicate resync start minio-internal --site minio-secondaire`               |
+| Redis : AOF fichier > 50 GB                                       | `auto-aof-rewrite-percentage` pas atteint  | `redis-cli BGREWRITEAOF` manuel ; surveiller `aof_pending_rewrite`                     |
+| age : `decryption failed`                                         | Clé privée corrompue ou mauvaise           | Vérifier `age-keygen -y < ~/.age/nina-backup.key` → public match                       |
+| CronJob backup en `Error` toutes les nuits                        | Secret expiré (rotation Vault)             | Renouveler via `vault kv put secret/backups/...`                                       |
+| Test restore-test échoue avec count=0                             | Backup pris avant le seed                  | Décaler le 1er backup post-seed ; ou marquer le test comme « warmup phase »            |
+| Cold storage upload échoue intermittemment                        | Bande passante saturée                     | Programmer en heures creuses (02-05 UTC) ; bandwidth-limit `mc --limit 10MiB`          |
+| DRP drill T1 dépasse 4 h                                          | Étape manuelle non scriptée                | Identifier le goulot (souvent : provisionning pod + restore WAL) → automatiser         |
 
 ---
 
 ## 7. Documentation à produire
 
-- `docs/adr/ADR-019-backup-recovery-strategy.md` — décision pgBackRest +
-  réplication MinIO + cold storage age vs alternatives.
-- `docs/observability/DRP-RUNBOOK.md` — 4 scénarios documentés (perte
-  Postgres, perte DC, corruption WAL, perte cluster K3s).
-- `docs/observability/DRP-DRILL-LOG.md` — registre des tests trimestriels :
-  date, scénario, RTO mesuré, points d'amélioration.
-- `infrastructure/pgbackrest/README.md` — comment retrouver un dump
-  particulier, comment auditer la chaîne de restore.
+- `docs/adr/ADR-019-backup-recovery-strategy.md` — décision pgBackRest + réplication MinIO + cold
+  storage age vs alternatives.
+- `docs/observability/DRP-RUNBOOK.md` — 4 scénarios documentés (perte Postgres, perte DC, corruption
+  WAL, perte cluster K3s).
+- `docs/observability/DRP-DRILL-LOG.md` — registre des tests trimestriels : date, scénario, RTO
+  mesuré, points d'amélioration.
+- `infrastructure/pgbackrest/README.md` — comment retrouver un dump particulier, comment auditer la
+  chaîne de restore.
 - Mise à jour `docs/CHANGELOG.md` §17 : livrables backup + DRP.
-- Mise à jour `docs/17-MONITORING-OBSERVABILITY.md` §4.6 : ajout des 3
-  règles d'alerting backup (`BackupJobFailed`, `RestoreTestFailed`,
-  `MinIOReplicationLag`).
+- Mise à jour `docs/17-MONITORING-OBSERVABILITY.md` §4.6 : ajout des 3 règles d'alerting backup
+  (`BackupJobFailed`, `RestoreTestFailed`, `MinIOReplicationLag`).
 
 ---
 
@@ -691,27 +678,25 @@ ls docs/observability/DRP-RUNBOOK.md
 - [ ] `ADR-019` rédigé
 - [ ] `docs/CHANGELOG.md` §17 + `docs/00-README-INDEX.md` mis à jour
 - [ ] Tag Git `backup-mvp` posé après validation tutorat
-- [ ] Commit conventionnel : `feat(backup): pgBackRest + MinIO replication + age cold + DRP + ADR-019`
+- [ ] Commit conventionnel :
+      `feat(backup): pgBackRest + MinIO replication + age cold + DRP + ADR-019`
 
 ---
 
 ## 10. Pour aller plus loin
 
-- **Patroni + Repmgr** : haute disponibilité Postgres avec failover
-  automatique en < 30 s. Pertinent en Phase 2 quand le cluster passe à
-  3+ nœuds. Réduit RTO de 90 min → 5 min.
-- **Continuous Archiving + Logical Replication** : pour propagation
-  AES-cross-pays (Mali → BFA → Niger) sans transit de pg_dump complets.
+- **Patroni + Repmgr** : haute disponibilité Postgres avec failover automatique en < 30 s. Pertinent
+  en Phase 2 quand le cluster passe à 3+ nœuds. Réduit RTO de 90 min → 5 min.
+- **Continuous Archiving + Logical Replication** : pour propagation AES-cross-pays (Mali → BFA →
+  Niger) sans transit de pg_dump complets.
 - **Restic / Borg** : alternative tout-en-un (dedup + snapshot + chiffrement
-  + remote). Plus simple que pgBackRest mais moins adapté à Postgres pur
-  (manque PITR fin via WAL).
-- **immutable backups (S3 Object Lock)** : protection contre ransomware —
-  un backup ne peut PAS être supprimé pendant N jours, même par root.
-  MinIO supporte via `mc retention set --mode COMPLIANCE`.
-- **Tape archival LTO-9** : pour rétention > 7 ans à coût marginal (~1 TB =
-  10 $). Hors scope V1 (logistique physique CTDEC).
+  - remote). Plus simple que pgBackRest mais moins adapté à Postgres pur (manque PITR fin via WAL).
+- **immutable backups (S3 Object Lock)** : protection contre ransomware — un backup ne peut PAS être
+  supprimé pendant N jours, même par root. MinIO supporte via `mc retention set --mode COMPLIANCE`.
+- **Tape archival LTO-9** : pour rétention > 7 ans à coût marginal (~1 TB = 10 $). Hors scope V1
+  (logistique physique CTDEC).
 - **Backup vérification via `pg_amcheck`** : intégrité physique des tables
-  + index. Compatible Postgres 18, à intégrer dans le cron weekly.
+  - index. Compatible Postgres 18, à intégrer dans le cron weekly.
 - **Lectures recommandées** :
   - <https://pgbackrest.org/configuration.html>
   - <https://min.io/docs/minio/linux/administration/bucket-replication.html>

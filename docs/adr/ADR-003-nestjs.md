@@ -8,7 +8,8 @@ Accepté — Avril 2026
 
 9 des 11 microservices sont écrits en TypeScript. Plusieurs frameworks sont candidats : Express.js
 nu, Fastify, Hono, NestJS. Le choix doit favoriser la maintenabilité sur 9 services avec des
-patterns de code cohérents, tout en offrant une intégration native avec Prisma, RabbitMQ et Keycloak.
+patterns de code cohérents, tout en offrant une intégration native avec Prisma, RabbitMQ et
+Keycloak.
 
 ## Décision
 

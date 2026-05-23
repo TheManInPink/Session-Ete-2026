@@ -1402,7 +1402,7 @@ Les 5 endpoints sont documentés avec :
 # Rapport d'étape — Document 09 — audit-service
 
 **Date** : **\_\_\_\_** **Durée passée** : ** h (estimation : 12–16 h) **Commit de fin** :
-**\_\_\_\_****
+**\_\_\_\_\*\*\*\*
 
 ## Fonctionnel
 

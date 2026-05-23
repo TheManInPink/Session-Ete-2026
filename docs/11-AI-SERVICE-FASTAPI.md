@@ -1558,7 +1558,7 @@ jobs:
 # Rapport d'étape — Document 11 — ai-service
 
 **Date** : **\_\_\_\_** **Durée passée** : ** h (estimation : 20–30 h) **Commit de fin** :
-**\_\_\_\_****
+**\_\_\_\_\*\*\*\*
 
 ## Fonctionnel
 

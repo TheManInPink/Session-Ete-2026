@@ -54,4 +54,3 @@ At minimum, update:
 - Never commit credentials, tokens, or secrets.
 - Do not weaken auditability, integrity, or identity controls.
 - Preserve append-only and traceability patterns described in ADRs.
-

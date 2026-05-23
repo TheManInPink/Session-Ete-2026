@@ -1,11 +1,11 @@
 # MAINTENANCE.md — Guide opérationnel NINA-AES
 
-> Compagnon de [`AGENTS.md`](./AGENTS.md) et [`CLAUDE.md`](./CLAUDE.md).
-> Ce document décrit **comment maintenir** le monorepo au quotidien : commandes
-> courantes, contrôles automatisés, gestion des dérives, rotation des données.
+> Compagnon de [`AGENTS.md`](./AGENTS.md) et [`CLAUDE.md`](./CLAUDE.md). Ce document décrit
+> **comment maintenir** le monorepo au quotidien : commandes courantes, contrôles automatisés,
+> gestion des dérives, rotation des données.
 
-**Dernière mise à jour** : 3 mai 2026 · **Audience** : étudiant UQAR + futurs
-mainteneurs + assistants IA.
+**Dernière mise à jour** : 3 mai 2026 · **Audience** : étudiant UQAR + futurs mainteneurs +
+assistants IA.
 
 ---
 
@@ -88,36 +88,35 @@ pnpm format
 
 Quand vous changez **ceci** → vous **devez** mettre à jour **cela** :
 
-| Modification                                       | Action obligatoire                                                                  |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Versions d'un package (`package.json`)              | `docs/CHANGELOG.md` §1 (tableau versions effectives)                                 |
-| Schéma Prisma (`schema.prisma`)                    | Migration Prisma + `docs/06-DATABASE-SCHEMA-PRISMA.md` + ADR-011                     |
-| Variable d'environnement (`@nina-aes/config`)       | `.env.example` + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md`                          |
-| Données Mali (`data/mali/*.json`)                  | `pnpm run validate:data` + bump `metadata.version` (`YYYY.MM.DD`)                   |
-| JSON Schema (`schemas/*.schema.json`)              | `pnpm run validate:schemas` + section §3 dans `docs/data/mali-divisions.md`         |
-| Conventions IA (CLAUDE/AGENTS/copilot/cursor)      | Synchroniser les 4 fichiers (cf. §4 ci-dessous)                                     |
-| Diagrammes UML (`docs/diagrams/*.puml`)            | Mention dans `docs/CHANGELOG.md` §3 + lien depuis `docs/02-ARCHITECTURE-GLOBALE.md` |
-| Nouveau script `pnpm run <X>`                      | `MAINTENANCE.md` §2.1 + bandeau dans `docs/03-SETUP-ENVIRONNEMENT-DEV.md`           |
-| Image Docker (`docker-compose.dev.yml`)             | `docs/CHANGELOG.md` §1 + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md` bandeau         |
-| Endpoint API (NestJS controller)                    | `docs/api/<service>.md` (à créer si absent) + ADR si décision structurante           |
+| Modification                                  | Action obligatoire                                                                  |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Versions d'un package (`package.json`)        | `docs/CHANGELOG.md` §1 (tableau versions effectives)                                |
+| Schéma Prisma (`schema.prisma`)               | Migration Prisma + `docs/06-DATABASE-SCHEMA-PRISMA.md` + ADR-011                    |
+| Variable d'environnement (`@nina-aes/config`) | `.env.example` + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md`                         |
+| Données Mali (`data/mali/*.json`)             | `pnpm run validate:data` + bump `metadata.version` (`YYYY.MM.DD`)                   |
+| JSON Schema (`schemas/*.schema.json`)         | `pnpm run validate:schemas` + section §3 dans `docs/data/mali-divisions.md`         |
+| Conventions IA (CLAUDE/AGENTS/copilot/cursor) | Synchroniser les 4 fichiers (cf. §4 ci-dessous)                                     |
+| Diagrammes UML (`docs/diagrams/*.puml`)       | Mention dans `docs/CHANGELOG.md` §3 + lien depuis `docs/02-ARCHITECTURE-GLOBALE.md` |
+| Nouveau script `pnpm run <X>`                 | `MAINTENANCE.md` §2.1 + bandeau dans `docs/03-SETUP-ENVIRONNEMENT-DEV.md`           |
+| Image Docker (`docker-compose.dev.yml`)       | `docs/CHANGELOG.md` §1 + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md` bandeau         |
+| Endpoint API (NestJS controller)              | `docs/api/<service>.md` (à créer si absent) + ADR si décision structurante          |
 
-> 🔁 **Règle d'or** : si vous ouvrez une PR qui touche une de ces zones sans
-> mettre à jour le compagnon documentaire, `pnpm verify:repo` doit échouer
-> (au minimum `docs:sync:check`).
+> 🔁 **Règle d'or** : si vous ouvrez une PR qui touche une de ces zones sans mettre à jour le
+> compagnon documentaire, `pnpm verify:repo` doit échouer (au minimum `docs:sync:check`).
 
 ---
 
 ## 4. Cohérence des 4 fichiers IA
 
-Les conventions persistantes vivent dans 4 fichiers qui doivent dire **la même
-chose** (avec des syntaxes adaptées à chaque outil) :
+Les conventions persistantes vivent dans 4 fichiers qui doivent dire **la même chose** (avec des
+syntaxes adaptées à chaque outil) :
 
-| Fichier                             | Cible                  | Format                                  |
-| ----------------------------------- | ---------------------- | --------------------------------------- |
-| `AGENTS.md`                         | Tous (universel)       | Markdown plain                          |
-| `CLAUDE.md`                         | Claude Code            | Markdown (référencé automatiquement)    |
-| `.github/copilot-instructions.md`   | GitHub Copilot         | Markdown avec sections numérotées       |
-| `.cursor/rules/ai-governance.mdc`   | Cursor                 | MDC avec front-matter `alwaysApply: true` |
+| Fichier                           | Cible            | Format                                    |
+| --------------------------------- | ---------------- | ----------------------------------------- |
+| `AGENTS.md`                       | Tous (universel) | Markdown plain                            |
+| `CLAUDE.md`                       | Claude Code      | Markdown (référencé automatiquement)      |
+| `.github/copilot-instructions.md` | GitHub Copilot   | Markdown avec sections numérotées         |
+| `.cursor/rules/ai-governance.mdc` | Cursor           | MDC avec front-matter `alwaysApply: true` |
 
 **Invariants partagés** que ces 4 fichiers doivent tous porter :
 
@@ -127,8 +126,8 @@ chose** (avec des syntaxes adaptées à chaque outil) :
 - Validation systématique : `pnpm run validate:data`, `pnpm run validate:schemas`
 - Pas de secret commité, pas de dégradation des contrôles d'identité/audit
 
-Si vous modifiez une règle dans l'un, modifiez-la dans les 3 autres. Le test
-manuel rapide est de lire les 4 et de chercher l'invariant.
+Si vous modifiez une règle dans l'un, modifiez-la dans les 3 autres. Le test manuel rapide est de
+lire les 4 et de chercher l'invariant.
 
 ---
 
@@ -156,8 +155,7 @@ git commit -m "data(mali): enrichit X (v2026.MM.DD)"
 
 ### 5.2 Enrichissement futur (94 cercles manquants)
 
-Cf. `docs/data/mali-divisions.md` §3.2 — le script `scripts/enrich-cercles.py`
-(à créer) doit :
+Cf. `docs/data/mali-divisions.md` §3.2 — le script `scripts/enrich-cercles.py` (à créer) doit :
 
 1. Parser `https://fr.wikipedia.org/wiki/Cercles_du_Mali` (BeautifulSoup4)
 2. Aligner sur `region_code` post-2023
@@ -180,14 +178,14 @@ Cf. `docs/data/mali-divisions.md` §3.2 — le script `scripts/enrich-cercles.py
 
 ### 6.1 Symptômes de dérive
 
-| Symptôme                                                    | Diagnostic                                | Remède                                              |
-| ----------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------- |
-| `pnpm verify:repo` échoue sur `docs:sync:check`             | Référence cassée README ↔ CHANGELOG ↔ index | Lire la liste manquante, ajouter les renvois        |
-| `pnpm verify:repo` échoue sur `validate:data`               | Cercle pointe sur région inexistante       | Vérifier `region_code` dans `cercles.json`         |
-| `pnpm verify:repo` échoue sur `validate:schemas`             | Champ obligatoire absent dans JSON         | Ajuster le JSON ou le schéma selon intention        |
-| `prisma migrate dev` se plaint d'une drift                  | Schéma modifié sans migration              | `prisma migrate dev --create-only` puis revue       |
-| Compteurs DB ≠ JSON                                         | Seed non re-exécuté après modif JSON       | `pnpm --filter @nina-aes/database db:seed`         |
-| `pnpm check-types` échoue dans un workspace                 | Changement de contrat partagé              | Sync `@nina-aes/shared-types` + workspaces consom.   |
+| Symptôme                                         | Diagnostic                                  | Remède                                             |
+| ------------------------------------------------ | ------------------------------------------- | -------------------------------------------------- |
+| `pnpm verify:repo` échoue sur `docs:sync:check`  | Référence cassée README ↔ CHANGELOG ↔ index | Lire la liste manquante, ajouter les renvois       |
+| `pnpm verify:repo` échoue sur `validate:data`    | Cercle pointe sur région inexistante        | Vérifier `region_code` dans `cercles.json`         |
+| `pnpm verify:repo` échoue sur `validate:schemas` | Champ obligatoire absent dans JSON          | Ajuster le JSON ou le schéma selon intention       |
+| `prisma migrate dev` se plaint d'une drift       | Schéma modifié sans migration               | `prisma migrate dev --create-only` puis revue      |
+| Compteurs DB ≠ JSON                              | Seed non re-exécuté après modif JSON        | `pnpm --filter @nina-aes/database db:seed`         |
+| `pnpm check-types` échoue dans un workspace      | Changement de contrat partagé               | Sync `@nina-aes/shared-types` + workspaces consom. |
 
 ### 6.2 Reset complet (dernier recours)
 
@@ -205,13 +203,13 @@ pnpm run verify:repo
 
 ## 7. Rotation des secrets et données sensibles
 
-| Élément                                  | Cadence    | Procédure                                              |
-| ---------------------------------------- | ---------- | ------------------------------------------------------ |
-| `JWT_SECRET`                              | 90 jours   | Régénérer 32+ chars · Vault Transit · `pnpm docker:up` |
-| Clé publique CTDEC (mobile)              | 90 jours   | Mettre à jour `embedded-keys.ts` + OTA Expo            |
-| `POSTGRES_PASSWORD`                       | 30 jours   | Vault Database secrets engine (cf. doc 15)             |
-| Refresh tokens utilisateur                | 7 jours    | TTL dans `JWT_REFRESH_EXPIRATION` (cf. config)         |
-| Token anonyme SIGAC (rapporteur)         | À création | Vault Transit ; rotation clé v3 ↦ v4 (doc 23)          |
+| Élément                          | Cadence    | Procédure                                              |
+| -------------------------------- | ---------- | ------------------------------------------------------ |
+| `JWT_SECRET`                     | 90 jours   | Régénérer 32+ chars · Vault Transit · `pnpm docker:up` |
+| Clé publique CTDEC (mobile)      | 90 jours   | Mettre à jour `embedded-keys.ts` + OTA Expo            |
+| `POSTGRES_PASSWORD`              | 30 jours   | Vault Database secrets engine (cf. doc 15)             |
+| Refresh tokens utilisateur       | 7 jours    | TTL dans `JWT_REFRESH_EXPIRATION` (cf. config)         |
+| Token anonyme SIGAC (rapporteur) | À création | Vault Transit ; rotation clé v3 ↦ v4 (doc 23)          |
 
 ---
 
@@ -225,8 +223,8 @@ Le monorepo suit **SemVer 2.0.0** au niveau package :
 - `1.0.0` = premier MVP soutenance (Bloc A complet)
 - `2.0.0` = ajout interopérabilité AES (Bloc B livré)
 
-Chaque PR modifiant un package incrémente sa version dans son propre
-`package.json`. Pas de release globale du monorepo.
+Chaque PR modifiant un package incrémente sa version dans son propre `package.json`. Pas de release
+globale du monorepo.
 
 ### 8.2 Tags Git
 
@@ -240,30 +238,30 @@ git push origin v0.5.0-bloc-A-data-seed
 
 ## 9. Liens canoniques
 
-| Sujet                              | Fichier                                          |
-| ---------------------------------- | ------------------------------------------------ |
-| **Carte de toute la doc**          | **`docs/DOCUMENTATION-MAP.md`**                  |
-| Vue d'ensemble du parcours          | `docs/00-README-INDEX.md`                        |
-| État réel courant                   | `docs/CHANGELOG.md`                              |
-| Conventions assistants IA           | `AGENTS.md` · `CLAUDE.md`                        |
-| Référentiel Mali                    | `docs/data/mali-divisions.md`                    |
-| Intégration des données Mali        | `docs/data/integration-guide.md`                 |
-| Design System                       | `docs/design-system/design-system.md`            |
-| Diagrammes UML                      | `docs/diagrams/*.puml`                           |
-| ADR (décisions architecturales)     | `docs/adr/ADR-*.md`                              |
-| Cahier des charges                  | `docs/01-CAHIER-DES-CHARGES.md`                  |
-| Sécurité / hardening                | `docs/15-SECURITY-HARDENING.md`                  |
-| CI/CD GitHub Actions                | `docs/16-CICD-GITHUB-ACTIONS.md`                 |
-| Monitoring & observabilité          | `docs/17-MONITORING-OBSERVABILITY.md`            |
-| Stratégie de tests                  | `docs/18-TESTING-STRATEGY.md`                    |
-| Backup & DRP                        | `docs/19-BACKUP-RECOVERY.md`                     |
-| Déploiement K3s production          | `docs/20-DEPLOYMENT-K3S-PRODUCTION.md`           |
-| Bloc B Interop AES                  | `docs/21-BLOC-B-INTEROPERABILITE-AES.md`         |
-| Bloc C Modules gouvernementaux      | `docs/22-BLOC-C-MODULES-GOUVERNEMENTAUX.md`      |
-| Bloc D SIGAC anti-corruption        | `docs/23-BLOC-D-SIGAC-ANTICORRUPTION.md`         |
-| Bloc E Bornes kiosque Electron      | `docs/24-BLOC-E-BORNES-KIOSQUE-ELECTRON.md`      |
-| Bloc F Biométrie (vision V1)        | `docs/25-BLOC-F-BIOMETRIE.md`                    |
-| Rapport final soutenance            | `docs/26-RAPPORT-FINAL-SOUTENANCE.md`            |
+| Sujet                           | Fichier                                     |
+| ------------------------------- | ------------------------------------------- |
+| **Carte de toute la doc**       | **`docs/DOCUMENTATION-MAP.md`**             |
+| Vue d'ensemble du parcours      | `docs/00-README-INDEX.md`                   |
+| État réel courant               | `docs/CHANGELOG.md`                         |
+| Conventions assistants IA       | `AGENTS.md` · `CLAUDE.md`                   |
+| Référentiel Mali                | `docs/data/mali-divisions.md`               |
+| Intégration des données Mali    | `docs/data/integration-guide.md`            |
+| Design System                   | `docs/design-system/design-system.md`       |
+| Diagrammes UML                  | `docs/diagrams/*.puml`                      |
+| ADR (décisions architecturales) | `docs/adr/ADR-*.md`                         |
+| Cahier des charges              | `docs/01-CAHIER-DES-CHARGES.md`             |
+| Sécurité / hardening            | `docs/15-SECURITY-HARDENING.md`             |
+| CI/CD GitHub Actions            | `docs/16-CICD-GITHUB-ACTIONS.md`            |
+| Monitoring & observabilité      | `docs/17-MONITORING-OBSERVABILITY.md`       |
+| Stratégie de tests              | `docs/18-TESTING-STRATEGY.md`               |
+| Backup & DRP                    | `docs/19-BACKUP-RECOVERY.md`                |
+| Déploiement K3s production      | `docs/20-DEPLOYMENT-K3S-PRODUCTION.md`      |
+| Bloc B Interop AES              | `docs/21-BLOC-B-INTEROPERABILITE-AES.md`    |
+| Bloc C Modules gouvernementaux  | `docs/22-BLOC-C-MODULES-GOUVERNEMENTAUX.md` |
+| Bloc D SIGAC anti-corruption    | `docs/23-BLOC-D-SIGAC-ANTICORRUPTION.md`    |
+| Bloc E Bornes kiosque Electron  | `docs/24-BLOC-E-BORNES-KIOSQUE-ELECTRON.md` |
+| Bloc F Biométrie (vision V1)    | `docs/25-BLOC-F-BIOMETRIE.md`               |
+| Rapport final soutenance        | `docs/26-RAPPORT-FINAL-SOUTENANCE.md`       |
 
 ---
 
@@ -271,12 +269,12 @@ git push origin v0.5.0-bloc-A-data-seed
 
 - **CI/CD** : la spec complète vit dans
   [`docs/16-CICD-GITHUB-ACTIONS.md`](./docs/16-CICD-GITHUB-ACTIONS.md) +
-  [`docs/adr/ADR-016-cicd-github-actions.md`](./docs/adr/ADR-016-cicd-github-actions.md)
-  (5 workflows séparés ; `verify:repo` est l'un des required checks bloquants
-  sur `main`). Implémentation YAML : à appliquer en bonus de la doc 15.
-- **Renovate / Dependabot** : à activer pour automatiser les bumps mineurs ;
-  garder les majeurs en revue manuelle (avec test d'invariants après merge).
-- **Documentation sites statique** : possibilité de générer `docusaurus` à
-  partir de `docs/` pour navigation enrichie (lien externe étudiant ↔ tuteur).
-- **Backup données seed** : `pg_dump` quotidien de `nina_aes_db` après seed
-  réussi → `infrastructure/backups/` (doc 19).
+  [`docs/adr/ADR-016-cicd-github-actions.md`](./docs/adr/ADR-016-cicd-github-actions.md) (5
+  workflows séparés ; `verify:repo` est l'un des required checks bloquants sur `main`).
+  Implémentation YAML : à appliquer en bonus de la doc 15.
+- **Renovate / Dependabot** : à activer pour automatiser les bumps mineurs ; garder les majeurs en
+  revue manuelle (avec test d'invariants après merge).
+- **Documentation sites statique** : possibilité de générer `docusaurus` à partir de `docs/` pour
+  navigation enrichie (lien externe étudiant ↔ tuteur).
+- **Backup données seed** : `pg_dump` quotidien de `nina_aes_db` après seed réussi →
+  `infrastructure/backups/` (doc 19).

@@ -1,12 +1,10 @@
 # 17 — Monitoring & Observabilité (Prometheus, Grafana, Loki, Tempo, OpenTelemetry)
 
-> **Bloc concerné** : Transversal (tous les blocs A → F) — observabilité
-> appliquée dès que les microservices Bloc A passent en intégration continue.
-> **Prérequis** : documents 00 → 16 complétés ; chaîne `pnpm run verify:repo`
-> opérationnelle ; `infrastructure/docker/docker-compose.dev.yml` à jour ;
-> `@nina-aes/logger` à l'état de stub (cf. CHANGELOG §2).
-> **Durée estimée** : 16 à 22 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : Transversal (tous les blocs A → F) — observabilité appliquée dès que les
+> microservices Bloc A passent en intégration continue. **Prérequis** : documents 00 → 16 complétés
+> ; chaîne `pnpm run verify:repo` opérationnelle ; `infrastructure/docker/docker-compose.dev.yml` à
+> jour ; `@nina-aes/logger` à l'état de stub (cf. CHANGELOG §2). **Durée estimée** : 16 à 22 heures
+> pour un étudiant seul. **Livrables de cette étape** :
 >
 > - Stack LGTM souveraine déployée en local via Docker Compose :
 >   - **Prometheus 3.4** (collecte métriques, retention 15j)
@@ -16,16 +14,16 @@
 >   - **Promtail 3.5** (shipping des logs containers)
 >   - **OpenTelemetry Collector 0.119** (router OTLP → Prometheus/Loki/Tempo)
 >   - **Alertmanager 0.28** (routing alertes vers email/Slack/PagerDuty mock)
-> - `@nina-aes/logger` réécrit en **Pino 9** avec transport Loki HTTP +
->   sanitisation automatique des PII (NINA, biométrie, dateNaissance)
+> - `@nina-aes/logger` réécrit en **Pino 9** avec transport Loki HTTP + sanitisation automatique des
+>   PII (NINA, biométrie, dateNaissance)
 > - Endpoints `/metrics` (Prometheus exposition format) sur les 11 services :
 >   - NestJS via `nestjs-prometheus@7` + middleware HTTP histogram
 >   - FastAPI via `prometheus-fastapi-instrumentator@7`
 > - Instrumentation OpenTelemetry auto (NestJS + FastAPI) → Tempo via OTLP gRPC
-> - 6 dashboards Grafana provisionnés (golden signals + DB Postgres + Redis +
->   RabbitMQ + Pino logs + JVM/Node heap)
-> - 12 règles d'alerting (latence p95 > 500 ms, 5xx > 1 %, saturation disque,
->   queue RabbitMQ backlog, Postgres connection pool > 80 %)
+> - 6 dashboards Grafana provisionnés (golden signals + DB Postgres + Redis + RabbitMQ + Pino logs +
+>   JVM/Node heap)
+> - 12 règles d'alerting (latence p95 > 500 ms, 5xx > 1 %, saturation disque, queue RabbitMQ
+>   backlog, Postgres connection pool > 80 %)
 > - Runbook `docs/observability/RUNBOOK.md` (procédure de triage par alerte)
 > - `docs/adr/ADR-017-observabilite-lgtm-stack.md`
 
@@ -33,62 +31,56 @@
 
 ## 1. Objectif pédagogique
 
-Un système d'identité d'État sans observabilité est **indéfendable** devant un
-audit : on ne peut pas démontrer qu'un service est sain, qu'une attaque n'a pas
-eu lieu, ni reconstruire un incident a posteriori. Cette étape installe les
-trois piliers canoniques de l'observabilité moderne :
+Un système d'identité d'État sans observabilité est **indéfendable** devant un audit : on ne peut
+pas démontrer qu'un service est sain, qu'une attaque n'a pas eu lieu, ni reconstruire un incident a
+posteriori. Cette étape installe les trois piliers canoniques de l'observabilité moderne :
 
-| Pilier        | Question répondue                                       | Outil canonique  |
-| ------------- | ------------------------------------------------------- | ---------------- |
-| **Métriques** | « Combien ? À quelle vitesse ? Depuis quand dégradé ? » | Prometheus       |
-| **Logs**      | « Qu'a fait exactement le service à 14h32 pour citoyen X ? » | Loki        |
-| **Traces**    | « Pourquoi cette requête a pris 8 secondes ? Quel maillon ? » | Tempo (OTLP) |
+| Pilier        | Question répondue                                             | Outil canonique |
+| ------------- | ------------------------------------------------------------- | --------------- |
+| **Métriques** | « Combien ? À quelle vitesse ? Depuis quand dégradé ? »       | Prometheus      |
+| **Logs**      | « Qu'a fait exactement le service à 14h32 pour citoyen X ? »  | Loki            |
+| **Traces**    | « Pourquoi cette requête a pris 8 secondes ? Quel maillon ? » | Tempo (OTLP)    |
 
 Trois leçons pédagogiques :
 
-1. **Instrumenter une fois, observer partout**. OpenTelemetry est un standard
-   ouvert (CNCF) qui découple le code applicatif du backend d'observabilité.
-   On peut basculer de Tempo vers Jaeger ou Grafana Cloud en changeant
-   uniquement l'endpoint de l'OTel Collector, sans toucher au code des
+1. **Instrumenter une fois, observer partout**. OpenTelemetry est un standard ouvert (CNCF) qui
+   découple le code applicatif du backend d'observabilité. On peut basculer de Tempo vers Jaeger ou
+   Grafana Cloud en changeant uniquement l'endpoint de l'OTel Collector, sans toucher au code des
    services.
 
-2. **PII jamais en clair dans les logs**. Un log « `info: created citizen
-   NINA=18903102015042V` » est une fuite de donnée souveraine. Le logger Pino
-   embarque un **redact array** qui caviardise automatiquement les champs
-   `nina`, `fingerprintHash`, `dateNaissance` avant émission. Le test unitaire
-   `logger.redact.test.ts` valide qu'aucun NINA brut ne traverse jamais le
-   transport Loki.
+2. **PII jamais en clair dans les logs**. Un log « `info: created citizen NINA=18903102015042V` »
+   est une fuite de donnée souveraine. Le logger Pino embarque un **redact array** qui caviardise
+   automatiquement les champs `nina`, `fingerprintHash`, `dateNaissance` avant émission. Le test
+   unitaire `logger.redact.test.ts` valide qu'aucun NINA brut ne traverse jamais le transport Loki.
 
-3. **Alertes actionnables seulement**. Une alerte qui ne demande rien à
-   personne est du bruit. Chaque règle Alertmanager pointe vers une entrée du
-   `RUNBOOK.md` avec un protocole « si vous voyez ceci, faites cela ». Pas de
-   protocole = pas d'alerte.
+3. **Alertes actionnables seulement**. Une alerte qui ne demande rien à personne est du bruit.
+   Chaque règle Alertmanager pointe vers une entrée du `RUNBOOK.md` avec un protocole « si vous
+   voyez ceci, faites cela ». Pas de protocole = pas d'alerte.
 
-> 💡 **Souveraineté** : la stack LGTM (Loki + Grafana + Tempo + Mimir)
-> est entièrement open-source (AGPL/Apache 2.0). On la déploie soi-même.
-> Aucun ping vers Datadog/NewRelic/Splunk — les logs d'enrôlement NINA
-> restent dans le cluster CTDEC.
+> 💡 **Souveraineté** : la stack LGTM (Loki + Grafana + Tempo + Mimir) est entièrement open-source
+> (AGPL/Apache 2.0). On la déploie soi-même. Aucun ping vers Datadog/NewRelic/Splunk — les logs
+> d'enrôlement NINA restent dans le cluster CTDEC.
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Composant                                | Version    | Rôle                                                          |
-| ---------------------------------------- | ---------- | ------------------------------------------------------------- |
-| **Prometheus**                           | `3.4.1`    | Collecte + stockage série temporelles, retention 15j         |
-| **Grafana**                              | `12.3.0`   | Dashboards, alerting unifié, datasources Prometheus/Loki/Tempo |
-| **Loki**                                 | `3.5.0`    | Stockage logs indexés par labels (TSDB-like), retention 30j  |
-| **Tempo**                                | `2.7.1`    | Stockage traces distribuées OTLP, retention 7j               |
-| **Promtail**                             | `3.5.0`    | Agent shipping logs containers → Loki                        |
-| **OpenTelemetry Collector**              | `0.119.0`  | Routeur OTLP → Prometheus (metrics) + Loki (logs) + Tempo (traces) |
-| **Alertmanager**                         | `0.28.1`   | Routing + dédoublonnage + silence des alertes Prometheus     |
-| **Pino (Node)**                          | `9.6.0`    | Logger structuré JSON, < 1 µs/log, transport Loki HTTP        |
-| **pino-loki**                            | `2.4.0`    | Transport HTTP Loki avec batching                            |
-| **nestjs-prometheus**                    | `7.2.0`    | Module NestJS qui expose `/metrics` + métriques HTTP par défaut |
-| **prometheus-fastapi-instrumentator**    | `7.0.2`    | Middleware FastAPI auto-instrumenté                          |
-| **@opentelemetry/sdk-node**              | `0.50.0`   | OTel SDK Node + auto-instrumentations (HTTP, Prisma, ioredis) |
-| **opentelemetry-instrumentation-fastapi**| `0.50b0`   | OTel auto-instrumentation FastAPI                            |
-| **structlog (Python)**                   | `25.1.0`   | Logger structuré JSON Python — sortie compat. Promtail        |
+| Composant                                 | Version   | Rôle                                                               |
+| ----------------------------------------- | --------- | ------------------------------------------------------------------ |
+| **Prometheus**                            | `3.4.1`   | Collecte + stockage série temporelles, retention 15j               |
+| **Grafana**                               | `12.3.0`  | Dashboards, alerting unifié, datasources Prometheus/Loki/Tempo     |
+| **Loki**                                  | `3.5.0`   | Stockage logs indexés par labels (TSDB-like), retention 30j        |
+| **Tempo**                                 | `2.7.1`   | Stockage traces distribuées OTLP, retention 7j                     |
+| **Promtail**                              | `3.5.0`   | Agent shipping logs containers → Loki                              |
+| **OpenTelemetry Collector**               | `0.119.0` | Routeur OTLP → Prometheus (metrics) + Loki (logs) + Tempo (traces) |
+| **Alertmanager**                          | `0.28.1`  | Routing + dédoublonnage + silence des alertes Prometheus           |
+| **Pino (Node)**                           | `9.6.0`   | Logger structuré JSON, < 1 µs/log, transport Loki HTTP             |
+| **pino-loki**                             | `2.4.0`   | Transport HTTP Loki avec batching                                  |
+| **nestjs-prometheus**                     | `7.2.0`   | Module NestJS qui expose `/metrics` + métriques HTTP par défaut    |
+| **prometheus-fastapi-instrumentator**     | `7.0.2`   | Middleware FastAPI auto-instrumenté                                |
+| **@opentelemetry/sdk-node**               | `0.50.0`  | OTel SDK Node + auto-instrumentations (HTTP, Prisma, ioredis)      |
+| **opentelemetry-instrumentation-fastapi** | `0.50b0`  | OTel auto-instrumentation FastAPI                                  |
+| **structlog (Python)**                    | `25.1.0`  | Logger structuré JSON Python — sortie compat. Promtail             |
 
 > 🔒 Tous open-source, AGPL/Apache 2.0. Aucune dépendance SaaS US.
 
@@ -168,9 +160,9 @@ end note
 
 ### Étape 4.1 — Réécrire `@nina-aes/logger` (Pino + transport Loki + redact PII)
 
-**Pourquoi** : le stub console-backed actuel ne supporte ni le format JSON
-structuré ni la redaction automatique. Pino est le logger Node le plus rapide
-(< 1 µs / log), JSON natif, ecosystem mature pour les transports.
+**Pourquoi** : le stub console-backed actuel ne supporte ni le format JSON structuré ni la redaction
+automatique. Pino est le logger Node le plus rapide (< 1 µs / log), JSON natif, ecosystem mature
+pour les transports.
 
 **Fichier(s) à modifier** : `packages/logger/src/index.ts` (réécrit).
 
@@ -348,9 +340,9 @@ describe('logger PII redact', () => {
 
 ### Étape 4.2 — Endpoint `/metrics` Prometheus côté NestJS
 
-**Pourquoi** : Prometheus scrape les services via HTTP. Chaque service NestJS
-expose `GET /metrics` au format texte Prometheus. `nestjs-prometheus` ajoute
-en bonus les histogrammes HTTP (latence p50/p95/p99 par route) automatiquement.
+**Pourquoi** : Prometheus scrape les services via HTTP. Chaque service NestJS expose `GET /metrics`
+au format texte Prometheus. `nestjs-prometheus` ajoute en bonus les histogrammes HTTP (latence
+p50/p95/p99 par route) automatiquement.
 
 ```ts
 // services/<service>/src/observability/metrics.module.ts
@@ -360,7 +352,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 @Module({
   imports: [
     PrometheusModule.register({
-      defaultMetrics: { enabled: true },         // Node heap, GC, event loop lag
+      defaultMetrics: { enabled: true }, // Node heap, GC, event loop lag
       defaultLabels: {
         service: process.env.SERVICE_NAME ?? 'unknown',
         env: process.env.ENV ?? 'dev',
@@ -376,7 +368,7 @@ export class MetricsModule {}
 
 ```ts
 @Module({
-  imports: [MetricsModule, /* … autres modules */],
+  imports: [MetricsModule /* … autres modules */],
 })
 export class AppModule {}
 ```
@@ -490,7 +482,7 @@ export function startOtel(serviceName: string): void {
 ```ts
 // services/<service>/src/main.ts
 import { startOtel } from './observability/otel';
-startOtel(process.env.SERVICE_NAME ?? 'unknown');   // EN PREMIER
+startOtel(process.env.SERVICE_NAME ?? 'unknown'); // EN PREMIER
 import { NestFactory } from '@nestjs/core';
 // … reste
 ```
@@ -536,8 +528,8 @@ FastAPIInstrumentor.instrument_app(app)
 
 ### Étape 4.5 — Stack observabilité dans `docker-compose.dev.yml`
 
-**Fichier(s) à modifier** : `infrastructure/docker/docker-compose.dev.yml`
-(ajout d'un profil `observability`).
+**Fichier(s) à modifier** : `infrastructure/docker/docker-compose.dev.yml` (ajout d'un profil
+`observability`).
 
 ```yaml
   # ── OpenTelemetry Collector — routeur OTLP ────────────────────
@@ -694,7 +686,7 @@ scrape_configs:
 
   - job_name: 'otel-collector'
     static_configs:
-      - targets: ['otel-collector:8888']  # self metrics du collector
+      - targets: ['otel-collector:8888'] # self metrics du collector
 
   - job_name: 'postgres'
     static_configs:
@@ -755,7 +747,9 @@ groups:
     interval: 30s
     rules:
       - alert: HighLatencyP95
-        expr: histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket[5m]))) > 0.5
+        expr:
+          histogram_quantile(0.95, sum by (le, service)
+          (rate(http_request_duration_seconds_bucket[5m]))) > 0.5
         for: 10m
         labels: { severity: warning }
         annotations:
@@ -763,7 +757,9 @@ groups:
           runbook: 'docs/observability/RUNBOOK.md#high-latency-p95'
 
       - alert: HighError5xxRate
-        expr: sum by (service) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (service) (rate(http_requests_total[5m])) > 0.01
+        expr:
+          sum by (service) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (service)
+          (rate(http_requests_total[5m])) > 0.01
         for: 5m
         labels: { severity: critical }
         annotations:
@@ -808,7 +804,9 @@ groups:
           runbook: 'docs/observability/RUNBOOK.md#nina-validation-spike'
 
       - alert: AIInferenceLatencyP99
-        expr: histogram_quantile(0.99, sum by (le) (rate(ai_inference_duration_seconds_bucket[5m]))) > 2.0
+        expr:
+          histogram_quantile(0.99, sum by (le) (rate(ai_inference_duration_seconds_bucket[5m]))) >
+          2.0
         for: 10m
         labels: { severity: warning }
         annotations:
@@ -844,9 +842,8 @@ groups:
           runbook: 'docs/observability/RUNBOOK.md#audit-chain-break'
 ```
 
-> 🔒 **`AuditChainBreak`** est l'alerte la plus critique : elle signifie qu'un
-> attaquant a manipulé les logs d'audit. Procédure runbook = isolation
-> immédiate + ANSSI / CISO CTDEC contactés.
+> 🔒 **`AuditChainBreak`** est l'alerte la plus critique : elle signifie qu'un attaquant a manipulé
+> les logs d'audit. Procédure runbook = isolation immédiate + ANSSI / CISO CTDEC contactés.
 
 ---
 
@@ -899,9 +896,8 @@ datasources:
         datasourceUid: loki
 ```
 
-> 💡 Les JSON dashboards sont longs (1-2 KB chacun). On les génère en
-> exportant depuis l'UI Grafana puis on les commit. Versionner permet
-> aussi de **revues PR** des changements de dashboards.
+> 💡 Les JSON dashboards sont longs (1-2 KB chacun). On les génère en exportant depuis l'UI Grafana
+> puis on les commit. Versionner permet aussi de **revues PR** des changements de dashboards.
 
 ---
 
@@ -935,7 +931,8 @@ datasources:
 
 ## `NinaValidationSpike`
 
-1. Identifier la source : `sum by (ip) (rate(http_requests_total{path="/nina/validate",status="400"}[5m]))`
+1. Identifier la source :
+   `sum by (ip) (rate(http_requests_total{path="/nina/validate",status="400"}[5m]))`
 2. Si 1 IP dominante → blocage WAF (cf. doc 15)
 3. Si dispersé → bug applicatif récent (`git log --since 1.hour`)
 4. Si attaque distribuée → alerte SOC + rate-limit serré (5 req/min/IP)
@@ -982,19 +979,19 @@ pnpm --filter @nina-aes/logger test
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                  | Cause probable                                             | Solution                                                  |
-| --------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------- |
-| Prometheus target `DOWN` mais le service tourne           | Service écoute `127.0.0.1` au lieu de `0.0.0.0`           | Forcer `app.listen(port, '0.0.0.0')` dans NestJS         |
-| Loki refuse logs : `entry too far behind`                  | Horloge du runner desynchronisée                          | NTP obligatoire ; `chrony` ou `ntpd` actif sur les hôtes |
-| Tempo : trace incomplète (un seul span)                    | OTel SDK pas démarré AVANT le serveur HTTP                | Vérifier que `startOtel()` est appelé **avant** `NestFactory.create()` |
-| Pino transport `loki` : flood d'erreurs `ECONNREFUSED`     | Loki pas encore prêt au boot du service                   | Pino retry built-in ; si persistent, healthcheck `depends_on: { condition: service_healthy }` |
-| Grafana dashboards vides à la 1ère ouverture               | Provisioning lu uniquement au boot Grafana                | `docker compose restart grafana` après modif des JSON    |
-| Alertmanager envoie 10 mails en 5 min                      | Pas de `group_interval` configuré                         | Dans `alertmanager.yml` : `group_by: [alertname, service]` + `group_interval: 5m` |
-| Métrique custom NestJS jamais visible                      | Métrique enregistrée mais pas exposée                     | Importer `MetricsModule` au `AppModule`, vérifier `Counter.inc()` est appelé |
-| FastAPI : `/metrics` 404                                    | `Instrumentator.expose(app)` non appelé                   | Voir étape 4.3, ordre : `instrument().expose()`          |
-| Cardinality explosion Prometheus (RAM > 4 GB)              | Label avec valeur dynamique (ex. `user_id`)               | Audit : `topk(10, count by (__name__)({__name__=~".+"}))` ; supprimer labels haute cardinality |
-| `pino-pretty` en prod                                       | Devrait être JSON brut pour Loki                          | `LOG_TRANSPORT=loki` (pas `both`) en prod                |
-| Loki retient logs > 30j                                    | Compactor lent ou retention pas appliquée                 | `loki.yml` : `compactor.retention_enabled: true` + `retention_period: 720h` |
+| Symptôme                                               | Cause probable                                  | Solution                                                                                       |
+| ------------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Prometheus target `DOWN` mais le service tourne        | Service écoute `127.0.0.1` au lieu de `0.0.0.0` | Forcer `app.listen(port, '0.0.0.0')` dans NestJS                                               |
+| Loki refuse logs : `entry too far behind`              | Horloge du runner desynchronisée                | NTP obligatoire ; `chrony` ou `ntpd` actif sur les hôtes                                       |
+| Tempo : trace incomplète (un seul span)                | OTel SDK pas démarré AVANT le serveur HTTP      | Vérifier que `startOtel()` est appelé **avant** `NestFactory.create()`                         |
+| Pino transport `loki` : flood d'erreurs `ECONNREFUSED` | Loki pas encore prêt au boot du service         | Pino retry built-in ; si persistent, healthcheck `depends_on: { condition: service_healthy }`  |
+| Grafana dashboards vides à la 1ère ouverture           | Provisioning lu uniquement au boot Grafana      | `docker compose restart grafana` après modif des JSON                                          |
+| Alertmanager envoie 10 mails en 5 min                  | Pas de `group_interval` configuré               | Dans `alertmanager.yml` : `group_by: [alertname, service]` + `group_interval: 5m`              |
+| Métrique custom NestJS jamais visible                  | Métrique enregistrée mais pas exposée           | Importer `MetricsModule` au `AppModule`, vérifier `Counter.inc()` est appelé                   |
+| FastAPI : `/metrics` 404                               | `Instrumentator.expose(app)` non appelé         | Voir étape 4.3, ordre : `instrument().expose()`                                                |
+| Cardinality explosion Prometheus (RAM > 4 GB)          | Label avec valeur dynamique (ex. `user_id`)     | Audit : `topk(10, count by (__name__)({__name__=~".+"}))` ; supprimer labels haute cardinality |
+| `pino-pretty` en prod                                  | Devrait être JSON brut pour Loki                | `LOG_TRANSPORT=loki` (pas `both`) en prod                                                      |
+| Loki retient logs > 30j                                | Compactor lent ou retention pas appliquée       | `loki.yml` : `compactor.retention_enabled: true` + `retention_period: 720h`                    |
 
 ---
 
@@ -1006,10 +1003,9 @@ pnpm --filter @nina-aes/logger test
   - Disponibilité 99.5 % `/api/nina/*`
   - p95 latence < 500 ms sur tous les endpoints publics
   - 0 rupture chaîne Merkle audit (alerte critique sans tolérance)
-- Mise à jour `docs/02-ARCHITECTURE-GLOBALE.md` : section « Observabilité »
-  pointant vers ce document + diagramme PlantUML.
-- Mise à jour `docs/CHANGELOG.md` §2 : `@nina-aes/logger` passe de `stub` à
-  `Pino + Loki ✅`.
+- Mise à jour `docs/02-ARCHITECTURE-GLOBALE.md` : section « Observabilité » pointant vers ce
+  document + diagramme PlantUML.
+- Mise à jour `docs/CHANGELOG.md` §2 : `@nina-aes/logger` passe de `stub` à `Pino + Loki ✅`.
 
 ---
 
@@ -1021,7 +1017,8 @@ pnpm --filter @nina-aes/logger test
 - **Status** : ✅ Terminé / ⏳ En cours / ❌ Bloqué
 - **Temps réel passé** : X heures
 - **Logger Pino + redact PII** : ✅ test `redacts nina field` vert
-- **Endpoints /metrics** : ✅ 6/6 services exposent (identity, auth, audit, document, ai, anticorruption)
+- **Endpoints /metrics** : ✅ 6/6 services exposent (identity, auth, audit, document, ai,
+  anticorruption)
 - **OTel SDK** : ✅ traces visibles dans Tempo pour les 6 services
 - **Prometheus** : ✅ 6 targets UP, retention 15j confirmée
 - **Loki** : ✅ logs JSON indexés par labels {service, env, level}
@@ -1062,23 +1059,19 @@ pnpm --filter @nina-aes/logger test
 
 ## 10. Pour aller plus loin
 
-- **Mimir** (remplaçant scalable de Prometheus) : remote-write Prometheus →
-  Mimir pour rétention longue (> 1 an) et déduplication multi-cluster. Utile
-  quand 2-3 clusters K3s pays-membres (Mali, BFA, Niger) consolident leurs
-  métriques au niveau AES.
-- **eBPF / Pixie / Coroot** : observabilité automatique sans instrumentation
-  via eBPF — capture HTTP/gRPC kernel-level. Complément aux instrumentations
-  applicatives.
-- **Synthetic monitoring** : Grafana Synthetic Monitoring (k6 hosted) ou
-  Blackbox Exporter pour tester `/api/health` depuis 3 zones (Bamako,
-  Ouagadougou, Niamey).
-- **SLO Generator** (Pyrra, Sloth) : génération automatique des règles
-  d'alerting Prometheus depuis une déclaration SLO YAML (e.g. « 99.9 %
-  des requêtes /nina sous 500 ms »).
-- **Loki + Vector** : Vector (Rust, perf) en remplacement de Promtail si la
-  charge log dépasse 50 MB/s.
-- **Tempo + Profiling** : Pyroscope intégré dans Tempo pour continuous
-  profiling Node.js (flamegraphs auto).
+- **Mimir** (remplaçant scalable de Prometheus) : remote-write Prometheus → Mimir pour rétention
+  longue (> 1 an) et déduplication multi-cluster. Utile quand 2-3 clusters K3s pays-membres (Mali,
+  BFA, Niger) consolident leurs métriques au niveau AES.
+- **eBPF / Pixie / Coroot** : observabilité automatique sans instrumentation via eBPF — capture
+  HTTP/gRPC kernel-level. Complément aux instrumentations applicatives.
+- **Synthetic monitoring** : Grafana Synthetic Monitoring (k6 hosted) ou Blackbox Exporter pour
+  tester `/api/health` depuis 3 zones (Bamako, Ouagadougou, Niamey).
+- **SLO Generator** (Pyrra, Sloth) : génération automatique des règles d'alerting Prometheus depuis
+  une déclaration SLO YAML (e.g. « 99.9 % des requêtes /nina sous 500 ms »).
+- **Loki + Vector** : Vector (Rust, perf) en remplacement de Promtail si la charge log dépasse 50
+  MB/s.
+- **Tempo + Profiling** : Pyroscope intégré dans Tempo pour continuous profiling Node.js
+  (flamegraphs auto).
 - **Lectures recommandées** :
   - <https://sre.google/sre-book/monitoring-distributed-systems/> (Google SRE Book ch. 6)
   - <https://www.brendangregg.com/usemethod.html> (USE method)

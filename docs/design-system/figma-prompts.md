@@ -1,14 +1,14 @@
 # Figma Make — Prompts prêts à copier-coller
 
-> **Usage** : copier chaque prompt **tel quel** dans Figma Make (panneau IA), un par
-> opération. Les prompts sont auto-suffisants — Figma Make n'a pas de mémoire entre
-> sessions, donc chaque prompt rappelle le contexte minimal.
+> **Usage** : copier chaque prompt **tel quel** dans Figma Make (panneau IA), un par opération. Les
+> prompts sont auto-suffisants — Figma Make n'a pas de mémoire entre sessions, donc chaque prompt
+> rappelle le contexte minimal.
 >
-> **Ordre d'exécution recommandé** : §0 (setup tokens) → §1 (composants atomiques) →
-> §2 (composants métier) → §3 (12 écrans) → §4 (audit a11y) → §5 (export retour code).
+> **Ordre d'exécution recommandé** : §0 (setup tokens) → §1 (composants atomiques) → §2 (composants
+> métier) → §3 (12 écrans) → §4 (audit a11y) → §5 (export retour code).
 >
-> **Plan d'attaque temporel** : ~27 heures réparties sur 8 jours (cf.
-> `design-system.md` §12 et conversation préparatoire).
+> **Plan d'attaque temporel** : ~27 heures réparties sur 8 jours (cf. `design-system.md` §12 et
+> conversation préparatoire).
 
 ---
 
@@ -19,15 +19,14 @@
 **Pas un prompt Figma Make** — c'est une action plugin :
 
 1. Installer le plugin **« Tokens Studio for Figma »** (gratuit).
-2. Ouvrir le plugin → onglet *Tools* → *Import* → *JSON*.
+2. Ouvrir le plugin → onglet _Tools_ → _Import_ → _JSON_.
 3. Coller le contenu intégral de `docs/design-system/tokens.json`.
-4. Cliquer *Import* → *Sync to Figma Variables*.
-5. Vérifier dans le panneau Variables Figma : 3 collections doivent apparaître
-   (`color`, `typography`, `spacing` + `radius`, `shadow`, `motion`, `breakpoints`,
-   `z`).
+4. Cliquer _Import_ → _Sync to Figma Variables_.
+5. Vérifier dans le panneau Variables Figma : 3 collections doivent apparaître (`color`,
+   `typography`, `spacing` + `radius`, `shadow`, `motion`, `breakpoints`, `z`).
 
-**Validation** : créer un rectangle, appliquer la variable `color/primary/600` →
-doit afficher `hsl(213, 65%, 32%)`.
+**Validation** : créer un rectangle, appliquer la variable `color/primary/600` → doit afficher
+`hsl(213, 65%, 32%)`.
 
 ### 0.2 Création des 2 fichiers Figma
 
@@ -65,8 +64,8 @@ Style sobre, gouvernemental, pas de gradients criards.
 
 ## §1 — Composants atomiques (Atoms)
 
-> 12 composants shadcn-like. Chaque prompt produit **default + dark** côte à côte.
-> Tous sur la page `01-Atoms` du fichier "Components".
+> 12 composants shadcn-like. Chaque prompt produit **default + dark** côte à côte. Tous sur la page
+> `01-Atoms` du fichier "Components".
 
 ### 1.1 Button
 
@@ -894,21 +893,22 @@ LAYOUT :
 - Texte écran en monospace mono Inter Variable mono 12, color/neutral/950
 - En haut écran : "📶📵  NINA-AES  12:34"
 - Contenu ex. menu langue :
-  ```
-  Bisimila!
-  Choisissez la langue :
+```
 
-   1. Français
-   2. Bamanankan
-   3. Soninké
-   4. Fulfulde
-   5. Tamasheq
-   6. Hausa
-   7. Mooré
-   8. Zarma
+Bisimila! Choisissez la langue :
 
-  [Répondre]   [Annuler]
-  ```
+1.  Français
+2.  Bamanankan
+3.  Soninké
+4.  Fulfulde
+5.  Tamasheq
+6.  Hausa
+7.  Mooré
+8.  Zarma
+
+[Répondre] [Annuler]
+
+```
 - KioskKeyboard variant numérique 240x320 en bas du téléphone
 - Boutons "Répondre" / "Annuler" sous l'écran 80x32 chacun
 
@@ -933,9 +933,9 @@ Light + Dark.
 
 ## §4 — 12 écrans (page Screens)
 
-> Ces 12 prompts génèrent les écrans complets en référant les composants déjà publiés
-> (Library "NINA-AES — Components"). Ne pas oublier d'**activer la librairie** dans le
-> fichier "Screens" avant de prompter.
+> Ces 12 prompts génèrent les écrans complets en référant les composants déjà publiés (Library
+> "NINA-AES — Components"). Ne pas oublier d'**activer la librairie** dans le fichier "Screens"
+> avant de prompter.
 
 ### 4.1 PC-01 — Accueil citoyen
 
@@ -1429,12 +1429,11 @@ Place les Dark frames à droite des Light, espacement spacing/16 (64px).
 
 À la fin du process :
 
-1. **Tokens Studio for Figma → Sync → Push to GitHub**
-   (configurer une fois dans le plugin avec votre PAT GitHub).
-2. Le plugin pousse `tokens.json` mis à jour dans une branche
-   `design-tokens/sync-2026-MM-DD`.
-3. Ouvrir une PR vers `main`, lancer `pnpm dlx style-dictionary build` pour
-   régénérer les CSS / Tailwind / RN.
+1. **Tokens Studio for Figma → Sync → Push to GitHub** (configurer une fois dans le plugin avec
+   votre PAT GitHub).
+2. Le plugin pousse `tokens.json` mis à jour dans une branche `design-tokens/sync-2026-MM-DD`.
+3. Ouvrir une PR vers `main`, lancer `pnpm dlx style-dictionary build` pour régénérer les CSS /
+   Tailwind / RN.
 
 ### 5.4 Export Figma → code (preview)
 
@@ -1449,44 +1448,43 @@ Pour générer un squelette React de chaque écran :
 5. Refactoriser pour utiliser les composants @nina-aes/ui réels
 ```
 
-⚠️ Le code Anima n'est **jamais** prêt pour la prod : il sert de squelette
-pour gagner ~2-4h par écran sur le scaffolding initial. Le PROMPT 5.x
-réécrira la version finale en consommant `@nina-aes/ui` et les hooks
-TanStack Query.
+⚠️ Le code Anima n'est **jamais** prêt pour la prod : il sert de squelette pour gagner ~2-4h par
+écran sur le scaffolding initial. Le PROMPT 5.x réécrira la version finale en consommant
+`@nina-aes/ui` et les hooks TanStack Query.
 
 ---
 
 ## §6 — Conseils transversaux pour Figma Make
 
-| Astuce | Pourquoi |
-|---|---|
-| Préfixer chaque prompt par "NINA-AES, plateforme d'identité numérique souveraine" | Évite la régression vers le look Bootstrap admin |
-| Citer les noms de tokens **explicitement** (`color/primary/600`, pas "bleu") | Figma Make pioche dans vos variables si on les nomme |
-| Donner les dimensions **en pixels** | "Card medium" est ambigu, "240x180" ne l'est pas |
-| Limiter à **3-5 frames par prompt** | Au-delà, Figma Make régresse en qualité |
-| Sauvegarder le **prompt en commentaire** sur le 1er composant réussi | Facilite la reproduction |
-| Pour les **données maliennes** : fournir la liste explicitement | Sinon Figma met "John Doe" partout |
-| Pour les **illustrations souveraines** : dessiner d'abord en Inkscape | Figma Make ne maîtrise pas les références culturelles maliennes |
-| **Tester en bambara avant merge** | C'est la langue qui expansionne le plus le texte |
+| Astuce                                                                            | Pourquoi                                                        |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Préfixer chaque prompt par "NINA-AES, plateforme d'identité numérique souveraine" | Évite la régression vers le look Bootstrap admin                |
+| Citer les noms de tokens **explicitement** (`color/primary/600`, pas "bleu")      | Figma Make pioche dans vos variables si on les nomme            |
+| Donner les dimensions **en pixels**                                               | "Card medium" est ambigu, "240x180" ne l'est pas                |
+| Limiter à **3-5 frames par prompt**                                               | Au-delà, Figma Make régresse en qualité                         |
+| Sauvegarder le **prompt en commentaire** sur le 1er composant réussi              | Facilite la reproduction                                        |
+| Pour les **données maliennes** : fournir la liste explicitement                   | Sinon Figma met "John Doe" partout                              |
+| Pour les **illustrations souveraines** : dessiner d'abord en Inkscape             | Figma Make ne maîtrise pas les références culturelles maliennes |
+| **Tester en bambara avant merge**                                                 | C'est la langue qui expansionne le plus le texte                |
 
 ---
 
 ## §7 — Plan d'attaque temporel
 
-| Jour | Durée | Tâche |
-|---|---|---|
-| 1 | 2 h  | Setup tokens (§0) + cover design system (§0.3) |
-| 2 | 4 h  | Composants atomiques §1.1 → §1.5 |
-| 3 | 4 h  | Composants display + containers §2.1 → §2.5 |
-| 4 | 4 h  | Composants métier §3.1 → §3.6 (NINA + AI + UploadZone + Timeline) |
-| 5 | 4 h  | Composants métier §3.7 → §3.12 (MaliMap + Score + Badge + i18n + Country + Slot) |
-| 6 | 3 h  | Composants métier §3.13 → §3.17 (Directive + Bubble + Whistleblower + Kiosk + USSD) |
-| 7 | 3 h  | Audit a11y §5.1 + variants Dark §5.2 sur tous les composants |
-| 8 | 8 h  | Écrans Citoyen §4.1 → §4.6 (1h chacun + 2h tampon) |
-| 9 | 4 h  | Écrans Admin §4.7 → §4.9 |
-| 10 | 3 h | Écrans Gouvernance + USSD §4.10 → §4.12 |
-| 11 | 2 h | Audit a11y §5.1 sur tous les écrans |
-| 12 | 2 h | Export tokens §5.3 + commit dans le repo |
+| Jour | Durée | Tâche                                                                               |
+| ---- | ----- | ----------------------------------------------------------------------------------- |
+| 1    | 2 h   | Setup tokens (§0) + cover design system (§0.3)                                      |
+| 2    | 4 h   | Composants atomiques §1.1 → §1.5                                                    |
+| 3    | 4 h   | Composants display + containers §2.1 → §2.5                                         |
+| 4    | 4 h   | Composants métier §3.1 → §3.6 (NINA + AI + UploadZone + Timeline)                   |
+| 5    | 4 h   | Composants métier §3.7 → §3.12 (MaliMap + Score + Badge + i18n + Country + Slot)    |
+| 6    | 3 h   | Composants métier §3.13 → §3.17 (Directive + Bubble + Whistleblower + Kiosk + USSD) |
+| 7    | 3 h   | Audit a11y §5.1 + variants Dark §5.2 sur tous les composants                        |
+| 8    | 8 h   | Écrans Citoyen §4.1 → §4.6 (1h chacun + 2h tampon)                                  |
+| 9    | 4 h   | Écrans Admin §4.7 → §4.9                                                            |
+| 10   | 3 h   | Écrans Gouvernance + USSD §4.10 → §4.12                                             |
+| 11   | 2 h   | Audit a11y §5.1 sur tous les écrans                                                 |
+| 12   | 2 h   | Export tokens §5.3 + commit dans le repo                                            |
 
-**Total : ~43 h** (estimé un peu plus large que les 27h initiales pour tenir compte
-des itérations qualité).
+**Total : ~43 h** (estimé un peu plus large que les 27h initiales pour tenir compte des itérations
+qualité).

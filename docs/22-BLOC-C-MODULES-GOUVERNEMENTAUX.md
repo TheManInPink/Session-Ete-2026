@@ -1,87 +1,79 @@
 # 22 — Bloc C : Modules gouvernementaux (vulnerability-service + SGOGT + intégrité électorale)
 
-> **Bloc concerné** : C (Priorité P1, post-Bloc-A en parallèle de Bloc B) —
-> trois sous-modules institutionnels groupés dans un même bloc pour
-> cohérence (tous portés par la gouvernance gouvernementale CTDEC + DNEC +
-> Min. Intérieur).
-> **Prérequis** : Bloc A complet ; sécurité doc 15 (chiffrement PII via
-> Vault Transit) ; observabilité doc 17 ; déploiement K3s doc 20.
-> **Durée estimée** : 14 à 18 heures pour un étudiant seul (réparti sur
-> les 3 sous-modules).
-> **Livrables de cette étape** :
+> **Bloc concerné** : C (Priorité P1, post-Bloc-A en parallèle de Bloc B) — trois sous-modules
+> institutionnels groupés dans un même bloc pour cohérence (tous portés par la gouvernance
+> gouvernementale CTDEC + DNEC + Min. Intérieur). **Prérequis** : Bloc A complet ; sécurité doc 15
+> (chiffrement PII via Vault Transit) ; observabilité doc 17 ; déploiement K3s doc 20. **Durée
+> estimée** : 14 à 18 heures pour un étudiant seul (réparti sur les 3 sous-modules). **Livrables de
+> cette étape** :
 >
 > **Sous-module C1 — `vulnerability-service` (port 3011, NestJS)**
-> - Modèle `VulnerabilityProfile` (catégories : grossesse, handicap,
->   personne âgée 65+, mineur isolé, déplacé interne, malade chronique)
-> - File prioritaire RDV CTDEC avec poids configurable par catégorie
-> - Workflow « agent mobile » : visite à domicile + kit offline + sync
->   différée (5 jours de cache)
-> - Endpoint `POST /vulnerability/declare` (citoyen ou agent) avec preuve
->   justificative (certificat médical, attestation chef de village)
 >
-> **Sous-module C2 — SGOGT (Système de Gouvernance et d'Orientation
-> Gouvernemental Tactique)**
+> - Modèle `VulnerabilityProfile` (catégories : grossesse, handicap, personne âgée 65+, mineur
+>   isolé, déplacé interne, malade chronique)
+> - File prioritaire RDV CTDEC avec poids configurable par catégorie
+> - Workflow « agent mobile » : visite à domicile + kit offline + sync différée (5 jours de cache)
+> - Endpoint `POST /vulnerability/declare` (citoyen ou agent) avec preuve justificative (certificat
+>   médical, attestation chef de village)
+>
+> **Sous-module C2 — SGOGT (Système de Gouvernance et d'Orientation Gouvernemental Tactique)**
+>
 > - Messagerie officielle signée JWS Ed25519 entre fonctionnaires
 > - Escalade automatique (TTL 24 h → supérieur hiérarchique)
 > - Traçabilité totale (audit Merkle, cf. ADR-014)
 > - UI dédiée dans `apps/governance` (boîte de réception + envoi + filtres)
 >
 > **Sous-module C3 — Intégrité électorale**
+>
 > - Inscription automatique sur les listes à 18 ans (`@cron` quotidien)
 > - Fichier dynamique : Δ depuis dernier export (ajouts/retraits/décès)
 > - Export sécurisé pour la Direction Générale des Élections (DGE)
 > - Anonymisation des champs sensibles (pas de N°CNI, juste un id pseudonyme)
->
 > - `docs/adr/ADR-022-modules-gouvernementaux-scope.md`
 
 ---
 
 ## 1. Objectif pédagogique
 
-Le Bloc C consolide **trois modules institutionnels** qui partagent un
-même profil utilisateur (fonctionnaire DNEC/CTDEC/DGE), une même
-sensibilité (données nominatives + décisions administratives), et une
-même exigence d'audit (traçabilité 10 ans Merkle). Plutôt que 3 microservices
-totalement séparés, on factorise dans **1 microservice +
-sous-modules** :
+Le Bloc C consolide **trois modules institutionnels** qui partagent un même profil utilisateur
+(fonctionnaire DNEC/CTDEC/DGE), une même sensibilité (données nominatives + décisions
+administratives), et une même exigence d'audit (traçabilité 10 ans Merkle). Plutôt que 3
+microservices totalement séparés, on factorise dans **1 microservice + sous-modules** :
 
-- **`vulnerability-service`** : autonome (port 3011) car la logique
-  d'agent mobile et le cache offline sont spécifiques.
-- **SGOGT + Intégrité électorale** : intégrés dans `governance-service`
-  (port 3010) car ils partagent les permissions RBAC + l'UI gouvernance.
+- **`vulnerability-service`** : autonome (port 3011) car la logique d'agent mobile et le cache
+  offline sont spécifiques.
+- **SGOGT + Intégrité électorale** : intégrés dans `governance-service` (port 3010) car ils
+  partagent les permissions RBAC + l'UI gouvernance.
 
 Trois leçons :
 
-1. **Priorisation explicite des vulnérables**. Un système d'identité
-   sans politique d'accessibilité est aveugle aux 30 % de la
-   population la plus à risque (handicapés, illettrés, ruraux
-   éloignés). Le module C1 force la prise en compte dès la conception.
+1. **Priorisation explicite des vulnérables**. Un système d'identité sans politique d'accessibilité
+   est aveugle aux 30 % de la population la plus à risque (handicapés, illettrés, ruraux éloignés).
+   Le module C1 force la prise en compte dès la conception.
 
-2. **Messagerie auditable ≠ Slack** : SGOGT n'est pas une messagerie
-   instantanée. C'est un système de **décisions administratives
-   datées et signées**. Un message « OK, fais-le » d'un supérieur =
+2. **Messagerie auditable ≠ Slack** : SGOGT n'est pas une messagerie instantanée. C'est un système
+   de **décisions administratives datées et signées**. Un message « OK, fais-le » d'un supérieur =
    ordre engageant cryptographiquement.
 
-3. **Intégrité électorale = automatisme + transparence**. Un citoyen
-   atteint 18 ans → il est inscrit le lendemain sur les listes,
-   sans démarche, sans omission politique possible. La DGE reçoit
-   un export reproductible (hash du fichier vérifiable).
+3. **Intégrité électorale = automatisme + transparence**. Un citoyen atteint 18 ans → il est inscrit
+   le lendemain sur les listes, sans démarche, sans omission politique possible. La DGE reçoit un
+   export reproductible (hash du fichier vérifiable).
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Composant                          | Version    | Rôle                                                |
-| ---------------------------------- | ---------- | --------------------------------------------------- |
-| **NestJS**                         | `11.1`     | `vulnerability-service` + `governance-service`     |
-| **@nestjs/schedule**               | `5.x`      | Cron jobs (inscriptions 18 ans quotidiennes)        |
-| **BullMQ**                         | `5.x`      | Queue agents mobiles (sync différée) sur Redis 8.6 |
-| **PostGIS**                        | `3.6`      | Géo-search « citoyen vulnérable le plus proche »   |
-| **jose**                           | `6.2.3`    | JWS Ed25519 pour SGOGT                              |
-| **node-cron syntax**               | n/a        | `0 2 * * *` pour daily inscription                  |
-| **CSV/Parquet export**             | `papaparse`, `parquet-wasm` | Export DGE optimisé          |
-| **Expo React Native**              | `SDK 55`   | App agent mobile (déjà livrée doc 13, étendue)     |
-| **Vault Transit**                  | `1.20`     | Chiffrement preuves justificatives                  |
+| Composant              | Version                     | Rôle                                               |
+| ---------------------- | --------------------------- | -------------------------------------------------- |
+| **NestJS**             | `11.1`                      | `vulnerability-service` + `governance-service`     |
+| **@nestjs/schedule**   | `5.x`                       | Cron jobs (inscriptions 18 ans quotidiennes)       |
+| **BullMQ**             | `5.x`                       | Queue agents mobiles (sync différée) sur Redis 8.6 |
+| **PostGIS**            | `3.6`                       | Géo-search « citoyen vulnérable le plus proche »   |
+| **jose**               | `6.2.3`                     | JWS Ed25519 pour SGOGT                             |
+| **node-cron syntax**   | n/a                         | `0 2 * * *` pour daily inscription                 |
+| **CSV/Parquet export** | `papaparse`, `parquet-wasm` | Export DGE optimisé                                |
+| **Expo React Native**  | `SDK 55`                    | App agent mobile (déjà livrée doc 13, étendue)     |
+| **Vault Transit**      | `1.20`                      | Chiffrement preuves justificatives                 |
 
 ---
 
@@ -264,9 +256,7 @@ export class DeclareController {
         proofUrl,
         proofHash: proof ? sha256(proof.buffer) : null,
         priorityWeight: weight,
-        validUntil: validated.category === 'PREGNANCY'
-          ? addMonths(new Date(), 9)
-          : null,
+        validUntil: validated.category === 'PREGNANCY' ? addMonths(new Date(), 9) : null,
       },
     });
 
@@ -287,14 +277,16 @@ export class DeclareController {
   }
 
   private calculateWeight(category: VulnerabilityCategory): number {
-    return {
-      PREGNANCY: 5,
-      DISABILITY: 5,
-      UNACCOMPANIED_MINOR: 5,
-      ELDERLY_65PLUS: 4,
-      IDP: 3,
-      CHRONIC_ILLNESS: 3,
-    }[category] ?? 1;
+    return (
+      {
+        PREGNANCY: 5,
+        DISABILITY: 5,
+        UNACCOMPANIED_MINOR: 5,
+        ELDERLY_65PLUS: 4,
+        IDP: 3,
+        CHRONIC_ILLNESS: 3,
+      }[category] ?? 1
+    );
   }
 }
 ```
@@ -320,9 +312,8 @@ WHERE a.status = 'PENDING';
 REFRESH MATERIALIZED VIEW CONCURRENTLY priority_queue;   -- toutes les 5 min via cron
 ```
 
-**Mode agent mobile (cache offline 5 jours)** : Expo SQLite locale +
-sync différée via BullMQ quand connexion rétablie. Détaillé dans
-doc 13 (mobile app) + ce doc §4.2.bis.
+**Mode agent mobile (cache offline 5 jours)** : Expo SQLite locale + sync différée via BullMQ quand
+connexion rétablie. Détaillé dans doc 13 (mobile app) + ce doc §4.2.bis.
 
 ---
 
@@ -352,9 +343,8 @@ export class SgogtController {
         body: dto.body,
         jwsSignature: jws,
         priority: dto.priority,
-        ttlEscalateAt: dto.priority === 'CRITICAL'
-          ? addHours(new Date(), 4)
-          : addHours(new Date(), 24),
+        ttlEscalateAt:
+          dto.priority === 'CRITICAL' ? addHours(new Date(), 4) : addHours(new Date(), 24),
       },
     });
 
@@ -380,7 +370,7 @@ export class SgogtController {
 // services/governance-service/src/sgogt/sgogt-escalation.cron.ts
 @Injectable()
 export class SgogtEscalationCron {
-  @Cron('*/15 * * * *')   // toutes les 15 min
+  @Cron('*/15 * * * *') // toutes les 15 min
   async escalate(): Promise<void> {
     const dueForEscalation = await this.prisma.sgogtMessage.findMany({
       where: {
@@ -392,7 +382,7 @@ export class SgogtEscalationCron {
     });
 
     for (const msg of dueForEscalation) {
-      if (!msg.recipient?.managerId) continue;   // pas de supérieur → archive
+      if (!msg.recipient?.managerId) continue; // pas de supérieur → archive
       await this.prisma.sgogtMessage.update({
         where: { id: msg.id },
         data: {
@@ -417,7 +407,7 @@ export class SgogtEscalationCron {
 // services/governance-service/src/elections/inscription-auto.cron.ts
 @Injectable()
 export class InscriptionAutoCron {
-  @Cron('0 2 * * *', { timeZone: 'Africa/Bamako' })   // 02:00 Bamako
+  @Cron('0 2 * * *', { timeZone: 'Africa/Bamako' }) // 02:00 Bamako
   async inscribeNewAdults(): Promise<void> {
     const today = startOfDay(new Date());
     const eighteenYearsAgo = subYears(today, 18);
@@ -426,7 +416,7 @@ export class InscriptionAutoCron {
     const newAdults = await this.prisma.citizen.findMany({
       where: {
         dateNaissance: { gte: subDays(eighteenYearsAgo, 1), lt: addDays(eighteenYearsAgo, 1) },
-        voterRegistry: null,   // pas déjà inscrit (transferts, manuel)
+        voterRegistry: null, // pas déjà inscrit (transferts, manuel)
       },
     });
 
@@ -458,7 +448,10 @@ export class InscriptionAutoCron {
   /** Génère un ID pseudonyme = SHA-256(NINA + sel-election). Sel rotated tous les 5 ans. */
   private async generatePseudonymousId(nina: string): Promise<string> {
     const electionSalt = await this.vault.read('secret/elections/current-salt');
-    return crypto.createHash('sha256').update(nina + electionSalt).digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(nina + electionSalt)
+      .digest('hex');
   }
 }
 ```
@@ -471,16 +464,11 @@ export class ElectionsExportController {
   @Get('export')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DGE_OFFICIAL')
-  async export(
-    @Query('since') sinceIso: string,
-  ): Promise<StreamableFile> {
+  async export(@Query('since') sinceIso: string): Promise<StreamableFile> {
     const since = parseISO(sinceIso);
     const delta = await this.prisma.voterRegistry.findMany({
       where: {
-        OR: [
-          { registeredAt: { gte: since } },
-          { removedAt: { gte: since } },
-        ],
+        OR: [{ registeredAt: { gte: since } }, { removedAt: { gte: since } }],
       },
       select: {
         pseudonymousId: true,
@@ -497,7 +485,10 @@ export class ElectionsExportController {
     // CSV stream + signature JWS du fichier complet
     const csv = papaparse.unparse(delta);
     const sha256 = crypto.createHash('sha256').update(csv).digest('hex');
-    const jws = await this.jwsService.sign({ sha256, since: sinceIso, count: delta.length }, 'elections-export');
+    const jws = await this.jwsService.sign(
+      { sha256, since: sinceIso, count: delta.length },
+      'elections-export',
+    );
 
     // En-tête HTTP avec signature pour vérification DGE
     return new StreamableFile(Buffer.from(csv), {
@@ -518,13 +509,12 @@ export class ElectionsExportController {
 
 3 onglets dans `apps/governance` :
 
-- **Vulnérables** : carte choroplèthe (cf. `MaliHeatmap`) montrant la
-  densité de profils vulnérables par cercle ; tableau filtrable par
-  catégorie ; bouton « Assigner agent mobile ».
-- **SGOGT** : boîte de réception (similaire Gmail), composition avec
-  drag&drop pour pièces jointes, filtres priorité.
-- **Élections** : bouton « Export pour DGE » avec sélection date
-  `since` ; tableau historique des exports ; vérification SHA-256.
+- **Vulnérables** : carte choroplèthe (cf. `MaliHeatmap`) montrant la densité de profils vulnérables
+  par cercle ; tableau filtrable par catégorie ; bouton « Assigner agent mobile ».
+- **SGOGT** : boîte de réception (similaire Gmail), composition avec drag&drop pour pièces jointes,
+  filtres priorité.
+- **Élections** : bouton « Export pour DGE » avec sélection date `since` ; tableau historique des
+  exports ; vérification SHA-256.
 
 ---
 
@@ -559,24 +549,23 @@ curl -O -J "https://localhost:3010/elections/export?since=2026-01-01" \
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                | Cause probable                                  | Solution                                                |
-| ------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| `priority_queue` matérialisée vide                      | Cron de refresh pas configuré                   | Cron `pg_cron` toutes les 5 min `REFRESH MATERIALIZED VIEW` |
-| Agent mobile sync échoue                                | Cache local SQLite trop ancien (> 5j)            | Force re-login + repartir d'un seed clean              |
-| SGOGT escalade pas déclenchée                           | Cron @nestjs/schedule pas démarré                | Vérifier `ScheduleModule.forRoot()` dans AppModule    |
-| Inscription auto 18 ans rate certains citoyens          | Fuseau horaire UTC vs Bamako (1h décalage)      | Toujours `{ timeZone: 'Africa/Bamako' }` dans `@Cron`  |
-| Export DGE retourne 0 lignes                             | `since` mal formaté (date sans heure)            | Forcer ISO 8601 complet `2026-01-01T00:00:00Z`         |
-| Pseudonyme révèle le NINA en pratique                    | Sel pas rotated, dictionnaire pré-calculé      | Rotation sel tous les 5 ans + nouveaux pseudonymes     |
-| Preuve médicale lisible dans MinIO                      | Pas chiffré Vault Transit                        | Toujours `vault.encrypt()` avant upload                 |
-| Vue gouvernance lente sur 11M citoyens                  | Index GIN trigram manquant                       | `CREATE INDEX ON vulnerability_profiles USING gin(...)` |
+| Symptôme                                       | Cause probable                             | Solution                                                    |
+| ---------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| `priority_queue` matérialisée vide             | Cron de refresh pas configuré              | Cron `pg_cron` toutes les 5 min `REFRESH MATERIALIZED VIEW` |
+| Agent mobile sync échoue                       | Cache local SQLite trop ancien (> 5j)      | Force re-login + repartir d'un seed clean                   |
+| SGOGT escalade pas déclenchée                  | Cron @nestjs/schedule pas démarré          | Vérifier `ScheduleModule.forRoot()` dans AppModule          |
+| Inscription auto 18 ans rate certains citoyens | Fuseau horaire UTC vs Bamako (1h décalage) | Toujours `{ timeZone: 'Africa/Bamako' }` dans `@Cron`       |
+| Export DGE retourne 0 lignes                   | `since` mal formaté (date sans heure)      | Forcer ISO 8601 complet `2026-01-01T00:00:00Z`              |
+| Pseudonyme révèle le NINA en pratique          | Sel pas rotated, dictionnaire pré-calculé  | Rotation sel tous les 5 ans + nouveaux pseudonymes          |
+| Preuve médicale lisible dans MinIO             | Pas chiffré Vault Transit                  | Toujours `vault.encrypt()` avant upload                     |
+| Vue gouvernance lente sur 11M citoyens         | Index GIN trigram manquant                 | `CREATE INDEX ON vulnerability_profiles USING gin(...)`     |
 
 ---
 
 ## 7. Documentation à produire
 
-- `docs/adr/ADR-022-modules-gouvernementaux-scope.md` — décision scope
-  3 sous-modules dans 2 services (vulnerability autonome + SGOGT/Élections
-  consolidés).
+- `docs/adr/ADR-022-modules-gouvernementaux-scope.md` — décision scope 3 sous-modules dans 2
+  services (vulnerability autonome + SGOGT/Élections consolidés).
 - `docs/governance/SGOGT-PROTOCOL.md` — règles de signature et escalade.
 - `docs/governance/ELECTIONS-EXPORT-CONTRACT.md` — contrat technique DGE.
 - Mise à jour `docs/CHANGELOG.md` §20.
@@ -587,6 +576,7 @@ curl -O -J "https://localhost:3010/elections/export?since=2026-01-01" \
 
 ```markdown
 ### Rapport — Bloc C Modules gouvernementaux — JJ/MM/2026
+
 - Status :
 - C1 vulnerability-service :
 - C2 SGOGT :
@@ -612,22 +602,21 @@ curl -O -J "https://localhost:3010/elections/export?since=2026-01-01" \
 - [ ] `ADR-022` rédigé
 - [ ] `docs/CHANGELOG.md` §20 mis à jour
 - [ ] Tag Git `governance-modules-mvp` posé
-- [ ] Commit conventionnel : `feat(governance): C1 vulnerability + C2 SGOGT + C3 elections + ADR-022`
+- [ ] Commit conventionnel :
+      `feat(governance): C1 vulnerability + C2 SGOGT + C3 elections + ADR-022`
 
 ---
 
 ## 10. Pour aller plus loin
 
-- **Module C4 (P2)** : génération automatique du **rapport bisannuel**
-  CTDEC/DNEC vers le Ministère de l'Administration — agrégation stats
-  vulnérabilité + SGOGT + élections.
-- **Module C5 (P3)** : intégration **CICR** (Croix-Rouge) pour les
-  déplacés internes — protocole d'échange chiffré similaire à BCID-AES.
-- **Vote électronique pilote** : tests sur l'intégrité électorale
-  pourraient préparer un pilote de vote dématérialisé sur diaspora.
-  Hors scope V2.
-- **Anonymisation différentielle** : ajouter du bruit Laplace sur les
-  exports pour éviter les attaques de ré-identification statistique.
+- **Module C4 (P2)** : génération automatique du **rapport bisannuel** CTDEC/DNEC vers le Ministère
+  de l'Administration — agrégation stats vulnérabilité + SGOGT + élections.
+- **Module C5 (P3)** : intégration **CICR** (Croix-Rouge) pour les déplacés internes — protocole
+  d'échange chiffré similaire à BCID-AES.
+- **Vote électronique pilote** : tests sur l'intégrité électorale pourraient préparer un pilote de
+  vote dématérialisé sur diaspora. Hors scope V2.
+- **Anonymisation différentielle** : ajouter du bruit Laplace sur les exports pour éviter les
+  attaques de ré-identification statistique.
 
 ---
 

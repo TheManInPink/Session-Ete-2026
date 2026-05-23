@@ -1,17 +1,14 @@
 # CONTRIBUTING — NINA-AES Platform
 
-> Guide pratique pour contribuer au monorepo (étudiant solo + futurs
-> mainteneurs CTDEC/AES + assistants IA).
+> Guide pratique pour contribuer au monorepo (étudiant solo + futurs mainteneurs CTDEC/AES +
+> assistants IA).
 >
-> **Audience principale** : l'étudiant UQAR + son tuteur.
-> **Audience secondaire** : Claude Code / Cursor / GitHub Copilot
-> (lire en complément des fichiers `AGENTS.md`, `CLAUDE.md`,
+> **Audience principale** : l'étudiant UQAR + son tuteur. **Audience secondaire** : Claude Code /
+> Cursor / GitHub Copilot (lire en complément des fichiers `AGENTS.md`, `CLAUDE.md`,
 > `.github/copilot-instructions.md`, `.cursor/rules/ai-governance.mdc`).
 >
-> **Avant de commencer** : lire impérativement
-> [`docs/CHANGELOG.md`](./docs/CHANGELOG.md),
-> [`docs/00-README-INDEX.md`](./docs/00-README-INDEX.md),
-> [`MAINTENANCE.md`](./MAINTENANCE.md) et
+> **Avant de commencer** : lire impérativement [`docs/CHANGELOG.md`](./docs/CHANGELOG.md),
+> [`docs/00-README-INDEX.md`](./docs/00-README-INDEX.md), [`MAINTENANCE.md`](./MAINTENANCE.md) et
 > [`docs/DOCUMENTATION-MAP.md`](./docs/DOCUMENTATION-MAP.md).
 
 ---
@@ -50,11 +47,11 @@ pnpm exec husky
 
 ## 2. Hooks Git installés
 
-| Hook | Déclencheur | Étapes | Cible perf |
-|---|---|---|---|
-| **`pre-commit`** | `git commit` | lint-staged + typecheck filtré + pnpm audit + verify:repo | < 30 s |
-| **`commit-msg`** | message commit | commitlint (Conventional Commits) | < 1 s |
-| **`pre-push`** | `git push` | Jest + build Turborepo filtrés `[HEAD~1]` | < 3 min |
+| Hook             | Déclencheur    | Étapes                                                    | Cible perf |
+| ---------------- | -------------- | --------------------------------------------------------- | ---------- |
+| **`pre-commit`** | `git commit`   | lint-staged + typecheck filtré + pnpm audit + verify:repo | < 30 s     |
+| **`commit-msg`** | message commit | commitlint (Conventional Commits)                         | < 1 s      |
+| **`pre-push`**   | `git push`     | Jest + build Turborepo filtrés `[HEAD~1]`                 | < 3 min    |
 
 **Bypass exceptionnel** (à éviter, justifier dans le commit body) :
 
@@ -79,35 +76,32 @@ type(scope): description en français < 100 caractères
 
 ### Types autorisés (12)
 
-| Type | Quand l'utiliser |
-|---|---|
-| `feat` | Nouvelle fonctionnalité utilisateur |
-| `fix` | Correction de bug |
-| `docs` | Documentation uniquement (`.md`, JSDoc, README) |
-| `style` | Formatage, points-virgules, indentation (zéro changement de logique) |
-| `refactor` | Réorganisation du code sans changer son comportement |
-| `perf` | Optimisation de performance |
-| `test` | Ajout / correction de tests |
-| `build` | Système de build, dépendances externes (rare) |
-| `ci` | Workflows GitHub Actions, Husky, Dependabot |
-| `chore` | Tâches diverses (config, outils internes) |
-| `revert` | Annule un commit précédent (`git revert`) |
-| `data` | Mise à jour des données (`data/mali/`, `schemas/`, seeds) |
+| Type       | Quand l'utiliser                                                     |
+| ---------- | -------------------------------------------------------------------- |
+| `feat`     | Nouvelle fonctionnalité utilisateur                                  |
+| `fix`      | Correction de bug                                                    |
+| `docs`     | Documentation uniquement (`.md`, JSDoc, README)                      |
+| `style`    | Formatage, points-virgules, indentation (zéro changement de logique) |
+| `refactor` | Réorganisation du code sans changer son comportement                 |
+| `perf`     | Optimisation de performance                                          |
+| `test`     | Ajout / correction de tests                                          |
+| `build`    | Système de build, dépendances externes (rare)                        |
+| `ci`       | Workflows GitHub Actions, Husky, Dependabot                          |
+| `chore`    | Tâches diverses (config, outils internes)                            |
+| `revert`   | Annule un commit précédent (`git revert`)                            |
+| `data`     | Mise à jour des données (`data/mali/`, `schemas/`, seeds)            |
 
 ### Scopes autorisés (~45)
 
-Voir [`commitlint.config.js`](./commitlint.config.js) pour la liste
-exhaustive. Quatre familles :
+Voir [`commitlint.config.js`](./commitlint.config.js) pour la liste exhaustive. Quatre familles :
 
-- **Services** (12) : `identity`, `auth`, `ai`, `document`, `notification`,
-  `interop`, `audit`, `appointment`, `sigac`, `sgogt`, `governance`,
-  `vulnerability`
+- **Services** (12) : `identity`, `auth`, `ai`, `document`, `notification`, `interop`, `audit`,
+  `appointment`, `sigac`, `sgogt`, `governance`, `vulnerability`
 - **Apps** (6) : `citizen`, `admin`, `gov`, `mobile`, `kiosk`, `ussd`
-- **Packages** (10) : `shared-types`, `database`, `config`, `utils`, `ui`,
-  `auth-pkg`, `api-client`, `i18n`, `logger`, `test-fixtures`
-- **Transverse** (15) : `infra`, `docker`, `k3s`, `ci`, `deps`,
-  `biometrics`, `monorepo`, `data`, `mali`, `security`, `observability`,
-  `testing`, `backup`, `docs`
+- **Packages** (10) : `shared-types`, `database`, `config`, `utils`, `ui`, `auth-pkg`, `api-client`,
+  `i18n`, `logger`, `test-fixtures`
+- **Transverse** (15) : `infra`, `docker`, `k3s`, `ci`, `deps`, `biometrics`, `monorepo`, `data`,
+  `mali`, `security`, `observability`, `testing`, `backup`, `docs`
 
 ### Exemples valides
 
@@ -141,16 +135,17 @@ feat(identity): un sujet bien plus long que 100 caractères qui va dépasser la 
 
 ## 4. Lint-staged — quoi se passe sur les fichiers stagés
 
-| Pattern | Outil(s) appliqué(s) |
-|---|---|
-| `*.ts`, `*.tsx`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs` | `eslint --fix --max-warnings=0` puis `prettier --write` |
-| `*.py` | `ruff check --fix --exit-non-zero-on-fix` puis `ruff format` |
-| `*.json`, `*.md`, `*.yml`, `*.yaml`, `*.css`, `*.scss` | `prettier --write` |
-| `*.prisma` | `prettier --write --plugin=prisma` |
+| Pattern                                                | Outil(s) appliqué(s)                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------ |
+| `*.ts`, `*.tsx`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs`     | `eslint --fix --max-warnings=0` puis `prettier --write`      |
+| `*.py`                                                 | `ruff check --fix --exit-non-zero-on-fix` puis `ruff format` |
+| `*.json`, `*.md`, `*.yml`, `*.yaml`, `*.css`, `*.scss` | `prettier --write`                                           |
+| `*.prisma`                                             | `prettier --write --plugin=prisma`                           |
 
-> ⚠️ **Ruff doit être installé** sur le PATH pour les fichiers Python.
-> Si vous éditez `services/ai-service/` ou `services/anticorruption-service/`,
-> assurez-vous d'avoir activé votre venv :
+> ⚠️ **Ruff doit être installé** sur le PATH pour les fichiers Python. Si vous éditez
+> `services/ai-service/` ou `services/anticorruption-service/`, assurez-vous d'avoir activé votre
+> venv :
+>
 > ```powershell
 > cd services/ai-service
 > python -m venv .venv
@@ -219,53 +214,52 @@ gh pr create --base develop --title "feat(identity): /citizens/search"
 
 ## 7. Tests — ce qu'on attend par PR
 
-| Niveau | Quand obligatoire | Localisation |
-|---|---|---|
-| **Unitaire (Jest/Pytest)** | Toute nouvelle fonction publique | `__tests__/` ou `*.spec.ts` |
-| **Intégration (Supertest + Testcontainers)** | Nouveau endpoint ou query Prisma | `services/X/test/*.e2e-spec.ts` |
-| **E2E (Playwright)** | Nouveau parcours utilisateur frontend | `e2e/citizen/` ou `e2e/admin/` |
-| **Charge (k6)** | Endpoints critiques (NINA search, AI detect) | `tests/load/scenarios/` |
+| Niveau                                       | Quand obligatoire                            | Localisation                    |
+| -------------------------------------------- | -------------------------------------------- | ------------------------------- |
+| **Unitaire (Jest/Pytest)**                   | Toute nouvelle fonction publique             | `__tests__/` ou `*.spec.ts`     |
+| **Intégration (Supertest + Testcontainers)** | Nouveau endpoint ou query Prisma             | `services/X/test/*.e2e-spec.ts` |
+| **E2E (Playwright)**                         | Nouveau parcours utilisateur frontend        | `e2e/citizen/` ou `e2e/admin/`  |
+| **Charge (k6)**                              | Endpoints critiques (NINA search, AI detect) | `tests/load/scenarios/`         |
 
-Couverture **bloquante en CI ≥ 80 %** sur les packages `utils`, `config`,
-`database`. Cible globale 80 % (cf. [`docs/18-TESTING-STRATEGY.md`](./docs/18-TESTING-STRATEGY.md)).
+Couverture **bloquante en CI ≥ 80 %** sur les packages `utils`, `config`, `database`. Cible globale
+80 % (cf. [`docs/18-TESTING-STRATEGY.md`](./docs/18-TESTING-STRATEGY.md)).
 
 ---
 
 ## 8. Documentation — quoi mettre à jour avec quoi
 
-Voir [`MAINTENANCE.md §3`](./MAINTENANCE.md) (matrice « Quand modifier quoi »).
-Résumé des principaux mappings :
+Voir [`MAINTENANCE.md §3`](./MAINTENANCE.md) (matrice « Quand modifier quoi »). Résumé des
+principaux mappings :
 
-| Tu touches… | Tu mets à jour… |
-|---|---|
-| `package.json` version d'un package | `docs/CHANGELOG.md §1` (versions effectives) |
-| `schema.prisma` | Migration + `docs/06-DATABASE-SCHEMA-PRISMA.md` + ADR-011 si breaking |
-| Une variable d'env | `.env.example` + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md` |
-| `data/mali/*.json` | `pnpm run validate:data` + bump `metadata.version` |
-| `schemas/*.schema.json` | `pnpm run validate:schemas` + `docs/data/mali-divisions.md §3` |
-| `AGENTS.md` ou équiv. IA | Synchroniser les 4 fichiers gouvernance (cf. `DOCUMENTATION-MAP.md §2`) |
-| Nouveau `.github/workflows/*.yml` | Mention dans `docs/16-CICD-GITHUB-ACTIONS.md` |
-| Nouvel ADR | Header `**Contexte document** : [doc N]` + ajouter dans `DOCUMENTATION-MAP.md §4.1` |
+| Tu touches…                         | Tu mets à jour…                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------- |
+| `package.json` version d'un package | `docs/CHANGELOG.md §1` (versions effectives)                                        |
+| `schema.prisma`                     | Migration + `docs/06-DATABASE-SCHEMA-PRISMA.md` + ADR-011 si breaking               |
+| Une variable d'env                  | `.env.example` + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md`                         |
+| `data/mali/*.json`                  | `pnpm run validate:data` + bump `metadata.version`                                  |
+| `schemas/*.schema.json`             | `pnpm run validate:schemas` + `docs/data/mali-divisions.md §3`                      |
+| `AGENTS.md` ou équiv. IA            | Synchroniser les 4 fichiers gouvernance (cf. `DOCUMENTATION-MAP.md §2`)             |
+| Nouveau `.github/workflows/*.yml`   | Mention dans `docs/16-CICD-GITHUB-ACTIONS.md`                                       |
+| Nouvel ADR                          | Header `**Contexte document** : [doc N]` + ajouter dans `DOCUMENTATION-MAP.md §4.1` |
 
-> 🔁 **Règle d'or** : si vous ouvrez une PR qui touche une de ces zones
-> sans mettre à jour le compagnon documentaire, `pnpm verify:repo` doit
-> échouer (au minimum `docs:sync:check`).
+> 🔁 **Règle d'or** : si vous ouvrez une PR qui touche une de ces zones sans mettre à jour le
+> compagnon documentaire, `pnpm verify:repo` doit échouer (au minimum `docs:sync:check`).
 
 ---
 
 ## 9. Sécurité — règles non négociables
 
-1. **Jamais de secret en clair** dans le code, les commits, les issues,
-   les PR ou les logs. Utiliser `@nina-aes/config` (Zod) + Vault.
-2. **Jamais de NINA brut dans les logs** — `@nina-aes/logger` redact
-   automatiquement, mais ne dépendez pas du logger pour ça : ne loguez
-   pas le champ `nina` du tout (utilisez `***` ou `${nina.slice(0,4)}…`).
-3. **Audit Merkle obligatoire** pour toute mutation d'une entité
-   sensible (citoyen, document, audit_log, biométrie, signalement SIGAC).
-4. **Pas de bypass** des contrôles d'auth en mode mock sans
-   `NINA_AUTH_MODE=mock` explicite dans l'env.
-5. **PR sécurité bloquante** : si CodeQL ou Trivy détecte un finding
-   HIGH/CRITICAL, le merge est bloqué.
+1. **Jamais de secret en clair** dans le code, les commits, les issues, les PR ou les logs. Utiliser
+   `@nina-aes/config` (Zod) + Vault.
+2. **Jamais de NINA brut dans les logs** — `@nina-aes/logger` redact automatiquement, mais ne
+   dépendez pas du logger pour ça : ne loguez pas le champ `nina` du tout (utilisez `***` ou
+   `${nina.slice(0,4)}…`).
+3. **Audit Merkle obligatoire** pour toute mutation d'une entité sensible (citoyen, document,
+   audit_log, biométrie, signalement SIGAC).
+4. **Pas de bypass** des contrôles d'auth en mode mock sans `NINA_AUTH_MODE=mock` explicite dans
+   l'env.
+5. **PR sécurité bloquante** : si CodeQL ou Trivy détecte un finding HIGH/CRITICAL, le merge est
+   bloqué.
 
 ---
 
@@ -283,6 +277,7 @@ git push --no-verify
 ```
 
 Chaque bypass DOIT être :
+
 - Justifié dans le body du commit (`# bypass-reason: ...`)
 - Compensé par un commit de re-validation dans les 24 h
 - Mentionné dans `docs/CHANGELOG.md §4` (incidents d'exécution résolus)

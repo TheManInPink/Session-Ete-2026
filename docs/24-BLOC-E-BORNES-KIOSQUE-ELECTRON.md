@@ -1,78 +1,69 @@
 # 24 — Bloc E : Bornes interactives en mairie (Electron mode kiosque)
 
-> **Bloc concerné** : E (Priorité P2) — bornes physiques déployées dans
-> les mairies / centres CTDEC pour permettre aux citoyens non-équipés
-> (pas de smartphone, pas d'ordi) d'accéder aux services NINA-AES.
-> **Prérequis** : Bloc A complet (frontend citizen apps livré) ;
-> appointment-service opérationnel ; document-service pour génération
-> FDI ; observabilité doc 17.
-> **Durée estimée** : 8 à 10 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : E (Priorité P2) — bornes physiques déployées dans les mairies / centres CTDEC
+> pour permettre aux citoyens non-équipés (pas de smartphone, pas d'ordi) d'accéder aux services
+> NINA-AES. **Prérequis** : Bloc A complet (frontend citizen apps livré) ; appointment-service
+> opérationnel ; document-service pour génération FDI ; observabilité doc 17. **Durée estimée** : 8
+> à 10 heures pour un étudiant seul. **Livrables de cette étape** :
 >
 > - **App Electron 31** packagée Windows + Linux (`apps/kiosk`)
-> - **Mode kiosque verrouillé** : aucune sortie d'app possible (pas
->   d'`Alt+F4`, pas de menu, fullscreen permanent)
-> - **Interface ultra-simplifiée** : pictogrammes, 4 boutons gros
->   format, navigation linéaire, FR + 7 langues nationales (i18n
->   réutilise `packages/i18n`)
-> - **Lecteur QR intégré** (caméra USB / webcam) pour scan d'une
->   pièce d'identité préexistante (CNI papier, FDI imprimée)
-> - **Impression récépissés** : génération PDF puis envoi à
->   l'imprimante thermique 80mm (driver ESC/POS via `node-thermal-printer`)
-> - **Mode offline gracieux** : cache local 24h des données
->   essentielles (régions, cercles, type RDV) ; sync différée via
->   queue locale SQLite
-> - **Auto-update via Electron Updater + serveur souverain interne**
->   (PAS GitHub release public — sécurité)
-> - **Télémétrie minimale** : heartbeat toutes les 5 min vers
->   `apps/admin` (état kiosque, dernière transaction, queue offline)
+> - **Mode kiosque verrouillé** : aucune sortie d'app possible (pas d'`Alt+F4`, pas de menu,
+>   fullscreen permanent)
+> - **Interface ultra-simplifiée** : pictogrammes, 4 boutons gros format, navigation linéaire, FR +
+>   7 langues nationales (i18n réutilise `packages/i18n`)
+> - **Lecteur QR intégré** (caméra USB / webcam) pour scan d'une pièce d'identité préexistante (CNI
+>   papier, FDI imprimée)
+> - **Impression récépissés** : génération PDF puis envoi à l'imprimante thermique 80mm (driver
+>   ESC/POS via `node-thermal-printer`)
+> - **Mode offline gracieux** : cache local 24h des données essentielles (régions, cercles, type
+>   RDV) ; sync différée via queue locale SQLite
+> - **Auto-update via Electron Updater + serveur souverain interne** (PAS GitHub release public —
+>   sécurité)
+> - **Télémétrie minimale** : heartbeat toutes les 5 min vers `apps/admin` (état kiosque, dernière
+>   transaction, queue offline)
 > - `docs/adr/ADR-024-kiosk-electron-vs-pwa.md`
 
 ---
 
 ## 1. Objectif pédagogique
 
-40 % des citoyens maliens n'ont pas de smartphone. Le portail web
-(`apps/citizen`) ne leur est inaccessible. Les bornes interactives en
-mairie permettent un accès physique guidé. Trois leçons :
+40 % des citoyens maliens n'ont pas de smartphone. Le portail web (`apps/citizen`) ne leur est
+inaccessible. Les bornes interactives en mairie permettent un accès physique guidé. Trois leçons :
 
-1. **L'accessibilité = boucle visible**. Une borne ne marche que si la
-   personne en face peut accomplir sa tâche en < 3 minutes sans aide.
-   Conception extrême : pictogrammes plutôt que texte (analphabétisme
-   ~30 % en zone rurale), boutons gros format (motricité réduite),
-   feedback sonore + vibration tactile.
+1. **L'accessibilité = boucle visible**. Une borne ne marche que si la personne en face peut
+   accomplir sa tâche en < 3 minutes sans aide. Conception extrême : pictogrammes plutôt que texte
+   (analphabétisme ~30 % en zone rurale), boutons gros format (motricité réduite), feedback sonore +
+   vibration tactile.
 
-2. **Mode kiosque = sécurité physique**. Si un citoyen sort de l'app
-   Electron, il accède au système Windows/Linux sous-jacent et peut
-   compromettre la borne. Verrouillage strict : auto-restart sur
-   crash, écran de veille avec session reset, pas d'accès clavier
-   physique (clavier virtuel seulement).
+2. **Mode kiosque = sécurité physique**. Si un citoyen sort de l'app Electron, il accède au système
+   Windows/Linux sous-jacent et peut compromettre la borne. Verrouillage strict : auto-restart sur
+   crash, écran de veille avec session reset, pas d'accès clavier physique (clavier virtuel
+   seulement).
 
-3. **Offline graceful = pas d'angoisse réseau**. Une coupure Internet
-   de 30 min ne doit pas planter la borne. Cache local + queue de
-   sync différée + bandeau « Synchronisation en cours ».
+3. **Offline graceful = pas d'angoisse réseau**. Une coupure Internet de 30 min ne doit pas planter
+   la borne. Cache local + queue de sync différée + bandeau « Synchronisation en cours ».
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Composant                          | Version    | Rôle                                              |
-| ---------------------------------- | ---------- | ------------------------------------------------- |
-| **Electron**                       | `31.x`     | Runtime kiosk app                                 |
-| **electron-builder**               | `25.x`     | Packaging Windows MSI + Linux AppImage           |
-| **electron-updater**               | `6.3`      | Auto-update depuis serveur souverain interne     |
-| **React 19**                       | -          | UI (réutilise `packages/ui` design system)        |
-| **Vite 6**                         | -          | Bundler renderer process                          |
-| **TypeScript 6**                   | -          | Typages partagés via `@nina-aes/shared-types`     |
-| **node-thermal-printer**           | `4.5`      | Driver ESC/POS pour imprimante thermique 80mm    |
-| **@zxing/library**                 | `0.21`     | Lecteur QR code via getUserMedia caméra USB      |
-| **better-sqlite3**                 | `11.x`     | Cache local + queue offline                      |
-| **Pino + transport custom**        | `9.x`      | Logs locaux + ship différé vers Loki (cf. doc 17) |
-| **Tailwind CSS**                   | `4.x`      | Styles cohérents avec citizen app                 |
-| **i18next**                        | `25.x`     | 8 langues (cf. `packages/i18n`)                   |
+| Composant                   | Version | Rôle                                              |
+| --------------------------- | ------- | ------------------------------------------------- |
+| **Electron**                | `31.x`  | Runtime kiosk app                                 |
+| **electron-builder**        | `25.x`  | Packaging Windows MSI + Linux AppImage            |
+| **electron-updater**        | `6.3`   | Auto-update depuis serveur souverain interne      |
+| **React 19**                | -       | UI (réutilise `packages/ui` design system)        |
+| **Vite 6**                  | -       | Bundler renderer process                          |
+| **TypeScript 6**            | -       | Typages partagés via `@nina-aes/shared-types`     |
+| **node-thermal-printer**    | `4.5`   | Driver ESC/POS pour imprimante thermique 80mm     |
+| **@zxing/library**          | `0.21`  | Lecteur QR code via getUserMedia caméra USB       |
+| **better-sqlite3**          | `11.x`  | Cache local + queue offline                       |
+| **Pino + transport custom** | `9.x`   | Logs locaux + ship différé vers Loki (cf. doc 17) |
+| **Tailwind CSS**            | `4.x`   | Styles cohérents avec citizen app                 |
+| **i18next**                 | `25.x`  | 8 langues (cf. `packages/i18n`)                   |
 
-> 🔒 Electron 31 LTS, support sécurité jusqu'à 2027. Pas d'Electron Forge
-> (cycle de vie incertain) — `electron-builder` plus stable.
+> 🔒 Electron 31 LTS, support sécurité jusqu'à 2027. Pas d'Electron Forge (cycle de vie incertain) —
+> `electron-builder` plus stable.
 
 ---
 
@@ -181,7 +172,7 @@ import { join } from 'node:path';
 export function createKioskWindow(): BrowserWindow {
   const win = new BrowserWindow({
     fullscreen: true,
-    kiosk: true,              // mode kiosque natif Electron
+    kiosk: true, // mode kiosque natif Electron
     autoHideMenuBar: true,
     frame: false,
     minimizable: false,
@@ -202,7 +193,8 @@ export function createKioskWindow(): BrowserWindow {
   // Empêche le mode développeur en prod
   win.webContents.on('before-input-event', (event, input) => {
     const blocked = [
-      'F11', 'F12',
+      'F11',
+      'F12',
       input.control && input.key === 'r',
       input.control && input.shift && input.key === 'I',
       input.alt && input.key === 'F4',
@@ -240,7 +232,8 @@ contextBridge.exposeInMainWorld('nina', {
   print: (pdfBuffer: Buffer) => ipcRenderer.invoke('print:thermal', pdfBuffer),
   sync: () => ipcRenderer.invoke('sync:trigger'),
   online: () => ipcRenderer.invoke('connectivity:status'),
-  telemetry: (event: string, payload?: unknown) => ipcRenderer.send('telemetry:event', event, payload),
+  telemetry: (event: string, payload?: unknown) =>
+    ipcRenderer.send('telemetry:event', event, payload),
 });
 ```
 
@@ -258,23 +251,23 @@ export function HomeScreen({ onNavigate }: { onNavigate: (path: string) => void 
   return (
     <div className="grid grid-cols-2 gap-8 p-12 h-screen bg-gradient-to-br from-blue-50 to-amber-50">
       <BigButton
-        icon="/icons/scan-nina.svg"           // pictogramme 256×256
-        label={t('home.scan')}                // « Vérifier mon NINA »
+        icon="/icons/scan-nina.svg" // pictogramme 256×256
+        label={t('home.scan')} // « Vérifier mon NINA »
         onClick={() => onNavigate('/scan')}
       />
       <BigButton
         icon="/icons/book.svg"
-        label={t('home.book')}                // « Prendre RDV »
+        label={t('home.book')} // « Prendre RDV »
         onClick={() => onNavigate('/book')}
       />
       <BigButton
         icon="/icons/print.svg"
-        label={t('home.print')}               // « Imprimer ma FDI »
+        label={t('home.print')} // « Imprimer ma FDI »
         onClick={() => onNavigate('/print')}
       />
       <BigButton
         icon="/icons/report.svg"
-        label={t('home.report')}              // « Signaler une erreur »
+        label={t('home.report')} // « Signaler une erreur »
         onClick={() => onNavigate('/report')}
       />
     </div>
@@ -282,9 +275,8 @@ export function HomeScreen({ onNavigate }: { onNavigate: (path: string) => void 
 }
 ```
 
-**`BigButton` design** : 600×400 px, gros pictogramme + label en 48 pt,
-fond contrasté, focus ring marqué (4 px), `aria-label`, son de clic
-optionnel.
+**`BigButton` design** : 600×400 px, gros pictogramme + label en 48 pt, fond contrasté, focus ring
+marqué (4 px), `aria-label`, son de clic optionnel.
 
 ---
 
@@ -301,17 +293,21 @@ export function ScanNinaScreen({ onResult }: { onResult: (nina: string) => void 
 
   useEffect(() => {
     if (!videoRef.current) return;
-    const controls = reader.current.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
-      if (result) {
-        const text = result.getText();
-        // Format attendu : NINA JWS depuis FDI imprimée
-        const nina = extractNinaFromJws(text);
-        if (nina) {
-          onResult(nina);
-          controls.stop();
+    const controls = reader.current.decodeFromVideoDevice(
+      undefined,
+      videoRef.current,
+      (result, err) => {
+        if (result) {
+          const text = result.getText();
+          // Format attendu : NINA JWS depuis FDI imprimée
+          const nina = extractNinaFromJws(text);
+          if (nina) {
+            onResult(nina);
+            controls.stop();
+          }
         }
-      }
-    });
+      },
+    );
     return () => controls.stop();
   }, []);
 
@@ -338,9 +334,9 @@ import PDFDocument from 'pdfkit';
 ipcMain.handle('print:thermal', async (_event, ticketData) => {
   const printer = new ThermalPrinter({
     type: PrinterTypes.EPSON,
-    interface: 'usb',                              // ou 'tcp://192.168.x.x' en réseau
+    interface: 'usb', // ou 'tcp://192.168.x.x' en réseau
     options: { timeout: 5000 },
-    width: 48,                                     // 80mm = 48 chars
+    width: 48, // 80mm = 48 chars
   });
 
   const isConnected = await printer.isPrinterConnected();
@@ -403,8 +399,10 @@ export async function flushQueue(api: ApiClient): Promise<void> {
       await api.request({ method: row.method, url: row.endpoint, data: JSON.parse(row.payload) });
       db.prepare(`DELETE FROM sync_queue WHERE id = ?`).run(row.id);
     } catch (err) {
-      db.prepare(`UPDATE sync_queue SET retries = retries + 1, last_error = ? WHERE id = ?`)
-        .run((err as Error).message, row.id);
+      db.prepare(`UPDATE sync_queue SET retries = retries + 1, last_error = ? WHERE id = ?`).run(
+        (err as Error).message,
+        row.id,
+      );
       if (row.retries >= 5) {
         // Abandonner après 5 tentatives, alerter via télémétrie
         logger.error('Abandon sync', { id: row.id, error: err });
@@ -467,21 +465,23 @@ autoUpdater.on('update-downloaded', () => {
 // apps/kiosk/src/main/ipc/telemetry.ts
 import { ipcMain } from 'electron';
 
-setInterval(async () => {
-  await api.post('/admin/kiosk/heartbeat', {
-    deviceId: getDeviceId(),
-    version: app.getVersion(),
-    queueSize: db.prepare(`SELECT COUNT(*) AS n FROM sync_queue`).get().n,
-    lastTransactionAt: getLastTransactionTimestamp(),
-    uptime: process.uptime(),
-    online: await isOnline(),
-  });
-}, 5 * 60 * 1000);
+setInterval(
+  async () => {
+    await api.post('/admin/kiosk/heartbeat', {
+      deviceId: getDeviceId(),
+      version: app.getVersion(),
+      queueSize: db.prepare(`SELECT COUNT(*) AS n FROM sync_queue`).get().n,
+      lastTransactionAt: getLastTransactionTimestamp(),
+      uptime: process.uptime(),
+      online: await isOnline(),
+    });
+  },
+  5 * 60 * 1000,
+);
 ```
 
-Sur `apps/admin`, un onglet « Bornes en mairie » affiche un tableau des
-~50-200 bornes déployées avec leur statut (en ligne / queue size /
-dernière transaction / version).
+Sur `apps/admin`, un onglet « Bornes en mairie » affiche un tableau des ~50-200 bornes déployées
+avec leur statut (en ligne / queue size / dernière transaction / version).
 
 ---
 
@@ -513,29 +513,28 @@ pnpm --filter @nina-aes/kiosk dev:scan-only
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                    | Cause probable                            | Solution                                                |
-| ----------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
-| Borne sort de fullscreen après inactivité                  | Économiseur d'écran Windows actif         | Désactiver dans Group Policy + `powercfg /change`      |
-| QR scan ne marche pas                                       | Caméra pas accessible                     | `getUserMedia` permissions + `--enable-features=...` flags Chromium |
-| Imprimante thermique : papier coincé                        | Mauvaise tension papier                   | Manuel d'opérateur + alerte télémétrie « ERROR_PAPER_JAM » |
-| Mode kiosque crash silently                                 | Renderer process crash sans restart       | `app.on('renderer-process-crashed', recreateWindow)`   |
-| Auto-update boucle infinie                                  | Signature invalide ignorée                | Logger les détails verify ; ne JAMAIS appliquer sans validation |
-| Queue offline saturée (> 1000 items)                        | Sync échoue depuis longtemps              | Alerte télémétrie ; intervention humaine + dump SQLite  |
-| Multiples langues : caractères bambara mal rendus           | Police par défaut sans support Unicode    | Embarquer Noto Sans Bambara dans `resources/fonts/`     |
-| Heure système dérive (pas de NTP)                           | Borne sans Internet long                  | Synchroniser via API heartbeat (récupérer `Date` serveur) |
-| `node-thermal-printer` : `Error: USB device not found`     | Driver libusb-win32 absent (Windows)      | Installer Zadig + driver générique Epson                |
-| Touch screen mal calibré                                    | Drivers vendor pas installés              | Inclure `xinput_calibrator` script setup                |
+| Symptôme                                               | Cause probable                         | Solution                                                            |
+| ------------------------------------------------------ | -------------------------------------- | ------------------------------------------------------------------- |
+| Borne sort de fullscreen après inactivité              | Économiseur d'écran Windows actif      | Désactiver dans Group Policy + `powercfg /change`                   |
+| QR scan ne marche pas                                  | Caméra pas accessible                  | `getUserMedia` permissions + `--enable-features=...` flags Chromium |
+| Imprimante thermique : papier coincé                   | Mauvaise tension papier                | Manuel d'opérateur + alerte télémétrie « ERROR_PAPER_JAM »          |
+| Mode kiosque crash silently                            | Renderer process crash sans restart    | `app.on('renderer-process-crashed', recreateWindow)`                |
+| Auto-update boucle infinie                             | Signature invalide ignorée             | Logger les détails verify ; ne JAMAIS appliquer sans validation     |
+| Queue offline saturée (> 1000 items)                   | Sync échoue depuis longtemps           | Alerte télémétrie ; intervention humaine + dump SQLite              |
+| Multiples langues : caractères bambara mal rendus      | Police par défaut sans support Unicode | Embarquer Noto Sans Bambara dans `resources/fonts/`                 |
+| Heure système dérive (pas de NTP)                      | Borne sans Internet long               | Synchroniser via API heartbeat (récupérer `Date` serveur)           |
+| `node-thermal-printer` : `Error: USB device not found` | Driver libusb-win32 absent (Windows)   | Installer Zadig + driver générique Epson                            |
+| Touch screen mal calibré                               | Drivers vendor pas installés           | Inclure `xinput_calibrator` script setup                            |
 
 ---
 
 ## 7. Documentation à produire
 
 - `docs/adr/ADR-024-kiosk-electron-vs-pwa.md` — décision Electron vs PWA.
-- `docs/deployment/KIOSK-INSTALL-GUIDE.md` — procédure d'installation
-  physique sur un mini-PC en mairie (drivers, imprimante, calibration
-  touchscreen, etc.).
-- `docs/deployment/KIOSK-OPS-RUNBOOK.md` — opérations courantes
-  (mise à jour, debug à distance via télémétrie, reset usine).
+- `docs/deployment/KIOSK-INSTALL-GUIDE.md` — procédure d'installation physique sur un mini-PC en
+  mairie (drivers, imprimante, calibration touchscreen, etc.).
+- `docs/deployment/KIOSK-OPS-RUNBOOK.md` — opérations courantes (mise à jour, debug à distance via
+  télémétrie, reset usine).
 - Mise à jour `docs/CHANGELOG.md` §22.
 
 ---
@@ -544,6 +543,7 @@ pnpm --filter @nina-aes/kiosk dev:scan-only
 
 ```markdown
 ### Rapport — Bloc E Bornes kiosque — JJ/MM/2026
+
 - App Electron 31 buildée Windows + Linux
 - Mode kiosque verrouillé testé sur Win 10 + Ubuntu 22
 - 4 écrans principaux (Scan / RDV / Print / Report) opérationnels
@@ -583,17 +583,16 @@ pnpm --filter @nina-aes/kiosk dev:scan-only
 
 ## 10. Pour aller plus loin
 
-- **Mode pilote 5 mairies** : avant déploiement national, valider en
-  conditions réelles dans 5 mairies pilotes (Bamako Commune III, Kayes,
-  Mopti, Tombouctou rural, Sikasso urbain) avec retours utilisateurs.
-- **Caméra IR + détection présence** : économiser l'énergie en
-  mode veille quand personne devant la borne.
-- **NFC pour lecture CNI biométrique** : V3 quand les nouvelles CNI Mali
-  intégreront une puce NFC.
-- **Synthèse vocale 8 langues** : pour l'accessibilité non-voyants.
-  Hugging Face TTS (XTTS-v2 fine-tuné bambara).
-- **Recyclage matériel** : utiliser des mini-PC reconditionnés (Lenovo
-  M720q d'occasion ~150 €) plutôt que neufs — coût + impact environnemental.
+- **Mode pilote 5 mairies** : avant déploiement national, valider en conditions réelles dans 5
+  mairies pilotes (Bamako Commune III, Kayes, Mopti, Tombouctou rural, Sikasso urbain) avec retours
+  utilisateurs.
+- **Caméra IR + détection présence** : économiser l'énergie en mode veille quand personne devant la
+  borne.
+- **NFC pour lecture CNI biométrique** : V3 quand les nouvelles CNI Mali intégreront une puce NFC.
+- **Synthèse vocale 8 langues** : pour l'accessibilité non-voyants. Hugging Face TTS (XTTS-v2
+  fine-tuné bambara).
+- **Recyclage matériel** : utiliser des mini-PC reconditionnés (Lenovo M720q d'occasion ~150 €)
+  plutôt que neufs — coût + impact environnemental.
 
 ---
 

@@ -2,8 +2,8 @@
 
 ## Statut
 
-Accepté — Avril 2026 · **Révisé — Mai 2026** (image PostGIS, locale ICU,
-layout Postgres 18, driver adapter Prisma)
+Accepté — Avril 2026 · **Révisé — Mai 2026** (image PostGIS, locale ICU, layout Postgres 18, driver
+adapter Prisma)
 
 ## Contexte
 
@@ -27,9 +27,9 @@ L'image utilisée est **`postgis/postgis:18-3.6`** plutôt que `postgres:18-alpi
 
 ### Configuration effective (`infrastructure/docker/docker-compose.dev.yml`)
 
-- **Locale** : `--locale-provider=icu --icu-locale=fr-FR --encoding=UTF8 --data-checksums`.
-  L'ICU est portable (pas besoin de générer la locale `fr_FR.UTF-8` dans l'image, qui n'est pas
-  présente dans `postgis/postgis:18-3.6` Debian-based).
+- **Locale** : `--locale-provider=icu --icu-locale=fr-FR --encoding=UTF8 --data-checksums`. L'ICU
+  est portable (pas besoin de générer la locale `fr_FR.UTF-8` dans l'image, qui n'est pas présente
+  dans `postgis/postgis:18-3.6` Debian-based).
 - **Volume** : `nina-postgres-data:/var/lib/postgresql` (parent — exigence Postgres 18 pour
   permettre `pg_upgrade --link` entre versions majeures, le sous-dossier `<major>/data` est créé
   automatiquement par l'image).

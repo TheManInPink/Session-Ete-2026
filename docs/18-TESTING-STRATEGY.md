@@ -1,30 +1,25 @@
 # 18 — Stratégie de tests (Jest + Pytest + Supertest + TestContainers + Playwright + k6)
 
-> **Bloc concerné** : Transversal (tous les blocs A → F) — discipline de
-> qualité appliquée dès le premier microservice, durcie en fin de Bloc A.
-> **Prérequis** : documents 00 → 17 complétés ; chaîne `pnpm run verify:repo`
-> opérationnelle ; Playwright Session 5 déjà livré ; Pytest scaffold présent
-> sur les services FastAPI ; observabilité doc 17 disponible pour mesurer
-> les tests de charge.
-> **Durée estimée** : 18 à 24 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : Transversal (tous les blocs A → F) — discipline de qualité appliquée dès le
+> premier microservice, durcie en fin de Bloc A. **Prérequis** : documents 00 → 17 complétés ;
+> chaîne `pnpm run verify:repo` opérationnelle ; Playwright Session 5 déjà livré ; Pytest scaffold
+> présent sur les services FastAPI ; observabilité doc 17 disponible pour mesurer les tests de
+> charge. **Durée estimée** : 18 à 24 heures pour un étudiant seul. **Livrables de cette étape** :
 >
 > - **4 niveaux de tests structurés** avec dossiers et conventions claires :
 >   - Unitaires (Jest 30 / Pytest 8) — packages + logique métier isolée
->   - Intégration (Supertest + Testcontainers Postgres/Redis/RabbitMQ) —
->     contrats API entre microservices
->   - E2E (Playwright 1.50) — parcours utilisateur frontend bout-en-bout
->     (mock auth ; déjà 11 tests livrés Session 5)
+>   - Intégration (Supertest + Testcontainers Postgres/Redis/RabbitMQ) — contrats API entre
+>     microservices
+>   - E2E (Playwright 1.50) — parcours utilisateur frontend bout-en-bout (mock auth ; déjà 11 tests
+>     livrés Session 5)
 >   - Charge (k6 0.55) — scénarios réalistes de pic d'enrôlement
-> - Couverture **≥ 80 %** sur les packages Bloc A + services NestJS
->   (mesurée par `jest --coverage` et `pytest-cov`)
-> - Factories Faker (`@faker-js/faker@10`) pour citoyens, NINA, FDI,
->   rendez-vous, signalements SIGAC
-> - MSW 2.10 (Mock Service Worker) pour les tests frontend qui doivent
->   simuler les APIs sans démarrer le backend
-> - Stratégie de tests data API : 1 pyramide unit-heavy, 1 layer intégration
->   ciblé sur les contrats critiques (NINA, audit Merkle, JWS Ed25519),
->   minimum d'E2E
+> - Couverture **≥ 80 %** sur les packages Bloc A + services NestJS (mesurée par `jest --coverage`
+>   et `pytest-cov`)
+> - Factories Faker (`@faker-js/faker@10`) pour citoyens, NINA, FDI, rendez-vous, signalements SIGAC
+> - MSW 2.10 (Mock Service Worker) pour les tests frontend qui doivent simuler les APIs sans
+>   démarrer le backend
+> - Stratégie de tests data API : 1 pyramide unit-heavy, 1 layer intégration ciblé sur les contrats
+>   critiques (NINA, audit Merkle, JWS Ed25519), minimum d'E2E
 > - Tests de mutation Stryker 8 (optionnel, P2) sur `@nina-aes/utils`
 > - Configuration CI bloquante sur couverture (cf. doc 16 §4.3)
 > - `docs/adr/ADR-018-strategie-tests-pyramide.md`
@@ -33,51 +28,48 @@
 
 ## 1. Objectif pédagogique
 
-Un projet d'identité d'État sans stratégie de tests est **un projet qui sera
-réécrit** dès la première régression production. Trois principes structurent
-ce document :
+Un projet d'identité d'État sans stratégie de tests est **un projet qui sera réécrit** dès la
+première régression production. Trois principes structurent ce document :
 
-1. **Pyramide, pas glace au chocolat**. Beaucoup d'unitaires (rapides,
-   précis), un nombre raisonnable d'intégrations (chères mais
-   indispensables sur les contrats), peu d'E2E (lents, fragiles, mais
-   essentiels sur les parcours critiques). L'anti-pattern « glace au
-   chocolat » (peu d'unitaires, beaucoup d'E2E) est interdit.
+1. **Pyramide, pas glace au chocolat**. Beaucoup d'unitaires (rapides, précis), un nombre
+   raisonnable d'intégrations (chères mais indispensables sur les contrats), peu d'E2E (lents,
+   fragiles, mais essentiels sur les parcours critiques). L'anti-pattern « glace au chocolat » (peu
+   d'unitaires, beaucoup d'E2E) est interdit.
 
-2. **Les tests sont du code**. Conventions de nommage, lint, refactoring,
-   review en PR comme n'importe quel autre code. Un test illisible est un
-   test qui ne sera jamais maintenu et sera désactivé au premier flake.
+2. **Les tests sont du code**. Conventions de nommage, lint, refactoring, review en PR comme
+   n'importe quel autre code. Un test illisible est un test qui ne sera jamais maintenu et sera
+   désactivé au premier flake.
 
-3. **Couverture mesurée mais pas fétichisée**. Cible **≥ 80 %** sur le code
-   métier (`packages/utils`, `packages/database`, controllers NestJS),
-   **≥ 60 %** sur le glue code (config, bootstrap). Un module avec 100 %
-   de couverture mais 0 assertion significative reste un module non testé.
+3. **Couverture mesurée mais pas fétichisée**. Cible **≥ 80 %** sur le code métier
+   (`packages/utils`, `packages/database`, controllers NestJS), **≥ 60 %** sur le glue code (config,
+   bootstrap). Un module avec 100 % de couverture mais 0 assertion significative reste un module non
+   testé.
 
-> 💡 **Pourquoi pas attendre la fin du Bloc A ?** Parce qu'une suite de
-> tests construite *après* le code est presque toujours superficielle. Le
-> TDD strict n'est pas obligatoire, mais chaque PR feature doit livrer ses
-> tests dans le même change set.
+> 💡 **Pourquoi pas attendre la fin du Bloc A ?** Parce qu'une suite de tests construite _après_ le
+> code est presque toujours superficielle. Le TDD strict n'est pas obligatoire, mais chaque PR
+> feature doit livrer ses tests dans le même change set.
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Outil                         | Version  | Rôle                                                          |
-| ----------------------------- | -------- | ------------------------------------------------------------- |
-| **Jest**                      | `30.0.x` | Tests unitaires Node — déjà installé sur `utils`, `config`     |
-| **ts-jest**                   | `29.4.x` | Compilation TS pour Jest                                       |
-| **@types/jest**               | `30.0.x` | Types Jest                                                     |
-| **Supertest**                 | `7.1.x`  | Tests d'intégration HTTP NestJS sans bootstrap réseau         |
-| **Testcontainers (Node)**     | `10.16.x`| Spin-up Postgres/Redis/RabbitMQ Dockerisés en tests           |
-| **Pytest**                    | `8.3.x`  | Tests Python (ai-service, anticorruption-service)             |
-| **pytest-asyncio**            | `0.25.x` | Tests async FastAPI                                            |
-| **pytest-cov**                | `6.0.x`  | Couverture Python                                              |
-| **httpx**                     | `0.28.x` | Client HTTP test pour FastAPI                                  |
-| **Playwright**                | `1.50.x` | Tests E2E (déjà livré Session 5 — 11 tests)                   |
-| **k6**                        | `0.55.0` | Tests de charge — scénarios JS, exporter Prometheus           |
-| **@faker-js/faker**           | `10.0.x` | Factories de données (citoyens, NINA, signalements)           |
-| **MSW (Mock Service Worker)** | `2.10.x` | Mock HTTP côté frontend tests + Node tests                    |
-| **Stryker Mutator**           | `8.9.x`  | Tests de mutation (P2 — `@nina-aes/utils` uniquement)         |
-| **Vitest**                    | `4.1.x`  | Alternative Jest sur `@nina-aes/database` (déjà installé)     |
+| Outil                         | Version   | Rôle                                                       |
+| ----------------------------- | --------- | ---------------------------------------------------------- |
+| **Jest**                      | `30.0.x`  | Tests unitaires Node — déjà installé sur `utils`, `config` |
+| **ts-jest**                   | `29.4.x`  | Compilation TS pour Jest                                   |
+| **@types/jest**               | `30.0.x`  | Types Jest                                                 |
+| **Supertest**                 | `7.1.x`   | Tests d'intégration HTTP NestJS sans bootstrap réseau      |
+| **Testcontainers (Node)**     | `10.16.x` | Spin-up Postgres/Redis/RabbitMQ Dockerisés en tests        |
+| **Pytest**                    | `8.3.x`   | Tests Python (ai-service, anticorruption-service)          |
+| **pytest-asyncio**            | `0.25.x`  | Tests async FastAPI                                        |
+| **pytest-cov**                | `6.0.x`   | Couverture Python                                          |
+| **httpx**                     | `0.28.x`  | Client HTTP test pour FastAPI                              |
+| **Playwright**                | `1.50.x`  | Tests E2E (déjà livré Session 5 — 11 tests)                |
+| **k6**                        | `0.55.0`  | Tests de charge — scénarios JS, exporter Prometheus        |
+| **@faker-js/faker**           | `10.0.x`  | Factories de données (citoyens, NINA, signalements)        |
+| **MSW (Mock Service Worker)** | `2.10.x`  | Mock HTTP côté frontend tests + Node tests                 |
+| **Stryker Mutator**           | `8.9.x`   | Tests de mutation (P2 — `@nina-aes/utils` uniquement)      |
+| **Vitest**                    | `4.1.x`   | Alternative Jest sur `@nina-aes/database` (déjà installé)  |
 
 > 🔒 Tous open-source. k6 est Apache 2.0 (Grafana Labs). Pas de SaaS.
 
@@ -139,8 +131,8 @@ end note
 
 ### Étape 4.1 — Convention de nommage et arborescence
 
-**Pourquoi** : un placement cohérent permet `pnpm test` de tout trouver, et
-permet aussi de tagger les tests par niveau (unitaire / intégration / E2E).
+**Pourquoi** : un placement cohérent permet `pnpm test` de tout trouver, et permet aussi de tagger
+les tests par niveau (unitaire / intégration / E2E).
 
 ```text
 packages/<pkg>/src/
@@ -184,15 +176,15 @@ services/<service>/tests/           ← Pytest (existant)
 
 **Convention de nommage** :
 
-| Niveau          | Pattern fichier              | Pattern test              |
-| --------------- | ---------------------------- | ------------------------- |
-| Unitaire TS     | `<X>.test.ts`                | `describe('X', …)`        |
-| Unitaire NestJS | `<X>.controller.spec.ts`     | `describe('XController', …)` |
-| Intégration     | `<X>.e2e-spec.ts`            | `describe('X (e2e)', …)`  |
-| E2E Playwright  | `<X>.spec.ts`                | `test('describes scenario', …)` |
-| Charge k6       | `<scenario>.js`              | `export default function () {}` |
-| Unitaire Python | `test_<X>.py`                | `def test_<x>():`         |
-| Intégration Py  | `tests/integration/test_<X>.py` | `def test_<x>_e2e():`  |
+| Niveau          | Pattern fichier                 | Pattern test                    |
+| --------------- | ------------------------------- | ------------------------------- |
+| Unitaire TS     | `<X>.test.ts`                   | `describe('X', …)`              |
+| Unitaire NestJS | `<X>.controller.spec.ts`        | `describe('XController', …)`    |
+| Intégration     | `<X>.e2e-spec.ts`               | `describe('X (e2e)', …)`        |
+| E2E Playwright  | `<X>.spec.ts`                   | `test('describes scenario', …)` |
+| Charge k6       | `<scenario>.js`                 | `export default function () {}` |
+| Unitaire Python | `test_<X>.py`                   | `def test_<x>():`               |
+| Intégration Py  | `tests/integration/test_<X>.py` | `def test_<x>_e2e():`           |
 
 **Convention AAA (Arrange-Act-Assert)** :
 
@@ -221,10 +213,9 @@ it('valide un NINA correctement formaté', () => {
 
 ### Étape 4.2 — Factories Faker (`packages/test-fixtures`)
 
-**Pourquoi** : ne JAMAIS écrire des données de test à la main. Une factory
-garantit (a) des données réalistes, (b) la variabilité (Faker change à
-chaque appel), (c) la maintenabilité (un changement de schéma se répercute
-dans 1 fichier au lieu de 200).
+**Pourquoi** : ne JAMAIS écrire des données de test à la main. Une factory garantit (a) des données
+réalistes, (b) la variabilité (Faker change à chaque appel), (c) la maintenabilité (un changement de
+schéma se répercute dans 1 fichier au lieu de 200).
 
 **Fichier(s) à créer** : `packages/test-fixtures/package.json` + `src/index.ts`
 
@@ -254,10 +245,22 @@ export function makeCitizen(overrides: Partial<Citizen> = {}): Citizen {
     lastName: faker.person.lastName(),
     firstNameAscii: faker.helpers.fromRegExp(/[a-z]{3,10}/),
     lastNameAscii: faker.helpers.fromRegExp(/[a-z]{3,10}/),
-    dateNaissance: faker.date.between({ from: '1940-01-01', to: '2010-12-31' }).toISOString().slice(0, 10),
+    dateNaissance: faker.date
+      .between({ from: '1940-01-01', to: '2010-12-31' })
+      .toISOString()
+      .slice(0, 10),
     gender: faker.helpers.arrayElement(['M', 'F'] as const),
     region: faker.helpers.arrayElement([
-      'ML-01', 'ML-02', 'ML-03', 'ML-04', 'ML-05', 'ML-06', 'ML-07', 'ML-08', 'ML-09', 'ML-10',
+      'ML-01',
+      'ML-02',
+      'ML-03',
+      'ML-04',
+      'ML-05',
+      'ML-06',
+      'ML-07',
+      'ML-08',
+      'ML-09',
+      'ML-10',
     ]),
     fingerprintHash: faker.string.hexadecimal({ length: 64, prefix: '' }),
     vulnerabilityCategory: null,
@@ -292,9 +295,9 @@ def make_citizen(**overrides) -> Citizen:
 
 ### Étape 4.3 — Tests unitaires Jest (NestJS)
 
-**Pourquoi** : un controller bien testé est un controller qui ne dépend pas
-de Prisma, de Redis ou de RabbitMQ. On injecte des mocks (interfaces) et on
-teste la logique pure : routing, validation Zod, transformations DTO.
+**Pourquoi** : un controller bien testé est un controller qui ne dépend pas de Prisma, de Redis ou
+de RabbitMQ. On injecte des mocks (interfaces) et on teste la logique pure : routing, validation
+Zod, transformations DTO.
 
 ```ts
 // services/identity-service/src/citizen/citizen.controller.spec.ts
@@ -347,17 +350,16 @@ describe('CitizenController', () => {
 });
 ```
 
-> 💡 **Discipline** : `service` est une interface mockée, pas une instance
-> partielle. Pas de `jest.mock('./citizen.service')` automatique qui laisse
-> traîner des prototypes Prisma.
+> 💡 **Discipline** : `service` est une interface mockée, pas une instance partielle. Pas de
+> `jest.mock('./citizen.service')` automatique qui laisse traîner des prototypes Prisma.
 
 ---
 
 ### Étape 4.4 — Tests d'intégration (Supertest + Testcontainers)
 
-**Pourquoi** : un test unitaire ne valide pas que Prisma sait sérialiser un
-`Decimal(10,7)` ou que la migration `init_v1` est cohérente avec le schéma.
-Pour ces contrats, on spin-up un Postgres réel via Testcontainers.
+**Pourquoi** : un test unitaire ne valide pas que Prisma sait sérialiser un `Decimal(10,7)` ou que
+la migration `init_v1` est cohérente avec le schéma. Pour ces contrats, on spin-up un Postgres réel
+via Testcontainers.
 
 ```ts
 // services/identity-service/test/citizens.e2e-spec.ts
@@ -416,11 +418,10 @@ describe('CitizenController (e2e)', () => {
 
 **Limites importantes** :
 
-- Un test d'intégration ne doit PAS appeler `localhost:5432` (DB statique).
-  Toujours démarrer son propre container.
-- Coût : ~30 s de warmup Postgres + migrations. Acceptable si peu de tests
-  d'intégration (≤ 150). Au-delà : grouper par module et factoriser le
-  container via `beforeAll`.
+- Un test d'intégration ne doit PAS appeler `localhost:5432` (DB statique). Toujours démarrer son
+  propre container.
+- Coût : ~30 s de warmup Postgres + migrations. Acceptable si peu de tests d'intégration (≤ 150).
+  Au-delà : grouper par module et factoriser le container via `beforeAll`.
 
 ---
 
@@ -483,8 +484,8 @@ def test_full_detection_pipeline(client):
 
 ### Étape 4.6 — Tests E2E Playwright (déjà 11 tests Session 5)
 
-État actuel : 11 tests dans `e2e/citizen/` + `e2e/admin/` avec mode
-`NINA_AUTH_MODE=mock`. À compléter :
+État actuel : 11 tests dans `e2e/citizen/` + `e2e/admin/` avec mode `NINA_AUTH_MODE=mock`. À
+compléter :
 
 ```ts
 // e2e/citizen/correction.spec.ts (NEW — à créer)
@@ -497,7 +498,7 @@ test.describe('Parcours correction NINA — citoyen', () => {
     await page.getByLabel('NINA').fill('1 89 03 1 02 015 042 V');
     await page.getByLabel('Champ erroné').selectOption('first_name');
     await page.getByLabel('Nouvelle valeur').fill('Mamadou');
-    await page.getByLabel("Pièce justificative").setInputFiles('e2e/fixtures/cni-mock.pdf');
+    await page.getByLabel('Pièce justificative').setInputFiles('e2e/fixtures/cni-mock.pdf');
     await page.getByRole('button', { name: 'Soumettre' }).click();
 
     await expect(page.getByText(/Ticket de correction : COR-\d{8}/)).toBeVisible();
@@ -505,16 +506,16 @@ test.describe('Parcours correction NINA — citoyen', () => {
 });
 ```
 
-**Stratégie d'extension** : viser **30 tests E2E** à terme, **pas plus**.
-Au-delà, le coût en temps de feedback PR (~5 min) devient prohibitif. Garder
-les E2E pour les parcours critiques (correction, RDV, scan QR mobile, USSD).
+**Stratégie d'extension** : viser **30 tests E2E** à terme, **pas plus**. Au-delà, le coût en temps
+de feedback PR (~5 min) devient prohibitif. Garder les E2E pour les parcours critiques (correction,
+RDV, scan QR mobile, USSD).
 
 ---
 
 ### Étape 4.7 — Tests de charge k6
 
-**Pourquoi** : démontrer que le système soutient les pics réels prévus :
-~5 000 req/min lors d'une campagne d'enrôlement RAVEC nationale.
+**Pourquoi** : démontrer que le système soutient les pics réels prévus : ~5 000 req/min lors d'une
+campagne d'enrôlement RAVEC nationale.
 
 **Fichier(s) à créer** : `tests/load/scenarios/enrollment-peak.js`
 
@@ -535,17 +536,17 @@ export const options = {
       preAllocatedVUs: 50,
       maxVUs: 200,
       stages: [
-        { duration: '1m', target: 30 },    // warmup
-        { duration: '3m', target: 80 },    // climb to peak (~5k req/min = 80 req/s)
-        { duration: '5m', target: 80 },    // sustain peak 5 min
-        { duration: '1m', target: 0 },     // cooldown
+        { duration: '1m', target: 30 }, // warmup
+        { duration: '3m', target: 80 }, // climb to peak (~5k req/min = 80 req/s)
+        { duration: '5m', target: 80 }, // sustain peak 5 min
+        { duration: '1m', target: 0 }, // cooldown
       ],
     },
   },
   thresholds: {
-    http_req_duration: ['p(95)<500', 'p(99)<1500'],   // SLO doc 17
-    http_req_failed: ['rate<0.01'],                    // < 1 % erreurs
-    nina_created: ['count>20000'],                     // > 20k en 10 min
+    http_req_duration: ['p(95)<500', 'p(99)<1500'], // SLO doc 17
+    http_req_failed: ['rate<0.01'], // < 1 % erreurs
+    nina_created: ['count>20000'], // > 20k en 10 min
   },
 };
 
@@ -579,7 +580,7 @@ export default function () {
   });
   if (ok && res.status === 201) ninaCreated.add(1);
 
-  sleep(Math.random() * 0.5 + 0.1);   // 100-600 ms entre requêtes
+  sleep(Math.random() * 0.5 + 0.1); // 100-600 ms entre requêtes
 }
 ```
 
@@ -598,20 +599,20 @@ docker run --rm -i --network host grafana/k6:0.55.0 \
 
 **Scénarios à livrer (4)** :
 
-| Fichier                     | Cible              | Critère succès                            |
-| --------------------------- | ------------------ | ----------------------------------------- |
-| `enrollment-peak.js`        | identity-service   | > 20 000 NINA créés en 10 min, p95 < 500ms |
-| `nina-search.js`            | identity-service   | 1 000 req/s sustained, p99 < 200ms        |
-| `ai-detection.js`           | ai-service         | batch 100 records, p95 < 5s               |
-| `audit-merkle-write.js`     | audit-service      | 500 writes/s, 0 rupture chaîne Merkle     |
+| Fichier                 | Cible            | Critère succès                             |
+| ----------------------- | ---------------- | ------------------------------------------ |
+| `enrollment-peak.js`    | identity-service | > 20 000 NINA créés en 10 min, p95 < 500ms |
+| `nina-search.js`        | identity-service | 1 000 req/s sustained, p99 < 200ms         |
+| `ai-detection.js`       | ai-service       | batch 100 records, p95 < 5s                |
+| `audit-merkle-write.js` | audit-service    | 500 writes/s, 0 rupture chaîne Merkle      |
 
 ---
 
 ### Étape 4.8 — MSW (Mock Service Worker) pour tests frontend
 
-**Pourquoi** : les composants React qui consomment `@nina-aes/api-client`
-doivent être testables sans démarrer NestJS. MSW intercepte au niveau
-`fetch` et retourne des réponses définies dans le test.
+**Pourquoi** : les composants React qui consomment `@nina-aes/api-client` doivent être testables
+sans démarrer NestJS. MSW intercepte au niveau `fetch` et retourne des réponses définies dans le
+test.
 
 ```ts
 // apps/citizen/src/components/__tests__/NinaForm.test.tsx
@@ -679,16 +680,15 @@ source = ["app"]
 omit = ["app/main.py", "app/observability.py"]
 ```
 
-CI bloquant (cf. doc 16 §4.3) : `pnpm test -- --coverage` retourne exit 1
-si threshold non respecté → merge bloqué.
+CI bloquant (cf. doc 16 §4.3) : `pnpm test -- --coverage` retourne exit 1 si threshold non respecté
+→ merge bloqué.
 
 ---
 
 ### Étape 4.10 — Tests de mutation Stryker (P2, optionnel)
 
-**Pourquoi** : couverture ≠ qualité. Un test qui couvre une ligne sans
-asserter rien d'utile passe Stryker à mort. Outil idéal pour valider la
-qualité d'une suite mature, pas pour démarrer.
+**Pourquoi** : couverture ≠ qualité. Un test qui couvre une ligne sans asserter rien d'utile passe
+Stryker à mort. Outil idéal pour valider la qualité d'une suite mature, pas pour démarrer.
 
 **Fichier(s) à créer** : `packages/utils/stryker.config.json`
 
@@ -709,8 +709,8 @@ qualité d'une suite mature, pas pour démarrer.
 pnpm --filter @nina-aes/utils exec stryker run
 ```
 
-> 💡 Pas activé en CI bloquante — c'est un outil de revue qualitative,
-> exécuté avant chaque release majeure pour identifier les tests faibles.
+> 💡 Pas activé en CI bloquante — c'est un outil de revue qualitative, exécuté avant chaque release
+> majeure pour identifier les tests faibles.
 
 ---
 
@@ -749,35 +749,33 @@ pnpm --filter @nina-aes/utils exec stryker run
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                       | Cause probable                                  | Solution                                                    |
-| -------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- |
-| Tests Jest flakes avec `Cannot find module`                    | Path alias TS non résolu côté Jest             | Ajouter `moduleNameMapper` dans `jest.config.cjs`           |
-| Coverage à 0 % sur un package qui a des tests                  | `collectCoverageFrom` ne pointe pas vers `src/` | Préciser `["src/**/*.ts"]` avec exclusions explicites       |
-| Testcontainers : `Cannot connect to Docker daemon`             | Docker Desktop pas démarré                      | Démarrer Docker Desktop ; sinon `DOCKER_HOST=unix:///...`   |
-| Testcontainers : ports déjà occupés                            | Container précédent pas nettoyé                 | `docker ps -q | xargs docker stop` ; les containers sont éphémères mais un crash laisse traîner |
-| Migration Prisma échoue dans Testcontainers                    | `DATABASE_URL` env pas exporté avant `prisma migrate` | Passer `env: { DATABASE_URL: container.getConnectionUri() }` à `execSync` |
-| Playwright : `waiting for navigation`                          | `await page.goto(...)` avant que le serveur soit prêt | Configurer `webServer` dans playwright.config.ts avec `reuseExistingServer: !process.env.CI` |
-| k6 : `dial tcp: lookup identity-service.staging`               | k6 dans container ne résout pas DNS interne    | Utiliser URL publique HTTPS, ou `--network=host`            |
-| Pytest : ImportError sur `app.*`                                | `PYTHONPATH` non posé                          | `pyproject.toml` → `[tool.pytest.ini_options] pythonpath = ["."]` |
-| MSW : `Unhandled request`                                       | Endpoint pas dans le handler list              | `onUnhandledRequest: 'error'` force un échec explicite      |
-| Faker : génère des noms non-français                            | Locale par défaut = `en`                       | `import { faker } from '@faker-js/faker/locale/fr'`         |
-| Couverture branches à 65 % alors que lines à 95 %               | `if/else` mal couverts                         | Ajouter tests des chemins `else` ; ou ajuster threshold `branches: 75` |
-| Stryker fait crash le runner                                    | Trop de mutants concurrents                    | `concurrency: 2` dans `stryker.config.json`                 |
+| Symptôme                                           | Cause probable                                        | Solution                                                                                     |
+| -------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Tests Jest flakes avec `Cannot find module`        | Path alias TS non résolu côté Jest                    | Ajouter `moduleNameMapper` dans `jest.config.cjs`                                            |
+| Coverage à 0 % sur un package qui a des tests      | `collectCoverageFrom` ne pointe pas vers `src/`       | Préciser `["src/**/*.ts"]` avec exclusions explicites                                        |
+| Testcontainers : `Cannot connect to Docker daemon` | Docker Desktop pas démarré                            | Démarrer Docker Desktop ; sinon `DOCKER_HOST=unix:///...`                                    |
+| Testcontainers : ports déjà occupés                | Container précédent pas nettoyé                       | `docker ps -q                                                                                | xargs docker stop` ; les containers sont éphémères mais un crash laisse traîner |
+| Migration Prisma échoue dans Testcontainers        | `DATABASE_URL` env pas exporté avant `prisma migrate` | Passer `env: { DATABASE_URL: container.getConnectionUri() }` à `execSync`                    |
+| Playwright : `waiting for navigation`              | `await page.goto(...)` avant que le serveur soit prêt | Configurer `webServer` dans playwright.config.ts avec `reuseExistingServer: !process.env.CI` |
+| k6 : `dial tcp: lookup identity-service.staging`   | k6 dans container ne résout pas DNS interne           | Utiliser URL publique HTTPS, ou `--network=host`                                             |
+| Pytest : ImportError sur `app.*`                   | `PYTHONPATH` non posé                                 | `pyproject.toml` → `[tool.pytest.ini_options] pythonpath = ["."]`                            |
+| MSW : `Unhandled request`                          | Endpoint pas dans le handler list                     | `onUnhandledRequest: 'error'` force un échec explicite                                       |
+| Faker : génère des noms non-français               | Locale par défaut = `en`                              | `import { faker } from '@faker-js/faker/locale/fr'`                                          |
+| Couverture branches à 65 % alors que lines à 95 %  | `if/else` mal couverts                                | Ajouter tests des chemins `else` ; ou ajuster threshold `branches: 75`                       |
+| Stryker fait crash le runner                       | Trop de mutants concurrents                           | `concurrency: 2` dans `stryker.config.json`                                                  |
 
 ---
 
 ## 7. Documentation à produire
 
-- `docs/adr/ADR-018-strategie-tests-pyramide.md` — décision 4-niveaux vs
-  alternatives.
-- `docs/testing/TEST-CHARTER.md` — engagement étudiant : règles d'écriture
-  des tests, code review checklist.
-- `docs/testing/COVERAGE-MATRIX.md` — par package / service, couverture
-  actuelle + objectif + ticket si dette.
+- `docs/adr/ADR-018-strategie-tests-pyramide.md` — décision 4-niveaux vs alternatives.
+- `docs/testing/TEST-CHARTER.md` — engagement étudiant : règles d'écriture des tests, code review
+  checklist.
+- `docs/testing/COVERAGE-MATRIX.md` — par package / service, couverture actuelle + objectif + ticket
+  si dette.
 - Mise à jour `docs/CHANGELOG.md` §16 : tableau des suites de tests livrées
-  + scores couverture par package.
-- Mise à jour `docs/16-CICD-GITHUB-ACTIONS.md` §4.3 : seuils
-  `--cov-fail-under=80` documentés.
+  - scores couverture par package.
+- Mise à jour `docs/16-CICD-GITHUB-ACTIONS.md` §4.3 : seuils `--cov-fail-under=80` documentés.
 
 ---
 
@@ -793,7 +791,8 @@ pnpm --filter @nina-aes/utils exec stryker run
 - **Tests Pytest** : 120 ✅ — ai-service + anticorruption-service
 - **Tests E2E Playwright** : 30 ✅ — 3 apps Next.js, mode mock
 - **Tests de charge k6** : 4 scénarios livrés, thresholds verts contre staging
-- **Factories Faker** : `@nina-aes/test-fixtures` publié (citizens + nina + fdi + appointment + signalement)
+- **Factories Faker** : `@nina-aes/test-fixtures` publié (citizens + nina + fdi + appointment +
+  signalement)
 - **MSW** : intégré dans apps/citizen + apps/admin
 - **Stryker** : score mutation 82% sur `@nina-aes/utils` (P2)
 - **CI bloquante** : coverage threshold respectée, --cov-fail-under=80 actif
@@ -809,7 +808,8 @@ pnpm --filter @nina-aes/utils exec stryker run
 
 - [ ] `packages/test-fixtures` créé et publié dans le workspace
 - [ ] Factories Faker pour : Citizen, NINA, FDI, Appointment, SigacReport, AuditLog
-- [ ] ≥ 800 tests unitaires Jest (couverture ≥ 80 % sur packages/utils, packages/config, packages/database)
+- [ ] ≥ 800 tests unitaires Jest (couverture ≥ 80 % sur packages/utils, packages/config,
+      packages/database)
 - [ ] ≥ 100 tests unitaires Pytest (ai-service + anticorruption-service, cov ≥ 80%)
 - [ ] ≥ 150 tests d'intégration Supertest + Testcontainers sur Bloc A
 - [ ] ≥ 30 tests E2E Playwright (Session 5 + extensions correction + RDV + USSD mock)
@@ -830,22 +830,20 @@ pnpm --filter @nina-aes/utils exec stryker run
 
 ## 10. Pour aller plus loin
 
-- **Contract testing (Pact)** : pour les contrats AES inter-pays (Bloc B),
-  Pact garantit qu'un changement de schéma JSON dans `identity-service` ne
-  casse pas `interop-service` côté Burkina. Pertinent en Phase 2.
-- **Visual regression (Playwright `toHaveScreenshot`)** : snapshots
-  visuels des écrans clés, diff automatique en PR. Mention Session 7+
-  CHANGELOG §13.4.
-- **Chaos engineering (Pumba, Toxiproxy)** : inject de latence / drop
-  paquets sur Postgres + Redis pour valider la résilience. Pertinent en
-  doc 20 (déploiement prod) avec PodDisruptionBudget K3s.
-- **Property-based testing (fast-check)** : générer des entrées aléatoires
-  qui satisfont une propriété (ex. `validateNina(formatNina(x)) === true`
-  pour tout `x` valide). Très puissant sur `@nina-aes/utils`.
-- **Snapshot tests JSON Schemas** : si un schema Mali Ajv change, vérifier
-  qu'aucun consommateur n'est cassé via un snapshot du fichier.
-- **Tests de sécurité (OWASP ZAP automatisé)** : déjà couvert par doc 15
-  §4.5 mais peut être étendu avec des assertions ZAP dans la suite k6.
+- **Contract testing (Pact)** : pour les contrats AES inter-pays (Bloc B), Pact garantit qu'un
+  changement de schéma JSON dans `identity-service` ne casse pas `interop-service` côté Burkina.
+  Pertinent en Phase 2.
+- **Visual regression (Playwright `toHaveScreenshot`)** : snapshots visuels des écrans clés, diff
+  automatique en PR. Mention Session 7+ CHANGELOG §13.4.
+- **Chaos engineering (Pumba, Toxiproxy)** : inject de latence / drop paquets sur Postgres + Redis
+  pour valider la résilience. Pertinent en doc 20 (déploiement prod) avec PodDisruptionBudget K3s.
+- **Property-based testing (fast-check)** : générer des entrées aléatoires qui satisfont une
+  propriété (ex. `validateNina(formatNina(x)) === true` pour tout `x` valide). Très puissant sur
+  `@nina-aes/utils`.
+- **Snapshot tests JSON Schemas** : si un schema Mali Ajv change, vérifier qu'aucun consommateur
+  n'est cassé via un snapshot du fichier.
+- **Tests de sécurité (OWASP ZAP automatisé)** : déjà couvert par doc 15 §4.5 mais peut être étendu
+  avec des assertions ZAP dans la suite k6.
 - **Lectures recommandées** :
   - Martin Fowler — _Test Pyramid_ (<https://martinfowler.com/articles/practical-test-pyramid.html>)
   - Kent C. Dodds — _Static / Unit / Integration / E2E trade-offs_

@@ -1,35 +1,32 @@
 # 20 — Déploiement production K3s (Helm charts + Ingress Nginx + cert-manager + rolling/blue-green)
 
-> **Bloc concerné** : Transversal (clôture des docs 15 → 20) — déploiement
-> du Bloc A complet sur cluster K3s on-premise CTDEC.
-> **Prérequis** : documents 00 → 19 complétés ; images Docker des 11
-> services présentes sur GHCR (cf. doc 16) ; observabilité doc 17 et
-> backup doc 19 prêts à instrumenter le cluster.
-> **Durée estimée** : 14 à 20 heures pour un étudiant seul.
-> **Livrables de cette étape** :
+> **Bloc concerné** : Transversal (clôture des docs 15 → 20) — déploiement du Bloc A complet sur
+> cluster K3s on-premise CTDEC. **Prérequis** : documents 00 → 19 complétés ; images Docker des 11
+> services présentes sur GHCR (cf. doc 16) ; observabilité doc 17 et backup doc 19 prêts à
+> instrumenter le cluster. **Durée estimée** : 14 à 20 heures pour un étudiant seul. **Livrables de
+> cette étape** :
 >
-> - **Cluster K3s 1.33** opérationnel : 1 control-plane + 2 agents
->   (poste local en V1 ; 3 VMs CTDEC en V2)
-> - **Helm chart umbrella `nina-aes`** dans `infrastructure/helm/nina-aes/`
->   qui orchestre 11 microservices + 3 frontends + infrastructure deps
+> - **Cluster K3s 1.33** opérationnel : 1 control-plane + 2 agents (poste local en V1 ; 3 VMs CTDEC
+>   en V2)
+> - **Helm chart umbrella `nina-aes`** dans `infrastructure/helm/nina-aes/` qui orchestre 11
+>   microservices + 3 frontends + infrastructure deps
 > - **Ingress Nginx 4.12** comme reverse proxy unique
-> - **cert-manager 1.18** avec ClusterIssuer Let's Encrypt (DNS-01 via
->   Cloudflare ou serveur DNS souverain) — certs auto-renouvelés
-> - **3 namespaces** : `nina-aes` (services métier), `observability` (LGTM,
->   cf. doc 17), `infra` (Postgres, Redis, RabbitMQ, MinIO, Vault, Keycloak)
+> - **cert-manager 1.18** avec ClusterIssuer Let's Encrypt (DNS-01 via Cloudflare ou serveur DNS
+>   souverain) — certs auto-renouvelés
+> - **3 namespaces** : `nina-aes` (services métier), `observability` (LGTM, cf. doc 17), `infra`
+>   (Postgres, Redis, RabbitMQ, MinIO, Vault, Keycloak)
 > - **NetworkPolicy** restrictives : default-deny + allow ciblé entre namespaces
 > - **PodSecurityPolicy/PSA** : `restricted` profile sur `nina-aes`
 > - **Resources limits + requests** documentés par service
 > - **Stratégies de déploiement** :
->   - `RollingUpdate` (défaut) pour les services stateless (citizen, admin,
->     identity, auth, audit, etc.) — `maxSurge: 25%`, `maxUnavailable: 0`
->   - `Blue-Green` pour `identity-service` (zéro downtime sur le service le
->     plus critique) via Argo Rollouts 1.8 ou stratégie manuelle
+>   - `RollingUpdate` (défaut) pour les services stateless (citizen, admin, identity, auth, audit,
+>     etc.) — `maxSurge: 25%`, `maxUnavailable: 0`
+>   - `Blue-Green` pour `identity-service` (zéro downtime sur le service le plus critique) via Argo
+>     Rollouts 1.8 ou stratégie manuelle
 > - **Smoke tests post-deploy** automatiques (Helm hooks `post-install`)
-> - **HorizontalPodAutoscaler (HPA)** : CPU/memory + métriques custom
->   Prometheus (cf. doc 17)
-> - **Staging + Production** : 2 environments séparés via Helm values
->   `staging.yaml` et `production.yaml`
+> - **HorizontalPodAutoscaler (HPA)** : CPU/memory + métriques custom Prometheus (cf. doc 17)
+> - **Staging + Production** : 2 environments séparés via Helm values `staging.yaml` et
+>   `production.yaml`
 > - **Runbook ops** : `docs/deployment/OPS-RUNBOOK.md`
 > - `docs/adr/ADR-020-deployment-k3s-production.md`
 
@@ -37,45 +34,42 @@
 
 ## 1. Objectif pédagogique
 
-Un microservice qui marche en `docker compose up` sur le poste de l'étudiant
-n'est **pas** un microservice en production. Le passage à K3s impose 5
-disciplines :
+Un microservice qui marche en `docker compose up` sur le poste de l'étudiant n'est **pas** un
+microservice en production. Le passage à K3s impose 5 disciplines :
 
-1. **Configuration externalisée** : aucun secret en image Docker, tout dans
-   ConfigMaps (config non-sensible) + Secrets (chiffrés par Vault KMS).
-2. **Tolérance aux pannes** : un pod doit pouvoir mourir sans impact (HPA
-   replicas ≥ 2, PodDisruptionBudget min-available, readinessProbe stricte).
-3. **Découplage temporel** : un service consommateur n'attend pas un service
-   producteur — il retry avec backoff (cf. shared `@nina-aes/utils` retry
-   helper).
-4. **Observabilité bout-en-bout** : chaque pod expose `/metrics` + envoie
-   ses traces OTLP vers le Collector (doc 17).
-5. **Rollback < 60 s** : `helm rollback nina-aes <REVISION>` doit ramener
-   l'état précédent en moins d'1 min. Validé par drill mensuel.
+1. **Configuration externalisée** : aucun secret en image Docker, tout dans ConfigMaps (config
+   non-sensible) + Secrets (chiffrés par Vault KMS).
+2. **Tolérance aux pannes** : un pod doit pouvoir mourir sans impact (HPA replicas ≥ 2,
+   PodDisruptionBudget min-available, readinessProbe stricte).
+3. **Découplage temporel** : un service consommateur n'attend pas un service producteur — il retry
+   avec backoff (cf. shared `@nina-aes/utils` retry helper).
+4. **Observabilité bout-en-bout** : chaque pod expose `/metrics` + envoie ses traces OTLP vers le
+   Collector (doc 17).
+5. **Rollback < 60 s** : `helm rollback nina-aes <REVISION>` doit ramener l'état précédent en moins
+   d'1 min. Validé par drill mensuel.
 
-> 💡 **Pourquoi K3s et pas K8s vanilla ?** K3s est conçu pour
-> on-premise / edge : 1 binaire Go (~60 MB), SQLite par défaut (option
-> etcd pour HA), pas de cloud-controller-manager nécessaire. Idéal pour
-> un déploiement CTDEC sans dépendance cloud. ADR-020 documente le choix.
+> 💡 **Pourquoi K3s et pas K8s vanilla ?** K3s est conçu pour on-premise / edge : 1 binaire Go (~60
+> MB), SQLite par défaut (option etcd pour HA), pas de cloud-controller-manager nécessaire. Idéal
+> pour un déploiement CTDEC sans dépendance cloud. ADR-020 documente le choix.
 
 ---
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Composant                          | Version       | Rôle                                                   |
-| ---------------------------------- | ------------- | ------------------------------------------------------ |
-| **K3s**                            | `v1.33.4+k3s1`| Distribution K8s légère on-premise                     |
-| **Helm**                           | `3.16.4`      | Package manager K8s                                    |
-| **Helmfile** (optionnel)           | `0.169`       | Déclaratif multi-environment (au lieu de bash scripts) |
-| **Ingress Nginx**                  | `4.12.0`      | Reverse proxy + TLS termination                        |
-| **cert-manager**                   | `1.18.0`      | Émission/renouvellement certs Let's Encrypt            |
-| **Argo Rollouts**                  | `1.8.0`       | Blue-green + canary pour `identity-service`            |
-| **Sealed Secrets**                 | `0.27.0`      | Secrets chiffrés commitable dans Git                   |
-| **External Secrets Operator**      | `0.10.x`      | Pull secrets depuis Vault → K8s Secret (alternative)   |
-| **Prometheus operator (kube-prom)**| `0.78.0`      | CRDs `ServiceMonitor` + `PodMonitor` (cf. doc 17)     |
-| **Velero**                         | `1.16.x`      | Backup K8s manifests + PV snapshots (complète doc 19) |
-| **MetalLB** (optionnel)            | `0.14.x`      | LoadBalancer on-premise (au lieu de cloud LB)          |
-| **Cilium** (optionnel)             | `1.17.x`      | CNI avancé avec eBPF NetworkPolicy L7 (P2)             |
+| Composant                           | Version        | Rôle                                                   |
+| ----------------------------------- | -------------- | ------------------------------------------------------ |
+| **K3s**                             | `v1.33.4+k3s1` | Distribution K8s légère on-premise                     |
+| **Helm**                            | `3.16.4`       | Package manager K8s                                    |
+| **Helmfile** (optionnel)            | `0.169`        | Déclaratif multi-environment (au lieu de bash scripts) |
+| **Ingress Nginx**                   | `4.12.0`       | Reverse proxy + TLS termination                        |
+| **cert-manager**                    | `1.18.0`       | Émission/renouvellement certs Let's Encrypt            |
+| **Argo Rollouts**                   | `1.8.0`        | Blue-green + canary pour `identity-service`            |
+| **Sealed Secrets**                  | `0.27.0`       | Secrets chiffrés commitable dans Git                   |
+| **External Secrets Operator**       | `0.10.x`       | Pull secrets depuis Vault → K8s Secret (alternative)   |
+| **Prometheus operator (kube-prom)** | `0.78.0`       | CRDs `ServiceMonitor` + `PodMonitor` (cf. doc 17)      |
+| **Velero**                          | `1.16.x`       | Backup K8s manifests + PV snapshots (complète doc 19)  |
+| **MetalLB** (optionnel)             | `0.14.x`       | LoadBalancer on-premise (au lieu de cloud LB)          |
+| **Cilium** (optionnel)              | `1.17.x`       | CNI avancé avec eBPF NetworkPolicy L7 (P2)             |
 
 > 🔒 Tous open-source / souverains. K3s est CNCF (Rancher / SUSE EU).
 
@@ -170,8 +164,8 @@ end note
 
 ### Étape 4.1 — Installer K3s sur le poste de travail (dev) puis VMs (prod)
 
-**Pourquoi** : K3s est self-contained — pas besoin de provisionner etcd
-séparé, pas besoin de cloud-controller-manager. Idéal pour CTDEC.
+**Pourquoi** : K3s est self-contained — pas besoin de provisionner etcd séparé, pas besoin de
+cloud-controller-manager. Idéal pour CTDEC.
 
 ```bash
 # Sur le control-plane (1 nœud V1, 3 en V2 HA mode)
@@ -204,8 +198,7 @@ kubectl get nodes
 - Ubuntu 24.04 LTS minimal (server, sans desktop)
 - CPU 4 cores, RAM 8 GB, disque 100 GB SSD minimum par nœud
 - Réseau : VLAN dédié `nina-aes-prod` (192.168.42.0/24 en V1)
-- Firewall : ports 6443 (API), 8472 (Flannel VXLAN), 10250 (kubelet)
-  ouverts entre nœuds
+- Firewall : ports 6443 (API), 8472 (Flannel VXLAN), 10250 (kubelet) ouverts entre nœuds
 
 ---
 
@@ -267,10 +260,10 @@ spec:
             apiTokenSecretRef: { name: cloudflare-api-token, key: api-token }
 ```
 
-> 💡 **DNS-01 challenge** : nécessaire pour les certs wildcard
-> `*.nina-aes.uqar.ca`. HTTP-01 ne supporte pas les wildcards.
-> Alternative souveraine si on évite Cloudflare : `acme-dns` self-hosted
-> + délégation NS sur un sous-domaine `_acme-challenge.nina-aes.uqar.ca`.
+> 💡 **DNS-01 challenge** : nécessaire pour les certs wildcard `*.nina-aes.uqar.ca`. HTTP-01 ne
+> supporte pas les wildcards. Alternative souveraine si on évite Cloudflare : `acme-dns` self-hosted
+>
+> - délégation NS sur un sous-domaine `_acme-challenge.nina-aes.uqar.ca`.
 
 ---
 
@@ -349,7 +342,7 @@ metadata:
     app.kubernetes.io/name: identity-service
     app.kubernetes.io/part-of: nina-aes
 spec:
-  replicas: {{ .Values.identityService.replicas | default 2 }}
+  replicas: { { .Values.identityService.replicas | default 2 } }
   strategy:
     type: RollingUpdate
     rollingUpdate: { maxSurge: 25%, maxUnavailable: 0 }
@@ -360,7 +353,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: identity-service
-        app.kubernetes.io/version: {{ .Chart.AppVersion }}
+        app.kubernetes.io/version: { { .Chart.AppVersion } }
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '3001'
@@ -380,17 +373,17 @@ spec:
             - { name: http, containerPort: 3001 }
           envFrom:
             - configMapRef: { name: identity-service-config }
-            - secretRef:    { name: identity-service-secret }
+            - secretRef: { name: identity-service-secret }
           env:
             - name: SERVICE_NAME
               value: identity-service
             - name: ENV
-              value: {{ .Values.env }}
+              value: { { .Values.env } }
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://otel-collector.observability.svc:4317
           resources:
             requests: { cpu: 250m, memory: 256Mi }
-            limits:   { cpu: 1000m, memory: 1Gi }
+            limits: { cpu: 1000m, memory: 1Gi }
           readinessProbe:
             httpGet: { path: /health/ready, port: http }
             initialDelaySeconds: 10
@@ -431,8 +424,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: identity-service
-  minReplicas: {{ .Values.identityService.minReplicas | default 2 }}
-  maxReplicas: {{ .Values.identityService.maxReplicas | default 6 }}
+  minReplicas: { { .Values.identityService.minReplicas | default 2 } }
+  maxReplicas: { { .Values.identityService.maxReplicas | default 6 } }
   metrics:
     - type: Resource
       resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }
@@ -441,7 +434,7 @@ spec:
     - type: Pods
       pods:
         metric: { name: http_request_duration_seconds_p95 }
-        target: { type: AverageValue, averageValue: '500m' }   # 500ms
+        target: { type: AverageValue, averageValue: '500m' } # 500ms
 ```
 
 **Template `identity-service/pdb.yaml`** :
@@ -459,8 +452,8 @@ spec:
 
 ### Étape 4.4 — NetworkPolicy par défaut deny + allow ciblé
 
-**Pourquoi** : pour zero-trust, un pod compromis ne doit pas pouvoir
-contacter ce qui n'a pas été explicitement autorisé.
+**Pourquoi** : pour zero-trust, un pod compromis ne doit pas pouvoir contacter ce qui n'a pas été
+explicitement autorisé.
 
 ```yaml
 # infrastructure/helm/nina-aes/templates/networkpolicies/default-deny.yaml
@@ -500,17 +493,16 @@ spec:
       ports: [{ protocol: TCP, port: 5432 }]
 ```
 
-> ⚠️ **K3s par défaut** utilise Flannel comme CNI qui n'implémente PAS
-> les NetworkPolicy. Solution : installer Calico ou Cilium AVANT de
-> déployer le chart. Cf. ADR-020.
+> ⚠️ **K3s par défaut** utilise Flannel comme CNI qui n'implémente PAS les NetworkPolicy. Solution :
+> installer Calico ou Cilium AVANT de déployer le chart. Cf. ADR-020.
 
 ---
 
 ### Étape 4.5 — Sealed Secrets pour les secrets en Git
 
-**Pourquoi** : les Secrets K8s sont base64, pas chiffrés. Sealed Secrets
-les chiffre avec une clé publique du contrôleur — seul le cluster de
-destination peut les déchiffrer. Commitable en Git en toute sécurité.
+**Pourquoi** : les Secrets K8s sont base64, pas chiffrés. Sealed Secrets les chiffre avec une clé
+publique du contrôleur — seul le cluster de destination peut les déchiffrer. Commitable en Git en
+toute sécurité.
 
 ```bash
 # Installer le contrôleur
@@ -530,19 +522,17 @@ kubectl create secret generic identity-service-secret \
 git add infrastructure/helm/nina-aes/secrets/identity-service-sealed.yaml
 ```
 
-> 💡 **Alternative** : External Secrets Operator (ESO) pull les secrets
-> depuis Vault au runtime, créant des K8s Secrets éphémères. Plus
-> dynamique, mais ajoute une dépendance Vault stricte au startup. Trade-off
-> documenté ADR-020.
+> 💡 **Alternative** : External Secrets Operator (ESO) pull les secrets depuis Vault au runtime,
+> créant des K8s Secrets éphémères. Plus dynamique, mais ajoute une dépendance Vault stricte au
+> startup. Trade-off documenté ADR-020.
 
 ---
 
 ### Étape 4.6 — Stratégie blue-green pour `identity-service` via Argo Rollouts
 
-**Pourquoi** : `identity-service` est le service le plus critique
-(validation NINA, recherche citoyens). Un déploiement raté = panne
-publique. Blue-green permet de vérifier la nouvelle version sur du
-trafic synthétique AVANT bascule.
+**Pourquoi** : `identity-service` est le service le plus critique (validation NINA, recherche
+citoyens). Un déploiement raté = panne publique. Blue-green permet de vérifier la nouvelle version
+sur du trafic synthétique AVANT bascule.
 
 ```bash
 # Installer Argo Rollouts
@@ -567,7 +557,7 @@ spec:
     blueGreen:
       activeService: identity-service
       previewService: identity-service-preview
-      autoPromotionEnabled: false       # promotion manuelle après check
+      autoPromotionEnabled: false # promotion manuelle après check
       scaleDownDelaySeconds: 30
       prePromotionAnalysis:
         templates:
@@ -650,10 +640,26 @@ spec:
     - host: api.nina-aes.uqar.ca
       http:
         paths:
-          - { path: /v1/citizens, pathType: Prefix, backend: { service: { name: identity-service, port: { number: 3001 } } } }
-          - { path: /v1/auth, pathType: Prefix, backend: { service: { name: auth-service, port: { number: 3002 } } } }
-          - { path: /v1/audit, pathType: Prefix, backend: { service: { name: audit-service, port: { number: 3007 } } } }
-          - { path: /v1/sigac, pathType: Prefix, backend: { service: { name: anticorruption-service, port: { number: 3009 } } } }
+          - {
+              path: /v1/citizens,
+              pathType: Prefix,
+              backend: { service: { name: identity-service, port: { number: 3001 } } },
+            }
+          - {
+              path: /v1/auth,
+              pathType: Prefix,
+              backend: { service: { name: auth-service, port: { number: 3002 } } },
+            }
+          - {
+              path: /v1/audit,
+              pathType: Prefix,
+              backend: { service: { name: audit-service, port: { number: 3007 } } },
+            }
+          - {
+              path: /v1/sigac,
+              pathType: Prefix,
+              backend: { service: { name: anticorruption-service, port: { number: 3009 } } },
+            }
 ```
 
 ---
@@ -718,17 +724,20 @@ spec:
 
 **Fichier à créer** : `docs/deployment/OPS-RUNBOOK.md`
 
-```markdown
+````markdown
 # OPS-RUNBOOK — Opérations courantes K3s NINA-AES
 
 ## Voir l'état général
+
 ```bash
 kubectl get pods,svc,ingress -A
 kubectl get rollouts -n nina-aes
 helm list -A
 ```
+````
 
 ## Déployer une nouvelle version
+
 ```bash
 helm upgrade nina-aes infrastructure/helm/nina-aes/ \
   --namespace nina-aes \
@@ -738,12 +747,14 @@ helm upgrade nina-aes infrastructure/helm/nina-aes/ \
 ```
 
 ## Rollback rapide
+
 ```bash
 helm history nina-aes -n nina-aes
 helm rollback nina-aes <REVISION> -n nina-aes --wait
 ```
 
 ## Promouvoir un blue-green identity-service
+
 ```bash
 kubectl argo rollouts promote identity-service -n nina-aes
 # ou abort si problème
@@ -751,6 +762,7 @@ kubectl argo rollouts abort identity-service -n nina-aes
 ```
 
 ## Debug un pod qui crash
+
 ```bash
 kubectl describe pod <name> -n nina-aes
 kubectl logs <name> -n nina-aes --previous
@@ -758,13 +770,15 @@ kubectl exec -it <name> -n nina-aes -- /bin/sh
 ```
 
 ## Re-générer un cert TLS bloqué
+
 ```bash
 kubectl delete certificate api-nina-aes-tls -n nina-aes
 # cert-manager le recrée automatiquement (rate-limit LE : 5 essais / heure)
 ```
 
 …
-```
+
+````
 
 ---
 
@@ -798,42 +812,38 @@ helm test nina-aes -n nina-aes-staging
 # 6) Smoke test public
 curl -fsSL https://staging.nina-aes.uqar.ca/api/health
 # → {"status":"ok"}
-```
+````
 
 ---
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                       | Cause probable                                  | Solution                                                  |
-| -------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------- |
-| `kubectl get pods` montre `ImagePullBackOff`                   | GHCR privé sans `imagePullSecret`              | Créer un Secret `ghcr-creds` + ajouter `imagePullSecrets` dans le PodSpec |
-| cert-manager : Cert reste `Pending`                            | DNS-01 challenge échoue (token Cloudflare KO)  | Vérifier `kubectl describe challenge <name>` ; régénérer le token CF |
-| Pods crash : `OOMKilled`                                        | Limit memory trop basse                         | Augmenter `resources.limits.memory` ; valider via `kubectl top pod` |
-| NetworkPolicy bloque tout                                      | Flannel par défaut ne supporte pas NP          | Installer Calico ou Cilium AVANT le chart                 |
-| Helm install hang sur `waiting for resources to be ready`     | readinessProbe trop stricte                    | `kubectl describe pod` → adjuster `initialDelaySeconds`   |
-| Argo Rollouts : preview pas créé                                | CRD pas installé                               | Re-appliquer manifests Argo Rollouts                      |
-| Ingress 404 sur le bon host                                     | Path mismatch ou `ingressClassName` manquant   | Vérifier `kubectl get ingress -A` + `kubectl logs -n ingress-nginx <controller>` |
-| Sealed Secret pas déchiffré                                     | Contrôleur changé de clé après recréation      | Re-sceller le secret avec la nouvelle clé publique         |
-| HPA : `unable to fetch metrics`                                 | metrics-server pas installé                    | `helm install metrics-server ...` ou activer flag K3s     |
-| Pods en Pending : `0/3 nodes available`                         | Pas assez de ressources                        | Ajuster `requests` ; ou scale-up nœuds                    |
-| TLS handshake fail entre pods (mTLS doc 15)                     | Linkerd sidecar pas injecté                    | `kubectl annotate ns nina-aes linkerd.io/inject=enabled` + restart |
-| LoadBalancer en `EXTERNAL-IP: <pending>`                        | Pas de cloud LB sur bare-metal                 | Installer MetalLB + configurer pool d'IPs                 |
+| Symptôme                                                  | Cause probable                                | Solution                                                                         |
+| --------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `kubectl get pods` montre `ImagePullBackOff`              | GHCR privé sans `imagePullSecret`             | Créer un Secret `ghcr-creds` + ajouter `imagePullSecrets` dans le PodSpec        |
+| cert-manager : Cert reste `Pending`                       | DNS-01 challenge échoue (token Cloudflare KO) | Vérifier `kubectl describe challenge <name>` ; régénérer le token CF             |
+| Pods crash : `OOMKilled`                                  | Limit memory trop basse                       | Augmenter `resources.limits.memory` ; valider via `kubectl top pod`              |
+| NetworkPolicy bloque tout                                 | Flannel par défaut ne supporte pas NP         | Installer Calico ou Cilium AVANT le chart                                        |
+| Helm install hang sur `waiting for resources to be ready` | readinessProbe trop stricte                   | `kubectl describe pod` → adjuster `initialDelaySeconds`                          |
+| Argo Rollouts : preview pas créé                          | CRD pas installé                              | Re-appliquer manifests Argo Rollouts                                             |
+| Ingress 404 sur le bon host                               | Path mismatch ou `ingressClassName` manquant  | Vérifier `kubectl get ingress -A` + `kubectl logs -n ingress-nginx <controller>` |
+| Sealed Secret pas déchiffré                               | Contrôleur changé de clé après recréation     | Re-sceller le secret avec la nouvelle clé publique                               |
+| HPA : `unable to fetch metrics`                           | metrics-server pas installé                   | `helm install metrics-server ...` ou activer flag K3s                            |
+| Pods en Pending : `0/3 nodes available`                   | Pas assez de ressources                       | Ajuster `requests` ; ou scale-up nœuds                                           |
+| TLS handshake fail entre pods (mTLS doc 15)               | Linkerd sidecar pas injecté                   | `kubectl annotate ns nina-aes linkerd.io/inject=enabled` + restart               |
+| LoadBalancer en `EXTERNAL-IP: <pending>`                  | Pas de cloud LB sur bare-metal                | Installer MetalLB + configurer pool d'IPs                                        |
 
 ---
 
 ## 7. Documentation à produire
 
-- `docs/adr/ADR-020-deployment-k3s-production.md` — décision K3s
-  on-premise vs alternatives.
-- `docs/deployment/OPS-RUNBOOK.md` — opérations courantes (déjà §4.9
-  esquissé).
-- `docs/deployment/UPGRADE-GUIDE.md` — comment passer d'une version
-  Bloc A à la suivante (migration DB, breaking changes).
-- `infrastructure/helm/nina-aes/README.md` — values documentées,
-  examples staging/prod.
+- `docs/adr/ADR-020-deployment-k3s-production.md` — décision K3s on-premise vs alternatives.
+- `docs/deployment/OPS-RUNBOOK.md` — opérations courantes (déjà §4.9 esquissé).
+- `docs/deployment/UPGRADE-GUIDE.md` — comment passer d'une version Bloc A à la suivante (migration
+  DB, breaking changes).
+- `infrastructure/helm/nina-aes/README.md` — values documentées, examples staging/prod.
 - Mise à jour `docs/CHANGELOG.md` §18 : livrables déploiement.
-- Mise à jour `docs/00-README-INDEX.md` : doc 20 livré + clôture phase
-  transversale 15-20.
+- Mise à jour `docs/00-README-INDEX.md` : doc 20 livré + clôture phase transversale 15-20.
 
 ---
 
@@ -857,7 +867,8 @@ curl -fsSL https://staging.nina-aes.uqar.ca/api/health
 - **Difficultés rencontrées** :
 - **Solutions trouvées** :
 - **Prochaines actions** : tests load (k6) sur staging, MetalLB pour V2 HA
-- **Captures jointes** : k3s-topology.png, helm-list.png, rollouts-blue-green.png, grafana-cluster.png
+- **Captures jointes** : k3s-topology.png, helm-list.png, rollouts-blue-green.png,
+  grafana-cluster.png
 ```
 
 ---
@@ -875,8 +886,7 @@ curl -fsSL https://staging.nina-aes.uqar.ca/api/health
 - [ ] PSA `restricted` activé sur `nina-aes`
 - [ ] NetworkPolicy default-deny + allow ciblé sur 11 services
 - [ ] Sealed Secrets installé, 8+ secrets sealés commités en Git
-- [ ] Argo Rollouts installé, `identity-service` en mode `Rollout`
-  blue-green
+- [ ] Argo Rollouts installé, `identity-service` en mode `Rollout` blue-green
 - [ ] AnalysisTemplate `smoke-test-identity` vert sur pre-promotion
 - [ ] HPA actif sur les 11 services + 3 frontends
 - [ ] PodDisruptionBudget sur tous les services (minAvailable: 1)
@@ -893,25 +903,22 @@ curl -fsSL https://staging.nina-aes.uqar.ca/api/health
 
 ## 10. Pour aller plus loin
 
-- **HA control-plane K3s** (3 masters embedded etcd) : passer en mode
-  HA dès V2 pour éviter le SPOF master unique. Doc K3s officielle :
-  <https://docs.k3s.io/datastore/ha-embedded>.
-- **Cilium + Hubble** : remplacer Calico par Cilium pour observabilité
-  réseau eBPF + NetworkPolicy L7 (filtrage HTTP path/method, pas
-  seulement L4).
-- **GitOps avec Argo CD ou Flux** : déclencher les `helm upgrade` depuis
-  un repo Git (le cluster pull les manifests, plus de `helm install`
-  manuel). Excellent pour audit ANSSI.
-- **MetalLB BGP mode** : pour load balancing on-premise sans dépendre
-  d'un cloud. Mode BGP préféré au mode L2 (plus scalable).
-- **Velero backups K8s** : sauvegarder les manifests + PV snapshots →
-  complète doc 19 pour la couche K8s.
-- **OPA Gatekeeper / Kyverno** : policies déclaratives (« interdire
-  containers sans resource limits », « image pinned digest only »).
-- **Service Mesh (Linkerd / Istio)** : mTLS automatique entre pods (cf.
-  doc 15 §4.2). Linkerd préféré pour sa légèreté.
-- **Disaster Recovery cluster complet** : restore depuis Velero +
-  pgBackRest cold storage → RTO testé semestriellement.
+- **HA control-plane K3s** (3 masters embedded etcd) : passer en mode HA dès V2 pour éviter le SPOF
+  master unique. Doc K3s officielle : <https://docs.k3s.io/datastore/ha-embedded>.
+- **Cilium + Hubble** : remplacer Calico par Cilium pour observabilité réseau eBPF + NetworkPolicy
+  L7 (filtrage HTTP path/method, pas seulement L4).
+- **GitOps avec Argo CD ou Flux** : déclencher les `helm upgrade` depuis un repo Git (le cluster
+  pull les manifests, plus de `helm install` manuel). Excellent pour audit ANSSI.
+- **MetalLB BGP mode** : pour load balancing on-premise sans dépendre d'un cloud. Mode BGP préféré
+  au mode L2 (plus scalable).
+- **Velero backups K8s** : sauvegarder les manifests + PV snapshots → complète doc 19 pour la couche
+  K8s.
+- **OPA Gatekeeper / Kyverno** : policies déclaratives (« interdire containers sans resource limits
+  », « image pinned digest only »).
+- **Service Mesh (Linkerd / Istio)** : mTLS automatique entre pods (cf. doc 15 §4.2). Linkerd
+  préféré pour sa légèreté.
+- **Disaster Recovery cluster complet** : restore depuis Velero + pgBackRest cold storage → RTO
+  testé semestriellement.
 - **Lectures recommandées** :
   - <https://docs.k3s.io/>
   - <https://helm.sh/docs/chart_best_practices/>

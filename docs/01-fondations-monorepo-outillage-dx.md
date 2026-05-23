@@ -1,10 +1,10 @@
 # 01 — Fondations Monorepo & Outillage DX
 
-> **Bloc concerné** : A — NINA Mali (P0)
-> **Prérequis** : Aucun (premier document de la série)
-> **Durée estimée** : 4 à 6 heures pour un étudiant seul
-> **Livrables de cette étape** :
-> - Monorepo restructuré avec les dossiers `services/`, `infrastructure/`, `ai-models/`, `scripts/`, `.github/workflows/`
+> **Bloc concerné** : A — NINA Mali (P0) **Prérequis** : Aucun (premier document de la série)
+> **Durée estimée** : 4 à 6 heures pour un étudiant seul **Livrables de cette étape** :
+>
+> - Monorepo restructuré avec les dossiers `services/`, `infrastructure/`, `ai-models/`, `scripts/`,
+>   `.github/workflows/`
 > - `pnpm-workspace.yaml` étendu pour inclure `services/*`
 > - `turbo.json` enrichi avec les tâches backend (`start:dev`, `test`, `db:migrate`, etc.)
 > - Husky + lint-staged configurés (hooks pre-commit)
@@ -19,16 +19,20 @@
 
 ## 1. Objectif pédagogique
 
-Avant d'écrire la moindre ligne de code métier, il faut **fonder correctement le monorepo**. Un monorepo mal structuré dès le départ génère une dette technique qui ralentit chaque étape suivante. Cette première étape pose les rails sur lesquels tout le reste roulera.
+Avant d'écrire la moindre ligne de code métier, il faut **fonder correctement le monorepo**. Un
+monorepo mal structuré dès le départ génère une dette technique qui ralentit chaque étape suivante.
+Cette première étape pose les rails sur lesquels tout le reste roulera.
 
 **Ce qu'on apprend :**
+
 - Comment structurer un monorepo Turborepo pour un projet mixte (Next.js + NestJS + FastAPI)
-- Pourquoi les hooks Git (Husky) empêchent les erreurs *avant* qu'elles n'atteignent le dépôt
+- Pourquoi les hooks Git (Husky) empêchent les erreurs _avant_ qu'elles n'atteignent le dépôt
 - Comment un Makefile simplifie la vie quotidienne du développeur
 - Pourquoi les variables d'environnement ne doivent **jamais** être commitées en clair
 - Comment GitHub Actions automatise la vérification du code à chaque push
 
 **Ce qu'on construit :**
+
 - La coquille vide mais solide de chaque futur microservice
 - L'outillage de qualité (linting, formatting, hooks) qui protège le code
 - Le pipeline CI qui vérifie automatiquement chaque contribution
@@ -37,19 +41,19 @@ Avant d'écrire la moindre ligne de code métier, il faut **fonder correctement 
 
 ## 2. Technologies utilisées (avec versions à jour)
 
-| Technologie | Version | Rôle dans cette étape | Documentation officielle |
-|---|---|---|---|
-| Node.js | 24.14.1 LTS | Runtime JavaScript/TypeScript | https://nodejs.org/docs/latest-v24.x/api/ |
-| pnpm | 10.12.1 | Gestionnaire de paquets rapide, adapté monorepo | https://pnpm.io/fr/ |
-| Turborepo | 2.9.4 | Orchestrateur de tâches monorepo avec cache | https://turbo.build/repo/docs |
-| TypeScript | 5.9.2 | Typage statique | https://www.typescriptlang.org/docs/ |
-| Husky | 9.1.7 | Hooks Git (pre-commit, commit-msg) | https://typicode.github.io/husky/ |
-| lint-staged | 16.1.0 | Exécute les linters uniquement sur les fichiers stagés | https://github.com/lint-staged/lint-staged |
-| commitlint | 19.8.1 | Valide le format des messages de commit | https://commitlint.js.org/ |
-| Prettier | 3.7.4 | Formatage automatique du code | https://prettier.io/docs/en/ |
-| ESLint | 9.39.1 | Analyse statique du code | https://eslint.org/docs/latest/ |
-| GitHub Actions | N/A | Pipeline CI/CD | https://docs.github.com/en/actions |
-| Make (GNU) | 4.x | Automatisation des commandes courantes | https://www.gnu.org/software/make/manual/ |
+| Technologie    | Version     | Rôle dans cette étape                                  | Documentation officielle                   |
+| -------------- | ----------- | ------------------------------------------------------ | ------------------------------------------ |
+| Node.js        | 24.14.1 LTS | Runtime JavaScript/TypeScript                          | https://nodejs.org/docs/latest-v24.x/api/  |
+| pnpm           | 10.12.1     | Gestionnaire de paquets rapide, adapté monorepo        | https://pnpm.io/fr/                        |
+| Turborepo      | 2.9.4       | Orchestrateur de tâches monorepo avec cache            | https://turbo.build/repo/docs              |
+| TypeScript     | 5.9.2       | Typage statique                                        | https://www.typescriptlang.org/docs/       |
+| Husky          | 9.1.7       | Hooks Git (pre-commit, commit-msg)                     | https://typicode.github.io/husky/          |
+| lint-staged    | 16.1.0      | Exécute les linters uniquement sur les fichiers stagés | https://github.com/lint-staged/lint-staged |
+| commitlint     | 19.8.1      | Valide le format des messages de commit                | https://commitlint.js.org/                 |
+| Prettier       | 3.7.4       | Formatage automatique du code                          | https://prettier.io/docs/en/               |
+| ESLint         | 9.39.1      | Analyse statique du code                               | https://eslint.org/docs/latest/            |
+| GitHub Actions | N/A         | Pipeline CI/CD                                         | https://docs.github.com/en/actions         |
+| Make (GNU)     | 4.x         | Automatisation des commandes courantes                 | https://www.gnu.org/software/make/manual/  |
 
 ---
 
@@ -128,7 +132,8 @@ nina-aes-platform-UQAR/                 ← RACINE MONOREPO
 
 ### Étape 4.1 — Créer l'arborescence des dossiers manquants
 
-**Pourquoi** : Le repo actuel ne contient que `apps/web`, `apps/docs` et trois packages basiques. Il faut créer la structure cible complète avant d'y installer quoi que ce soit.
+**Pourquoi** : Le repo actuel ne contient que `apps/web`, `apps/docs` et trois packages basiques. Il
+faut créer la structure cible complète avant d'y installer quoi que ce soit.
 
 **Commandes CLI à exécuter (dans l'ordre)** :
 
@@ -193,7 +198,8 @@ mkdir -p .github/workflows
 
 ### Étape 4.2 — Mettre à jour le package.json racine
 
-**Pourquoi** : Le `package.json` actuel utilise pnpm 9.0.0 et Node >=18. On cible pnpm 10 et Node 24 LTS. On ajoute aussi les scripts nécessaires pour le workflow quotidien.
+**Pourquoi** : Le `package.json` actuel utilise pnpm 9.0.0 et Node >=18. On cible pnpm 10 et Node 24
+LTS. On ajoute aussi les scripts nécessaires pour le workflow quotidien.
 
 **Fichier à modifier** : `package.json` (racine)
 
@@ -235,13 +241,8 @@ mkdir -p .github/workflows
     "typescript": "5.9.2"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,css,yml,yaml}": [
-      "prettier --write"
-    ]
+    "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md,css,yml,yaml}": ["prettier --write"]
   },
   "packageManager": "pnpm@10.12.1",
   "engines": {
@@ -255,22 +256,25 @@ mkdir -p .github/workflows
 
 ### Étape 4.3 — Mettre à jour pnpm-workspace.yaml
 
-**Pourquoi** : Le workspace actuel ne connaît que `apps/*` et `packages/*`. Les microservices dans `services/*` doivent aussi être des workspaces pnpm pour bénéficier du hoisting et des liens symboliques.
+**Pourquoi** : Le workspace actuel ne connaît que `apps/*` et `packages/*`. Les microservices dans
+`services/*` doivent aussi être des workspaces pnpm pour bénéficier du hoisting et des liens
+symboliques.
 
 **Fichier à modifier** : `pnpm-workspace.yaml`
 
 ```yaml
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "services/*"
+  - 'apps/*'
+  - 'packages/*'
+  - 'services/*'
 ```
 
 ---
 
 ### Étape 4.4 — Enrichir turbo.json
 
-**Pourquoi** : Le `turbo.json` actuel ne définit que `build`, `lint`, `check-types` et `dev`. Les microservices NestJS ont besoin de `start:dev`, `test`, `test:cov`, `db:migrate`, etc.
+**Pourquoi** : Le `turbo.json` actuel ne définit que `build`, `lint`, `check-types` et `dev`. Les
+microservices NestJS ont besoin de `start:dev`, `test`, `test:cov`, `db:migrate`, etc.
 
 **Fichier à modifier** : `turbo.json`
 
@@ -333,11 +337,13 @@ packages:
 
 ### Étape 4.5 — Mettre à jour le package.json de apps/citizen
 
-**Pourquoi** : On a renommé `apps/web` → `apps/citizen`. Le `name` dans le `package.json` doit refléter ce changement, et le port doit être 3000 (portail citoyen).
+**Pourquoi** : On a renommé `apps/web` → `apps/citizen`. Le `name` dans le `package.json` doit
+refléter ce changement, et le port doit être 3000 (portail citoyen).
 
 **Fichier à modifier** : `apps/citizen/package.json`
 
 Modifier **uniquement** le champ `name` :
+
 ```json
 {
   "name": "citizen",
@@ -349,11 +355,14 @@ Modifier **uniquement** le champ `name` :
 
 ### Étape 4.6 — Mettre à jour le package.json de apps/admin
 
-**Pourquoi** : On a renommé `apps/docs` → `apps/admin`. Le `name` doit refléter ce changement. Le port reste 3001 temporairement (il sera changé quand on ajoutera l'identity-service qui utilise aussi 3001 — on le résoudra au document 04).
+**Pourquoi** : On a renommé `apps/docs` → `apps/admin`. Le `name` doit refléter ce changement. Le
+port reste 3001 temporairement (il sera changé quand on ajoutera l'identity-service qui utilise
+aussi 3001 — on le résoudra au document 04).
 
 **Fichier à modifier** : `apps/admin/package.json`
 
 Modifier **uniquement** le champ `name` :
+
 ```json
 {
   "name": "admin",
@@ -361,13 +370,16 @@ Modifier **uniquement** le champ `name` :
 }
 ```
 
-> **Note** : Le port 3001 de l'app admin entrera en conflit avec l'identity-service plus tard. On le changera en 3100 au document 04. Pour l'instant, on garde la configuration existante.
+> **Note** : Le port 3001 de l'app admin entrera en conflit avec l'identity-service plus tard. On le
+> changera en 3100 au document 04. Pour l'instant, on garde la configuration existante.
 
 ---
 
 ### Étape 4.7 — Créer le .editorconfig
 
-**Pourquoi** : Garantir que tous les éditeurs de texte (VS Code, Vim, IntelliJ) utilisent les mêmes conventions : indentation par espaces (2 pour TS/JS, 4 pour Python), fin de ligne LF (Linux-style), encodage UTF-8.
+**Pourquoi** : Garantir que tous les éditeurs de texte (VS Code, Vim, IntelliJ) utilisent les mêmes
+conventions : indentation par espaces (2 pour TS/JS, 4 pour Python), fin de ligne LF (Linux-style),
+encodage UTF-8.
 
 **Fichier à créer** : `.editorconfig` (racine)
 
@@ -405,7 +417,10 @@ indent_size = 2
 
 ### Étape 4.8 — Créer le .env.example
 
-**Pourquoi** : Les variables d'environnement contiennent des secrets (mots de passe, clés API). On ne commite **jamais** le fichier `.env` réel, mais on commite un `.env.example` qui documente toutes les variables nécessaires avec des valeurs fictives. Chaque développeur copie ce fichier en `.env` et y met ses vraies valeurs.
+**Pourquoi** : Les variables d'environnement contiennent des secrets (mots de passe, clés API). On
+ne commite **jamais** le fichier `.env` réel, mais on commite un `.env.example` qui documente toutes
+les variables nécessaires avec des valeurs fictives. Chaque développeur copie ce fichier en `.env`
+et y met ses vraies valeurs.
 
 **Fichier à créer** : `.env.example` (racine)
 
@@ -496,7 +511,8 @@ LOG_LEVEL=debug
 
 ### Étape 4.9 — Mettre à jour le .gitignore
 
-**Pourquoi** : Le `.gitignore` actuel est celui par défaut de `create-turbo`. Il faut l'enrichir pour couvrir les fichiers Python (IA), les secrets, les artefacts Docker, les modèles ML, etc.
+**Pourquoi** : Le `.gitignore` actuel est celui par défaut de `create-turbo`. Il faut l'enrichir
+pour couvrir les fichiers Python (IA), les secrets, les artefacts Docker, les modèles ML, etc.
 
 **Fichier à modifier** : `.gitignore` (racine)
 
@@ -583,10 +599,13 @@ packages/database/prisma/migrations/*.sql.bak
 ### Étape 4.10 — Installer et configurer Husky + lint-staged + commitlint
 
 **Pourquoi** : Husky intercepte chaque `git commit` pour exécuter automatiquement :
-1. **lint-staged** : vérifie et formate uniquement les fichiers modifiés (pas tout le repo)
-2. **commitlint** : vérifie que le message de commit suit le format Conventional Commits (`feat:`, `fix:`, `docs:`, etc.)
 
-Cela empêche les erreurs de code et les messages de commit incohérents d'entrer dans l'historique Git.
+1. **lint-staged** : vérifie et formate uniquement les fichiers modifiés (pas tout le repo)
+2. **commitlint** : vérifie que le message de commit suit le format Conventional Commits (`feat:`,
+   `fix:`, `docs:`, etc.)
+
+Cela empêche les erreurs de code et les messages de commit incohérents d'entrer dans l'historique
+Git.
 
 **Commandes CLI à exécuter** :
 
@@ -641,17 +660,17 @@ export default {
       2, // Niveau erreur (bloque le commit)
       'always',
       [
-        'feat',     // Nouvelle fonctionnalité
-        'fix',      // Correction de bug
-        'docs',     // Documentation uniquement
-        'style',    // Formatage, points-virgules manquants, etc. (pas de changement logique)
+        'feat', // Nouvelle fonctionnalité
+        'fix', // Correction de bug
+        'docs', // Documentation uniquement
+        'style', // Formatage, points-virgules manquants, etc. (pas de changement logique)
         'refactor', // Refactorisation du code (ni feat, ni fix)
-        'perf',     // Amélioration de performance
-        'test',     // Ajout ou correction de tests
-        'build',    // Changements au système de build ou dépendances externes
-        'ci',       // Changements aux fichiers de CI
-        'chore',    // Autres changements qui ne modifient pas src ou test
-        'revert',   // Annule un commit précédent
+        'perf', // Amélioration de performance
+        'test', // Ajout ou correction de tests
+        'build', // Changements au système de build ou dépendances externes
+        'ci', // Changements aux fichiers de CI
+        'chore', // Autres changements qui ne modifient pas src ou test
+        'revert', // Annule un commit précédent
       ],
     ],
     // Scopes autorisés (noms des services et packages)
@@ -659,31 +678,31 @@ export default {
       1, // Niveau avertissement (ne bloque pas)
       'always',
       [
-        'identity',       // identity-service
-        'auth',           // auth-service
-        'ai',             // ai-service
-        'document',       // document-service
-        'notification',   // notification-service
-        'interop',        // interop-service
-        'audit',          // audit-service
-        'appointment',    // appointment-service
+        'identity', // identity-service
+        'auth', // auth-service
+        'ai', // ai-service
+        'document', // document-service
+        'notification', // notification-service
+        'interop', // interop-service
+        'audit', // audit-service
+        'appointment', // appointment-service
         'anticorruption', // anticorruption-service
-        'governance',     // governance-service
-        'vulnerability',  // vulnerability-service
-        'citizen',        // app citizen
-        'admin',          // app admin
-        'gov',            // app governance
-        'mobile',         // app mobile
-        'kiosk',          // app kiosk
-        'shared-types',   // package shared-types
-        'database',       // package database
-        'config',         // package config
-        'utils',          // package utils
-        'ui',             // package ui
-        'infra',          // infrastructure
-        'ci',             // CI/CD
-        'deps',           // dépendances
-        'monorepo',       // configuration monorepo
+        'governance', // governance-service
+        'vulnerability', // vulnerability-service
+        'citizen', // app citizen
+        'admin', // app admin
+        'gov', // app governance
+        'mobile', // app mobile
+        'kiosk', // app kiosk
+        'shared-types', // package shared-types
+        'database', // package database
+        'config', // package config
+        'utils', // package utils
+        'ui', // package ui
+        'infra', // infrastructure
+        'ci', // CI/CD
+        'deps', // dépendances
+        'monorepo', // configuration monorepo
       ],
     ],
     // Le sujet ne doit pas dépasser 100 caractères
@@ -696,9 +715,13 @@ export default {
 
 ### Étape 4.11 — Créer le Makefile
 
-**Pourquoi** : Un Makefile permet de regrouper les commandes les plus fréquentes derrière des noms courts. Au lieu de taper `pnpm --filter identity-service run start:dev`, on tape `make dev-identity`. C'est plus rapide, plus lisible, et ça documente les commandes disponibles.
+**Pourquoi** : Un Makefile permet de regrouper les commandes les plus fréquentes derrière des noms
+courts. Au lieu de taper `pnpm --filter identity-service run start:dev`, on tape
+`make dev-identity`. C'est plus rapide, plus lisible, et ça documente les commandes disponibles.
 
-> **Note Windows** : `make` n'est pas installé par défaut sous Windows. Il est disponible via Git Bash (qui est installé avec Git pour Windows), via WSL, ou via `choco install make`. Les commandes ci-dessous fonctionnent dans Git Bash.
+> **Note Windows** : `make` n'est pas installé par défaut sous Windows. Il est disponible via Git
+> Bash (qui est installé avec Git pour Windows), via WSL, ou via `choco install make`. Les commandes
+> ci-dessous fonctionnent dans Git Bash.
 
 **Fichier à créer** : `Makefile` (racine)
 
@@ -801,7 +824,8 @@ clean: ## Supprimer tous les artefacts de build et caches
 
 ### Étape 4.12 — Créer le fichier .prettierrc
 
-**Pourquoi** : Prettier formate automatiquement le code pour garantir un style uniforme dans tout le projet. Sans configuration explicite, chaque contributeur pourrait avoir ses propres préférences.
+**Pourquoi** : Prettier formate automatiquement le code pour garantir un style uniforme dans tout le
+projet. Sans configuration explicite, chaque contributeur pourrait avoir ses propres préférences.
 
 **Fichier à créer** : `.prettierrc` (racine)
 
@@ -846,7 +870,10 @@ infrastructure/terraform/.terraform
 
 ### Étape 4.13 — Créer le pipeline CI GitHub Actions
 
-**Pourquoi** : GitHub Actions exécute automatiquement le linting, la vérification des types et le build à chaque push ou pull request. Si le code ne passe pas ces vérifications, la PR est bloquée. C'est un filet de sécurité qui fonctionne même quand le développeur oublie de lancer les vérifications localement.
+**Pourquoi** : GitHub Actions exécute automatiquement le linting, la vérification des types et le
+build à chaque push ou pull request. Si le code ne passe pas ces vérifications, la PR est bloquée.
+C'est un filet de sécurité qui fonctionne même quand le développeur oublie de lancer les
+vérifications localement.
 
 **Fichier à créer** : `.github/workflows/ci.yml`
 
@@ -920,7 +947,9 @@ jobs:
 
 ### Étape 4.14 — Créer les fichiers README placeholder pour chaque service
 
-**Pourquoi** : Git ne suit pas les dossiers vides. Chaque dossier de service a besoin d'au moins un fichier pour exister dans le repo. Un `README.md` sert à la fois de marqueur et de documentation future.
+**Pourquoi** : Git ne suit pas les dossiers vides. Chaque dossier de service a besoin d'au moins un
+fichier pour exister dans le repo. Un `README.md` sert à la fois de marqueur et de documentation
+future.
 
 **Commande CLI** :
 
@@ -952,7 +981,9 @@ done
 
 ### Étape 4.15 — Créer les packages partagés manquants (placeholder)
 
-**Pourquoi** : Les packages `shared-types`, `database`, `config` et `utils` seront développés au Document 03. Pour l'instant, on crée leurs `package.json` minimaux pour que pnpm et Turborepo les reconnaissent.
+**Pourquoi** : Les packages `shared-types`, `database`, `config` et `utils` seront développés au
+Document 03. Pour l'instant, on crée leurs `package.json` minimaux pour que pnpm et Turborepo les
+reconnaissent.
 
 **Fichier à créer** : `packages/shared-types/package.json`
 
@@ -1074,30 +1105,39 @@ Mettre à jour aussi le `name` du package `ui` existant :
 
 Changer le `name` de `"@repo/ui"` à `"@nina-aes/ui"`.
 
-De même pour `packages/eslint-config/package.json` : changer `"@repo/eslint-config"` à `"@nina-aes/eslint-config"`.
+De même pour `packages/eslint-config/package.json` : changer `"@repo/eslint-config"` à
+`"@nina-aes/eslint-config"`.
 
-Et `packages/typescript-config/package.json` : changer `"@repo/typescript-config"` à `"@nina-aes/typescript-config"`.
+Et `packages/typescript-config/package.json` : changer `"@repo/typescript-config"` à
+`"@nina-aes/typescript-config"`.
 
-> **Important** : Après avoir renommé les packages, il faut aussi mettre à jour toutes les références dans les fichiers qui les importent (`apps/citizen/package.json`, `apps/admin/package.json`, etc.).
+> **Important** : Après avoir renommé les packages, il faut aussi mettre à jour toutes les
+> références dans les fichiers qui les importent (`apps/citizen/package.json`,
+> `apps/admin/package.json`, etc.).
 
 ---
 
 ### Étape 4.16 — Mettre à jour les références de packages dans les apps
 
-**Pourquoi** : En renommant les packages de `@repo/*` à `@nina-aes/*`, toutes les dépendances qui référencent `@repo/ui`, `@repo/eslint-config` ou `@repo/typescript-config` doivent être mises à jour.
+**Pourquoi** : En renommant les packages de `@repo/*` à `@nina-aes/*`, toutes les dépendances qui
+référencent `@repo/ui`, `@repo/eslint-config` ou `@repo/typescript-config` doivent être mises à
+jour.
 
 **Fichiers à modifier** :
 
 Dans `apps/citizen/package.json`, remplacer :
+
 - `"@repo/ui"` → `"@nina-aes/ui"`
 - `"@repo/eslint-config"` → `"@nina-aes/eslint-config"`
 - `"@repo/typescript-config"` → `"@nina-aes/typescript-config"`
 
 Même chose dans `apps/admin/package.json`.
 
-Dans `apps/citizen/tsconfig.json` et `apps/admin/tsconfig.json`, si `@repo/typescript-config` est référencé dans `extends`, remplacer par `@nina-aes/typescript-config`.
+Dans `apps/citizen/tsconfig.json` et `apps/admin/tsconfig.json`, si `@repo/typescript-config` est
+référencé dans `extends`, remplacer par `@nina-aes/typescript-config`.
 
-Dans `apps/citizen/eslint.config.js` et `apps/admin/eslint.config.js`, remplacer les imports `@repo/eslint-config` par `@nina-aes/eslint-config`.
+Dans `apps/citizen/eslint.config.js` et `apps/admin/eslint.config.js`, remplacer les imports
+`@repo/eslint-config` par `@nina-aes/eslint-config`.
 
 Dans `packages/ui/package.json`, remplacer les références `@repo/*` par `@nina-aes/*`.
 
@@ -1105,7 +1145,8 @@ Dans `packages/ui/package.json`, remplacer les références `@repo/*` par `@nina
 
 ### Étape 4.17 — Exécuter pnpm install et vérifier
 
-**Pourquoi** : Après tous ces changements, il faut réinstaller les dépendances pour que pnpm recalcule les liens symboliques entre les workspaces.
+**Pourquoi** : Après tous ces changements, il faut réinstaller les dépendances pour que pnpm
+recalcule les liens symboliques entre les workspaces.
 
 **Commandes CLI** :
 
@@ -1124,6 +1165,7 @@ pnpm turbo ls
 ```
 
 **Sortie attendue** : La commande `pnpm turbo ls` devrait lister tous les packages :
+
 - `citizen`, `admin`
 - `@nina-aes/ui`, `@nina-aes/eslint-config`, `@nina-aes/typescript-config`
 - `@nina-aes/shared-types`, `@nina-aes/database`, `@nina-aes/config`, `@nina-aes/utils`
@@ -1179,16 +1221,16 @@ pnpm run format
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme | Cause probable | Solution |
-|---|---|---|
-| `pnpm install` échoue avec "unsupported engine" | Version de Node < 24 | Installer Node.js 24 LTS via `nvm install 24` ou télécharger depuis nodejs.org |
-| `pnpm install` échoue avec "packageManager" mismatch | pnpm global n'est pas en version 10 | Exécuter `corepack enable && corepack prepare pnpm@10.12.1 --activate` |
-| Husky ne se déclenche pas au commit | Le hook n'est pas exécutable | Sur Git Bash : `chmod +x .husky/pre-commit .husky/commit-msg` |
-| `make` commande non trouvée | GNU Make non installé sous Windows | Installer via `choco install make` ou utiliser Git Bash (inclut make) |
-| Les imports `@nina-aes/*` échouent | Les noms n'ont pas été mis à jour partout | Vérifier chaque `package.json`, `tsconfig.json` et `eslint.config.js` des apps |
-| `turbo ls` ne liste pas les services | `pnpm-workspace.yaml` ne contient pas `services/*` | Vérifier que la ligne `- "services/*"` est présente |
-| Le build de citizen ou admin échoue | Références à `@repo/*` subsistent | Chercher avec `grep -r "@repo/" apps/` et remplacer par `@nina-aes/` |
-| `commitlint` rejette le message | Le type n'est pas dans la liste autorisée | Utiliser un des types : feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert |
+| Symptôme                                             | Cause probable                                     | Solution                                                                                       |
+| ---------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `pnpm install` échoue avec "unsupported engine"      | Version de Node < 24                               | Installer Node.js 24 LTS via `nvm install 24` ou télécharger depuis nodejs.org                 |
+| `pnpm install` échoue avec "packageManager" mismatch | pnpm global n'est pas en version 10                | Exécuter `corepack enable && corepack prepare pnpm@10.12.1 --activate`                         |
+| Husky ne se déclenche pas au commit                  | Le hook n'est pas exécutable                       | Sur Git Bash : `chmod +x .husky/pre-commit .husky/commit-msg`                                  |
+| `make` commande non trouvée                          | GNU Make non installé sous Windows                 | Installer via `choco install make` ou utiliser Git Bash (inclut make)                          |
+| Les imports `@nina-aes/*` échouent                   | Les noms n'ont pas été mis à jour partout          | Vérifier chaque `package.json`, `tsconfig.json` et `eslint.config.js` des apps                 |
+| `turbo ls` ne liste pas les services                 | `pnpm-workspace.yaml` ne contient pas `services/*` | Vérifier que la ligne `- "services/*"` est présente                                            |
+| Le build de citizen ou admin échoue                  | Références à `@repo/*` subsistent                  | Chercher avec `grep -r "@repo/" apps/` et remplacer par `@nina-aes/`                           |
+| `commitlint` rejette le message                      | Le type n'est pas dans la liste autorisée          | Utiliser un des types : feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert |
 
 ---
 
@@ -1200,31 +1242,37 @@ Créer le fichier `docs/architecture/adr-001-structure-monorepo.md` :
 # ADR-001 — Structure du monorepo NINA-AES Platform
 
 ## Statut
+
 Accepté — 2026-04-07
 
 ## Contexte
-Le projet NINA-AES Platform est un système Full-Stack composé de 3 applications
-frontend, 11 microservices backend, et plusieurs packages partagés. Un seul
-développeur maintient l'ensemble du code. La structure doit faciliter la navigation,
-le build incrémental, et la cohérence des dépendances.
+
+Le projet NINA-AES Platform est un système Full-Stack composé de 3 applications frontend, 11
+microservices backend, et plusieurs packages partagés. Un seul développeur maintient l'ensemble du
+code. La structure doit faciliter la navigation, le build incrémental, et la cohérence des
+dépendances.
 
 ## Décision
+
 Utilisation d'un monorepo Turborepo avec pnpm workspaces, organisé en 4 zones :
+
 - `apps/` — Applications frontend (Next.js, React Native, Electron)
 - `services/` — Microservices backend (NestJS, FastAPI)
 - `packages/` — Code partagé (types, database, config, utils, UI, lint, TS config)
 - `infrastructure/` — Docker, K3s, Helm, Terraform
 
 ## Conséquences
+
 - (+) Un seul `pnpm install` pour tout le projet
 - (+) Turborepo cache et parallélise les builds
 - (+) Les packages partagés sont liés par symlinks (pas de publish npm)
 - (+) Les changements dans `shared-types` invalident automatiquement les builds dépendants
 - (-) Le `pnpm-lock.yaml` peut devenir volumineux
-- (-) Le CI doit installer toutes les dépendances même pour un changement isolé
-  (atténué par le cache Turborepo)
+- (-) Le CI doit installer toutes les dépendances même pour un changement isolé (atténué par le
+  cache Turborepo)
 
 ## Alternatives considérées
+
 - Polyrepo (un repo par service) : rejeté car trop de overhead pour un développeur seul
 - Nx au lieu de Turborepo : rejeté car Turborepo est plus léger et suffisant
 ```
@@ -1235,6 +1283,7 @@ Utilisation d'un monorepo Turborepo avec pnpm workspaces, organisé en 4 zones :
 
 ```markdown
 ### Rapport — 01 Fondations Monorepo — [Date]
+
 - **Status** : ✅ Terminé / ⏳ En cours / ❌ Bloqué
 - **Temps réel passé** : X heures
 - **Difficultés rencontrées** :
@@ -1253,7 +1302,8 @@ Utilisation d'un monorepo Turborepo avec pnpm workspaces, organisé en 4 zones :
 
 ## 9. Checklist de fin d'étape
 
-- [ ] Dossiers `services/`, `infrastructure/`, `ai-models/`, `scripts/`, `.github/workflows/`, `docs/` créés
+- [ ] Dossiers `services/`, `infrastructure/`, `ai-models/`, `scripts/`, `.github/workflows/`,
+      `docs/` créés
 - [ ] `package.json` racine mis à jour (pnpm 10, Node 24, scripts)
 - [ ] `pnpm-workspace.yaml` inclut `services/*`
 - [ ] `turbo.json` enrichi avec tâches backend
@@ -1278,8 +1328,10 @@ Utilisation d'un monorepo Turborepo avec pnpm workspaces, organisé en 4 zones :
 
 ## 10. Pour aller plus loin
 
-- **Turborepo** : [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) — Partager le cache entre machines (utile si le professeur veut builder)
-- **Conventional Commits** : [Spécification complète en français](https://www.conventionalcommits.org/fr/v1.0.0/)
+- **Turborepo** : [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) —
+  Partager le cache entre machines (utile si le professeur veut builder)
+- **Conventional Commits** :
+  [Spécification complète en français](https://www.conventionalcommits.org/fr/v1.0.0/)
 - **pnpm Workspaces** : [Documentation officielle](https://pnpm.io/workspaces)
 - **Husky** : [Guide de migration v8 → v9](https://typicode.github.io/husky/migrate-from-v8.html)
 - **EditorConfig** : [Plugins par éditeur](https://editorconfig.org/#download)

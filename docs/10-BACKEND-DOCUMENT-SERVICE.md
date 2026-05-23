@@ -1654,7 +1654,7 @@ payload, codes d'erreur (400, 401, 403, 404, 409, 429) et schémas Zod/TypeBox.
 # Rapport d'étape — Document 10 — document-service
 
 **Date** : **\_\_\_\_** **Durée passée** : ** h (estimation : 12–16 h) **Commit de fin** :
-**\_\_\_\_****
+**\_\_\_\_\*\*\*\*
 
 ## Fonctionnel
 

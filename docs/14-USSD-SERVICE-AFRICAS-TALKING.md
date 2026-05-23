@@ -1,9 +1,8 @@
 # 14 — Service USSD (Africa's Talking)
 
-> **Bloc concerné** : A (NINA Mali) + **C1** (personnes vulnérables)
-> **Prérequis** : documents 00 → 13 complétés ; `identity-service`, `vulnerability-service` et
-> `appointment-service` accessibles ; Redis up via `pnpm docker:up`.
-> **Durée estimée** : 16 à 24 heures pour un étudiant seul.
+> **Bloc concerné** : A (NINA Mali) + **C1** (personnes vulnérables) **Prérequis** : documents 00 →
+> 13 complétés ; `identity-service`, `vulnerability-service` et `appointment-service` accessibles ;
+> Redis up via `pnpm docker:up`. **Durée estimée** : 16 à 24 heures pour un étudiant seul.
 > **Livrables de cette étape** :
 >
 > - `services/ussd-service/` (NestJS 11.1+ — port 3014)
@@ -21,51 +20,51 @@
 
 ## 1. Objectif pédagogique
 
-L'USSD (Unstructured Supplementary Service Data) est **le seul canal numérique disponible pour
-les ~55 % de Maliens** qui possèdent un téléphone non-smartphone (feature phone). Sans USSD, on
-discriminerait massivement les zones rurales, les personnes âgées et la diaspora installée dans
-des pays où le forfait data est cher. C'est le pilier concret du **principe d'inclusion** (cf.
-contexte projet §13.2).
+L'USSD (Unstructured Supplementary Service Data) est **le seul canal numérique disponible pour les
+~55 % de Maliens** qui possèdent un téléphone non-smartphone (feature phone). Sans USSD, on
+discriminerait massivement les zones rurales, les personnes âgées et la diaspora installée dans des
+pays où le forfait data est cher. C'est le pilier concret du **principe d'inclusion** (cf. contexte
+projet §13.2).
 
 Trois choses à apprendre dans cette étape :
 
 1. **Le modèle « machine à états sans serveur conversationnel »** : USSD impose des réponses
    synchrones, courtes (< 182 caractères par écran), avec un timeout réseau de ~30 s. On ne peut
-   **pas** appeler 5 microservices en chaîne — il faut **précharger** dans la session Redis dès
-   le premier hit, et naviguer dans le menu en O(1).
-2. **Localisation pratique** : 8 langues, claviers GSM 7-bit (les caractères « á », « ɲ »
-   passent en GSM-Extended → moitié du quota par char). On apprend à dimensionner ses libellés.
-3. **Robustesse réseau** : Africa's Talking ré-invoque le webhook plusieurs fois en cas de
-   timeout. On doit être **idempotent** sur `sessionId` et utiliser Redis pour stocker l'état
-   ne dépendant pas du transport HTTP.
+   **pas** appeler 5 microservices en chaîne — il faut **précharger** dans la session Redis dès le
+   premier hit, et naviguer dans le menu en O(1).
+2. **Localisation pratique** : 8 langues, claviers GSM 7-bit (les caractères « á », « ɲ » passent en
+   GSM-Extended → moitié du quota par char). On apprend à dimensionner ses libellés.
+3. **Robustesse réseau** : Africa's Talking ré-invoque le webhook plusieurs fois en cas de timeout.
+   On doit être **idempotent** sur `sessionId` et utiliser Redis pour stocker l'état ne dépendant
+   pas du transport HTTP.
 
-> 💡 **Pourquoi pas un IVR (vocal) à la place ?** Le coût USSD est facturé à la session (~5 FCFA
-> au Mali), un appel IVR coûte ~50 FCFA/min. Pour un cas d'usage de quelques secondes, l'USSD
-> reste **10× moins cher** et n'exige pas de microphone fonctionnel — un téléphone à 5 €.
+> 💡 **Pourquoi pas un IVR (vocal) à la place ?** Le coût USSD est facturé à la session (~5 FCFA au
+> Mali), un appel IVR coûte ~50 FCFA/min. Pour un cas d'usage de quelques secondes, l'USSD reste
+> **10× moins cher** et n'exige pas de microphone fonctionnel — un téléphone à 5 €.
 
 ---
 
 ## 2. Technologies utilisées (versions avril 2026)
 
-| Technologie                         | Version      | Rôle dans cette étape                                           | Documentation officielle                       |
-| ----------------------------------- | ------------ | --------------------------------------------------------------- | ---------------------------------------------- |
-| **NestJS**                          | 11.1+        | Framework microservice (port 3014)                              | https://docs.nestjs.com/                       |
-| **TypeScript**                      | 6.0+         | Langage source                                                  | https://www.typescriptlang.org/                |
-| **Africa's Talking Node SDK**       | 0.7+         | Client API USSD/SMS pour 18 pays africains                      | https://developers.africastalking.com/         |
-| **Redis**                           | 8.6.2+       | Sessions USSD (TTL 180 s) + cache codes-pays                    | https://redis.io/                              |
-| **ioredis**                         | 5.5+         | Client Redis Node.js (clusters + pipelines)                     | https://github.com/redis/ioredis               |
-| **Zod**                             | 4.3+         | Validation des payloads webhook + variables d'env               | https://zod.dev/                               |
-| **`@nina-aes/shared-types`**        | workspace    | `Language` enum + `SUPPORTED_LANGUAGES` partagés                | (interne)                                      |
-| **`@nina-aes/utils`**               | workspace    | `validateNina`, `formatNina`                                    | (interne)                                      |
-| **`@nina-aes/config`**              | workspace    | `AFRICAS_TALKING_API_KEY`, `AFRICAS_TALKING_USERNAME`, …        | (interne)                                      |
-| **Jest + supertest**                | 30.x / 7.x   | Tests E2E du webhook                                            | https://jestjs.io/                             |
-| **ngrok**                           | latest       | Tunnel HTTPS pour exposer `localhost:3014` à Africa's Talking   | https://ngrok.com/                             |
-| **express-rate-limit**              | 7.5+         | Garde-fou contre l'abus (un même `sessionId` = un seul flux)    | https://github.com/express-rate-limit          |
+| Technologie                   | Version    | Rôle dans cette étape                                         | Documentation officielle               |
+| ----------------------------- | ---------- | ------------------------------------------------------------- | -------------------------------------- |
+| **NestJS**                    | 11.1+      | Framework microservice (port 3014)                            | https://docs.nestjs.com/               |
+| **TypeScript**                | 6.0+       | Langage source                                                | https://www.typescriptlang.org/        |
+| **Africa's Talking Node SDK** | 0.7+       | Client API USSD/SMS pour 18 pays africains                    | https://developers.africastalking.com/ |
+| **Redis**                     | 8.6.2+     | Sessions USSD (TTL 180 s) + cache codes-pays                  | https://redis.io/                      |
+| **ioredis**                   | 5.5+       | Client Redis Node.js (clusters + pipelines)                   | https://github.com/redis/ioredis       |
+| **Zod**                       | 4.3+       | Validation des payloads webhook + variables d'env             | https://zod.dev/                       |
+| **`@nina-aes/shared-types`**  | workspace  | `Language` enum + `SUPPORTED_LANGUAGES` partagés              | (interne)                              |
+| **`@nina-aes/utils`**         | workspace  | `validateNina`, `formatNina`                                  | (interne)                              |
+| **`@nina-aes/config`**        | workspace  | `AFRICAS_TALKING_API_KEY`, `AFRICAS_TALKING_USERNAME`, …      | (interne)                              |
+| **Jest + supertest**          | 30.x / 7.x | Tests E2E du webhook                                          | https://jestjs.io/                     |
+| **ngrok**                     | latest     | Tunnel HTTPS pour exposer `localhost:3014` à Africa's Talking | https://ngrok.com/                     |
+| **express-rate-limit**        | 7.5+       | Garde-fou contre l'abus (un même `sessionId` = un seul flux)  | https://github.com/express-rate-limit  |
 
 > 🔒 **Souveraineté** : Africa's Talking est basé au Kenya (entreprise africaine). Pour la
-> production souveraine au Mali, un opérateur local (Orange Mali, Sotelma) peut fournir la
-> même fonction USSD via un accord direct — l'abstraction `AggregatorClient` (cf. §4.3)
-> permet de basculer sans toucher la logique métier.
+> production souveraine au Mali, un opérateur local (Orange Mali, Sotelma) peut fournir la même
+> fonction USSD via un accord direct — l'abstraction `AggregatorClient` (cf. §4.3) permet de
+> basculer sans toucher la logique métier.
 
 ---
 
@@ -250,22 +249,22 @@ pnpm --filter @nina-aes/ussd-service add -D @types/node supertest @types/superte
     "start:dev": "nest start --watch",
     "check-types": "tsc --noEmit",
     "test": "jest",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
   },
   "dependencies": {
     "@nina-aes/config": "workspace:*",
     "@nina-aes/logger": "workspace:*",
     "@nina-aes/shared-types": "workspace:*",
-    "@nina-aes/utils": "workspace:*"
-  }
+    "@nina-aes/utils": "workspace:*",
+  },
 }
 ```
 
 ### Étape 4.2 — Validation du payload Africa's Talking
 
 **Pourquoi** : Africa's Talking ré-invoque la même requête en cas de timeout réseau. On valide
-strictement le payload avec Zod et on **n'enregistre rien deux fois** grâce à `sessionId` comme
-clé d'idempotence dans Redis.
+strictement le payload avec Zod et on **n'enregistre rien deux fois** grâce à `sessionId` comme clé
+d'idempotence dans Redis.
 
 ```typescript
 // services/ussd-service/src/ussd/ussd.dto.ts
@@ -303,9 +302,9 @@ export type UssdResponse = `CON ${string}` | `END ${string}`;
 
 ### Étape 4.3 — Machine à états + sessions Redis
 
-**Pourquoi** : USSD est synchrone. On ne peut pas tenir un état serveur en mémoire (Africa's
-Talking peut router la prochaine requête sur un autre pod). Redis est le seul état partagé,
-avec TTL 180 s (durée de session AT max).
+**Pourquoi** : USSD est synchrone. On ne peut pas tenir un état serveur en mémoire (Africa's Talking
+peut router la prochaine requête sur un autre pod). Redis est le seul état partagé, avec TTL 180 s
+(durée de session AT max).
 
 ```typescript
 // services/ussd-service/src/ussd/session.store.ts
@@ -379,8 +378,8 @@ export class SessionStore {
 
 ### Étape 4.4 — Contrôleur webhook + machine à états
 
-**Pourquoi** : c'est le cœur du service. Une seule route HTTP `POST /ussd` reçoit toutes les
-saisies du citoyen ; le `text` accumulé permet de connaître la profondeur dans l'arbre de menus.
+**Pourquoi** : c'est le cœur du service. Une seule route HTTP `POST /ussd` reçoit toutes les saisies
+du citoyen ; le `text` accumulé permet de connaître la profondeur dans l'arbre de menus.
 
 ```typescript
 // services/ussd-service/src/ussd/ussd.controller.ts
@@ -460,9 +459,7 @@ export class UssdMachine {
       const lang = await this.detectLanguage(req.phoneNumber);
       session = { phone: req.phoneNumber, lang, step: lang ? 'main_menu' : 'lang_select' };
       await this.store.set(req.sessionId, session);
-      return lang
-        ? this.menus.mainMenu(lang)
-        : this.menus.languageSelector();
+      return lang ? this.menus.mainMenu(lang) : this.menus.languageSelector();
     }
 
     return this.dispatch(session, tokens, req.sessionId);
@@ -487,9 +484,12 @@ export class UssdMachine {
   ): Promise<UssdResponse> {
     const last = tokens[tokens.length - 1] ?? '';
     switch (session.step) {
-      case 'lang_select': return this.handleLangSelect(session, last, sessionId);
-      case 'main_menu':   return this.handleMainMenu(session, last, sessionId);
-      case 'ask_nina':    return this.handleAskNina(session, last, sessionId);
+      case 'lang_select':
+        return this.handleLangSelect(session, last, sessionId);
+      case 'main_menu':
+        return this.handleMainMenu(session, last, sessionId);
+      case 'ask_nina':
+        return this.handleAskNina(session, last, sessionId);
       // ... autres étapes (ask_nina_for_appt, ask_alert_description, etc.)
       default:
         await this.store.destroy(sessionId);
@@ -503,8 +503,8 @@ export class UssdMachine {
 
 ### Étape 4.5 — Handlers métier (extrait : consultation NINA)
 
-**Pourquoi** : c'est le parcours le plus simple. Il valide la pédagogie avant de passer à
-prise de rendez-vous (qui ajoute la file prioritaire) et signalement (qui ajoute SIGAC).
+**Pourquoi** : c'est le parcours le plus simple. Il valide la pédagogie avant de passer à prise de
+rendez-vous (qui ajoute la file prioritaire) et signalement (qui ajoute SIGAC).
 
 ```typescript
 // services/ussd-service/src/ussd/handlers/lookup-nina.ts
@@ -562,8 +562,8 @@ export async function handleLookupNina(
 ### Étape 4.6 — File prioritaire pour personnes vulnérables
 
 **Pourquoi** : ce parcours matérialise l'objectif **O7** (accessibilité) et lie l'USSD au
-`vulnerability-service`. Si la fiche citoyen porte une `vulnerabilityCategory`, on lui propose
-le créneau prioritaire (P1, 7h30) au lieu du créneau standard.
+`vulnerability-service`. Si la fiche citoyen porte une `vulnerabilityCategory`, on lui propose le
+créneau prioritaire (P1, 7h30) au lieu du créneau standard.
 
 ```typescript
 // services/ussd-service/src/ussd/handlers/book-appointment.ts
@@ -615,20 +615,22 @@ export async function handleBookAppointment(
 
   await deps.store.destroy(sessionId);
   return isVulnerable
-    ? `END ${deps.menus.t('appt.priority_confirmed', session.lang)
+    ? `END ${deps.menus
+        .t('appt.priority_confirmed', session.lang)
         .replace('{date}', slot.scheduledAt)
         .replace('{queue}', String(slot.queueNumber))}`
-    : `END ${deps.menus.t('appt.standard_confirmed', session.lang)
+    : `END ${deps.menus
+        .t('appt.standard_confirmed', session.lang)
         .replace('{date}', slot.scheduledAt)}`;
 }
 ```
 
 ### Étape 4.7 — Localisation des menus (8 langues)
 
-**Pourquoi** : USSD impose le **GSM 7-bit** par défaut (160 chars). En GSM-Extended (UCS-2),
-une session = 70 chars. La plupart des opérateurs maliens basculent en UCS-2 dès qu'un caractère
-non-7-bit apparaît (`ɲ`, `ɛ`, `ŋ` sont fréquents en bambara). On dimensionne donc tous nos
-libellés **< 70 chars** pour rester sûrs.
+**Pourquoi** : USSD impose le **GSM 7-bit** par défaut (160 chars). En GSM-Extended (UCS-2), une
+session = 70 chars. La plupart des opérateurs maliens basculent en UCS-2 dès qu'un caractère
+non-7-bit apparaît (`ɲ`, `ɛ`, `ŋ` sont fréquents en bambara). On dimensionne donc tous nos libellés
+**< 70 chars** pour rester sûrs.
 
 ```typescript
 // services/ussd-service/src/ussd/i18n-menus.ts
@@ -685,8 +687,8 @@ export class I18nMenus {
 
 ### Étape 4.8 — Simulateur USSD local (sans Africa's Talking)
 
-**Pourquoi** : on développe sous Windows sans carte SIM, sans compte AT. Un simulateur HTML
-appelle `localhost:3014/ussd` exactement comme AT le ferait — productivité × 5.
+**Pourquoi** : on développe sous Windows sans carte SIM, sans compte AT. Un simulateur HTML appelle
+`localhost:3014/ussd` exactement comme AT le ferait — productivité × 5.
 
 ```html
 <!-- services/ussd-service/public/simulator.html (extrait) -->
@@ -696,9 +698,23 @@ appelle `localhost:3014/ussd` exactement comme AT le ferait — productivité ×
     <meta charset="utf-8" />
     <title>Simulateur USSD NINA-AES</title>
     <style>
-      body { font-family: monospace; background: #111; color: #0f0; padding: 1rem; }
-      pre  { white-space: pre-wrap; border: 1px solid #0f0; padding: 0.5rem; min-height: 4rem; }
-      input, button { font-family: inherit; padding: 0.4rem; }
+      body {
+        font-family: monospace;
+        background: #111;
+        color: #0f0;
+        padding: 1rem;
+      }
+      pre {
+        white-space: pre-wrap;
+        border: 1px solid #0f0;
+        padding: 0.5rem;
+        min-height: 4rem;
+      }
+      input,
+      button {
+        font-family: inherit;
+        padding: 0.4rem;
+      }
     </style>
   </head>
   <body>
@@ -775,20 +791,26 @@ Couvre :
 // services/ussd-service/test/ussd.e2e-spec.ts (extrait)
 it('parcours bambara : 2 (langue) → 1 (mon NINA) → saisie NINA', async () => {
   const res1 = await request(app).post('/ussd').send({
-    sessionId: 'e2e-1', serviceCode: '*123*NINA#',
-    phoneNumber: '+22376000001', text: '',
+    sessionId: 'e2e-1',
+    serviceCode: '*123*NINA#',
+    phoneNumber: '+22376000001',
+    text: '',
   });
   expect(res1.text).toMatch(/^CON 1\.FR 2\.BM/);
 
   const res2 = await request(app).post('/ussd').send({
-    sessionId: 'e2e-1', serviceCode: '*123*NINA#',
-    phoneNumber: '+22376000001', text: '2',
+    sessionId: 'e2e-1',
+    serviceCode: '*123*NINA#',
+    phoneNumber: '+22376000001',
+    text: '2',
   });
   expect(res2.text).toMatch(/^CON 1\. Ne ka NINA/);
 
   const res3 = await request(app).post('/ussd').send({
-    sessionId: 'e2e-1', serviceCode: '*123*NINA#',
-    phoneNumber: '+22376000001', text: '2*1',
+    sessionId: 'e2e-1',
+    serviceCode: '*123*NINA#',
+    phoneNumber: '+22376000001',
+    text: '2*1',
   });
   expect(res3.text).toMatch(/^CON .*NINA/);
 });
@@ -818,16 +840,16 @@ ab -n 3000 -c 50 -p payload.json -T 'application/json' http://localhost:3014/uss
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                            | Cause probable                                                                              | Solution                                                                                |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Africa's Talking retourne « INVALID_RESPONSE_FORMAT »                | Réponse sans préfixe `CON ` ou `END ` ; ou Content-Type ≠ `text/plain`                      | Vérifier que tous les retours du contrôleur commencent par `CON` ou `END`. Ajouter `@Header('Content-Type','text/plain')`. |
-| Sessions perdues à mi-parcours                                       | TTL Redis trop court (< 180 s) OU pod NestJS redémarré avec session en mémoire (anti-pattern) | Confirmer `EX 180` dans `SessionStore`. **Ne jamais** stocker l'état hors Redis.        |
-| Caractères « ɲ », « ɛ » mal affichés                                 | Opérateur en GSM-7 strict, refuse les UCS-2                                                 | Pour les langues nécessitant UCS-2, demander à AT de forcer `text/plain; charset=UTF-8` côté config compte. |
-| Webhook timeout 30 s                                                 | Appel synchrone à un microservice lent                                                      | Préférer un cache Redis warm (cf. `vulnerability-service` : précharger Citizen+Vulnerability avant). |
-| Réponse coupée à 160 chars                                           | UCS-2 limit, libellés trop longs                                                            | Mesurer chaque clé i18n, raccourcir, supprimer accents non-essentiels.                  |
-| Tests E2E plantent en CI                                             | Redis non disponible dans le runner                                                         | Utiliser `redis-memory-server` ou un service container GitHub Actions (cf. doc 16).     |
-| ngrok bloqué par firewall Windows                                    | Politique d'entreprise                                                                      | Alternative : Cloudflare Tunnel `cloudflared tunnel --url http://localhost:3014`.       |
-| Africa's Talking invoque `text=""` à chaque dialin alors qu'on suit la session | Comportement normal au tout premier hit                                                | `req.text === ''` ⇒ session inexistante : créer la session, sortir le menu initial.     |
+| Symptôme                                                                       | Cause probable                                                                                | Solution                                                                                                                   |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Africa's Talking retourne « INVALID_RESPONSE_FORMAT »                          | Réponse sans préfixe `CON ` ou `END ` ; ou Content-Type ≠ `text/plain`                        | Vérifier que tous les retours du contrôleur commencent par `CON` ou `END`. Ajouter `@Header('Content-Type','text/plain')`. |
+| Sessions perdues à mi-parcours                                                 | TTL Redis trop court (< 180 s) OU pod NestJS redémarré avec session en mémoire (anti-pattern) | Confirmer `EX 180` dans `SessionStore`. **Ne jamais** stocker l'état hors Redis.                                           |
+| Caractères « ɲ », « ɛ » mal affichés                                           | Opérateur en GSM-7 strict, refuse les UCS-2                                                   | Pour les langues nécessitant UCS-2, demander à AT de forcer `text/plain; charset=UTF-8` côté config compte.                |
+| Webhook timeout 30 s                                                           | Appel synchrone à un microservice lent                                                        | Préférer un cache Redis warm (cf. `vulnerability-service` : précharger Citizen+Vulnerability avant).                       |
+| Réponse coupée à 160 chars                                                     | UCS-2 limit, libellés trop longs                                                              | Mesurer chaque clé i18n, raccourcir, supprimer accents non-essentiels.                                                     |
+| Tests E2E plantent en CI                                                       | Redis non disponible dans le runner                                                           | Utiliser `redis-memory-server` ou un service container GitHub Actions (cf. doc 16).                                        |
+| ngrok bloqué par firewall Windows                                              | Politique d'entreprise                                                                        | Alternative : Cloudflare Tunnel `cloudflared tunnel --url http://localhost:3014`.                                          |
+| Africa's Talking invoque `text=""` à chaque dialin alors qu'on suit la session | Comportement normal au tout premier hit                                                       | `req.text === ''` ⇒ session inexistante : créer la session, sortir le menu initial.                                        |
 
 ---
 
@@ -836,22 +858,22 @@ ab -n 3000 -c 50 -p payload.json -T 'application/json' http://localhost:3014/uss
 Créer **`docs/adr/ADR-017-ussd-africas-talking.md`** :
 
 - **Décision** : Africa's Talking (sandbox + production) comme aggregator USSD/SMS, abstrait
-  derrière l'interface `AggregatorClient` pour permettre la bascule vers Orange Mali / Sotelma
-  en production souveraine.
-- **Justification** : couverture multi-pays (Mali, Burkina, Niger), simulateur intégré, doc
-  fournie en français, tarification transparente. Concurrent : Twilio (US — exclu pour la
-  souveraineté), Bandwidth (US), Vonage (UK).
-- **Conséquences positives** : une seule API pour 18 pays africains ; SDK Node maintenu ;
-  webhook standardisé.
-- **Conséquences négatives** : dépendance à un tiers (mitigée par l'abstraction
-  `AggregatorClient`) ; coût par session ~5 FCFA en production.
-- **Diagramme** : reprendre `05-sequence-vulnerable-person.puml` qui couvre déjà le flux USSD
-  → file prioritaire → livraison à domicile.
-- **Captures** : 4 captures du simulateur (menu langue · menu principal bambara · saisie NINA
-  · résumé fiche).
+  derrière l'interface `AggregatorClient` pour permettre la bascule vers Orange Mali / Sotelma en
+  production souveraine.
+- **Justification** : couverture multi-pays (Mali, Burkina, Niger), simulateur intégré, doc fournie
+  en français, tarification transparente. Concurrent : Twilio (US — exclu pour la souveraineté),
+  Bandwidth (US), Vonage (UK).
+- **Conséquences positives** : une seule API pour 18 pays africains ; SDK Node maintenu ; webhook
+  standardisé.
+- **Conséquences négatives** : dépendance à un tiers (mitigée par l'abstraction `AggregatorClient`)
+  ; coût par session ~5 FCFA en production.
+- **Diagramme** : reprendre `05-sequence-vulnerable-person.puml` qui couvre déjà le flux USSD → file
+  prioritaire → livraison à domicile.
+- **Captures** : 4 captures du simulateur (menu langue · menu principal bambara · saisie NINA ·
+  résumé fiche).
 
-Créer aussi **`docs/api/14-ussd-payloads.md`** : exemples de payloads webhook, tableaux des
-codes `serviceCode` à enregistrer (sandbox + production).
+Créer aussi **`docs/api/14-ussd-payloads.md`** : exemples de payloads webhook, tableaux des codes
+`serviceCode` à enregistrer (sandbox + production).
 
 ---
 
@@ -862,7 +884,8 @@ codes `serviceCode` à enregistrer (sandbox + production).
 
 - **Status** : ✅ Terminé / ⏳ En cours / ❌ Bloqué
 - **Temps réel passé** : X heures
-- **Parcours implémentés** : Consult NINA · Prise RDV (P1/P3) · Suivi correction · Signalement SIGAC · Sélecteur langue
+- **Parcours implémentés** : Consult NINA · Prise RDV (P1/P3) · Suivi correction · Signalement SIGAC
+  · Sélecteur langue
 - **Langues couvertes** : FR ✅ · BM ✅ · SNK ⏳ · FF ⏳ · TMQ ⏳ · HAU ⏳ · MOS ⏳ · DJE ⏳
 - **Tests** : Unit X/Y · E2E X/Y · Sim manuel ✅
 - **Latence mesurée** : P50 = X ms, P99 = X ms (cible < 500 ms)
@@ -870,7 +893,8 @@ codes `serviceCode` à enregistrer (sandbox + production).
   - Caractères bambara basculent en UCS-2 → quota 70 chars (libellés raccourcis)
   - sessionId réémis en cas de timeout AT (idempotence vérifiée)
 - **Solutions trouvées** :
-- **Prochaines actions** : finir traductions 6 langues, brancher vraie sandbox AT via ngrok, ajouter rate-limit par phone (5 req/min)
+- **Prochaines actions** : finir traductions 6 langues, brancher vraie sandbox AT via ngrok, ajouter
+  rate-limit par phone (5 req/min)
 - **Captures jointes** : sim_lang.png, sim_main_bm.png, sim_lookup_ok.png, sim_priority_p1.png
 ```
 
@@ -898,18 +922,19 @@ codes `serviceCode` à enregistrer (sandbox + production).
 ## 10. Pour aller plus loin
 
 - **Souveraineté production** : remplacer Africa's Talking par un accord direct avec Orange Mali
-  (interface `AggregatorClient` à décliner). L'API USSD opérateur diffère légèrement mais le
-  pattern machine à états reste identique.
-- **Conversion vocale (IVR)** : pour les utilisateurs analphabètes qui ne savent pas lire les
-  menus USSD, brancher un IVR (Africa's Talking Voice ou Asterisk on-premise) qui appelle les
-  mêmes endpoints du `ussd-service` et lit les libellés en TTS local (Mozilla DeepSpeech
-  bambara — souverain).
-- **Cache préchargé** : précharger en Redis le `Citizen + VulnerabilityRecord + dernier RDV`
-  pour les ~10 000 numéros les plus actifs → la première interaction ne fait plus AUCUN appel
-  HTTP intra-cluster.
+  (interface `AggregatorClient` à décliner). L'API USSD opérateur diffère légèrement mais le pattern
+  machine à états reste identique.
+- **Conversion vocale (IVR)** : pour les utilisateurs analphabètes qui ne savent pas lire les menus
+  USSD, brancher un IVR (Africa's Talking Voice ou Asterisk on-premise) qui appelle les mêmes
+  endpoints du `ussd-service` et lit les libellés en TTS local (Mozilla DeepSpeech bambara —
+  souverain).
+- **Cache préchargé** : précharger en Redis le `Citizen + VulnerabilityRecord + dernier RDV` pour
+  les ~10 000 numéros les plus actifs → la première interaction ne fait plus AUCUN appel HTTP
+  intra-cluster.
 - **Lectures recommandées** :
   - https://developers.africastalking.com/docs/ussd/api (specs détaillées)
-  - https://www.gsma.com/connectivity-for-good/spectrum/2018/03/14/ussd-feature-phone-future/ (étude marché)
+  - https://www.gsma.com/connectivity-for-good/spectrum/2018/03/14/ussd-feature-phone-future/ (étude
+    marché)
   - https://en.wikipedia.org/wiki/GSM_7_bit_default_alphabet (pourquoi 160 vs 70 chars)
   - https://github.com/AfricasTalkingLtd/africastalking-node.js (SDK officiel)
 

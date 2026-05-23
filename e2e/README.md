@@ -1,7 +1,7 @@
 # Tests E2E Playwright
 
-Parcours critiques user-facing — citizen + admin — en mode `NINA_AUTH_MODE=mock`
-(pas de Keycloak nécessaire).
+Parcours critiques user-facing — citizen + admin — en mode `NINA_AUTH_MODE=mock` (pas de Keycloak
+nécessaire).
 
 ## Première utilisation
 
@@ -30,12 +30,12 @@ e2e/
 
 ## Variables d'env
 
-| Variable             | Défaut                  | Effet                                     |
-| -------------------- | ----------------------- | ----------------------------------------- |
-| `E2E_CITIZEN_URL`    | `http://localhost:4001` | URL base pour le projet `citizen`         |
-| `E2E_ADMIN_URL`      | `http://localhost:4002` | URL base pour le projet `admin`           |
-| `NINA_AUTH_MODE`     | `mock` (forcé par PW)   | Session déterministe sans Keycloak        |
-| `CI`                 | (non set en local)      | Si set : retries=2, workers=1, fail fast  |
+| Variable          | Défaut                  | Effet                                    |
+| ----------------- | ----------------------- | ---------------------------------------- |
+| `E2E_CITIZEN_URL` | `http://localhost:4001` | URL base pour le projet `citizen`        |
+| `E2E_ADMIN_URL`   | `http://localhost:4002` | URL base pour le projet `admin`          |
+| `NINA_AUTH_MODE`  | `mock` (forcé par PW)   | Session déterministe sans Keycloak       |
+| `CI`              | (non set en local)      | Si set : retries=2, workers=1, fail fast |
 
 ## Filtrer un sous-ensemble
 
@@ -52,11 +52,9 @@ pnpm run test:e2e:ui --project=admin
 
 ## Limites connues
 
-- **Pas de tests data API** : les services backend (correction-service,
-  identity-service, etc.) ne sont pas requis. Tout est en mock.
-- **Pas de tests visuels (snapshot)** : on assert sur le DOM et les rôles
-  ARIA. Les snapshots seront ajoutés Session 6+ quand les écrans seront
-  stables.
-- **Pas de CI GitHub Actions** : la config root supporte le mode CI
-  (`workers=1`, `reporter=github`) mais aucun workflow `.github/workflows/`
-  n'est encore présent.
+- **Pas de tests data API** : les services backend (correction-service, identity-service, etc.) ne
+  sont pas requis. Tout est en mock.
+- **Pas de tests visuels (snapshot)** : on assert sur le DOM et les rôles ARIA. Les snapshots seront
+  ajoutés Session 6+ quand les écrans seront stables.
+- **Pas de CI GitHub Actions** : la config root supporte le mode CI (`workers=1`, `reporter=github`)
+  mais aucun workflow `.github/workflows/` n'est encore présent.

@@ -1,13 +1,13 @@
 # 06 — Schéma de Base de Données Prisma
 
-> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §1–2.
-> Versions effectives :
-> - **Prisma 7.8.0** + `@prisma/adapter-pg` + `pg` (le moteur « library »
->   est remplacé par le moteur « client » qui exige un driver adapter).
-> - `previewFeatures = ["driverAdapters", "postgresqlExtensions", "relationJoins"]`
->   dans le `generator client`.
-> - Image PostgreSQL : `postgis/postgis:18-3.6` (et non `postgres:18-alpine`)
->   pour disposer nativement de PostGIS + extensions requises.
+> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §1–2. Versions effectives :
+>
+> - **Prisma 7.8.0** + `@prisma/adapter-pg` + `pg` (le moteur « library » est remplacé par le moteur
+>   « client » qui exige un driver adapter).
+> - `previewFeatures = ["driverAdapters", "postgresqlExtensions", "relationJoins"]` dans le
+>   `generator client`.
+> - Image PostgreSQL : `postgis/postgis:18-3.6` (et non `postgres:18-alpine`) pour disposer
+>   nativement de PostGIS + extensions requises.
 > - Locale : ICU (`--locale-provider=icu --icu-locale=fr-FR`).
 > - 16 modèles, 10 enums, soft-delete via callback `Prisma.defineExtension`.
 > - Singleton paresseux via Proxy.
