@@ -53,7 +53,7 @@ export class SubmitCorrectionDto {
 
   @ApiProperty({
     description: 'Motif de la correction (texte libre, min 20 chars)',
-    example: 'Erreur de translittération sur la carte papier — diphtongue \"ou\" omise.',
+    example: "Erreur de translittération sur la carte papier — diphtongue 'ou' omise.",
   })
   @IsString()
   @MinLength(20)

@@ -38,7 +38,7 @@ export class LocationController {
 
   // ─── GET /locations/:id ──────────────────────────────────────
   @Get(':id')
-  @ApiOperation({ summary: 'Détail Location + chaîne d\'ancêtres jusqu\'à Mali' })
+  @ApiOperation({ summary: "Détail Location + chaîne d'ancêtres jusqu'à Mali" })
   async findById(@Param('id') id: string): Promise<unknown> {
     return this.locationService.findById(id);
   }

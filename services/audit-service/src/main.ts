@@ -45,7 +45,7 @@ async function bootstrap(): Promise<void> {
     .setDescription("Service d'audit — journalisation et conformité")
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('audit', 'Journal d\'audit')
+    .addTag('audit', "Journal d'audit")
     .addTag('logs', 'Consultation des logs')
     .addTag('compliance', 'Rapports de conformité')
     .addTag('health', 'Health check')
@@ -53,7 +53,7 @@ async function bootstrap(): Promise<void> {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
-  
+
   await app.listen(PORT);
   logger.log(`audit-service démarré sur le port ${PORT}`);
   console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);

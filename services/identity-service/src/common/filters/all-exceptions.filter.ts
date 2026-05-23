@@ -84,7 +84,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return {
         status,
         code: (raw.error as string) ?? this.statusToCode(status),
-        message: Array.isArray(raw.message) ? (raw.message as string[]).join('; ') : (raw.message as string) ?? exception.message,
+        message: Array.isArray(raw.message)
+          ? (raw.message as string[]).join('; ')
+          : ((raw.message as string) ?? exception.message),
         details: raw.details ?? raw.message,
       };
     }

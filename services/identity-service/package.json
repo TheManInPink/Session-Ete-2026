@@ -3,7 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Microservice central NINA — gestion des citoyens, corrections, hiérarchie géographique",
-  "keywords": ["nina", "aes", "platform", "identity-service", "nestjs"],
+  "keywords": [
+    "nina",
+    "aes",
+    "platform",
+    "identity-service",
+    "nestjs"
+  ],
   "author": "Étudiant UQAR",
   "license": "UNLICENSED",
   "main": "dist/main.js",

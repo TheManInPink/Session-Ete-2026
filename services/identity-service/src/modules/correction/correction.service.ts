@@ -23,12 +23,7 @@
  * @module      identity-service/correction
  */
 
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom, timeout, catchError, of } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -189,12 +184,7 @@ export class CorrectionService {
     }
 
     // Applique la modification au Citizen (uniquement les champs allowlistés)
-    const allowedFields = new Set([
-      'firstName',
-      'lastName',
-      'profession',
-      'maritalStatus',
-    ]);
+    const allowedFields = new Set(['firstName', 'lastName', 'profession', 'maritalStatus']);
     if (!allowedFields.has(correction.field)) {
       throw new BadRequestException(
         `Champ '${correction.field}' non modifiable via une correction directe`,

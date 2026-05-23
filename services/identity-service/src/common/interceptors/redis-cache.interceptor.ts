@@ -33,8 +33,7 @@ export const CACHE_KEY_METADATA = 'cache:key';
 export const CACHE_TTL_METADATA = 'cache:ttl';
 
 /** Définit la clé logique du cache pour une route (ex. 'citizens:byNina'). */
-export const CacheKey = (key: string): MethodDecorator =>
-  SetMetadata(CACHE_KEY_METADATA, key);
+export const CacheKey = (key: string): MethodDecorator => SetMetadata(CACHE_KEY_METADATA, key);
 
 /** Définit le TTL en secondes (défaut 300). */
 export const CacheTtl = (seconds: number): MethodDecorator =>

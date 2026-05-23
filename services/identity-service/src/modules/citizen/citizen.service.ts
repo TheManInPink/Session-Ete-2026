@@ -16,22 +16,13 @@
  * @module      identity-service/citizen
  */
 
-import {
-  ConflictException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { prisma, Prisma } from '@nina-aes/database';
 import { normalizeNina, toAscii } from '@nina-aes/utils';
 
 import { RabbitMQService } from '../../infrastructure/rabbitmq/rabbitmq.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
-import type {
-  CreateCitizenDto,
-  SearchCitizenDto,
-  UpdateCitizenDto,
-} from './dto/citizen.dto';
+import type { CreateCitizenDto, SearchCitizenDto, UpdateCitizenDto } from './dto/citizen.dto';
 
 /** Inclut systématiquement birthPlace + residence + father + mother (utile pour PDF FDI). */
 const CITIZEN_INCLUDE = {
@@ -185,7 +176,9 @@ export class CitizenService {
       include: CITIZEN_INCLUDE,
     });
 
-    this.logger.log(`Citoyen créé : NINA=${normalized} id=${created.id} actor=${actorId ?? 'anonymous'}`);
+    this.logger.log(
+      `Citoyen créé : NINA=${normalized} id=${created.id} actor=${actorId ?? 'anonymous'}`,
+    );
 
     await this.rabbit.publish(
       'citizen.created',

@@ -33,11 +33,7 @@ import {
 } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import {
-  ListCorrectionsDto,
-  RejectCorrectionDto,
-  SubmitCorrectionDto,
-} from './dto/correction.dto';
+import { ListCorrectionsDto, RejectCorrectionDto, SubmitCorrectionDto } from './dto/correction.dto';
 import { CorrectionService } from './correction.service';
 
 @ApiTags('corrections')
@@ -71,7 +67,7 @@ export class CorrectionController {
   // ─── GET /corrections/:id ────────────────────────────────────
   @Get(':id')
   @Roles(UserRole.AGENT, UserRole.SUPERVISOR, UserRole.ADMIN, UserRole.AUDITOR)
-  @ApiOperation({ summary: 'Détail d\'une correction (avec citoyen joint)' })
+  @ApiOperation({ summary: "Détail d'une correction (avec citoyen joint)" })
   async findById(@Param('id') id: string): Promise<unknown> {
     return this.correctionService.findById(id);
   }
@@ -80,10 +76,7 @@ export class CorrectionController {
   @Put(':id/approve')
   @Roles(UserRole.AGENT, UserRole.SUPERVISOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Approuve la correction et applique la modification au citoyen' })
-  async approve(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ): Promise<unknown> {
+  async approve(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<unknown> {
     return this.correctionService.approve(id, user.id);
   }
 
