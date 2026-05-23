@@ -22,18 +22,18 @@ export default {
       2,
       'always',
       [
-        'feat',     // Nouvelle fonctionnalité
-        'fix',      // Correction de bug
-        'docs',     // Documentation uniquement (markdown, JSDoc, README)
-        'style',    // Formatage, points-virgules (pas de changement logique)
+        'feat', // Nouvelle fonctionnalité
+        'fix', // Correction de bug
+        'docs', // Documentation uniquement (markdown, JSDoc, README)
+        'style', // Formatage, points-virgules (pas de changement logique)
         'refactor', // Refactorisation (ni feat, ni fix)
-        'perf',     // Amélioration de performance
-        'test',     // Ajout ou correction de tests
-        'build',    // Système de build ou dépendances externes
-        'ci',       // Fichiers CI/CD
-        'chore',    // Tâches diverses (config, outils internes)
-        'revert',   // Annule un commit précédent
-        'data',     // Mise à jour de données (data/mali, schemas/, seeds)
+        'perf', // Amélioration de performance
+        'test', // Ajout ou correction de tests
+        'build', // Système de build ou dépendances externes
+        'ci', // Fichiers CI/CD
+        'chore', // Tâches diverses (config, outils internes)
+        'revert', // Annule un commit précédent
+        'data', // Mise à jour de données (data/mali, schemas/, seeds)
       ],
     ],
 
@@ -45,54 +45,54 @@ export default {
       'always',
       [
         // ── Microservices Bloc A (ports 3001..3011) ───────────────
-        'identity',       // identity-service (3001)
-        'auth',           // auth-service (3002)
-        'ai',             // ai-service (3003)
-        'document',       // document-service (3004)
-        'notification',   // notification-service (3005)
-        'interop',        // interop-service (3006) — Bloc B
-        'audit',          // audit-service (3007)
-        'appointment',    // appointment-service (3008)
-        'sigac',          // anticorruption-service (3009) — Bloc D
-        'sgogt',          // governance-service module SGOGT (Bloc C2)
-        'governance',     // governance-service global (Bloc C3 + transversal)
-        'vulnerability',  // vulnerability-service (3011) — Bloc C1
+        'identity', // identity-service (3001)
+        'auth', // auth-service (3002)
+        'ai', // ai-service (3003)
+        'document', // document-service (3004)
+        'notification', // notification-service (3005)
+        'interop', // interop-service (3006) — Bloc B
+        'audit', // audit-service (3007)
+        'appointment', // appointment-service (3008)
+        'sigac', // anticorruption-service (3009) — Bloc D
+        'sgogt', // governance-service module SGOGT (Bloc C2)
+        'governance', // governance-service global (Bloc C3 + transversal)
+        'vulnerability', // vulnerability-service (3011) — Bloc C1
 
         // ── Apps frontend / mobile ────────────────────────────────
-        'citizen',        // apps/citizen (Next.js)
-        'admin',          // apps/admin (Next.js)
-        'gov',            // apps/governance (Next.js)
-        'mobile',         // apps/mobile (Expo)
-        'kiosk',          // apps/kiosk (Electron — Bloc E)
-        'ussd',           // simulateur USSD + ussd-service
+        'citizen', // apps/citizen (Next.js)
+        'admin', // apps/admin (Next.js)
+        'gov', // apps/governance (Next.js)
+        'mobile', // apps/mobile (Expo)
+        'kiosk', // apps/kiosk (Electron — Bloc E)
+        'ussd', // simulateur USSD + ussd-service
 
         // ── Packages partagés ─────────────────────────────────────
         'shared-types',
-        'database',       // packages/database (Prisma)
-        'config',         // packages/config (Zod env)
-        'utils',          // packages/utils (NINA, Merkle, crypto)
-        'ui',             // packages/ui (design system)
-        'auth-pkg',       // packages/auth (BFF session helpers)
-        'api-client',     // packages/api-client (REST DTOs)
-        'i18n',           // packages/i18n (8 langues)
-        'logger',         // packages/logger (Pino → Loki)
-        'test-fixtures',  // packages/test-fixtures (factories Faker)
+        'database', // packages/database (Prisma)
+        'config', // packages/config (Zod env)
+        'utils', // packages/utils (NINA, Merkle, crypto)
+        'ui', // packages/ui (design system)
+        'auth-pkg', // packages/auth (BFF session helpers)
+        'api-client', // packages/api-client (REST DTOs)
+        'i18n', // packages/i18n (8 langues)
+        'logger', // packages/logger (Pino → Loki)
+        'test-fixtures', // packages/test-fixtures (factories Faker)
 
         // ── Transverse / infra ────────────────────────────────────
-        'infra',          // infrastructure/ (docker, k3s, helm, terraform)
-        'docker',         // docker-compose, Dockerfiles
-        'k3s',            // K3s + Helm chart (doc 20)
-        'ci',             // workflows GitHub Actions, husky, dependabot
-        'deps',           // mises à jour de dépendances (Dependabot)
-        'biometrics',     // Bloc F (vision V1)
-        'monorepo',       // turbo.json, pnpm-workspace, scripts globaux
-        'data',           // data/mali (référentiel) — utilisé avec type `data`
-        'mali',           // alias court pour data Mali
-        'security',       // doc 15 sécurité, Vault, mTLS
-        'observability',  // doc 17 LGTM, Pino, OTel
-        'testing',        // doc 18 pyramide tests
-        'backup',         // doc 19 backup + DRP
-        'docs',           // documentation transverse (DOCUMENTATION-MAP, etc.)
+        'infra', // infrastructure/ (docker, k3s, helm, terraform)
+        'docker', // docker-compose, Dockerfiles
+        'k3s', // K3s + Helm chart (doc 20)
+        'ci', // workflows GitHub Actions, husky, dependabot
+        'deps', // mises à jour de dépendances (Dependabot)
+        'biometrics', // Bloc F (vision V1)
+        'monorepo', // turbo.json, pnpm-workspace, scripts globaux
+        'data', // data/mali (référentiel) — utilisé avec type `data`
+        'mali', // alias court pour data Mali
+        'security', // doc 15 sécurité, Vault, mTLS
+        'observability', // doc 17 LGTM, Pino, OTel
+        'testing', // doc 18 pyramide tests
+        'backup', // doc 19 backup + DRP
+        'docs', // documentation transverse (DOCUMENTATION-MAP, etc.)
       ],
     ],
 
