@@ -16,7 +16,10 @@ test.describe('AD-01 — Dashboard', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Modibo/);
 
     // 4 KPI cards
-    const kpiTitles = page.locator('section').first().getByText(/NINA actifs|Corrections|Alertes|RDV/);
+    const kpiTitles = page
+      .locator('section')
+      .first()
+      .getByText(/NINA actifs|Corrections|Alertes|RDV/);
     await expect(kpiTitles.first()).toBeVisible();
   });
 

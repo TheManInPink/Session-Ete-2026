@@ -12,9 +12,7 @@ test.describe('PC-01 — Accueil citoyen', () => {
     await page.goto('/fr');
 
     // Hero title visible
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(
-      /NINA|identité/i,
-    );
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/NINA|identité/i);
 
     // 4 quick action cards visibles via lucide icons
     const cards = page.locator('section#actions a').filter({ has: page.locator('h3') });

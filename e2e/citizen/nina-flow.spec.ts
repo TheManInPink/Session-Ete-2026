@@ -26,9 +26,7 @@ test.describe('PC-02 — Fiche citoyen', () => {
     await expect(page.getByText(MOCK_NINA_FORMATTED)).toBeVisible();
 
     // Bouton « Signaler une erreur » présent (lien vers correction).
-    await expect(
-      page.getByRole('link', { name: /correction|erreur|signaler/i }),
-    ).toBeVisible();
+    await expect(page.getByRole('link', { name: /correction|erreur|signaler/i })).toBeVisible();
   });
 
   test('not-found sur NINA inconnu/invalide', async ({ page }) => {
@@ -38,7 +36,7 @@ test.describe('PC-02 — Fiche citoyen', () => {
 });
 
 test.describe('PC-03 — Wizard correction', () => {
-  test('le wizard charge avec 9 champs corrigibles à l\'étape 1', async ({ page }) => {
+  test("le wizard charge avec 9 champs corrigibles à l'étape 1", async ({ page }) => {
     await page.goto(`/fr/nina/${MOCK_NINA}/correction`);
 
     // Stepper / titre étape 1 visible
