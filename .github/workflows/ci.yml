@@ -300,6 +300,11 @@ jobs:
 
     strategy:
       fail-fast: false
+      # Limite la concurrence : avec 11 matrix jobs en parallèle, le
+      # GITHUB_TOKEN partagé se fait throttler par GitHub côté git clone
+      # (`fatal: could not read Username for 'https://github.com': terminal
+      # prompts disabled`). À 3 jobs simultanés, chaque checkout passe.
+      max-parallel: 3
       matrix:
         service:
           - identity-service
