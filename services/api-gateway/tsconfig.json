@@ -17,6 +17,7 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "types": ["node", "jest"],
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "ignoreDeprecations": "5.0"
