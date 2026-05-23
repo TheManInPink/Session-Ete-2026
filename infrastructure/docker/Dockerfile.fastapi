@@ -25,7 +25,11 @@
 # ============================================================================
 
 ARG SERVICE
-ARG PYTHON_VERSION=3.14-slim-bookworm
+# Pin Python 3.13 (et non 3.14) tant que spaCy ne publie pas de wheels
+# cp314. blis (transitive) ne compile pas contre l'API CPython 3.14
+# (_PyLong_AsByteArray a changé). Suivre https://github.com/explosion/spaCy/releases
+# et bumper à 3.14-slim-bookworm dès que les wheels cp314 sont publiées.
+ARG PYTHON_VERSION=3.13-slim-bookworm
 
 # ────────────────────────────────────────────────────────────────────────────
 # Stage 1 — base : Python + uv + dépendances système minimales
@@ -83,7 +87,7 @@ RUN groupadd -g 1001 nina && \
     useradd -u 1001 -g nina -m -s /sbin/nologin nina
 
 # Récupère les packages Python installés au stage `deps`.
-COPY --from=deps /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=deps /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=deps /usr/local/bin /usr/local/bin
 
 # Copie le code source du service.

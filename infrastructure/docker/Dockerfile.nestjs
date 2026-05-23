@@ -39,6 +39,10 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Outils strictement nécessaires : curl pour le HEALTHCHECK, openssl pour les
 # certificats mTLS au runtime (cf. doc 15 — security).
 RUN apk add --no-cache curl openssl libc6-compat
+# CI=true : sans TTY, pnpm refuse de purger `node_modules` lors d'un
+# `install --prod --frozen-lockfile` et plante avec
+# ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY (cf. l'install du stage builder).
+ENV CI=true
 WORKDIR /workspace
 
 # ────────────────────────────────────────────────────────────────────────────
