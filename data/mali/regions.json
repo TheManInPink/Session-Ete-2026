@@ -90,7 +90,7 @@
       "nom_officiel": "Région de Kidal",
       "nom_court": "Kidal",
       "chef_lieu": "Kidal",
-      "centroide": { "lat": 18.4412, "lng": 1.4080, "estime": false },
+      "centroide": { "lat": 18.4412, "lng": 1.408, "estime": false },
       "creation": "1991",
       "statut_2023": "Maintenue (couvre l'extrême Nord-Est)",
       "langues_principales": ["FR", "TMQ"]
@@ -121,7 +121,7 @@
       "nom_officiel": "Région de Ménaka",
       "nom_court": "Ménaka",
       "chef_lieu": "Ménaka",
-      "centroide": { "lat": 15.9160, "lng": 2.4000, "estime": false },
+      "centroide": { "lat": 15.916, "lng": 2.4, "estime": false },
       "creation": "Loi 2012, opérationnalisation 2016",
       "statut_2023": "Confirmée — couvre l'est saharien et le pourtour du fleuve Niger en aval de Gao",
       "langues_principales": ["FR", "TMQ", "DJE"]
@@ -201,7 +201,7 @@
       "nom_officiel": "Région de Bandiagara",
       "nom_court": "Bandiagara",
       "chef_lieu": "Bandiagara",
-      "centroide": { "lat": 14.3500, "lng": -3.6111, "estime": false },
+      "centroide": { "lat": 14.35, "lng": -3.6111, "estime": false },
       "creation": "Loi 2023",
       "statut_2023": "Nouvelle région — détachée de Mopti, couvre le pays Dogon",
       "langues_principales": ["FR", "FF"]

@@ -3,17 +3,11 @@
   "$id": "https://nina-aes.local/schemas/mali-regions.schema.json",
   "title": "Mali regions data",
   "type": "object",
-  "required": [
-    "metadata",
-    "regions",
-    "totaux"
-  ],
+  "required": ["metadata", "regions", "totaux"],
   "properties": {
     "metadata": {
       "type": "object",
-      "required": [
-        "version"
-      ],
+      "required": ["version"],
       "properties": {
         "version": {
           "type": "string",
@@ -27,13 +21,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "code",
-          "nom_officiel",
-          "nom_court",
-          "chef_lieu",
-          "centroide"
-        ],
+        "required": ["code", "nom_officiel", "nom_court", "chef_lieu", "centroide"],
         "properties": {
           "code": {
             "type": "string",
@@ -53,11 +41,7 @@
           },
           "centroide": {
             "type": "object",
-            "required": [
-              "lat",
-              "lng",
-              "estime"
-            ],
+            "required": ["lat", "lng", "estime"],
             "properties": {
               "lat": {
                 "type": "number",
@@ -81,11 +65,7 @@
     },
     "totaux": {
       "type": "object",
-      "required": [
-        "regions",
-        "district",
-        "total_niveau_1"
-      ],
+      "required": ["regions", "district", "total_niveau_1"],
       "properties": {
         "regions": {
           "type": "integer",

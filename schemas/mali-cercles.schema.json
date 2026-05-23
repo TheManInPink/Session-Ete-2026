@@ -3,16 +3,11 @@
   "$id": "https://nina-aes.local/schemas/mali-cercles.schema.json",
   "title": "Mali cercles data",
   "type": "object",
-  "required": [
-    "metadata",
-    "cercles"
-  ],
+  "required": ["metadata", "cercles"],
   "properties": {
     "metadata": {
       "type": "object",
-      "required": [
-        "version"
-      ],
+      "required": ["version"],
       "properties": {
         "version": {
           "type": "string",
@@ -26,13 +21,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "code",
-          "nom",
-          "region_code",
-          "centroide",
-          "confiance"
-        ],
+        "required": ["code", "nom", "region_code", "centroide", "confiance"],
         "properties": {
           "code": {
             "type": "string",
@@ -48,11 +37,7 @@
           },
           "centroide": {
             "type": "object",
-            "required": [
-              "lat",
-              "lng",
-              "estime"
-            ],
+            "required": ["lat", "lng", "estime"],
             "properties": {
               "lat": {
                 "type": "number",
@@ -72,11 +57,7 @@
           },
           "confiance": {
             "type": "string",
-            "enum": [
-              "haute",
-              "moyenne",
-              "basse"
-            ]
+            "enum": ["haute", "moyenne", "basse"]
           }
         },
         "additionalProperties": true

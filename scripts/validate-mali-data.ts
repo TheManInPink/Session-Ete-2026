@@ -134,7 +134,9 @@ for (const r of regionsFile.regions) {
 console.log('  • Régions : métadonnées totaux');
 const expectedTotal = regionsFile.totaux.regions + regionsFile.totaux.district;
 if (expectedTotal !== regionsFile.totaux.total_niveau_1) {
-  err(`Incohérence totaux : ${regionsFile.totaux.regions} + ${regionsFile.totaux.district} ≠ ${regionsFile.totaux.total_niveau_1}`);
+  err(
+    `Incohérence totaux : ${regionsFile.totaux.regions} + ${regionsFile.totaux.district} ≠ ${regionsFile.totaux.total_niveau_1}`,
+  );
 }
 if (regionCodes.size !== expectedTotal) {
   err(`Nombre de régions effectives (${regionCodes.size}) ≠ totaux annoncés (${expectedTotal})`);
@@ -175,7 +177,9 @@ for (const r of regionsFile.regions) {
   if (!cercleNoms.has(cherche)) {
     // Tolérance : si le cercle n'est pas dans nos 65 connus, ce n'est qu'un
     // warning (cf. cercles_a_enrichir).
-    console.warn(`  ⚠️  Chef-lieu "${r.chef_lieu}" de ${r.code} non trouvé comme cercle — peut-être à enrichir`);
+    console.warn(
+      `  ⚠️  Chef-lieu "${r.chef_lieu}" de ${r.code} non trouvé comme cercle — peut-être à enrichir`,
+    );
   }
 }
 
