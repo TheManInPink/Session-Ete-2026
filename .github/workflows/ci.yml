@@ -46,6 +46,11 @@ jobs:
 
       - name: Setup Node + pnpm
         uses: ./.github/actions/setup-node-pnpm
+        with:
+          # Sans `prisma generate`, `tsc --noEmit` sur @nina-aes/database
+          # plante avec TS2305: Module '"@prisma/client"' has no exported
+          # member 'PrismaClient' (le client est généré, pas vendoré).
+          prisma-generate: 'true'
 
       - name: ESLint
         run: pnpm run lint
