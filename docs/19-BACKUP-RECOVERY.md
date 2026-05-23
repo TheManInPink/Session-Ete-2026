@@ -306,7 +306,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: redis-backup
-              image: redis:8.6-alpine
+              image: redis:8.6.3-alpine
               command:
                 - /bin/sh
                 - -c

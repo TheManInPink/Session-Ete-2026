@@ -94,7 +94,12 @@ spec:
             fsGroup: 1001
           containers:
             - name: rotate
-              image: hashicorp/vault:1.20
+              # Aligné sur dev (docker-compose.dev.yml) — bump majeur 1.x → 2.x
+              # (release 2026-05-19). IPC_LOCK désormais posé à la build de
+              # l'image ; le runtime K8s n'a pas besoin de capabilities
+              # additionnelles pour ce CronJob (pas de vault server, juste le
+              # CLI pour la rotation).
+              image: hashicorp/vault:2.0.1
               command: ['/bin/sh', '/scripts/rotate-secrets.sh']
               env:
                 - name: VAULT_ADDR

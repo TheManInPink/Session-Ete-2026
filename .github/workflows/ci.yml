@@ -83,7 +83,7 @@ jobs:
           --health-retries 10
 
       redis:
-        image: redis:8.6-alpine
+        image: redis:8.6.3-alpine
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
@@ -92,7 +92,7 @@ jobs:
           --health-retries 5
 
       rabbitmq:
-        image: rabbitmq:4.2-management-alpine
+        image: rabbitmq:4.2.4-management-alpine
         ports: ['5672:5672']
         options: >-
           --health-cmd "rabbitmq-diagnostics check_running"
@@ -359,7 +359,7 @@ jobs:
     needs: lint
     permissions:
       contents: read
-      security-events: write   # Upload SARIF vers GitHub Security tab
+      security-events: write # Upload SARIF vers GitHub Security tab
 
     steps:
       - name: Checkout (full history pour gitleaks)

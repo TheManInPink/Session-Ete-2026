@@ -4,7 +4,7 @@
 > **comment maintenir** le monorepo au quotidien : commandes courantes, contrôles automatisés,
 > gestion des dérives, rotation des données.
 
-**Dernière mise à jour** : 3 mai 2026 · **Audience** : étudiant UQAR + futurs mainteneurs +
+**Dernière mise à jour** : 2026-05-23 · **Audience** : étudiant UQAR + futurs mainteneurs +
 assistants IA.
 
 ---

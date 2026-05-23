@@ -120,10 +120,10 @@ reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
 | `@types/bcryptjs`          | `2.4.6`       | Typings                                                   |
 | `typescript-eslint`        | `9.2.0`       | Lint TS pour ESLint 10                                    |
 
-| Infrastructure externe | Version  | Source                                                                |
-| ---------------------- | -------- | --------------------------------------------------------------------- |
-| **Keycloak**           | `26.1.0` | `quay.io/keycloak/keycloak:26.1` (déjà dans `docker-compose.dev.yml`) |
-| **Redis**              | `7.4`    | `redis:7.4-alpine` (déjà présent)                                     |
+| Infrastructure externe | Version  | Source                                                                  |
+| ---------------------- | -------- | ----------------------------------------------------------------------- |
+| **Keycloak**           | `26.6.2` | `quay.io/keycloak/keycloak:26.6.2` (déjà dans `docker-compose.dev.yml`) |
+| **Redis**              | `8.6.3`  | `redis:8.6.3-alpine` (déjà présent)                                     |
 
 ---
 
@@ -217,14 +217,14 @@ sequenceDiagram
 
 ---
 
-## 4. Keycloak 26.1 — Configuration du realm NINA-AES
+## 4. Keycloak 26.6 — Configuration du realm NINA-AES
 
 ### 4.1 Démarrage Keycloak (déjà dans `docker-compose.dev.yml`)
 
 ```yaml
 # Extrait — docker-compose.dev.yml (doc 05)
 keycloak:
-  image: quay.io/keycloak/keycloak:26.1
+  image: quay.io/keycloak/keycloak:26.6.2
   container_name: nina-keycloak
   command: start-dev --import-realm
   environment:

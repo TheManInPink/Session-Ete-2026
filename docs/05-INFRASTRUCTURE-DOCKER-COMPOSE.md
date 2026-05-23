@@ -1,6 +1,6 @@
 # 05 — Infrastructure Docker Compose
 
-> ⚠️ **Mise à jour mai 2026** — voir [`CHANGELOG.md`](./CHANGELOG.md) §4. Points à connaître avant
+> ⚠️ **Mise à jour 2026-05-23** — voir [`CHANGELOG.md`](./CHANGELOG.md) §4. Points à connaître avant
 > de copier les commandes de ce document :
 >
 > - **Image Postgres** : utiliser `postgis/postgis:18-3.6` (l'image alpine officielle ne fournit pas
@@ -14,9 +14,18 @@
 >   `infrastructure/docker/`). Le script `pnpm docker:up` inclut déjà `--env-file .env`.
 > - **Interpolations** `${VAR :-default}` avec espace = **invalide** — toujours coller
 >   `${VAR:-default}` sans espace.
-> - **Images obsolètes** à corriger dans `docker-compose.dev.yml` initial : `bitnami/minio:latest`
->   (n'existe plus → `quay.io/minio/minio:latest`), `hashicorp/vault:2.0` (inexistant →
->   `hashicorp/vault:1.18`).
+> - **MinIO — fin de support amont** : le repo `minio/minio` a été archivé le 2026-04-25 et plus
+>   aucune image n'est publiée sur Docker Hub depuis le 2025-10-23. On pinne sur la **dernière
+>   release officielle disponible** : `minio/minio:RELEASE.2025-09-07T16-13-09Z` côté serveur, et
+>   `minio/mc:RELEASE.2025-08-13T08-35-41Z` côté client (le client a son propre calendrier de
+>   release, antérieur à celui du serveur). Migration à planifier avant la prochaine CVE bloquante —
+>   alternatives évaluées : `cgr.dev/chainguard/minio` (drop-in patché), fork communautaire
+>   `pgsty/minio`, ou successeur S3-compatible Garage / RustFS / SeaweedFS.
+> - **Vault 2.0 — saut majeur (2026-05-19)** : `hashicorp/vault:2.0.1` est la dernière stable. Seule
+>   breaking change container : la capacité Linux `IPC_LOCK` est désormais posée sur le binaire à la
+>   build ; le runtime doit **toujours** déclarer `cap_add: [IPC_LOCK]` (déjà en place dans
+>   `docker-compose.dev.yml`). Le mode `start-dev`, les `VAULT_DEV_*` et le listener HTTP sur 8200
+>   ne changent pas.
 > - **Healthchecks corrigés (mai 2026)** :
 >   - `rabbitmq` : `rabbitmq-diagnostics -q check_running` (l'ancien `ping check_running` mélangeait
 >     deux sous-commandes et faisait toujours échouer le healthcheck).
@@ -89,7 +98,7 @@ Docker. En production (document 20), tout sera conteneurisé.
 
 ---
 
-## 2. Technologies utilisées (avec versions à jour — avril 2026)
+## 2. Technologies utilisées (avec versions à jour — 2026-05-23)
 
 ### 2.1 Orchestration
 
@@ -101,31 +110,36 @@ Docker. En production (document 20), tout sera conteneurisé.
 
 ### 2.2 Services d'infrastructure
 
-| Service             | Image Docker                     | Version         | Port(s)      | Rôle dans NINA-AES                                           | RAM estimée |
-| ------------------- | -------------------------------- | --------------- | ------------ | ------------------------------------------------------------ | ----------- |
-| **PostgreSQL**      | `postgres:17-alpine`             | 17.x            | 5432         | Base de données principale (identités NINA, audit, sessions) | ~100 Mo     |
-| **Redis**           | `redis:7-alpine`                 | 7.x             | 6379         | Cache, sessions USSD (TTL 5 min), queues temporaires         | ~30 Mo      |
-| **RabbitMQ**        | `rabbitmq:4-management-alpine`   | 4.x             | 5672 / 15672 | Message broker inter-services (audit, notifications, IA)     | ~150 Mo     |
-| **MinIO**           | `minio/minio:latest`             | RELEASE.2026-xx | 9000 / 9001  | Stockage objet S3-compatible (photos, PDF, documents)        | ~100 Mo     |
-| **Elasticsearch**   | `elasticsearch:8.17.0`           | 8.17            | 9200         | Recherche floue sur les noms NINA (pg_trgm + ES)             | ~512 Mo     |
-| **Keycloak**        | `quay.io/keycloak/keycloak:26.1` | 26.1            | 8080         | Serveur d'identité OAuth2/OIDC, RBAC 6 rôles, MFA            | ~400 Mo     |
-| **HashiCorp Vault** | `hashicorp/vault:1.18`           | 1.18            | 8200         | Gestion centralisée des secrets (clés JWT, certificats mTLS) | ~50 Mo      |
-| **Maildev**         | `maildev/maildev:2.2.1`          | 2.2.1           | 1080 / 1025  | Serveur SMTP de développement (capture des emails)           | ~30 Mo      |
+| Service             | Image Docker                                          | Version                       | Port(s)      | Rôle dans NINA-AES                                           | RAM estimée |
+| ------------------- | ----------------------------------------------------- | ----------------------------- | ------------ | ------------------------------------------------------------ | ----------- |
+| **PostgreSQL**      | `postgis/postgis:18-3.6`                              | 18.x + PostGIS 3.6            | 5432         | Base de données principale (identités NINA, audit, sessions) | ~120 Mo     |
+| **Redis**           | `redis:8.6.3-alpine`                                  | 8.6.3                         | 6379         | Cache, sessions USSD (TTL 5 min), queues temporaires         | ~30 Mo      |
+| **RabbitMQ**        | `rabbitmq:4.2.4-management-alpine`                    | 4.2.4                         | 5672 / 15672 | Message broker inter-services (audit, notifications, IA)     | ~150 Mo     |
+| **MinIO** ⚠️        | `minio/minio:RELEASE.2025-09-07T16-13-09Z`            | dernière release officielle   | 9000 / 9001  | Stockage objet S3-compatible (photos, PDF, documents)        | ~100 Mo     |
+| **Elasticsearch**   | `docker.elastic.co/elasticsearch/elasticsearch:9.4.1` | 9.4.1                         | 9200         | Recherche floue sur les noms NINA (pg_trgm + ES)             | ~512 Mo     |
+| **Kibana**          | `docker.elastic.co/kibana/kibana:9.4.1`               | 9.4.1                         | 5601         | Console de visualisation Elasticsearch (dev)                 | ~300 Mo     |
+| **Keycloak**        | `quay.io/keycloak/keycloak:26.6.2`                    | 26.6.2                        | 8080         | Serveur d'identité OAuth2/OIDC, RBAC 6 rôles, MFA            | ~400 Mo     |
+| **HashiCorp Vault** | `hashicorp/vault:2.0.1`                               | 2.0.1 (saut majeur 1.x → 2.x) | 8200         | Gestion centralisée des secrets (clés JWT, certificats mTLS) | ~50 Mo      |
+| **Maildev**         | `maildev/maildev:2.2.1`                               | 2.2.1                         | 1080 / 1025  | Serveur SMTP de développement (capture des emails)           | ~30 Mo      |
 
-**RAM totale estimée** : ~1,4 Go pour l'ensemble de l'infrastructure Docker.
+⚠️ MinIO : repo amont archivé le 2026-04-25 — voir bandeau en tête de document.
+
+**RAM totale estimée** : ~1,7 Go pour l'ensemble de l'infrastructure Docker (ajout de Kibana).
 
 ⚠️ **Configuration minimale requise** : 16 Go de RAM sur le poste Windows. Docker Desktop doit être
 configuré avec au moins **4 Go de RAM** allouée (Paramètres → Resources → Memory).
 
 ### 2.3 Pourquoi ces versions spécifiques ?
 
-| Choix                               | Justification                                                                                                                                                                                                               |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PostgreSQL **17** et non 18         | PostgreSQL 18 est sorti en 2026 mais l'image Docker Alpine n'est pas encore stabilisée en avril 2026. La version 17-alpine est mature et inclut toutes les extensions nécessaires (pg_trgm, unaccent, pgcrypto, uuid-ossp). |
-| Redis **7** et non 8                | Redis 7-alpine est la dernière version avec une image Alpine stable. Redis 8 existe mais l'image officielle n'est pas encore en Alpine au moment du développement.                                                          |
-| Elasticsearch **8.17** et non 9     | Elasticsearch 9.x n'a pas d'image Docker officielle stable en avril 2026. La version 8.17 est la dernière LTS et supporte toutes les fonctionnalités de recherche floue nécessaires.                                        |
-| Keycloak **26.1** et non 26.5       | L'image Quay.io officielle de Keycloak 26.1 est stable et bien documentée. La version 26.5 est en preview.                                                                                                                  |
-| Images **Alpine** quand disponibles | Les images Alpine sont 3 à 5× plus petites que les images Debian/Ubuntu. `postgres:17-alpine` fait ~85 Mo contre ~420 Mo pour `postgres:17`.                                                                                |
+| Choix                                  | Justification                                                                                                                                                                                                                |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PostgreSQL **18** + PostGIS **3.6**    | PostgreSQL 18 stabilisé en 2026 avec layout `/var/lib/postgresql` (parent) requis pour `pg_upgrade --link`. L'image `postgis/postgis:18-3.6` est Debian-based mais fournit PostGIS, pg_trgm, unaccent, pgcrypto, uuid-ossp.  |
+| Redis **8.6.3** (pin patch)            | Pin sur la patch la plus récente (2026-05) pour reproductibilité ; le tag flottant `8.6-alpine` est OK en dev mais glisse à chaque release patch — à éviter en CI/prod.                                                      |
+| Elasticsearch **9.4.1** / Kibana 9.4.1 | ES 9.4.1 est la dernière stable (release 2026-05-12). Kibana **doit** suivre la même `major.minor` qu'Elasticsearch.                                                                                                         |
+| Keycloak **26.6.2**                    | Dernière patch de la branche 26.6 (Workflows, JWT Authorization Grant, Zero-downtime patch promus de preview à GA). Pas de breaking change vs 26.5 pour notre setup `start-dev` + `KC_DB=postgres` + `KC_BOOTSTRAP_ADMIN_*`. |
+| Vault **2.0.1** (saut majeur)          | Sortie le 2026-05-19. Seule breaking change container : `IPC_LOCK` posé à la build → le runtime doit toujours `cap_add: [IPC_LOCK]` (déjà fait). Dev mode, `VAULT_DEV_*` et listener HTTP inchangés.                         |
+| MinIO **2025-10-15** (pinné)           | Repo amont archivé (avril 2026). Pin sur la dernière release officielle — à migrer (Chainguard / Garage / RustFS) avant la prochaine CVE bloquante.                                                                          |
+| Images **Alpine** quand disponibles    | Les images Alpine sont 3 à 5× plus petites que Debian/Ubuntu. Exception : Postgres+PostGIS — l'Alpine officielle ne fournit pas PostGIS, on garde le Debian.                                                                 |
 
 ---
 
@@ -569,7 +583,7 @@ message dans RabbitMQ.
 ```yaml
 rabbitmq:
   # Image avec plugin management (interface web d'administration)
-  image: rabbitmq:4-management-alpine
+  image: rabbitmq:4.2.4-management-alpine
   container_name: nina-rabbitmq
   restart: unless-stopped
 
@@ -776,7 +790,7 @@ système.
 
 ```yaml
 keycloak:
-  image: quay.io/keycloak/keycloak:26.1
+  image: quay.io/keycloak/keycloak:26.6.2
   container_name: nina-keycloak
   restart: unless-stopped
 
@@ -854,7 +868,7 @@ mode « dev-server » (données en mémoire, non chiffrées).
 
 ```yaml
 vault:
-  image: hashicorp/vault:1.18
+  image: hashicorp/vault:2.0.1 # saut majeur 1.x → 2.x (release 2026-05-19)
   container_name: nina-vault
   restart: unless-stopped
 
@@ -868,7 +882,9 @@ vault:
     VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
 
   # IPC_LOCK empêche le swap de la mémoire du processus Vault
-  # (les secrets ne doivent jamais se retrouver sur disque via le swap)
+  # (les secrets ne doivent jamais se retrouver sur disque via le swap).
+  # Avec Vault 2.0 la capacité est posée à la build mais reste OBLIGATOIRE
+  # au runtime — sans cap_add, le binaire échouera à mlock().
   cap_add:
     - IPC_LOCK
 
@@ -1075,7 +1091,7 @@ Les autres services n'ont pas de dépendance inter-conteneurs.
 | Docker est très lent sous Windows                                                               | Docker Desktop utilise trop/pas assez de RAM                        | Paramètres Docker Desktop → Resources → augmenter à 4 Go RAM minimum, 4 CPUs.                                                                                                                                      |
 | `init-db.sql` ne s'exécute pas                                                                  | Le volume `postgres_data` existe déjà                               | Le script ne s'exécute qu'au premier démarrage. Supprimer le volume : `docker volume rm nina-aes-platform_postgres_data` puis relancer.                                                                            |
 | Espace disque Docker plein                                                                      | Images et volumes non utilisés                                      | `docker system prune -a --volumes` (⚠️ supprime tout ce qui n'est pas utilisé).                                                                                                                                    |
-| RabbitMQ management UI inaccessible                                                             | Plugin management pas activé                                        | L'image `rabbitmq:4-management-alpine` inclut le plugin. Si version sans `-management`, le port 15672 ne fonctionne pas.                                                                                           |
+| RabbitMQ management UI inaccessible                                                             | Plugin management pas activé                                        | L'image `rabbitmq:4.2.4-management-alpine` inclut le plugin. Si version sans `-management`, le port 15672 ne fonctionne pas.                                                                                       |
 
 ### 9.2 Commandes de diagnostic avancées
 

@@ -20,16 +20,19 @@
 #   docker compose -f docker-compose.dev.yml down
 #   docker compose -f docker-compose.dev.yml logs -f postgres
 #
-# Services inclus :
-#   - PostgreSQL 18 + PostGIS (5432) — Base principale (+ géographie)
-#   - Redis 8.6 (6379) — Cache et sessions (AOF activé)
-#   - RabbitMQ 4.2-management (5672 / 15672) — Message broker
-#   - Elasticsearch 9.3.2 (9200) — Recherche floue
-#   - Kibana 9.3.2 (5601) — Console visualisation ES
+# Services inclus (versions au 2026-05-23) :
+#   - PostgreSQL 18 + PostGIS 3.6 (5432) — Base principale (+ géographie)
+#   - Redis 8.6.3 (6379) — Cache et sessions (AOF activé)
+#   - RabbitMQ 4.2.4-management (5672 / 15672) — Message broker
+#   - Elasticsearch 9.4.1 (9200) — Recherche floue
+#   - Kibana 9.4.1 (5601) — Console visualisation ES
 #   - MinIO + minio-init (9000 / 9001) — Stockage objet + bucket auto-créé
-#   - Keycloak 26.5 (8080) — Authentification IAM
-#   - Vault 1.20 (8200) — Secrets (mode dev)
-#   - Maildev (1080 / 1025) — SMTP de test
+#     ⚠️ Repo minio/minio archivé avril 2026 — pinné sur la dernière release
+#     officielle (RELEASE.2025-09-07T16-13-09Z) ; migration à planifier (Garage,
+#     RustFS, Chainguard) avant la prochaine CVE bloquante.
+#   - Keycloak 26.6.2 (8080) — Authentification IAM
+#   - Vault 2.0.1 (8200) — Secrets (mode dev) — saut majeur 1.x → 2.x (mai 2026)
+#   - Maildev 2.2.1 (1080 / 1025) — SMTP de test
 # ═══════════════════════════════════════════════════════════════
 
 name: nina-aes-dev
@@ -86,7 +89,9 @@ services:
   # Stocke : sessions Keycloak, sessions USSD (TTL 5 min),
   # cache des recherches fréquentes, rate limiting
   redis:
-    image: redis:8.6-alpine
+    # Pinné sur 8.6.3 (dernière patch stable au 2026-05-23) pour reproductibilité
+    # entre dev / CI / prod. Le tag flottant `8.6-alpine` glisse à chaque patch.
+    image: redis:8.6.3-alpine
     container_name: nina-redis
     restart: unless-stopped
     ports:
@@ -120,7 +125,8 @@ services:
   # Exemples : identity-service publie un evenement "nina.created",
   # audit-service et notification-service s'y abonnent.
   rabbitmq:
-    image: rabbitmq:4.2-management-alpine
+    # Pinné sur 4.2.4 (release du 2026-02-27) pour reproductibilité dev/CI/prod.
+    image: rabbitmq:4.2.4-management-alpine
     container_name: nina-rabbitmq
     restart: unless-stopped
     ports:
@@ -152,7 +158,12 @@ services:
   # Stocke les photos d'identite, les documents scannes,
   # les PDF de Fiches Descriptives generees.
   minio:
-    # Image officielle MinIO (bitnami/minio:latest n'existe plus sur Docker Hub).
+    # ⚠️ minio/minio archivé le 2026-04-25 — plus de nouvelles images après le
+    # 2025-10-23. On pinne sur la DERNIÈRE release officielle disponible
+    # (RELEASE.2025-09-07T16-13-09Z) jusqu'à migration vers une alternative
+    # maintenue (Chainguard cgr.dev/chainguard/minio, ou fork pgsty/minio,
+    # ou successeur S3-compatible : Garage / RustFS / SeaweedFS).
+    # Voir docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md §"MinIO — fin de support".
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: nina-minio
     restart: unless-stopped
@@ -179,16 +190,16 @@ services:
       - nina-network
 
   # ──────────────────────────────────────────────────────────────
-  # Elasticsearch 8 — Recherche floue sur les noms NINA
+  # Elasticsearch 9.4 — Recherche floue sur les noms NINA
   # ──────────────────────────────────────────────────────────────
   # Permet de :
   # - Chercher "Mamadu" et trouver "Mamadou" (fuzzy matching)
   # - Chercher par phonétique (Soundex/Metaphone) pour les noms bambara
   # - Autocomplétion dans les formulaires de recherche NINA
   # - Indexer les 20M+ enregistrements pour des réponses < 100ms
-  # (8.x car 9.x pas encore en image Docker stable en avril 2026)
+  # Pinné sur 9.4.1 (release du 2026-05-12). Kibana doit suivre la même version.
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.1
     container_name: nina-elasticsearch
     restart: unless-stopped
     ports:
@@ -229,13 +240,14 @@ services:
       - nina-network
 
   # ──────────────────────────────────────────────────────────────
-  # Kibana 9.3.2 — Console de visualisation Elasticsearch
+  # Kibana 9.4.1 — Console de visualisation Elasticsearch
   # ──────────────────────────────────────────────────────────────
   # Interface web pour explorer les index ES en dev : visualiser les
   # documents NINA indexés, debug des requêtes fuzzy, monitoring du
   # cluster. Non requis en production (alerting via Grafana).
+  # ⚠️ Kibana et Elasticsearch DOIVENT partager la même version majeure.minor.
   kibana:
-    image: docker.elastic.co/kibana/kibana:9.3.2
+    image: docker.elastic.co/kibana/kibana:9.4.1
     container_name: nina-kibana
     restart: unless-stopped
     ports:
@@ -279,12 +291,13 @@ services:
   # Évite l'étape manuelle « créer le bucket via la console » au premier boot.
   minio-init:
     # `minio/mc` (client CLI) suit un calendrier de release indépendant de
-    # `minio/minio` (serveur). Le tag `RELEASE.YYYY-MM-DDTHH-MM-SSZ` du
-    # serveur n'existe donc PAS sur le client. Pour un job one-shot dev
-    # qui s'exécute uniquement au bootstrap, `latest` est acceptable :
-    # drift entre pulls = bug du bucket init seulement, pas d'impact runtime.
-    # À épingler sur une release `mc` précise pour CI/prod via .env si requis.
-    image: minio/mc:latest
+    # `minio/minio` (serveur) — la dernière mc disponible est antérieure à la
+    # dernière release serveur. Avec l'archivage du repo MinIO (avril 2026),
+    # le tag `latest` est figé et ne reçoit plus de mises à jour — autant
+    # pinner explicitement la dernière release mc officielle pour rendre le
+    # bootstrap reproductible (et éviter qu'un pull futur tire une image
+    # ré-uploadée par un tiers).
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     container_name: nina-minio-init
     depends_on:
       minio:
@@ -305,7 +318,7 @@ services:
     restart: 'no'
 
   # ──────────────────────────────────────────────────────────────
-  # Keycloak 26.5 — Serveur d'identité (OAuth2 / OIDC / RBAC)
+  # Keycloak 26.6.2 — Serveur d'identité (OAuth2 / OIDC / RBAC)
   # ──────────────────────────────────────────────────────────────
   # Centralise l'authentification de TOUS les acteurs du système :
   # - 6 rôles : citoyen, agent, superviseur, admin, auditeur, inspecteur
@@ -317,7 +330,7 @@ services:
   # citoyen, agent, superviseur, administrateur, auditeur,
   # inspecteur anti-corruption.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5
+    image: quay.io/keycloak/keycloak:26.6.2
     container_name: nina-keycloak
     restart: unless-stopped
     ports:
@@ -327,18 +340,14 @@ services:
       KC_DB: ${KC_DB:-postgres}
       KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres:5432/keycloak}
       KC_DB_USERNAME: ${KC_DB_USERNAME:-${POSTGRES_USER:-nina_admin}}
-      KC_DB_PASSWORD:
-        ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-nina_dev_2026!}}
-        # Mode développement (HTTP, pas de certificat TLS requis)
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-nina_dev_2026!}}
+      # Mode développement (HTTP, pas de certificat TLS requis)
       KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
       KC_HOSTNAME_STRICT: 'false'
-      # KC_HTTP_ENABLED: "true"
       KC_HTTP_ENABLED: ${KC_HTTP_ENABLED:-true}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-${KEYCLOAK_ADMIN:-admin}}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-${KEYCLOAK_ADMIN_PASSWORD:-keycloak_admin_2026!}}
       KC_HEALTH_ENABLED: 'true'
-      # KEYCLOAK_ADMIN: admin
-      # KEYCLOAK_ADMIN_PASSWORD: admin_dev
       KC_PROXY_HEADERS: xforwarded
       # Cache distribué désactivé en dev (single node)
       KC_CACHE: local
@@ -360,10 +369,14 @@ services:
     networks:
       - nina-network
 
-  # ── HashiCorp Vault — Gestion centralisée des secrets ──
+  # ── HashiCorp Vault 2.0.1 — Gestion centralisée des secrets ──
   vault:
-    # Vault n'a pas de version 2.x — la dernière stable mai 2026 est 1.20.
-    image: hashicorp/vault:1.20
+    # Saut majeur 1.x → 2.x publié le 2026-05-19. Seule breaking change pour les
+    # conteneurs : la capacité IPC_LOCK est désormais posée sur le binaire à la
+    # build, donc le runtime DOIT toujours l'ajouter (cf. `cap_add` ci-dessous —
+    # déjà en place). Le mode `start-dev`, les variables `VAULT_DEV_*` et le
+    # listener HTTP sur 8200 sont inchangés.
+    image: hashicorp/vault:2.0.1
     container_name: nina-vault
     restart: unless-stopped
     ports:
@@ -390,7 +403,8 @@ services:
   # Interface web : http://localhost:1080
   # Port SMTP : 1025
   maildev:
-    image: maildev/maildev:latest
+    # Pinné sur 2.2.1 (dernière stable au 2026-05-23) — `latest` non reproductible.
+    image: maildev/maildev:2.2.1
     container_name: nina-maildev
     restart: unless-stopped
     ports:

@@ -1337,16 +1337,17 @@ async def health_check():
 Le fichier `docker-compose.dev.yml` lance toute l'infrastructure nécessaire **sauf** les
 microservices eux-mêmes (qui tournent en local pour le hot-reload).
 
-| Conteneur         | Image                          | Port(s)     | Healthcheck                 | Volume             |
-| ----------------- | ------------------------------ | ----------- | --------------------------- | ------------------ |
-| **postgres**      | `postgres:17-alpine`           | 5432        | `pg_isready`                | `postgres_data`    |
-| **redis**         | `redis:7-alpine`               | 6379        | `redis-cli ping`            | `redis_data`       |
-| **rabbitmq**      | `rabbitmq:4-management-alpine` | 5672, 15672 | `rabbitmq-diagnostics ping` | `rabbitmq_data`    |
-| **minio**         | `minio/minio:latest`           | 9000, 9001  | `mc ready local`            | `minio_data`       |
-| **elasticsearch** | `elasticsearch:8.17.0`         | 9200        | `curl cluster/health`       | `es_data`          |
-| **keycloak**      | `keycloak:26.1`                | 8080        | TCP health `/health/ready`  | — (via PostgreSQL) |
-| **vault**         | `vault:1.18`                   | 8200        | `vault status`              | — (mode dev)       |
-| **maildev**       | `maildev:2.2.1`                | 1080, 1025  | —                           | —                  |
+| Conteneur         | Image                                                 | Port(s)     | Healthcheck                          | Volume                    |
+| ----------------- | ----------------------------------------------------- | ----------- | ------------------------------------ | ------------------------- |
+| **postgres**      | `postgis/postgis:18-3.6`                              | 5432        | `pg_isready`                         | `nina-postgres-data`      |
+| **redis**         | `redis:8.6.3-alpine`                                  | 6379        | `redis-cli ping`                     | `nina-redis-data`         |
+| **rabbitmq**      | `rabbitmq:4.2.4-management-alpine`                    | 5672, 15672 | `rabbitmq-diagnostics check_running` | `nina-rabbitmq-data`      |
+| **minio** ⚠️      | `minio/minio:RELEASE.2025-09-07T16-13-09Z`            | 9000, 9001  | `curl /minio/health/live`            | `nina-minio-data`         |
+| **elasticsearch** | `docker.elastic.co/elasticsearch/elasticsearch:9.4.1` | 9200        | `curl cluster/health` (auth)         | `nina-elasticsearch-data` |
+| **kibana**        | `docker.elastic.co/kibana/kibana:9.4.1`               | 5601        | `curl /api/status`                   | —                         |
+| **keycloak**      | `quay.io/keycloak/keycloak:26.6.2`                    | 8080        | TCP `:9000/health/ready`             | — (via PostgreSQL)        |
+| **vault**         | `hashicorp/vault:2.0.1`                               | 8200        | `VAULT_ADDR=http://… vault status`   | — (mode dev)              |
+| **maildev**       | `maildev/maildev:2.2.1`                               | 1080, 1025  | `wget /healthz`                      | —                         |
 
 **Commandes essentielles** :
 

@@ -3,7 +3,7 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 1ᵉʳ mai 2026
+> **Dernière mise à jour** : 2026-05-23
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
@@ -22,6 +22,41 @@ la commande / au fichier qui matérialise la décision.
 | Compose & .env               | implicite                                     | **`docker compose --env-file .env -f …`** (script `docker:up` mis à jour)    |
 | Vitest (`packages/database`) | `^2.2.0`                                      | **`^4.1.5`** (la 2.2 n'existait pas)                                         |
 | TypeScript root tsconfig     | `moduleResolution: node`, `baseUrl`           | **`NodeNext`**, `baseUrl` retiré, placeholder `scripts/typecheck.ts`         |
+
+### 1.1 Bump 2026-05-23 — Images Docker infrastructure
+
+Mise à jour groupée des images Docker dans `infrastructure/docker/docker-compose.dev.yml`, propagée
+à `.github/workflows/ci.yml`, `infrastructure/k8s/cronjobs/vault-rotation.yaml`, `docs/02`,
+`docs/05`, `docs/08` et aux diagrammes (`docs/diagrams/99-DIAGRAMMES-*.md`).
+
+| Image               | Avant                                  | **Après**                                     | Raison                                                                                                                                                         |
+| ------------------- | -------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `redis`             | `8.6-alpine` (tag flottant)            | **`8.6.3-alpine`**                            | Pin patch pour reproductibilité dev / CI / prod                                                                                                                |
+| `rabbitmq`          | `4.2-management-alpine` (tag flottant) | **`4.2.4-management-alpine`**                 | Pin patch (release 2026-02-27)                                                                                                                                 |
+| `elasticsearch`     | `9.3.2`                                | **`9.4.1`**                                   | Latest stable (release 2026-05-12)                                                                                                                             |
+| `kibana`            | `9.3.2`                                | **`9.4.1`**                                   | Doit suivre la même `major.minor` qu'Elasticsearch                                                                                                             |
+| `minio/minio`       | `RELEASE.2025-09-07T16-13-09Z` (déjà)  | **`RELEASE.2025-09-07T16-13-09Z`** (inchangé) | ⚠️ Repo amont archivé 2026-04-25 — c'est déjà la **dernière image** publiée sur Docker Hub ; aucune release ultérieure ne sera poussée (migration à planifier) |
+| `minio/mc`          | `latest`                               | **`RELEASE.2025-08-13T08-35-41Z`**            | `latest` non reproductible + repo archivé ; mc a son propre calendrier (antérieur au serveur)                                                                  |
+| `keycloak/keycloak` | `26.5`                                 | **`26.6.2`**                                  | Latest stable, pas de breaking change vs 26.5 pour `start-dev` + `KC_DB=postgres`                                                                              |
+| `hashicorp/vault`   | `1.20`                                 | **`2.0.1`**                                   | Saut majeur 1.x → 2.x (release 2026-05-19). `cap_add: [IPC_LOCK]` toujours requis (déjà en place)                                                              |
+| `maildev/maildev`   | `latest`                               | **`2.2.1`**                                   | `latest` non reproductible                                                                                                                                     |
+
+Corrections supplémentaires appliquées dans `docker-compose.dev.yml` (et docs/02) :
+
+- `KC_DB_PASSWORD` éclaté sur 2 lignes avec un commentaire orphelin → remis sur une seule ligne,
+  commentaire « Mode développement (HTTP…) » déplacé au-dessus de `KC_HOSTNAME` auquel il
+  s'appliquait. **Pourquoi** : YAML acceptait le scalaire wrappé, mais c'était fragile (un futur
+  parseur ou linter strict aurait pu y voir la valeur `${…} # Mode développement…`).
+- Lignes mortes `# KC_HTTP_ENABLED:` et `# KEYCLOAK_ADMIN[_PASSWORD]:` supprimées (doublons
+  commentés des envs actifs juste au-dessus).
+- Commentaires d'en-tête « Elasticsearch 8 » / « 9.x pas encore en image Docker stable en avril 2026
+  » mis à jour pour refléter la 9.4.1 réellement utilisée.
+- Healthcheck Keycloak de docs/02 corrigé sur le port management 9000 (et non 8080) — KC 25+
+  n'expose plus `/health/*` sur le port API.
+- Healthcheck RabbitMQ de docs/02 corrigé (`check_running` seul ; `ping check_running` mélangeait
+  deux sous-commandes — déjà documenté dans le bandeau de docs/05).
+- Healthcheck Vault de docs/02 préfixé par `VAULT_ADDR=http://127.0.0.1:8200` (sans ça,
+  `vault status` parle HTTPS en mode dev).
 
 ## 2. Packages monorepo — état effectif
 
@@ -868,8 +903,8 @@ décisions infra (cf. §9.5) qui seront corrigées lors de l'implémentation eff
 | Composant CI actuel             | Décision projet (§9.5)              | Action       |
 | ------------------------------- | ----------------------------------- | ------------ |
 | `postgres:16-alpine`            | `postgis/postgis:18-3.6`            | À corriger   |
-| `redis:7-alpine`                | `redis:8.6-alpine`                  | À corriger   |
-| `rabbitmq:3.13-alpine`          | `rabbitmq:4.2-management-alpine`    | À corriger   |
+| `redis:7-alpine`                | `redis:8.6.3-alpine`                | À corriger   |
+| `rabbitmq:3.13-alpine`          | `rabbitmq:4.2.4-management-alpine`  | À corriger   |
 | `PYTHON_VERSION: "3.12"`        | Python 3.14                         | À corriger   |
 | `POSTGRES_USER: nina_user`      | `nina_admin` (cf. `init-db.sql`)    | À corriger   |
 | `pnpm db:push`                  | `prisma migrate deploy` (canonique) | À corriger   |
@@ -1592,8 +1627,8 @@ Première **implémentation YAML** de la spec CI/CD documentée doc 16
 ### 27.2 ci.yml — 7 jobs parallèles
 
 1. **`lint`** — ESLint + Prettier + Typecheck + `verify:repo` (10 min)
-2. **`test-backend`** — Jest + services `postgis/postgis:18-3.6`, `redis:8.6-alpine`,
-   `rabbitmq:4.2-management-alpine` (15 min)
+2. **`test-backend`** — Jest + services `postgis/postgis:18-3.6`, `redis:8.6.3-alpine`,
+   `rabbitmq:4.2.4-management-alpine` (15 min)
 3. **`test-ai`** — Pytest matrix [ai-service, anticorruption-service], Python 3.14 (10 min)
 4. **`test-frontend`** — Jest + RTL sur citizen + admin + governance + packages/ui (12 min)
 5. **`test-e2e`** — Playwright mock auth, cache browsers, build citizen
@@ -1624,8 +1659,8 @@ Couverture équivalente, 0 dépendance SaaS US, 0 coût.
 |   # | Avant                                | Après                                             |
 | --: | ------------------------------------ | ------------------------------------------------- |
 |   1 | `postgres:16-alpine`                 | `postgis/postgis:18-3.6`                          |
-|   2 | `redis:7-alpine`                     | `redis:8.6-alpine`                                |
-|   3 | `rabbitmq:3.13-alpine`               | `rabbitmq:4.2-management-alpine`                  |
+|   2 | `redis:7-alpine`                     | `redis:8.6.3-alpine`                              |
+|   3 | `rabbitmq:3.13-alpine`               | `rabbitmq:4.2.4-management-alpine`                |
 |   4 | `PYTHON_VERSION: "3.12"`             | Python 3.14                                       |
 |   5 | `POSTGRES_USER: nina_user`           | `nina_admin` (aligné `init-db.sql`)               |
 |   6 | `pnpm db:push`                       | `prisma migrate deploy`                           |

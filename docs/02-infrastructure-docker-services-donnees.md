@@ -760,7 +760,7 @@ services:
   # Stocke : sessions Keycloak, sessions USSD (TTL 5 min),
   # cache des recherches fréquentes, rate limiting
   redis:
-    image: redis:8.4.2-alpine3.22
+    image: redis:8.6.3-alpine
     container_name: nina-redis
     restart: unless-stopped
     ports:
@@ -791,7 +791,7 @@ services:
   # Exemples : identity-service publie un evenement "nina.created",
   # audit-service et notification-service s'y abonnent.
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq:4.2.4-management-alpine
     container_name: nina-rabbitmq
     restart: unless-stopped
     ports:
@@ -809,7 +809,7 @@ services:
       - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     healthcheck:
-      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping', 'check_running']
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'check_running']
       interval: 15s
       timeout: 10s
       retries: 5
@@ -823,7 +823,7 @@ services:
   # Stocke les photos d'identite, les documents scannes,
   # les PDF de Fiches Descriptives generees.
   minio:
-    # Image officielle MinIO (bitnami/minio:latest n'existe plus sur Docker Hub).
+    # ⚠️ minio/minio archivé 2026-04-25 — pin sur dernière release officielle.
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: nina-minio
     restart: unless-stopped
@@ -850,16 +850,15 @@ services:
       - nina-network
 
   # ──────────────────────────────────────────────────────────────
-  # Elasticsearch 8 — Recherche floue sur les noms NINA
+  # Elasticsearch 9.4 — Recherche floue sur les noms NINA
   # ──────────────────────────────────────────────────────────────
   # Permet de :
   # - Chercher "Mamadu" et trouver "Mamadou" (fuzzy matching)
   # - Chercher par phonétique (Soundex/Metaphone) pour les noms bambara
   # - Autocomplétion dans les formulaires de recherche NINA
   # - Indexer les 20M+ enregistrements pour des réponses < 100ms
-  # (8.x car 9.x pas encore en image Docker stable en avril 2026)
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.1
     container_name: nina-elasticsearch
     restart: unless-stopped
     ports:
@@ -902,7 +901,7 @@ services:
       - nina-network
 
   # ──────────────────────────────────────────────────────────────
-  # Keycloak 26.5 — Serveur d'identité (OAuth2 / OIDC / RBAC)
+  # Keycloak 26.6.2 — Serveur d'identité (OAuth2 / OIDC / RBAC)
   # ──────────────────────────────────────────────────────────────
   # Centralise l'authentification de TOUS les acteurs du système :
   # - 6 rôles : citoyen, agent, superviseur, admin, auditeur, inspecteur
@@ -914,7 +913,7 @@ services:
   # citoyen, agent, superviseur, administrateur, auditeur,
   # inspecteur anti-corruption.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.2.4
+    image: quay.io/keycloak/keycloak:26.6.2
     container_name: nina-keycloak
     restart: unless-stopped
     ports:
@@ -924,18 +923,14 @@ services:
       KC_DB: ${KC_DB:-postgres}
       KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres:5432/keycloak}
       KC_DB_USERNAME: ${KC_DB_USERNAME:-${POSTGRES_USER:-nina_admin}}
-      KC_DB_PASSWORD:
-        ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-nina_dev_2026!}}
-        # Mode développement (HTTP, pas de certificat TLS requis)
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-${POSTGRES_PASSWORD:-nina_dev_2026!}}
+      # Mode développement (HTTP, pas de certificat TLS requis)
       KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
       KC_HOSTNAME_STRICT: 'false'
-      # KC_HTTP_ENABLED: "true"
       KC_HTTP_ENABLED: ${KC_HTTP_ENABLED:-true}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-${KEYCLOAK_ADMIN:-admin}}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-${KEYCLOAK_ADMIN_PASSWORD:-keycloak_admin_2026!}}
       KC_HEALTH_ENABLED: 'true'
-      # KEYCLOAK_ADMIN: admin
-      # KEYCLOAK_ADMIN_PASSWORD: admin_dev
       KC_PROXY_HEADERS: xforwarded
       # Cache distribué désactivé en dev (single node)
       KC_CACHE: local
@@ -945,10 +940,12 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
+      # Port management 9000 (et non l'API 8080) — depuis Keycloak 25 les
+      # endpoints /health/* ne sont plus exposés sur le port API.
       test:
         [
           'CMD-SHELL',
-          "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost:
+          "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost:
           localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'",
         ]
       interval: 20s
@@ -958,9 +955,9 @@ services:
     networks:
       - nina-network
 
-  # ── HashiCorp Vault — Gestion centralisée des secrets ──
+  # ── HashiCorp Vault 2.0.1 — Gestion centralisée des secrets ──
   vault:
-    image: hashicorp/vault:2.0
+    image: hashicorp/vault:2.0.1
     container_name: nina-vault
     restart: unless-stopped
     ports:
@@ -971,7 +968,8 @@ services:
     cap_add:
       - IPC_LOCK
     healthcheck:
-      test: ['CMD', 'vault', 'status']
+      # VAULT_ADDR doit pointer en HTTP (start-dev) sinon `vault status` parle HTTPS.
+      test: ['CMD-SHELL', 'VAULT_ADDR=http://127.0.0.1:8200 vault status']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -985,7 +983,7 @@ services:
   # Interface web : http://localhost:1080
   # Port SMTP : 1025
   maildev:
-    image: maildev/maildev:latest
+    image: maildev/maildev:2.2.1
     container_name: nina-maildev
     restart: unless-stopped
     ports:

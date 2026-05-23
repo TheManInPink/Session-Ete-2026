@@ -288,7 +288,7 @@ jobs:
           --health-timeout 5s --health-retries 10
 
       redis:
-        image: redis:8.6-alpine
+        image: redis:8.6.3-alpine
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5

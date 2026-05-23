@@ -651,12 +651,12 @@ cluster --> monitor
 node "Machine dev Windows/Mac/Linux" as laptop {
   node "docker-compose.dev.yml" as dc {
     database "postgres:18 :5432" as pg
-    database "redis:8.6 :6379" as rds
-    database "elasticsearch:9.3 :9200" as els
+    database "redis:8.6.3 :6379" as rds
+    database "elasticsearch:9.4.1 :9200" as els
     database "minio :9000" as minio
-    queue "rabbitmq:4.2 :5672" as mq
-    component "keycloak:26.5 :8080" as kc
-    component "vault :8200" as vlt
+    queue "rabbitmq:4.2.4 :5672" as mq
+    component "keycloak:26.6.2 :8080" as kc
+    component "vault:2.0.1 :8200" as vlt
     component "tempo :3200" as tempo
     component "grafana :3000" as graf
   }
