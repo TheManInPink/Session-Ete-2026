@@ -20,7 +20,6 @@ import { Button } from '@nina-aes/ui/components/button';
 import { Input } from '@nina-aes/ui/components/input';
 import { Label } from '@nina-aes/ui/components/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
-import { Badge } from '@nina-aes/ui/components/badge';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
 import { Check, ChevronLeft, ChevronRight, Send, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
@@ -68,12 +67,16 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
   const [isSubmitting, startTransition] = useTransition();
 
   const setField = (field: CorrectionField) => setState((s) => ({ ...s, field }));
-  const next = () => setState((s) => ({ ...s, step: (Math.min(4, s.step + 1) as WizardState['step']) }));
-  const prev = () => setState((s) => ({ ...s, step: (Math.max(1, s.step - 1) as WizardState['step']) }));
+  const next = () =>
+    setState((s) => ({ ...s, step: Math.min(4, s.step + 1) as WizardState['step'] }));
+  const prev = () =>
+    setState((s) => ({ ...s, step: Math.max(1, s.step - 1) as WizardState['step'] }));
 
   const canContinue =
     (state.step === 1 && state.field !== null) ||
-    (state.step === 2 && state.proposedValue.trim().length > 0 && state.reason.trim().length >= 10) ||
+    (state.step === 2 &&
+      state.proposedValue.trim().length > 0 &&
+      state.reason.trim().length >= 10) ||
     state.step === 3 ||
     state.step === 4;
 
@@ -239,7 +242,12 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
         )}
 
         <CardFooter className="justify-between border-t pt-4">
-          <Button type="button" variant="ghost" onClick={prev} disabled={state.step === 1 || isSubmitting}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={prev}
+            disabled={state.step === 1 || isSubmitting}
+          >
             <ChevronLeft className="size-4" aria-hidden="true" />
             {t('nav.previous')}
           </Button>

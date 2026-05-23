@@ -10,7 +10,6 @@
 import { useFormatter } from 'next-intl';
 import { useTranslations } from 'next-intl';
 import {
-  AlertCircle,
   Check,
   FileCheck,
   FileQuestion,
@@ -76,12 +75,12 @@ export function CorrectionTimeline({ events }: { events: CorrectionTimelineEvent
             <div className="text-sm">
               <p className="font-medium">
                 {t(LABEL_KEYS[event.kind])}
-                {event.actor && <span className="ml-1 font-normal text-fg-muted">· {event.actor}</span>}
+                {event.actor && (
+                  <span className="ml-1 font-normal text-fg-muted">· {event.actor}</span>
+                )}
               </p>
               <p className="text-xs text-fg-muted">
-                <time dateTime={event.at}>
-                  {format.dateTime(new Date(event.at), 'full')}
-                </time>
+                <time dateTime={event.at}>{format.dateTime(new Date(event.at), 'full')}</time>
                 {event.note && <span className="ml-1 italic">— {event.note}</span>}
               </p>
             </div>

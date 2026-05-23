@@ -58,7 +58,7 @@ export default async function CitizenPage({ params }: PageProps) {
       <Alert variant="warning" className="mb-6">
         <AlertTitle>Mode démonstration</AlertTitle>
         <AlertDescription>
-          Le backend identity-service n'est pas encore connecté (cf. doc 07). Les données
+          Le backend identity-service n&apos;est pas encore connecté (cf. doc 07). Les données
           affichées ci-dessous sont dérivées du NINA lui-même (structure interne).
         </AlertDescription>
       </Alert>

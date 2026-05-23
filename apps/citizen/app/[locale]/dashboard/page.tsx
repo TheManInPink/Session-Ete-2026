@@ -14,9 +14,8 @@ import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '../../../lib/auth/session';
-import { Card, CardContent, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
+import { Card, CardContent } from '@nina-aes/ui/components/card';
 import { Badge } from '@nina-aes/ui/components/badge';
-import { Button } from '@nina-aes/ui/components/button';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
 import { FileText, Calendar, ArrowRight, CheckCircle2 } from 'lucide-react';
 
@@ -37,11 +36,31 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
 
   // ── Données mockées (à remplacer par api.correction.list + api.appointment.listMine)
   const corrections = [
-    { id: 'corr-1', field: 'birthPlace', proposed: 'Sikasso', status: 'UNDER_REVIEW', createdAt: '2026-05-10', aiScore: 87 },
-    { id: 'corr-2', field: 'profession', proposed: 'Couturière', status: 'APPROVED', createdAt: '2026-04-22', aiScore: 95 },
+    {
+      id: 'corr-1',
+      field: 'birthPlace',
+      proposed: 'Sikasso',
+      status: 'UNDER_REVIEW',
+      createdAt: '2026-05-10',
+      aiScore: 87,
+    },
+    {
+      id: 'corr-2',
+      field: 'profession',
+      proposed: 'Couturière',
+      status: 'APPROVED',
+      createdAt: '2026-04-22',
+      aiScore: 95,
+    },
   ];
   const appointments = [
-    { id: 'appt-1', centerName: 'CTDEC Bamako', scheduledAt: '2026-05-20T09:00:00Z', priority: 'P3', status: 'SCHEDULED' },
+    {
+      id: 'appt-1',
+      centerName: 'CTDEC Bamako',
+      scheduledAt: '2026-05-20T09:00:00Z',
+      priority: 'P3',
+      status: 'SCHEDULED',
+    },
   ];
 
   return (
@@ -56,7 +75,9 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
       {(submitted || appointment) && (
         <Alert className="mb-6 border-success bg-success-50">
           <CheckCircle2 className="size-4 text-success-700" aria-hidden="true" />
-          <AlertTitle>{submitted ? t('toast.correctionTitle') : t('toast.appointmentTitle')}</AlertTitle>
+          <AlertTitle>
+            {submitted ? t('toast.correctionTitle') : t('toast.appointmentTitle')}
+          </AlertTitle>
           <AlertDescription>
             {submitted ? t('toast.correctionBody') : t('toast.appointmentBody')}
           </AlertDescription>
@@ -65,9 +86,21 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
 
       {/* Actions rapides */}
       <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <ActionCard href={`/${locale}/nina/${session.user.nina ?? ''}`} icon={FileText} label={t('actions.viewFile')} />
-        <ActionCard href={`/${locale}/nina/${session.user.nina ?? ''}/correction`} icon={FileText} label={t('actions.requestCorrection')} />
-        <ActionCard href={`/${locale}/appointments/new`} icon={Calendar} label={t('actions.bookAppointment')} />
+        <ActionCard
+          href={`/${locale}/nina/${session.user.nina ?? ''}`}
+          icon={FileText}
+          label={t('actions.viewFile')}
+        />
+        <ActionCard
+          href={`/${locale}/nina/${session.user.nina ?? ''}/correction`}
+          icon={FileText}
+          label={t('actions.requestCorrection')}
+        />
+        <ActionCard
+          href={`/${locale}/appointments/new`}
+          icon={Calendar}
+          label={t('actions.bookAppointment')}
+        />
       </section>
 
       {/* Corrections en cours */}
@@ -119,7 +152,10 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
                     <div>
                       <p className="font-medium">{a.centerName}</p>
                       <p className="text-sm text-fg-muted">
-                        {new Date(a.scheduledAt).toLocaleString(locale, { dateStyle: 'full', timeStyle: 'short' })}
+                        {new Date(a.scheduledAt).toLocaleString(locale, {
+                          dateStyle: 'full',
+                          timeStyle: 'short',
+                        })}
                       </p>
                     </div>
                     <StatusBadge status={a.status} />
@@ -134,7 +170,15 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
   );
 }
 
-function ActionCard({ href, icon: Icon, label }: { href: string; icon: typeof FileText; label: string }) {
+function ActionCard({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string;
+  icon: typeof FileText;
+  label: string;
+}) {
   return (
     <Link
       href={href}

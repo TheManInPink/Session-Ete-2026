@@ -57,7 +57,10 @@ import { CorrectionDrawer } from './correction-drawer';
 import { StatusBadge } from './status-badge';
 
 const STATUS_FILTER: AdminCorrectionStatus[] = [
-  'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'AWAITING_DOCUMENT',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'REJECTED',
+  'AWAITING_DOCUMENT',
 ];
 const REGION_FILTER = ['Bamako', 'Sikasso', 'Kayes', 'Mopti'] as const;
 type RegionFilter = (typeof REGION_FILTER)[number];
@@ -112,9 +115,7 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
       {
         accessorKey: 'nina',
         header: t('columns.nina'),
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs">{getValue<string>()}</span>
-        ),
+        cell: ({ getValue }) => <span className="font-mono text-xs">{getValue<string>()}</span>,
       },
       {
         accessorKey: 'citizenName',
@@ -136,9 +137,7 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
       {
         accessorKey: 'proposedValue',
         header: t('columns.after'),
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs">{getValue<string>()}</span>
-        ),
+        cell: ({ getValue }) => <span className="font-mono text-xs">{getValue<string>()}</span>,
       },
       {
         accessorKey: 'aiScore',
@@ -152,9 +151,7 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
               : verdict === 'MEDIUM'
                 ? 'text-warning-700'
                 : 'text-danger-700';
-          return (
-            <span className={cn('font-mono text-sm font-medium', tone)}>{score}</span>
-          );
+          return <span className={cn('font-mono text-sm font-medium', tone)}>{score}</span>;
         },
       },
       {
@@ -313,7 +310,10 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
       {/* Toolbar : recherche + filtres + actions en lot */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+          <Search
+            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
+            aria-hidden="true"
+          />
           <input
             type="search"
             value={globalFilter}
@@ -424,12 +424,12 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
                             onClick={header.column.getToggleSortingHandler()}
                           >
                             {flexRender(header.column.columnDef.header, header.getContext())}
-                            {({
+                            {{
                               asc: <ArrowUp className="size-3" aria-hidden="true" />,
                               desc: <ArrowDown className="size-3" aria-hidden="true" />,
                             }[header.column.getIsSorted() as string] ?? (
                               <ArrowUpDown className="size-3 opacity-40" aria-hidden="true" />
-                            ))}
+                            )}
                           </button>
                         ) : (
                           // Colonne non-triable (ex: select, actions) → rendu direct
@@ -485,7 +485,8 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-sm">
           <p className="text-xs text-fg-muted">
             {t('pagination.showing', {
-              from: table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1,
+              from:
+                table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1,
               to: Math.min(
                 (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
                 table.getFilteredRowModel().rows.length,

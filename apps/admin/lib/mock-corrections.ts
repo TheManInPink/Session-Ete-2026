@@ -79,31 +79,104 @@ export interface AdminCorrection {
 // ── Générateur déterministe ─────────────────────────────────────────────────
 
 const FIRST_NAMES = [
-  'Fatoumata', 'Modibo', 'Aminata', 'Oumar', 'Mariam', 'Ibrahim', 'Aïcha',
-  'Souleymane', 'Kadiatou', 'Cheickna', 'Hawa', 'Issa', 'Bintou', 'Mamadou',
-  'Coumba', 'Boubacar', 'Salimata', 'Lassine', 'Awa', 'Sékou',
+  'Fatoumata',
+  'Modibo',
+  'Aminata',
+  'Oumar',
+  'Mariam',
+  'Ibrahim',
+  'Aïcha',
+  'Souleymane',
+  'Kadiatou',
+  'Cheickna',
+  'Hawa',
+  'Issa',
+  'Bintou',
+  'Mamadou',
+  'Coumba',
+  'Boubacar',
+  'Salimata',
+  'Lassine',
+  'Awa',
+  'Sékou',
 ];
 const LAST_NAMES = [
-  'Diallo', 'Touré', 'Coulibaly', 'Traoré', 'Keïta', 'Diarra', 'Cissé',
-  'Sangaré', 'Konaté', 'Sissoko', 'Camara', 'Doumbia', 'Maïga', 'Diakité',
-  'Sidibé', 'Tangara', 'Fofana', 'Sylla', 'Bagayoko', 'Dembélé',
+  'Diallo',
+  'Touré',
+  'Coulibaly',
+  'Traoré',
+  'Keïta',
+  'Diarra',
+  'Cissé',
+  'Sangaré',
+  'Konaté',
+  'Sissoko',
+  'Camara',
+  'Doumbia',
+  'Maïga',
+  'Diakité',
+  'Sidibé',
+  'Tangara',
+  'Fofana',
+  'Sylla',
+  'Bagayoko',
+  'Dembélé',
 ];
 
 const FIELDS: CorrectionField[] = [
-  'firstName', 'lastName', 'birthDate', 'birthPlace',
-  'residence_cercle', 'residence_commune', 'fatherName', 'motherName', 'profession',
+  'firstName',
+  'lastName',
+  'birthDate',
+  'birthPlace',
+  'residence_cercle',
+  'residence_commune',
+  'fatherName',
+  'motherName',
+  'profession',
 ];
 
 const FIELD_SAMPLE_CHANGES: Record<CorrectionField, Array<[string, string]>> = {
-  firstName: [['Fatumata', 'Fatoumata'], ['Aminat', 'Aminata'], ['Modibu', 'Modibo']],
-  lastName: [['Toure', 'Touré'], ['Coulibaly', 'Coulibaly'], ['Keita', 'Keïta']],
-  birthDate: [['1995-13-02', '1995-12-02'], ['1988-06-31', '1988-06-30']],
-  birthPlace: [['Bla', 'Blá'], ['Sikaso', 'Sikasso'], ['Mopti', 'Sévaré']],
-  residence_cercle: [['Sikaso', 'Sikasso'], ['Kati', 'Kati'], ['Yorosso', 'Yorosso']],
-  residence_commune: [['Bla', 'Blá'], ['Commune V', 'Commune IV'], ['Sevare', 'Sévaré']],
-  fatherName: [['Oumar TOURE', 'Oumar Touré'], ['Modibo KEITA', 'Modibo Keïta']],
-  motherName: [['Aminata DIARRA', 'Aminata Diarra'], ['Mariam SISOKO', 'Mariam Sissoko']],
-  profession: [['Cultivateur', 'Agriculteur'], ['Commerçante', 'Commerçante détaillante']],
+  firstName: [
+    ['Fatumata', 'Fatoumata'],
+    ['Aminat', 'Aminata'],
+    ['Modibu', 'Modibo'],
+  ],
+  lastName: [
+    ['Toure', 'Touré'],
+    ['Coulibaly', 'Coulibaly'],
+    ['Keita', 'Keïta'],
+  ],
+  birthDate: [
+    ['1995-13-02', '1995-12-02'],
+    ['1988-06-31', '1988-06-30'],
+  ],
+  birthPlace: [
+    ['Bla', 'Blá'],
+    ['Sikaso', 'Sikasso'],
+    ['Mopti', 'Sévaré'],
+  ],
+  residence_cercle: [
+    ['Sikaso', 'Sikasso'],
+    ['Kati', 'Kati'],
+    ['Yorosso', 'Yorosso'],
+  ],
+  residence_commune: [
+    ['Bla', 'Blá'],
+    ['Commune V', 'Commune IV'],
+    ['Sevare', 'Sévaré'],
+  ],
+  fatherName: [
+    ['Oumar TOURE', 'Oumar Touré'],
+    ['Modibo KEITA', 'Modibo Keïta'],
+  ],
+  motherName: [
+    ['Aminata DIARRA', 'Aminata Diarra'],
+    ['Mariam SISOKO', 'Mariam Sissoko'],
+  ],
+  profession: [
+    ['Cultivateur', 'Agriculteur'],
+    ['Commerçante', 'Commerçante détaillante'],
+  ],
 };
 
 const REGIONS: AdminCorrection['region'][] = ['Bamako', 'Sikasso', 'Kayes', 'Mopti'];

@@ -19,7 +19,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'NINA-AES — Console agents CTDEC',
   description:
-    "Console interne des agents CTDEC NINA-AES : validation des corrections IA, dashboard, alertes SIGAC.",
+    'Console interne des agents CTDEC NINA-AES : validation des corrections IA, dashboard, alertes SIGAC.',
   robots: {
     // Console interne — jamais indexée par les moteurs de recherche
     index: false,

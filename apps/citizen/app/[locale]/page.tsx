@@ -34,7 +34,12 @@ function HomeContent({ locale }: { locale: ReturnType<typeof normalizeLocale> })
 
   const actions = [
     { icon: FileSearch, key: 'viewCard', href: 'nina', tone: 'primary' as const },
-    { icon: PencilLine, key: 'requestCorrection', href: 'corrections/new', tone: 'warning' as const },
+    {
+      icon: PencilLine,
+      key: 'requestCorrection',
+      href: 'corrections/new',
+      tone: 'warning' as const,
+    },
     { icon: Calendar, key: 'bookAppointment', href: 'appointments/new', tone: 'success' as const },
     {
       icon: MessageSquareWarning,
@@ -105,11 +110,8 @@ function HomeContent({ locale }: { locale: ReturnType<typeof normalizeLocale> })
       <footer className="border-t border-border bg-bg-muted/40">
         <div className="mx-auto max-w-5xl px-4 py-6 text-sm text-fg-muted sm:px-6 lg:px-8">
           <p>
-            © 2026 NINA-AES · <span className="font-medium">{tCommon('appName')}</span> · CTDEC · DNEC
-            ·{' '}
-            <span className="font-mono text-xs">
-              🇲🇱 🇧🇫 🇳🇪
-            </span>
+            © 2026 NINA-AES · <span className="font-medium">{tCommon('appName')}</span> · CTDEC ·
+            DNEC · <span className="font-mono text-xs">🇲🇱 🇧🇫 🇳🇪</span>
           </p>
         </div>
       </footer>

@@ -27,7 +27,9 @@ export default async function CorrectionPage({ params }: PageProps) {
   }
 
   const t = await getTranslations('correction');
-  const isAgent = session.user.roles.some((r) => r === 'AGENT' || r === 'SUPERVISOR' || r === 'ADMIN');
+  const isAgent = session.user.roles.some(
+    (r) => r === 'AGENT' || r === 'SUPERVISOR' || r === 'ADMIN',
+  );
   const isOwner = session.user.nina === nina;
 
   if (!isOwner && !isAgent) {

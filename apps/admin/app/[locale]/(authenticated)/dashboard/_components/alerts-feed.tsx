@@ -16,10 +16,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { Badge } from '@nina-aes/ui/components/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@nina-aes/ui/components/card';
 import { AlertTriangle, ChevronRight, Radio } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
-import { generateNewAlert, type AlertEntry, type AlertSeverity } from '../../../../../lib/mock-dashboard';
+import {
+  generateNewAlert,
+  type AlertEntry,
+  type AlertSeverity,
+} from '../../../../../lib/mock-dashboard';
 
 const SEVERITY_TONES: Record<AlertSeverity, string> = {
   LOW: 'bg-info-50 text-info-700',
@@ -98,7 +108,10 @@ export function AlertsFeed({
                   className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-bg-muted/40 focus:bg-bg-muted/40 focus:outline-none"
                 >
                   <span
-                    className={cn('mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full', SEVERITY_TONES[a.severity])}
+                    className={cn(
+                      'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full',
+                      SEVERITY_TONES[a.severity],
+                    )}
                     aria-hidden="true"
                   >
                     <AlertTriangle className="size-3.5" />
@@ -108,11 +121,15 @@ export function AlertsFeed({
                       <Badge className={cn('px-1.5 py-0 text-xs', SEVERITY_TONES[a.severity])}>
                         {tSeverity(a.severity)}
                       </Badge>
-                      <span className="truncate text-xs text-fg-muted">{tCategory(a.category)}</span>
+                      <span className="truncate text-xs text-fg-muted">
+                        {tCategory(a.category)}
+                      </span>
                     </p>
                     <p className="mt-1 line-clamp-2 text-sm">{a.shortDescription}</p>
                     <p className="mt-1 text-xs text-fg-muted">
-                      <time dateTime={a.receivedAt}>{format.relativeTime(new Date(a.receivedAt), new Date(now))}</time>
+                      <time dateTime={a.receivedAt}>
+                        {format.relativeTime(new Date(a.receivedAt), new Date(now))}
+                      </time>
                       <span className="mx-1.5">·</span>
                       {a.location}
                     </p>

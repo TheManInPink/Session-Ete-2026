@@ -52,8 +52,7 @@ export const hasRole = (roles: Role[]) => _hasRole(AUTH_CONFIG, roles);
 export const isOwnerOf = (nina: string) => _isOwnerOf(AUTH_CONFIG, nina);
 
 /** Booléen — vrai si la session est un agent CTDEC ou supérieur. */
-export const isAgent = () =>
-  _hasRole(AUTH_CONFIG, ['AGENT', 'SUPERVISOR', 'AUDITOR', 'ADMIN']);
+export const isAgent = () => _hasRole(AUTH_CONFIG, ['AGENT', 'SUPERVISOR', 'AUDITOR', 'ADMIN']);
 
 /** Config exposée pour les route handlers (cf. app/api/auth/*). */
 export { AUTH_CONFIG };

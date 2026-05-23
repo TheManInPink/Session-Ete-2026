@@ -17,7 +17,7 @@ export default function NinaNotFound() {
       <p className="text-6xl">🔍</p>
       <h1 className="mt-4 text-2xl font-bold">{t('notFound')}</h1>
       <p className="mt-2 text-fg-muted">
-        Le NINA saisi n'est pas valide ou n'existe pas dans le référentiel.
+        Le NINA saisi n&apos;est pas valide ou n&apos;existe pas dans le référentiel.
       </p>
       <Button asChild className="mt-6">
         <Link href={`/${locale}`}>{tCommon('back')}</Link>

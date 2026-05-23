@@ -40,13 +40,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   );
 }
 
-async function IntlBoundary({
-  locale,
-  children,
-}: {
-  locale: Locale;
-  children: React.ReactNode;
-}) {
+async function IntlBoundary({ locale, children }: { locale: Locale; children: React.ReactNode }) {
   const messages = await getMessages({ locale: locale ?? defaultLocale });
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="Africa/Bamako">

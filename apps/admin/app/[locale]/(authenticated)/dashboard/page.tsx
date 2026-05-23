@@ -14,7 +14,13 @@
 
 import { Suspense } from 'react';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@nina-aes/ui/components/card';
 import { Skeleton } from '@nina-aes/ui/components/skeleton';
 import { AreaChart } from '@nina-aes/ui/components/charts/area-chart';
 import { MaliHeatmap } from '@nina-aes/ui/components/charts/mali-heatmap';

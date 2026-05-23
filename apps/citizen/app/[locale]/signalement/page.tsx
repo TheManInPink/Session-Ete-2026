@@ -10,7 +10,13 @@
  */
 
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@nina-aes/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@nina-aes/ui/components/card';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
 import { ShieldCheck } from 'lucide-react';
 import { WhistleblowerForm } from './_components/whistleblower-form';
@@ -44,7 +50,7 @@ export default async function SignalementPage({ params }: PageProps) {
           <CardDescription>{t('form.help')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <WhistleblowerForm locale={locale} />
+          <WhistleblowerForm />
         </CardContent>
       </Card>
 

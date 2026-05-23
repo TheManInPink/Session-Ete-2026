@@ -161,10 +161,7 @@ export function CorrectionDrawer({ correction, open, onOpenChange, onDecision }:
         {/* Footer actions */}
         {!decided && (
           <SheetFooter
-            className={cn(
-              'sticky bottom-0 bg-bg-card',
-              rejectMode && 'flex-col items-stretch',
-            )}
+            className={cn('sticky bottom-0 bg-bg-card', rejectMode && 'flex-col items-stretch')}
           >
             {rejectMode ? (
               <form onSubmit={handleRejectSubmit} className="w-full space-y-3">
@@ -182,10 +179,19 @@ export function CorrectionDrawer({ correction, open, onOpenChange, onDecision }:
                   />
                 </div>
                 <div className="flex gap-2 sm:justify-end">
-                  <Button type="button" variant="ghost" onClick={() => setRejectMode(false)} disabled={isPending}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setRejectMode(false)}
+                    disabled={isPending}
+                  >
                     {tCommon('cancel')}
                   </Button>
-                  <Button type="submit" variant="destructive" disabled={isPending || rejectReason.trim().length < 5}>
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={isPending || rejectReason.trim().length < 5}
+                  >
                     {isPending ? (
                       <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                     ) : (

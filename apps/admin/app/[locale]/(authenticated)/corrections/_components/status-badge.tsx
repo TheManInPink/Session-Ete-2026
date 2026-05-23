@@ -27,9 +27,5 @@ const TONES: Record<AdminCorrectionStatus, string> = {
 
 export function StatusBadge({ status }: { status: AdminCorrectionStatus }) {
   const t = useTranslations('admin.corrections.status');
-  return (
-    <Badge className={TONES[status]}>
-      {t(status as never)}
-    </Badge>
-  );
+  return <Badge className={TONES[status]}>{t(status as never)}</Badge>;
 }

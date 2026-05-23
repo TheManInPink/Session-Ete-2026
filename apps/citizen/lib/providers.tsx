@@ -51,9 +51,8 @@ export function Providers({ children }: { children: ReactNode }) {
               if (error instanceof ApiError && error.status === 401) {
                 const refreshed = await attemptRefresh();
                 if (!refreshed && typeof window !== 'undefined') {
-                  window.location.href = '/fr/login?next=' + encodeURIComponent(
-                    window.location.pathname,
-                  );
+                  window.location.href =
+                    '/fr/login?next=' + encodeURIComponent(window.location.pathname);
                 }
               }
             },

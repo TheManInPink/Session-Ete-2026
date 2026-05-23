@@ -48,7 +48,7 @@ function generateHistory(seed: number, base: number, variance = 0.15): number[] 
   const rand = rng(seed);
   return Array.from({ length: 30 }, (_, i) => {
     // Tendance globale ascendante (+15 % sur 30j) + bruit
-    const trend = base * (1 + ((i / 30) * variance));
+    const trend = base * (1 + (i / 30) * variance);
     const noise = base * variance * (rand() - 0.5);
     return Math.max(0, Math.round(trend + noise));
   });
@@ -109,7 +109,11 @@ export const CORRECTIONS_PER_DAY: ReadonlyArray<{ x: string; y: number }> = (() 
 
 // ── MaliHeatmap : activité régionale ────────────────────────────────────────
 /** Activité = nombre de corrections traitées par région ces 30 derniers jours. */
-export const ACTIVITY_BY_REGION: ReadonlyArray<{ regionCode: string; value: number; label: string }> = [
+export const ACTIVITY_BY_REGION: ReadonlyArray<{
+  regionCode: string;
+  value: number;
+  label: string;
+}> = [
   { regionCode: 'ML-09', value: 487, label: 'Bamako : 487 corrections (30j)' },
   { regionCode: 'ML-03', value: 312, label: 'Sikasso : 312 corrections (30j)' },
   { regionCode: 'ML-02', value: 268, label: 'Koulikoro : 268 corrections (30j)' },
@@ -123,14 +127,15 @@ export const ACTIVITY_BY_REGION: ReadonlyArray<{ regionCode: string; value: numb
 ];
 
 // ── MaliHeatmap : alertes SIGAC par région ──────────────────────────────────
-export const ALERTS_BY_REGION: ReadonlyArray<{ regionCode: string; value: number; label: string }> = [
-  { regionCode: 'ML-09', value: 9, label: 'Bamako : 9 alertes actives' },
-  { regionCode: 'ML-03', value: 4, label: 'Sikasso : 4 alertes actives' },
-  { regionCode: 'ML-05', value: 3, label: 'Mopti : 3 alertes actives' },
-  { regionCode: 'ML-04', value: 2, label: 'Ségou : 2 alertes actives' },
-  { regionCode: 'ML-01', value: 2, label: 'Kayes : 2 alertes actives' },
-  { regionCode: 'ML-07', value: 1, label: 'Gao : 1 alerte active' },
-];
+export const ALERTS_BY_REGION: ReadonlyArray<{ regionCode: string; value: number; label: string }> =
+  [
+    { regionCode: 'ML-09', value: 9, label: 'Bamako : 9 alertes actives' },
+    { regionCode: 'ML-03', value: 4, label: 'Sikasso : 4 alertes actives' },
+    { regionCode: 'ML-05', value: 3, label: 'Mopti : 3 alertes actives' },
+    { regionCode: 'ML-04', value: 2, label: 'Ségou : 2 alertes actives' },
+    { regionCode: 'ML-01', value: 2, label: 'Kayes : 2 alertes actives' },
+    { regionCode: 'ML-07', value: 1, label: 'Gao : 1 alerte active' },
+  ];
 
 // ── Top 10 agents intégrité (AD-03) ─────────────────────────────────────────
 export interface AgentIntegrity {
@@ -142,16 +147,76 @@ export interface AgentIntegrity {
 }
 
 export const TOP_AGENTS: readonly AgentIntegrity[] = [
-  { id: 'a-001', name: 'Modibo Konaté', score: 97, centerCode: 'CTDEC Bamako', matricule: 'CTDEC-2024-0156' },
-  { id: 'a-002', name: 'Aminata Touré', score: 95, centerCode: 'CTDEC Bamako', matricule: 'CTDEC-2024-0142' },
-  { id: 'a-003', name: 'Mariam Sissoko', score: 92, centerCode: 'RAVEC Kayes', matricule: 'RAVEC-2024-0089' },
-  { id: 'a-004', name: 'Ibrahim Diallo', score: 88, centerCode: 'CTDEC Sikasso', matricule: 'CTDEC-2024-0211' },
-  { id: 'a-005', name: 'Fatoumata Coulibaly', score: 84, centerCode: 'CTDEC Bamako', matricule: 'CTDEC-2024-0177' },
-  { id: 'a-006', name: 'Souleymane Traoré', score: 78, centerCode: 'CTDEC Ségou', matricule: 'CTDEC-2024-0094' },
-  { id: 'a-007', name: 'Aïcha Diarra', score: 72, centerCode: 'RAVEC Mopti', matricule: 'RAVEC-2024-0067' },
-  { id: 'a-008', name: 'Oumar Cissé', score: 58, centerCode: 'CTDEC Sikasso', matricule: 'CTDEC-2024-0203' },
-  { id: 'a-009', name: 'Fanta Doumbia', score: 42, centerCode: 'CTDEC Bamako', matricule: 'CTDEC-2024-0188' },
-  { id: 'a-010', name: 'Boubacar Maïga', score: 31, centerCode: 'RAVEC Kayes', matricule: 'RAVEC-2024-0091' },
+  {
+    id: 'a-001',
+    name: 'Modibo Konaté',
+    score: 97,
+    centerCode: 'CTDEC Bamako',
+    matricule: 'CTDEC-2024-0156',
+  },
+  {
+    id: 'a-002',
+    name: 'Aminata Touré',
+    score: 95,
+    centerCode: 'CTDEC Bamako',
+    matricule: 'CTDEC-2024-0142',
+  },
+  {
+    id: 'a-003',
+    name: 'Mariam Sissoko',
+    score: 92,
+    centerCode: 'RAVEC Kayes',
+    matricule: 'RAVEC-2024-0089',
+  },
+  {
+    id: 'a-004',
+    name: 'Ibrahim Diallo',
+    score: 88,
+    centerCode: 'CTDEC Sikasso',
+    matricule: 'CTDEC-2024-0211',
+  },
+  {
+    id: 'a-005',
+    name: 'Fatoumata Coulibaly',
+    score: 84,
+    centerCode: 'CTDEC Bamako',
+    matricule: 'CTDEC-2024-0177',
+  },
+  {
+    id: 'a-006',
+    name: 'Souleymane Traoré',
+    score: 78,
+    centerCode: 'CTDEC Ségou',
+    matricule: 'CTDEC-2024-0094',
+  },
+  {
+    id: 'a-007',
+    name: 'Aïcha Diarra',
+    score: 72,
+    centerCode: 'RAVEC Mopti',
+    matricule: 'RAVEC-2024-0067',
+  },
+  {
+    id: 'a-008',
+    name: 'Oumar Cissé',
+    score: 58,
+    centerCode: 'CTDEC Sikasso',
+    matricule: 'CTDEC-2024-0203',
+  },
+  {
+    id: 'a-009',
+    name: 'Fanta Doumbia',
+    score: 42,
+    centerCode: 'CTDEC Bamako',
+    matricule: 'CTDEC-2024-0188',
+  },
+  {
+    id: 'a-010',
+    name: 'Boubacar Maïga',
+    score: 31,
+    centerCode: 'RAVEC Kayes',
+    matricule: 'RAVEC-2024-0091',
+  },
 ];
 
 // ── Feed alertes SIGAC ──────────────────────────────────────────────────────
@@ -176,15 +241,57 @@ export interface AlertEntry {
 
 function buildInitialAlerts(): AlertEntry[] {
   const rand = rng(66);
-  const samples: Array<Pick<AlertEntry, 'severity' | 'category' | 'shortDescription' | 'location'>> = [
-    { severity: 'CRITICAL', category: 'FORGERY', shortDescription: 'Tentative usurpation NINA — falsification photo', location: 'CTDEC Bamako' },
-    { severity: 'HIGH', category: 'BRIBERY', shortDescription: 'Pot-de-vin allégué — file P1 RDV', location: 'CTDEC Sikasso' },
-    { severity: 'MEDIUM', category: 'FAVORITISM', shortDescription: 'Traitement prioritaire signalé sans motif', location: 'Mairie Comm. IV' },
-    { severity: 'HIGH', category: 'FORGERY', shortDescription: 'Document antériorité douteux', location: 'DNEC' },
-    { severity: 'CRITICAL', category: 'ABUSE_OF_POWER', shortDescription: 'Pression sur agent — chaîne hiérarchique', location: 'Gouvernorat Mopti' },
-    { severity: 'MEDIUM', category: 'PROCUREMENT', shortDescription: 'Fournisseur unique signalé sur 3 marchés', location: 'CTDEC Bamako' },
-    { severity: 'LOW', category: 'OTHER', shortDescription: 'Plainte sur délai de traitement >30j', location: 'CTDEC Ségou' },
-    { severity: 'MEDIUM', category: 'BRIBERY', shortDescription: 'Demande paiement « frais accélération »', location: 'RAVEC Kayes' },
+  const samples: Array<
+    Pick<AlertEntry, 'severity' | 'category' | 'shortDescription' | 'location'>
+  > = [
+    {
+      severity: 'CRITICAL',
+      category: 'FORGERY',
+      shortDescription: 'Tentative usurpation NINA — falsification photo',
+      location: 'CTDEC Bamako',
+    },
+    {
+      severity: 'HIGH',
+      category: 'BRIBERY',
+      shortDescription: 'Pot-de-vin allégué — file P1 RDV',
+      location: 'CTDEC Sikasso',
+    },
+    {
+      severity: 'MEDIUM',
+      category: 'FAVORITISM',
+      shortDescription: 'Traitement prioritaire signalé sans motif',
+      location: 'Mairie Comm. IV',
+    },
+    {
+      severity: 'HIGH',
+      category: 'FORGERY',
+      shortDescription: 'Document antériorité douteux',
+      location: 'DNEC',
+    },
+    {
+      severity: 'CRITICAL',
+      category: 'ABUSE_OF_POWER',
+      shortDescription: 'Pression sur agent — chaîne hiérarchique',
+      location: 'Gouvernorat Mopti',
+    },
+    {
+      severity: 'MEDIUM',
+      category: 'PROCUREMENT',
+      shortDescription: 'Fournisseur unique signalé sur 3 marchés',
+      location: 'CTDEC Bamako',
+    },
+    {
+      severity: 'LOW',
+      category: 'OTHER',
+      shortDescription: 'Plainte sur délai de traitement >30j',
+      location: 'CTDEC Ségou',
+    },
+    {
+      severity: 'MEDIUM',
+      category: 'BRIBERY',
+      shortDescription: 'Demande paiement « frais accélération »',
+      location: 'RAVEC Kayes',
+    },
   ];
 
   return samples.map((s, i) => ({
@@ -199,9 +306,23 @@ export const INITIAL_ALERTS: readonly AlertEntry[] = buildInitialAlerts();
 /** Génère une nouvelle alerte aléatoire pour simuler un flux SSE temps réel. */
 export function generateNewAlert(prevCount: number): AlertEntry {
   const rand = rng(prevCount * 1009 + 7);
-  const cats: AlertCategory[] = ['BRIBERY', 'FORGERY', 'FAVORITISM', 'ABUSE_OF_POWER', 'PROCUREMENT', 'OTHER'];
+  const cats: AlertCategory[] = [
+    'BRIBERY',
+    'FORGERY',
+    'FAVORITISM',
+    'ABUSE_OF_POWER',
+    'PROCUREMENT',
+    'OTHER',
+  ];
   const sevs: AlertSeverity[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-  const locs = ['CTDEC Bamako', 'CTDEC Sikasso', 'RAVEC Kayes', 'RAVEC Mopti', 'DNEC', 'Mairie Comm. IV'];
+  const locs = [
+    'CTDEC Bamako',
+    'CTDEC Sikasso',
+    'RAVEC Kayes',
+    'RAVEC Mopti',
+    'DNEC',
+    'Mairie Comm. IV',
+  ];
   const descriptions = [
     'Signalement anonyme reçu — investigation requise',
     'Doublon de demande détecté',

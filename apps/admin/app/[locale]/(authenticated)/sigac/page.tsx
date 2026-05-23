@@ -13,17 +13,19 @@
  */
 
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@nina-aes/ui/components/card';
 import { MaliHeatmap } from '@nina-aes/ui/components/charts/mali-heatmap';
 import { IntegrityGauge } from '@nina-aes/ui/components/charts/integrity-gauge';
 import { Button } from '@nina-aes/ui/components/button';
 import maliPolygons from '../../../../../../data/mali/mali-regions-polygons.json';
 import { requireRole } from '../../../../lib/auth/session';
-import {
-  ALERTS_BY_REGION,
-  TOP_AGENTS,
-  INITIAL_ALERTS,
-} from '../../../../lib/mock-dashboard';
+import { ALERTS_BY_REGION, TOP_AGENTS, INITIAL_ALERTS } from '../../../../lib/mock-dashboard';
 import { SigacClient } from './_components/sigac-client';
 
 interface PageProps {

@@ -148,11 +148,17 @@ export function AppointmentForm({ locale, isPriority }: { locale: string; isPrio
                 className="sr-only"
               />
               <span className="font-medium">
-                {new Date(s.date).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })}
+                {new Date(s.date).toLocaleDateString(locale, {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                })}
               </span>
               <span className="font-mono">{s.time}</span>
               {isPriority && (
-                <Badge className="bg-success-50 px-1.5 py-0 text-xs text-success-700">{s.priority}</Badge>
+                <Badge className="bg-success-50 px-1.5 py-0 text-xs text-success-700">
+                  {s.priority}
+                </Badge>
               )}
             </label>
           ))}
@@ -183,7 +189,11 @@ export function AppointmentForm({ locale, isPriority }: { locale: string; isPrio
       )}
 
       <Button type="submit" disabled={!canSubmit || isPending} className="w-full" size="lg">
-        {isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
+        {isPending ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <Send className="size-4" aria-hidden="true" />
+        )}
         {t('form.submit')}
       </Button>
     </form>

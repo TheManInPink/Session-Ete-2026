@@ -14,13 +14,7 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
 import type { KpiSnapshot } from '../../../../../lib/mock-dashboard';
 
-export function KpiCard({
-  snapshot,
-  locale,
-}: {
-  snapshot: KpiSnapshot;
-  locale: string;
-}) {
+export function KpiCard({ snapshot, locale }: { snapshot: KpiSnapshot; locale: string }) {
   const t = useTranslations('admin.dashboard.kpis');
   const positiveIsGood = snapshot.key !== 'correctionsPending' && snapshot.key !== 'alertsOpen';
   const isUp = snapshot.weekDelta > 0;

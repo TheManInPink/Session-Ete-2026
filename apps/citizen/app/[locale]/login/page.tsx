@@ -11,7 +11,13 @@
 
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Button } from '@nina-aes/ui/components/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@nina-aes/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@nina-aes/ui/components/card';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
 import { AesLogo } from '@nina-aes/ui/components/brand/aes-logo';
 import { LogIn, AlertTriangle } from 'lucide-react';

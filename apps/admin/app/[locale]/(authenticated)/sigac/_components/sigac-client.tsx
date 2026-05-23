@@ -15,7 +15,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { Badge } from '@nina-aes/ui/components/badge';
 import { Button } from '@nina-aes/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@nina-aes/ui/components/card';
 import { Checkbox } from '@nina-aes/ui/components/checkbox';
 import {
   DropdownMenu,
@@ -88,31 +94,38 @@ export function SigacClient({
   }, []);
 
   // ── Filtrage
+  // eslint-disable-next-line react-hooks/purity -- cutoff lu au render, ré-évalué à chaque tick WS simulé
+  const cutoffMs = Date.now() - PERIOD_HOURS[period] * 60 * 60 * 1000;
   const filtered = useMemo(() => {
-    const cutoffMs = Date.now() - PERIOD_HOURS[period] * 60 * 60 * 1000;
     const s = search.trim().toLowerCase();
     return alerts.filter((a) => {
       if (new Date(a.receivedAt).getTime() < cutoffMs) return false;
       if (severityFilter.length > 0 && !severityFilter.includes(a.severity)) return false;
-      if (s && !a.shortDescription.toLowerCase().includes(s) && !a.location.toLowerCase().includes(s))
+      if (
+        s &&
+        !a.shortDescription.toLowerCase().includes(s) &&
+        !a.location.toLowerCase().includes(s)
+      )
         return false;
       return true;
     });
-  }, [alerts, severityFilter, period, search]);
+  }, [alerts, severityFilter, search, cutoffMs]);
 
   const toggleSeverity = (s: AlertSeverity) => {
     setSeverityFilter((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   };
 
-  const activeFilters =
-    severityFilter.length + (period !== 'week' ? 1 : 0) + (search ? 1 : 0);
+  const activeFilters = severityFilter.length + (period !== 'week' ? 1 : 0) + (search ? 1 : 0);
 
   return (
     <div className="space-y-4">
       {/* ── Toolbar filtres ──────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+          <Search
+            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
+            aria-hidden="true"
+          />
           <input
             type="search"
             value={search}
@@ -216,7 +229,10 @@ export function SigacClient({
                 <li key={a.id}>
                   <div className="flex items-start gap-3 px-4 py-3 hover:bg-bg-muted/40">
                     <span
-                      className={cn('mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full', SEVERITY_TONES[a.severity])}
+                      className={cn(
+                        'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full',
+                        SEVERITY_TONES[a.severity],
+                      )}
                       aria-hidden="true"
                     >
                       <AlertTriangle className="size-3.5" />
@@ -230,7 +246,9 @@ export function SigacClient({
                       </p>
                       <p className="mt-1 text-sm">{a.shortDescription}</p>
                       <p className="mt-1 text-xs text-fg-muted">
-                        <time dateTime={a.receivedAt}>{format.relativeTime(new Date(a.receivedAt), new Date(now))}</time>
+                        <time dateTime={a.receivedAt}>
+                          {format.relativeTime(new Date(a.receivedAt), new Date(now))}
+                        </time>
                         <span className="mx-1.5">·</span>
                         {a.location}
                       </p>

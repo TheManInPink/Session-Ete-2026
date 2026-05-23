@@ -38,7 +38,7 @@ interface FormState {
   consentGiven: boolean;
 }
 
-export function WhistleblowerForm({ locale: _locale }: { locale: string }) {
+export function WhistleblowerForm() {
   const t = useTranslations('signalement');
   const [state, setState] = useState<FormState>({
     category: '',
@@ -52,9 +52,7 @@ export function WhistleblowerForm({ locale: _locale }: { locale: string }) {
   const [isPending, startTransition] = useTransition();
 
   const canSubmit =
-    state.category !== '' &&
-    state.description.trim().length >= 50 &&
-    state.consentGiven;
+    state.category !== '' && state.description.trim().length >= 50 && state.consentGiven;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -127,7 +125,9 @@ export function WhistleblowerForm({ locale: _locale }: { locale: string }) {
                 name="category"
                 value={cat}
                 checked={state.category === cat}
-                onChange={(e) => setState((s) => ({ ...s, category: e.target.value as AlertCategory }))}
+                onChange={(e) =>
+                  setState((s) => ({ ...s, category: e.target.value as AlertCategory }))
+                }
                 className="mt-0.5 size-4 accent-primary"
               />
               <span>{t(`form.categories.${cat}` as never)}</span>
@@ -202,8 +202,18 @@ export function WhistleblowerForm({ locale: _locale }: { locale: string }) {
         </Alert>
       )}
 
-      <Button type="submit" disabled={!canSubmit || isPending} className="w-full" size="lg" variant="destructive">
-        {isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
+      <Button
+        type="submit"
+        disabled={!canSubmit || isPending}
+        className="w-full"
+        size="lg"
+        variant="destructive"
+      >
+        {isPending ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <Send className="size-4" aria-hidden="true" />
+        )}
         {t('form.submit')}
       </Button>
     </form>

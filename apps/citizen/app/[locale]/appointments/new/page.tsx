@@ -11,7 +11,13 @@ import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { getSession } from '../../../../lib/auth/session';
 import { AppointmentForm } from './_components/appointment-form';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@nina-aes/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@nina-aes/ui/components/card';
 import { Badge } from '@nina-aes/ui/components/badge';
 import { Skeleton } from '@nina-aes/ui/components/skeleton';
 

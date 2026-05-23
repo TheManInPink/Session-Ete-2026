@@ -63,8 +63,7 @@ export function AdminSidebar({
       <nav className="flex-1 space-y-1 px-2 py-4" aria-label={t('navLabel')}>
         {NAV_ITEMS.map(({ key, href, icon: Icon }) => {
           const fullHref = `/${locale}/${href}`;
-          const isActive =
-            pathname === fullHref || pathname.startsWith(`${fullHref}/`);
+          const isActive = pathname === fullHref || pathname.startsWith(`${fullHref}/`);
           return (
             <Link
               key={key}
@@ -92,9 +91,7 @@ export function AdminSidebar({
               {t('matricule')} {agent.matricule}
             </p>
           )}
-          {agent.centerId && (
-            <p className="text-xs text-white/50">{agent.centerId}</p>
-          )}
+          {agent.centerId && <p className="text-xs text-white/50">{agent.centerId}</p>}
         </div>
         <a
           href="/api/auth/logout"
