@@ -110,17 +110,17 @@ Docker. En production (document 20), tout sera conteneurisé.
 
 ### 2.2 Services d'infrastructure
 
-| Service             | Image Docker                                          | Version                       | Port(s)      | Rôle dans NINA-AES                                           | RAM estimée |
-| ------------------- | ----------------------------------------------------- | ----------------------------- | ------------ | ------------------------------------------------------------ | ----------- |
-| **PostgreSQL**      | `postgis/postgis:18-3.6`                              | 18.x + PostGIS 3.6            | 5432         | Base de données principale (identités NINA, audit, sessions) | ~120 Mo     |
-| **Redis**           | `redis:8.6.3-alpine`                                  | 8.6.3                         | 6379         | Cache, sessions USSD (TTL 5 min), queues temporaires         | ~30 Mo      |
-| **RabbitMQ**        | `rabbitmq:4.2.4-management-alpine`                    | 4.2.4                         | 5672 / 15672 | Message broker inter-services (audit, notifications, IA)     | ~150 Mo     |
-| **MinIO** ⚠️        | `minio/minio:RELEASE.2025-09-07T16-13-09Z`            | dernière release officielle   | 9000 / 9001  | Stockage objet S3-compatible (photos, PDF, documents)        | ~100 Mo     |
-| **Elasticsearch**   | `docker.elastic.co/elasticsearch/elasticsearch:9.4.1` | 9.4.1                         | 9200         | Recherche floue sur les noms NINA (pg_trgm + ES)             | ~512 Mo     |
-| **Kibana**          | `docker.elastic.co/kibana/kibana:9.4.1`               | 9.4.1                         | 5601         | Console de visualisation Elasticsearch (dev)                 | ~300 Mo     |
-| **Keycloak**        | `quay.io/keycloak/keycloak:26.6.2`                    | 26.6.2                        | 8080         | Serveur d'identité OAuth2/OIDC, RBAC 6 rôles, MFA            | ~400 Mo     |
-| **HashiCorp Vault** | `hashicorp/vault:2.0.1`                               | 2.0.1 (saut majeur 1.x → 2.x) | 8200         | Gestion centralisée des secrets (clés JWT, certificats mTLS) | ~50 Mo      |
-| **Maildev**         | `maildev/maildev:2.2.1`                               | 2.2.1                         | 1080 / 1025  | Serveur SMTP de développement (capture des emails)           | ~30 Mo      |
+| Service             | Image Docker                                 | Version                          | Port(s)      | Rôle dans NINA-AES                                           | RAM estimée |
+| ------------------- | -------------------------------------------- | -------------------------------- | ------------ | ------------------------------------------------------------ | ----------- |
+| **PostgreSQL**      | `postgis/postgis:18-3.6`                     | 18.x + PostGIS 3.6               | 5432         | Base de données principale (identités NINA, audit, sessions) | ~120 Mo     |
+| **Redis**           | `redis:8.6.3-alpine`                         | 8.6.3                            | 6379         | Cache, sessions USSD (TTL 5 min), queues temporaires         | ~30 Mo      |
+| **RabbitMQ**        | `rabbitmq:4.2.4-management-alpine`           | 4.2.4                            | 5672 / 15672 | Message broker inter-services (audit, notifications, IA)     | ~150 Mo     |
+| **MinIO** ⚠️        | `minio/minio:RELEASE.2025-09-07T16-13-09Z`   | dernière release officielle      | 9000 / 9001  | Stockage objet S3-compatible (photos, PDF, documents)        | ~100 Mo     |
+| **Elasticsearch**   | `nina-aes/elasticsearch:9.4.1` (build local) | 9.4.1 + plugin analysis-phonetic | 9200         | Recherche floue sur les noms NINA (pg_trgm + ES)             | ~512 Mo     |
+| **Kibana**          | `docker.elastic.co/kibana/kibana:9.4.1`      | 9.4.1                            | 5601         | Console de visualisation Elasticsearch (dev)                 | ~300 Mo     |
+| **Keycloak**        | `quay.io/keycloak/keycloak:26.6.2`           | 26.6.2                           | 8080         | Serveur d'identité OAuth2/OIDC, RBAC 6 rôles, MFA            | ~400 Mo     |
+| **HashiCorp Vault** | `hashicorp/vault:2.0.1`                      | 2.0.1 (saut majeur 1.x → 2.x)    | 8200         | Gestion centralisée des secrets (clés JWT, certificats mTLS) | ~50 Mo      |
+| **Maildev**         | `maildev/maildev:2.2.1`                      | 2.2.1                            | 1080 / 1025  | Serveur SMTP de développement (capture des emails)           | ~30 Mo      |
 
 ⚠️ MinIO : repo amont archivé le 2026-04-25 — voir bandeau en tête de document.
 
@@ -252,7 +252,7 @@ mappé.
 
 ---
 
-## 4. PostgreSQL 17 — Base de données principale
+## 4. PostgreSQL 18 + PostGIS — Base de données principale
 
 ### 4.1 Pourquoi PostgreSQL ?
 
@@ -437,7 +437,7 @@ Le client Prisma (dans `packages/database`) utilise cette URL pour se connecter.
 
 ---
 
-## 5. Redis 7 — Cache et sessions USSD
+## 5. Redis 8 — Cache et sessions USSD
 
 ### 5.1 Rôle de Redis dans NINA-AES
 
