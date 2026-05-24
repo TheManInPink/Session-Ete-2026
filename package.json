@@ -48,7 +48,9 @@
     "docker:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml up -d",
     "docker:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml down",
     "docker:ps": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml ps",
-    "docker:logs": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs -f",
+    "//docker:logs": "Sans -f. Accepte args: pnpm docker:logs --tail 100 --since 5m elasticsearch (le -- separateur pnpm peut etre omis sur ce script).",
+    "docker:logs": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs",
+    "docker:follow": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs -f",
     "prepare": "husky"
   },
   "devDependencies": {
