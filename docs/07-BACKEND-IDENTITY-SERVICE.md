@@ -143,7 +143,7 @@ flowchart TB
     end
 
     subgraph "Infrastructure"
-        PG[(PostgreSQL 17<br/>nina_aes)]
+        PG[(PostgreSQL 17<br/>nina_aes_db)]
         AUDIT[audit-service :3003<br/>Merkle log]
     end
 
@@ -930,7 +930,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     super({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL ?? 'postgresql://nina:nina_dev@localhost:5432/nina_aes',
+          url:
+            process.env.DATABASE_URL ??
+            'postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db',
         },
       },
       log:
@@ -2109,7 +2111,7 @@ NODE_ENV=development
 PORT=3001
 
 # ─── Base de données ─────────────────────────────────────
-DATABASE_URL=postgresql://nina:nina_dev@localhost:5432/nina_aes
+DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
 
 # ─── CORS ─────────────────────────────────────────────────
 CORS_ORIGINS=http://localhost:4000,http://localhost:4001

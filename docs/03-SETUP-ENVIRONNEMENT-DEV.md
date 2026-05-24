@@ -446,20 +446,20 @@ nina-maildev         Up                       0.0.0.0:1025->1025/tcp, 0.0.0.0:10
 
 ```powershell
 # PostgreSQL — connexion test
-docker exec nina-postgres pg_isready -U nina -d nina_aes
+docker exec nina-postgres pg_isready -U nina_admin -d nina_aes_db
 # Attendu : /var/run/postgresql:5432 - accepting connections
 
 # Redis — ping
-docker exec nina-redis redis-cli -a nina_dev ping
+docker exec nina-redis redis-cli -a redis_dev_2026! ping
 # Attendu : PONG
 
 # RabbitMQ — interface web
 # Ouvrir http://localhost:15672 dans le navigateur
-# Login : nina / nina_dev
+# Login : nina_rabbit / rabbit_dev_2026!
 
 # MinIO — console web
 # Ouvrir http://localhost:9001 dans le navigateur
-# Login : nina_minio / nina_minio_dev
+# Login : nina_minio_admin / minio_dev_2026!
 
 # Elasticsearch — santé du cluster
 curl -s http://localhost:9200/_cluster/health?pretty
@@ -467,7 +467,7 @@ curl -s http://localhost:9200/_cluster/health?pretty
 
 # Keycloak — page d'admin
 # Ouvrir http://localhost:8080 dans le navigateur
-# Login : admin / admin_dev
+# Login : admin / keycloak_admin_2026!
 
 # Vault — statut
 curl -s http://localhost:8200/v1/sys/health
@@ -485,7 +485,7 @@ Le script `init-db.sql` a normalement activé les extensions au premier démarra
 
 ```powershell
 # Se connecter à PostgreSQL et lister les extensions
-docker exec -it nina-postgres psql -U nina -d nina_aes -c "SELECT extname, extversion FROM pg_extension ORDER BY extname;"
+docker exec -it nina-postgres psql -U nina_admin -d nina_aes_db -c "SELECT extname, extversion FROM pg_extension ORDER BY extname;"
 ```
 
 **Sortie attendue** :
@@ -504,7 +504,7 @@ docker exec -it nina-postgres psql -U nina -d nina_aes -c "SELECT extname, extve
 > avec :
 >
 > ```powershell
-> docker exec -i nina-postgres psql -U nina -d nina_aes < scripts/init-db.sql
+> docker exec -i nina-postgres psql -U nina_admin -d nina_aes_db < scripts/init-db.sql
 > ```
 
 ---
@@ -566,7 +566,7 @@ done
 
 echo ""
 echo "── Extensions PostgreSQL ──"
-EXTENSIONS=$(docker exec nina-postgres psql -U nina -d nina_aes -t -c "SELECT extname FROM pg_extension WHERE extname IN ('uuid-ossp','pgcrypto','pg_trgm','unaccent') ORDER BY extname;" 2>/dev/null || echo "ERREUR")
+EXTENSIONS=$(docker exec nina-postgres psql -U nina_admin -d nina_aes_db -t -c "SELECT extname FROM pg_extension WHERE extname IN ('uuid-ossp','pgcrypto','pg_trgm','unaccent') ORDER BY extname;" 2>/dev/null || echo "ERREUR")
 for ext in pgcrypto pg_trgm unaccent uuid-ossp; do
   if echo "$EXTENSIONS" | grep -q "$ext"; then
     echo "  ✅ $ext"

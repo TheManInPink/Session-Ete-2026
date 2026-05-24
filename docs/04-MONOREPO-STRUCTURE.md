@@ -706,13 +706,16 @@ export const baseEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
   /** URL de connexion PostgreSQL (Prisma) */
-  DATABASE_URL: z.string().url().default('postgresql://nina:nina_dev@localhost:5432/nina_aes'),
+  DATABASE_URL: z
+    .string()
+    .url()
+    .default('postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db'),
 
   /** URL de connexion Redis (cache + sessions USSD) */
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   /** URL du broker RabbitMQ (messages inter-services) */
-  RABBITMQ_URL: z.string().default('amqp://nina:nina_dev@localhost:5672'),
+  RABBITMQ_URL: z.string().default('amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672'),
 
   /** Clé secrète JWT — en dev seulement, en prod utiliser Vault */
   JWT_SECRET: z.string().min(32).default('dev-jwt-secret-change-this-in-production-32chars'),
@@ -1385,7 +1388,7 @@ Il s'exécute **une seule fois** au premier démarrage.
 -- ═══════════════════════════════════════════════════
 
 -- Se connecter à la base principale
-\c nina_aes;
+\c nina_aes_db;
 
 -- uuid-ossp : UUID v4 pour les clés primaires
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -1415,7 +1418,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE EXTENSION IF NOT EXISTS "unaccent";
 
 -- Retour sur la base principale
-\c nina_aes;
+\c nina_aes_db;
 
 DO $$
 BEGIN
@@ -1437,20 +1440,20 @@ cp .env.example .env # Git Bash
 
 Les variables sont organisées par catégorie :
 
-| Catégorie        | Variables clés                                                | Exemple                                              |
-| ---------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
-| PostgreSQL       | `DATABASE_URL`, `POSTGRES_USER/PASSWORD/DB`                   | `postgresql://nina:nina_dev@localhost:5432/nina_aes` |
-| Redis            | `REDIS_URL`, `REDIS_PASSWORD`                                 | `redis://:nina_dev@localhost:6379`                   |
-| RabbitMQ         | `RABBITMQ_URL`, `RABBITMQ_USER/PASSWORD`                      | `amqp://nina:nina_dev@localhost:5672`                |
-| MinIO            | `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY/SECRET_KEY`               | `localhost:9000`                                     |
-| Elasticsearch    | `ELASTICSEARCH_URL`                                           | `http://localhost:9200`                              |
-| Keycloak         | `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_*`         | `http://localhost:8080`                              |
-| Vault            | `VAULT_ADDR`, `VAULT_TOKEN`                                   | `http://localhost:8200`                              |
-| JWT              | `JWT_SECRET`, `JWT_EXPIRATION`, `JWT_*_KEY_PATH`              | 900 secondes (15 min)                                |
-| Africa's Talking | `AT_API_KEY`, `AT_USERNAME`, `AT_USSD_SHORTCODE`              | `*123*NINA#`                                         |
-| Module IA        | `AI_AUTO_THRESHOLD`, `AI_REVIEW_THRESHOLD`                    | 85.0 / 60.0                                          |
-| SIGAC            | `SIGAC_INTEGRITY_CRITICAL/WARNING`                            | 40.0 / 60.0                                          |
-| mTLS AES         | `AES_MLI_CERT_PATH`, `AES_BFA_CERT_PATH`, `AES_NER_CERT_PATH` | `./secrets/aes/mali.crt`                             |
+| Catégorie        | Variables clés                                                | Exemple                                                             |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
+| PostgreSQL       | `DATABASE_URL`, `POSTGRES_USER/PASSWORD/DB`                   | `postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db` |
+| Redis            | `REDIS_URL`, `REDIS_PASSWORD`                                 | `redis://:redis_dev_2026!@localhost:6379`                           |
+| RabbitMQ         | `RABBITMQ_URL`, `RABBITMQ_USER/PASSWORD`                      | `amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672`                |
+| MinIO            | `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY/SECRET_KEY`               | `localhost:9000`                                                    |
+| Elasticsearch    | `ELASTICSEARCH_URL`                                           | `http://localhost:9200`                                             |
+| Keycloak         | `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_*`         | `http://localhost:8080`                                             |
+| Vault            | `VAULT_ADDR`, `VAULT_TOKEN`                                   | `http://localhost:8200`                                             |
+| JWT              | `JWT_SECRET`, `JWT_EXPIRATION`, `JWT_*_KEY_PATH`              | 900 secondes (15 min)                                               |
+| Africa's Talking | `AT_API_KEY`, `AT_USERNAME`, `AT_USSD_SHORTCODE`              | `*123*NINA#`                                                        |
+| Module IA        | `AI_AUTO_THRESHOLD`, `AI_REVIEW_THRESHOLD`                    | 85.0 / 60.0                                                         |
+| SIGAC            | `SIGAC_INTEGRITY_CRITICAL/WARNING`                            | 40.0 / 60.0                                                         |
+| mTLS AES         | `AES_MLI_CERT_PATH`, `AES_BFA_CERT_PATH`, `AES_NER_CERT_PATH` | `./secrets/aes/mali.crt`                                            |
 
 🔒 **Règle de sécurité absolue** : Le fichier `.env` est dans le `.gitignore`. Il ne doit **jamais**
 être commité. Seul `.env.example` (sans vrais secrets) est versionné.

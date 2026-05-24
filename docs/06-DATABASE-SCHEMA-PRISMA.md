@@ -1248,7 +1248,7 @@ docker compose -f docker-compose.dev.yml ps postgres
 
 # S'assurer que le fichier .env contient DATABASE_URL
 cat .env | Select-String "DATABASE_URL"
-# DATABASE_URL=postgresql://nina:nina_dev@localhost:5432/nina_aes
+# DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
 ```
 
 ### 7.2 Générer le client Prisma
@@ -1282,7 +1282,7 @@ pnpm exec prisma migrate dev --name init_full_schema
 
 ```
 Prisma schema loaded from prisma/schema.prisma
-Datasource "db": PostgreSQL database "nina_aes" at "localhost:5432"
+Datasource "db": PostgreSQL database "nina_aes_db" at "localhost:5432"
 
 Applying migration `20260409120000_init_full_schema`
 

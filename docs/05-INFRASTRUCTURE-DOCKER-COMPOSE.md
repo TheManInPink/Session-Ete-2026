@@ -240,11 +240,11 @@ graph TB
 
 ### 3.3 Communication : réseau interne vs accès externe
 
-| Depuis                         | Vers                                            | Adresse utilisée   | Exemple                                                           |
-| ------------------------------ | ----------------------------------------------- | ------------------ | ----------------------------------------------------------------- |
-| Conteneur → Conteneur          | Un autre conteneur du même réseau               | **Nom du service** | Keycloak → `postgres:5432`                                        |
-| Poste Windows → Conteneur      | Un conteneur via port mapping                   | **localhost:PORT** | `psql -h localhost -p 5432`                                       |
-| Microservice local → Conteneur | L'infra Docker depuis un service NestJS/FastAPI | **localhost:PORT** | `DATABASE_URL=postgresql://nina:nina_dev@localhost:5432/nina_aes` |
+| Depuis                         | Vers                                            | Adresse utilisée   | Exemple                                                                          |
+| ------------------------------ | ----------------------------------------------- | ------------------ | -------------------------------------------------------------------------------- |
+| Conteneur → Conteneur          | Un autre conteneur du même réseau               | **Nom du service** | Keycloak → `postgres:5432`                                                       |
+| Poste Windows → Conteneur      | Un conteneur via port mapping                   | **localhost:PORT** | `psql -h localhost -p 5432`                                                      |
+| Microservice local → Conteneur | L'infra Docker depuis un service NestJS/FastAPI | **localhost:PORT** | `DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db` |
 
 ⚠️ **Point clé** : À l'intérieur du réseau Docker, les conteneurs se voient par **nom de service**
 (`postgres`, `redis`). Depuis l'extérieur (poste Windows), on utilise **`localhost`** avec le port
@@ -288,9 +288,9 @@ postgres:
 
   # Variables d'environnement pour la création initiale de la BDD
   environment:
-    POSTGRES_USER: nina # Utilisateur principal
-    POSTGRES_PASSWORD: nina_dev # Mot de passe de développement
-    POSTGRES_DB: nina_aes # Base de données créée au démarrage
+    POSTGRES_USER: nina_admin # Utilisateur principal
+    POSTGRES_PASSWORD: nina_dev_2026! # Mot de passe de développement
+    POSTGRES_DB: nina_aes_db # Base de données créée au démarrage
 
   # Volumes montés
   volumes:
@@ -303,7 +303,7 @@ postgres:
 
   # Healthcheck : vérifie que PostgreSQL accepte les connexions
   healthcheck:
-    test: ['CMD-SHELL', 'pg_isready -U nina -d nina_aes']
+    test: ['CMD-SHELL', 'pg_isready -U nina_admin -d nina_aes_db']
     interval: 10s # Vérification toutes les 10 secondes
     timeout: 5s # Timeout si pas de réponse en 5s
     retries: 5 # 5 échecs consécutifs → conteneur "unhealthy"
@@ -328,7 +328,7 @@ volume `postgres_data` est vide).
 -- ═══════════════════════════════════════════════════
 
 -- Se connecter à la base principale
-\c nina_aes;
+\c nina_aes_db;
 
 -- ── Extension 1 : uuid-ossp ──
 -- Génère des UUID v4 pour les clés primaires
@@ -371,7 +371,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE EXTENSION IF NOT EXISTS "unaccent";
 
 -- Retour sur la base principale
-\c nina_aes;
+\c nina_aes_db;
 
 -- Confirmation
 DO $$
@@ -388,7 +388,7 @@ docker compose -f docker-compose.dev.yml ps postgres
 # STATUS doit afficher "healthy"
 
 # Se connecter en ligne de commande
-docker exec -it nina-postgres psql -U nina -d nina_aes
+docker exec -it nina-postgres psql -U nina_admin -d nina_aes_db
 
 # Vérifier les extensions installées
 # (dans psql)
@@ -408,7 +408,7 @@ SELECT unaccent('Sékou Touré');
 
 # Vérifier la base de test
 \l
-# nina_aes      | nina | UTF8
+# nina_aes_db      | nina | UTF8
 # nina_aes_test | nina | UTF8
 
 # Quitter psql
@@ -420,7 +420,7 @@ SELECT unaccent('Sékou Touré');
 Les microservices NestJS/FastAPI se connectent à PostgreSQL via la variable `DATABASE_URL` :
 
 ```
-DATABASE_URL=postgresql://nina:nina_dev@localhost:5432/nina_aes
+DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
                          ^^^^  ^^^^^^^^  ^^^^^^^^^  ^^^^  ^^^^^^^^
                          user  password  host       port  database
 ```
@@ -458,7 +458,7 @@ redis:
   # --appendonly yes    : Active la persistance AOF (Append-Only File)
   #                       Chaque écriture est loguée sur disque → résistance aux crashes
   # --requirepass       : Mot de passe obligatoire pour toutes les commandes
-  command: redis-server --appendonly yes --requirepass nina_dev
+  command: redis-server --appendonly yes --requirepass redis_dev_2026!
 
   volumes:
     # Persistance des données Redis (AOF + snapshots RDB)
@@ -466,7 +466,7 @@ redis:
 
   healthcheck:
     # Le -a fournit le mot de passe pour la commande PING
-    test: ['CMD', 'redis-cli', '-a', 'nina_dev', 'ping']
+    test: ['CMD', 'redis-cli', '-a', 'redis_dev_2026!', 'ping']
     interval: 10s
     timeout: 5s
     retries: 5
@@ -482,7 +482,7 @@ redis:
 docker compose -f docker-compose.dev.yml ps redis
 
 # Se connecter en ligne de commande
-docker exec -it nina-redis redis-cli -a nina_dev
+docker exec -it nina-redis redis-cli -a redis_dev_2026!
 
 # Tester les opérations de base
 127.0.0.1:6379> SET test:hello "world"
@@ -509,7 +509,7 @@ docker exec -it nina-redis redis-cli -a nina_dev
 ### 5.4 Connexion depuis les microservices
 
 ```
-REDIS_URL=redis://:nina_dev@localhost:6379
+REDIS_URL=redis://:redis_dev_2026!@localhost:6379
                    ^^^^^^^^  ^^^^^^^^^  ^^^^
                    password   host      port
 ```
@@ -592,8 +592,8 @@ rabbitmq:
     - '15672:15672' # Interface web d'administration
 
   environment:
-    RABBITMQ_DEFAULT_USER: nina # Utilisateur admin
-    RABBITMQ_DEFAULT_PASS: nina_dev # Mot de passe admin
+    RABBITMQ_DEFAULT_USER: nina_rabbit # Utilisateur admin
+    RABBITMQ_DEFAULT_PASS: rabbit_dev_2026! # Mot de passe admin
 
   volumes:
     # Persistance des queues et messages
@@ -618,7 +618,7 @@ docker compose -f docker-compose.dev.yml ps rabbitmq
 
 # Accéder à l'interface web d'administration
 # Ouvrir dans le navigateur : http://localhost:15672
-# Login : nina / nina_dev
+# Login : nina_rabbit / rabbit_dev_2026!
 
 # Vérifier via CLI
 docker exec -it nina-rabbitmq rabbitmqctl status
@@ -656,8 +656,8 @@ minio:
     - '9001:9001' # Console web d'administration
 
   environment:
-    MINIO_ROOT_USER: nina_minio # Équivalent de AWS_ACCESS_KEY_ID
-    MINIO_ROOT_PASSWORD: nina_minio_dev # Équivalent de AWS_SECRET_ACCESS_KEY
+    MINIO_ROOT_USER: nina_minio_admin # Équivalent de AWS_ACCESS_KEY_ID
+    MINIO_ROOT_PASSWORD: minio_dev_2026! # Équivalent de AWS_SECRET_ACCESS_KEY
 
   # Commande de lancement :
   # server /data          : chemin de stockage des objets
@@ -682,10 +682,10 @@ minio:
 
 ```powershell
 # Ouvrir la console web : http://localhost:9001
-# Login : nina_minio / nina_minio_dev
+# Login : nina_minio_admin / minio_dev_2026!
 
 # Créer les buckets nécessaires via la console web ou via mc CLI :
-docker exec -it nina-minio mc alias set local http://localhost:9000 nina_minio nina_minio_dev
+docker exec -it nina-minio mc alias set local http://localhost:9000 nina_minio_admin minio_dev_2026!
 docker exec -it nina-minio mc mb local/nina-documents
 docker exec -it nina-minio mc mb local/nina-photos
 ```
@@ -800,9 +800,9 @@ keycloak:
   environment:
     # Keycloak utilise PostgreSQL comme backend
     KC_DB: postgres
-    KC_DB_URL: jdbc:postgresql://postgres:5432/nina_aes
-    KC_DB_USERNAME: nina
-    KC_DB_PASSWORD: nina_dev
+    KC_DB_URL: jdbc:postgresql://postgres:5432/nina_aes_db
+    KC_DB_USERNAME: nina_admin
+    KC_DB_PASSWORD: nina_dev_2026!
 
     # Configuration réseau
     KC_HOSTNAME: localhost
@@ -812,7 +812,7 @@ keycloak:
 
     # Compte administrateur initial
     KEYCLOAK_ADMIN: admin
-    KEYCLOAK_ADMIN_PASSWORD: admin_dev
+    KEYCLOAK_ADMIN_PASSWORD: keycloak_admin_2026!
 
   # Mode développement (rechargement à chaud, pas de cache de thèmes)
   command: start-dev
@@ -843,7 +843,7 @@ keycloak:
 
 ```powershell
 # Ouvrir la console d'administration : http://localhost:8080
-# Login : admin / admin_dev
+# Login : admin / keycloak_admin_2026!
 
 # Vérifier l'endpoint de santé
 curl http://localhost:8080/health/ready
@@ -1086,8 +1086,8 @@ Les autres services n'ont pas de dépendance inter-conteneurs.
 | Conteneur en état « unhealthy »                                                                 | Le service n'a pas fini de démarrer                                 | Attendre 60s et revérifier. Si persistant : `docker compose logs <service>` pour voir l'erreur.                                                                                                                    |
 | `keycloak` ne démarre pas                                                                       | PostgreSQL pas encore prêt                                          | Vérifier `docker compose ps postgres` → doit être « healthy ». Si non, checker les logs postgres.                                                                                                                  |
 | Elasticsearch « unhealthy » avec `max virtual memory areas vm.max_map_count [65530] is too low` | Paramètre Linux/WSL2 trop bas pour ES                               | Dans un terminal WSL2 : `wsl -d docker-desktop sysctl -w vm.max_map_count=262144`. Pour persister : ajouter dans `%USERPROFILE%\.wslconfig` la ligne `[wsl2]\nkernelCommandLine = sysctl.vm.max_map_count=262144`. |
-| Redis « NOAUTH Authentication required »                                                        | Le mot de passe n'est pas fourni dans l'URL                         | Vérifier `REDIS_URL=redis://:nina_dev@localhost:6379` (noter le `:` avant `nina_dev`).                                                                                                                             |
-| MinIO « Access Denied »                                                                         | Mauvais credentials                                                 | Vérifier `MINIO_ACCESS_KEY=nina_minio` et `MINIO_SECRET_KEY=nina_minio_dev` dans le `.env`.                                                                                                                        |
+| Redis « NOAUTH Authentication required »                                                        | Le mot de passe n'est pas fourni dans l'URL                         | Vérifier `REDIS_URL=redis://:redis_dev_2026!@localhost:6379` (noter le `:` avant `redis_dev_2026!`).                                                                                                               |
+| MinIO « Access Denied »                                                                         | Mauvais credentials                                                 | Vérifier `MINIO_ACCESS_KEY=nina_minio_admin` et `MINIO_SECRET_KEY=minio_dev_2026!` dans le `.env`.                                                                                                                 |
 | Docker est très lent sous Windows                                                               | Docker Desktop utilise trop/pas assez de RAM                        | Paramètres Docker Desktop → Resources → augmenter à 4 Go RAM minimum, 4 CPUs.                                                                                                                                      |
 | `init-db.sql` ne s'exécute pas                                                                  | Le volume `postgres_data` existe déjà                               | Le script ne s'exécute qu'au premier démarrage. Supprimer le volume : `docker volume rm nina-aes-platform_postgres_data` puis relancer.                                                                            |
 | Espace disque Docker plein                                                                      | Images et volumes non utilisés                                      | `docker system prune -a --volumes` (⚠️ supprime tout ce qui n'est pas utilisé).                                                                                                                                    |
@@ -1127,41 +1127,41 @@ détaillée par catégorie :
 
 ### 10.1 PostgreSQL
 
-| Variable            | Valeur dev                                           | Utilisé par                      | Description                              |
-| ------------------- | ---------------------------------------------------- | -------------------------------- | ---------------------------------------- |
-| `POSTGRES_USER`     | `nina`                                               | Docker Compose                   | Utilisateur PostgreSQL créé au démarrage |
-| `POSTGRES_PASSWORD` | `nina_dev`                                           | Docker Compose                   | Mot de passe PostgreSQL                  |
-| `POSTGRES_DB`       | `nina_aes`                                           | Docker Compose                   | Base de données créée au démarrage       |
-| `DATABASE_URL`      | `postgresql://nina:nina_dev@localhost:5432/nina_aes` | Prisma, tous les services NestJS | URL de connexion complète                |
+| Variable            | Valeur dev                                                          | Utilisé par                      | Description                              |
+| ------------------- | ------------------------------------------------------------------- | -------------------------------- | ---------------------------------------- |
+| `POSTGRES_USER`     | `nina_admin`                                                        | Docker Compose                   | Utilisateur PostgreSQL créé au démarrage |
+| `POSTGRES_PASSWORD` | `nina_dev_2026!`                                                    | Docker Compose                   | Mot de passe PostgreSQL                  |
+| `POSTGRES_DB`       | `nina_aes_db`                                                       | Docker Compose                   | Base de données créée au démarrage       |
+| `DATABASE_URL`      | `postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db` | Prisma, tous les services NestJS | URL de connexion complète                |
 
 ### 10.2 Redis
 
-| Variable         | Valeur dev                         | Utilisé par                   | Description                  |
-| ---------------- | ---------------------------------- | ----------------------------- | ---------------------------- |
-| `REDIS_URL`      | `redis://:nina_dev@localhost:6379` | Services NestJS (cache, USSD) | URL avec mot de passe        |
-| `REDIS_HOST`     | `localhost`                        | Config alternative            | Hôte seul (certains clients) |
-| `REDIS_PORT`     | `6379`                             | Config alternative            | Port seul                    |
-| `REDIS_PASSWORD` | `nina_dev`                         | Config alternative            | Mot de passe seul            |
+| Variable         | Valeur dev                                | Utilisé par                   | Description                  |
+| ---------------- | ----------------------------------------- | ----------------------------- | ---------------------------- |
+| `REDIS_URL`      | `redis://:redis_dev_2026!@localhost:6379` | Services NestJS (cache, USSD) | URL avec mot de passe        |
+| `REDIS_HOST`     | `localhost`                               | Config alternative            | Hôte seul (certains clients) |
+| `REDIS_PORT`     | `6379`                                    | Config alternative            | Port seul                    |
+| `REDIS_PASSWORD` | `redis_dev_2026!`                         | Config alternative            | Mot de passe seul            |
 
 ### 10.3 RabbitMQ
 
-| Variable            | Valeur dev                            | Utilisé par                | Description       |
-| ------------------- | ------------------------------------- | -------------------------- | ----------------- |
-| `RABBITMQ_URL`      | `amqp://nina:nina_dev@localhost:5672` | Services NestJS (messages) | URL AMQP complète |
-| `RABBITMQ_HOST`     | `localhost`                           | Config alternative         | Hôte seul         |
-| `RABBITMQ_USER`     | `nina`                                | Docker Compose + config    | Utilisateur AMQP  |
-| `RABBITMQ_PASSWORD` | `nina_dev`                            | Docker Compose + config    | Mot de passe AMQP |
+| Variable            | Valeur dev                                           | Utilisé par                | Description       |
+| ------------------- | ---------------------------------------------------- | -------------------------- | ----------------- |
+| `RABBITMQ_URL`      | `amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672` | Services NestJS (messages) | URL AMQP complète |
+| `RABBITMQ_HOST`     | `localhost`                                          | Config alternative         | Hôte seul         |
+| `RABBITMQ_USER`     | `nina_rabbit`                                        | Docker Compose + config    | Utilisateur AMQP  |
+| `RABBITMQ_PASSWORD` | `rabbit_dev_2026!`                                   | Docker Compose + config    | Mot de passe AMQP |
 
 ### 10.4 MinIO
 
-| Variable                 | Valeur dev       | Utilisé par        | Description                          |
-| ------------------------ | ---------------- | ------------------ | ------------------------------------ |
-| `MINIO_ENDPOINT`         | `localhost`      | `document-service` | Hôte MinIO                           |
-| `MINIO_PORT`             | `9000`           | `document-service` | Port API S3                          |
-| `MINIO_ACCESS_KEY`       | `nina_minio`     | `document-service` | Access key (= AWS_ACCESS_KEY_ID)     |
-| `MINIO_SECRET_KEY`       | `nina_minio_dev` | `document-service` | Secret key (= AWS_SECRET_ACCESS_KEY) |
-| `MINIO_BUCKET_DOCUMENTS` | `nina-documents` | `document-service` | Bucket pour les PDF                  |
-| `MINIO_BUCKET_PHOTOS`    | `nina-photos`    | `identity-service` | Bucket pour les photos               |
+| Variable                 | Valeur dev         | Utilisé par        | Description                          |
+| ------------------------ | ------------------ | ------------------ | ------------------------------------ |
+| `MINIO_ENDPOINT`         | `localhost`        | `document-service` | Hôte MinIO                           |
+| `MINIO_PORT`             | `9000`             | `document-service` | Port API S3                          |
+| `MINIO_ACCESS_KEY`       | `nina_minio_admin` | `document-service` | Access key (= AWS_ACCESS_KEY_ID)     |
+| `MINIO_SECRET_KEY`       | `minio_dev_2026!`  | `document-service` | Secret key (= AWS_SECRET_ACCESS_KEY) |
+| `MINIO_BUCKET_DOCUMENTS` | `nina-documents`   | `document-service` | Bucket pour les PDF                  |
+| `MINIO_BUCKET_PHOTOS`    | `nina-photos`      | `identity-service` | Bucket pour les photos               |
 
 ### 10.5 Elasticsearch
 
@@ -1241,25 +1241,25 @@ détaillée par catégorie :
 
 ### PostgreSQL
 
-- [ ] Connexion réussie : `docker exec -it nina-postgres psql -U nina -d nina_aes`
+- [ ] Connexion réussie : `docker exec -it nina-postgres psql -U nina_admin -d nina_aes_db`
 - [ ] Extensions installées : `\dx` montre uuid-ossp, pgcrypto, pg_trgm, unaccent
 - [ ] Base de test existe : `\l` montre `nina_aes_test`
 - [ ] Recherche floue fonctionnelle : `SELECT similarity('Mamadu', 'Mamadou');` retourne ~0.5
 
 ### Redis
 
-- [ ] `docker exec -it nina-redis redis-cli -a nina_dev ping` retourne `PONG`
+- [ ] `docker exec -it nina-redis redis-cli -a redis_dev_2026! ping` retourne `PONG`
 - [ ] Opérations SET/GET/EX fonctionnelles
 - [ ] Persistance AOF activée (`CONFIG GET appendonly` → `yes`)
 
 ### RabbitMQ
 
-- [ ] Interface web accessible : `http://localhost:15672` (nina / nina_dev)
+- [ ] Interface web accessible : `http://localhost:15672` (nina_rabbit / rabbit_dev_2026!)
 - [ ] `rabbitmqctl status` exécutable sans erreur
 
 ### MinIO
 
-- [ ] Console web accessible : `http://localhost:9001` (nina_minio / nina_minio_dev)
+- [ ] Console web accessible : `http://localhost:9001` (nina_minio_admin / minio_dev_2026!)
 - [ ] Buckets `nina-documents` et `nina-photos` créés
 
 ### Elasticsearch
@@ -1269,7 +1269,7 @@ détaillée par catégorie :
 
 ### Keycloak
 
-- [ ] Console accessible : `http://localhost:8080` (admin / admin_dev)
+- [ ] Console accessible : `http://localhost:8080` (admin / keycloak_admin_2026!)
 - [ ] Endpoint de santé : `curl http://localhost:8080/health/ready` → `UP`
 
 ### Vault

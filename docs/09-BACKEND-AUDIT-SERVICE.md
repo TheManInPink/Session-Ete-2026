@@ -1261,7 +1261,7 @@ SELECT partman.create_parent(
 ```bash
 # scripts/archive-audit-monthly.sh
 month=$(date -d "13 months ago" +%Y-%m)
-pg_dump --table=audit_logs_${month//-/_} -Fc nina_aes > /tmp/audit_${month}.dump
+pg_dump --table=audit_logs_${month//-/_} -Fc nina_aes_db > /tmp/audit_${month}.dump
 openssl enc -aes-256-gcm -pbkdf2 -in /tmp/audit_${month}.dump -out /tmp/audit_${month}.enc -pass file:/etc/nina/archive.key
 mc cp /tmp/audit_${month}.enc minio/nina-audit-archive/${month}/
 mc retention set --default GOVERNANCE "10y" minio/nina-audit-archive/${month}/

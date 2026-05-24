@@ -229,7 +229,7 @@ keycloak:
   command: start-dev --import-realm
   environment:
     KC_BOOTSTRAP_ADMIN_USERNAME: admin
-    KC_BOOTSTRAP_ADMIN_PASSWORD: admin_dev
+    KC_BOOTSTRAP_ADMIN_PASSWORD: keycloak_admin_2026!
     KC_DB: postgres
     KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
     KC_DB_USERNAME: keycloak
@@ -340,7 +340,7 @@ complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
 
   "users": [
     {
-      "username": "admin_dev",
+      "username": "keycloak_admin_2026!",
       "enabled": true,
       "emailVerified": true,
       "email": "admin@nina-aes.local",
@@ -444,7 +444,7 @@ Tu dois obtenir un JSON avec :
 - `jwks_uri`: `http://localhost:8080/realms/nina-aes/protocol/openid-connect/certs`
 - `token_endpoint`: `http://localhost:8080/realms/nina-aes/protocol/openid-connect/token`
 
-**Console Admin** : http://localhost:8080/admin (login : `admin` / `admin_dev`)
+**Console Admin** : http://localhost:8080/admin (login : `admin` / `keycloak_admin_2026!`)
 
 ### 4.5 Test du flow Password Grant (depuis curl)
 
@@ -630,7 +630,7 @@ export const envSchema = z.object({
   KEYCLOAK_CLIENT_ID: z.string().default('nina-aes-backend'),
   KEYCLOAK_CLIENT_SECRET: z.string().default('backend_secret_dev_2026'),
   KEYCLOAK_ADMIN_USERNAME: z.string().default('admin'),
-  KEYCLOAK_ADMIN_PASSWORD: z.string().default('admin_dev'),
+  KEYCLOAK_ADMIN_PASSWORD: z.string().default('keycloak_admin_2026!'),
 
   // ─── JWT (pour vérification via JWKS) ────────────────────
   JWT_ISSUER: z.string().url().default('http://localhost:8080/realms/nina-aes'),
@@ -2436,7 +2436,7 @@ KEYCLOAK_REALM=nina-aes
 KEYCLOAK_CLIENT_ID=nina-aes-backend
 KEYCLOAK_CLIENT_SECRET=backend_secret_dev_2026
 KEYCLOAK_ADMIN_USERNAME=admin
-KEYCLOAK_ADMIN_PASSWORD=admin_dev
+KEYCLOAK_ADMIN_PASSWORD=keycloak_admin_2026!
 
 # ─── JWT ──────────────────────────────────────────────────
 JWT_ISSUER=http://localhost:8080/realms/nina-aes
@@ -2549,7 +2549,7 @@ Document 09 — Audit Service (Merkle hash chain).
 - [ ] `infrastructure/keycloak/realm-export.json` créé et monté dans Docker Compose
 - [ ] `docker compose up -d keycloak postgres redis` → tous healthy
 - [ ] http://localhost:8080/realms/nina-aes/.well-known/openid-configuration répond
-- [ ] Admin console http://localhost:8080/admin accessible (`admin` / `admin_dev`)
+- [ ] Admin console http://localhost:8080/admin accessible (`admin` / `keycloak_admin_2026!`)
 - [ ] Realm `nina-aes` créé avec 3 clients, 4 rôles, 3 users de test
 - [ ] `pnpm --filter @nina-aes/auth-service add` toutes les dépendances installées
 - [ ] Le service démarre sur http://localhost:3002 sans erreur
