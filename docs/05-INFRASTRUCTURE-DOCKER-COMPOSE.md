@@ -1226,24 +1226,31 @@ Les autres services n'ont pas de dépendance inter-conteneurs.
 
 ```powershell
 # ── Voir les logs d'un conteneur en erreur ──
-docker compose -f docker-compose.dev.yml logs --tail=50 postgres
+pnpm run docker:logs --tail 50 postgres
+# Équivalent direct :
+# docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs --tail=50 postgres
 
 # ── Vérifier la connectivité réseau entre conteneurs ──
-docker exec nina-postgres ping nina-redis
-# Si ping n'est pas installé (Alpine) :
-docker exec nina-postgres sh -c "echo > /dev/tcp/nina-redis/6379 && echo OK"
+# ⚠ ping N'EST PAS installé dans la plupart des images (postgis, redis-alpine,
+#   rabbitmq-alpine, etc.). Utiliser /dev/tcp via bash (PAS sh — c'est une
+#   feature bash, sh/dash renvoie "Directory nonexistent") :
+docker exec nina-postgres bash -c "echo > /dev/tcp/nina-redis/6379 && echo OK"
+# Pour les images sans bash (alpine), utiliser nc si disponible :
+# docker exec nina-redis nc -zv nina-postgres 5432
 
 # ── Vérifier l'utilisation mémoire de chaque conteneur ──
 docker stats --no-stream
 
-# ── Inspecter un conteneur en détail ──
+# ── Inspecter un conteneur en détail (filtrer l'IP) ──
 docker inspect nina-postgres | Select-String -Pattern '"IPAddress"'
+# Variante --format (sans piping PowerShell, retourne juste l'IP) :
+docker inspect nina-postgres --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
 
 # ── Forcer la recréation d'un conteneur ──
-docker compose -f docker-compose.dev.yml up -d --force-recreate postgres
+docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml up -d --force-recreate postgres
 
 # ── Vérifier que tous les healthchecks passent ──
-docker compose -f docker-compose.dev.yml ps --format "table {{.Name}}\t{{.Status}}"
+pnpm run docker:ps --format "table {{.Name}}\t{{.Status}}"
 # Tous doivent afficher "(healthy)" dans le statut
 ```
 
