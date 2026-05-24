@@ -583,7 +583,7 @@ done
 
 echo ""
 echo "── Fichiers de configuration ──"
-for f in .env docker-compose.dev.yml package.json pnpm-workspace.yaml turbo.json Makefile .prettierrc .editorconfig commitlint.config.js; do
+for f in .env infrastructure/docker/docker-compose.dev.yml package.json pnpm-workspace.yaml turbo.json Makefile .prettierrc .editorconfig commitlint.config.js; do
   if [ -f "$f" ]; then
     echo "  ✅ $f"
   else
