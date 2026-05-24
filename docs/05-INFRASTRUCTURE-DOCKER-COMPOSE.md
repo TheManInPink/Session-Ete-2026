@@ -1092,17 +1092,31 @@ volumes:
 **Commandes de gestion des volumes** :
 
 ```powershell
-# Lister tous les volumes Docker du projet
+# Lister tous les volumes Docker du projet (5 attendus)
 docker volume ls | Select-String "nina"
+# local     nina-elasticsearch-data
+# local     nina-minio-data
+# local     nina-postgres-data
+# local     nina-rabbitmq-data
+# local     nina-redis-data
 
 # Voir la taille des volumes
 docker system df -v | Select-String "nina"
 
 # Supprimer un volume spécifique (⚠️ perte de données)
-docker volume rm nina-aes-platform_postgres_data
+# Note : les volumes ont des noms explicites via `name:` dans le compose,
+# donc PAS de préfixe project généré du type `nina-aes-platform_postgres_data`.
+docker volume rm nina-postgres-data
 
-# Supprimer TOUS les volumes du projet (⚠️ reset complet)
-docker compose -f docker-compose.dev.yml down -v
+# Supprimer TOUS les volumes du projet (⚠️ reset complet — perte totale)
+docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml down -v
+# Raccourcis équivalents :
+#   pnpm run docker:down   → arrête sans toucher aux volumes
+#   pnpm run docker:reset  → arrête + wipe les 5 volumes (équivalent à la ligne ci-dessus)
+# Après un docker:reset, reprovisionner avec :
+#   pnpm run docker:up
+#   bash scripts/init-minio.sh
+#   bash scripts/init-elasticsearch.sh
 ```
 
 ### 8.2 Réseau bridge dédié

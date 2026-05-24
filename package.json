@@ -47,6 +47,8 @@
     "db:studio": "turbo run db:studio --filter=@nina-aes/database",
     "docker:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml up -d",
     "docker:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml down",
+    "//docker:reset": "⚠ DESTRUCTIF : arrete tous les conteneurs ET supprime les 5 volumes (nina-postgres-data, nina-redis-data, nina-rabbitmq-data, nina-elasticsearch-data, nina-minio-data). Toutes les donnees Postgres/Redis/ES/MinIO seront perdues — utiliser pour repartir d'un etat propre. Apres : pnpm run docker:up + scripts/init-{minio,elasticsearch}.sh pour reprovisionner.",
+    "docker:reset": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml down -v",
     "docker:ps": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml ps",
     "//docker:logs": "Sans -f. Accepte args: pnpm docker:logs --tail 100 --since 5m elasticsearch (le -- separateur pnpm peut etre omis sur ce script).",
     "docker:logs": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs",
