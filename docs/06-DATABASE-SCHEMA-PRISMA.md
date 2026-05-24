@@ -77,13 +77,14 @@ disproportionnée. Le schéma unifié dans `packages/database` garantit la cohé
 
 ### Commandes Prisma essentielles
 
-| Commande               | Raccourci Makefile | Effet                                               |
-| ---------------------- | ------------------ | --------------------------------------------------- |
-| `pnpm run db:generate` | `make db-generate` | Génère le client TypeScript à partir du schéma      |
-| `pnpm run db:migrate`  | `make db-migrate`  | Crée et exécute les migrations SQL                  |
-| `pnpm run db:seed`     | `make db-seed`     | Peuple la base avec les données initiales           |
-| `pnpm run db:studio`   | `make db-studio`   | Lance l'interface web (http://localhost:5555)       |
-| `pnpm run db:reset`    | `make db-reset`    | Supprime tout et recrée depuis zéro (⚠️ destructif) |
+| Commande               | Raccourci Makefile | Effet                                            |
+| ---------------------- | ------------------ | ------------------------------------------------ |
+| `pnpm run db:generate` | `make db-generate` | Génère le client TypeScript à partir du schéma   |
+| `pnpm run db:validate` | `make db-validate` | Valide le schéma Prisma (syntaxe + types)        |
+| `pnpm run db:migrate`  | `make db-migrate`  | Crée et exécute les migrations SQL               |
+| `pnpm run db:seed`     | `make db-seed`     | Peuple la base avec les données initiales        |
+| `pnpm run db:studio`   | `make db-studio`   | Lance l'interface web (http://localhost:5555)    |
+| `pnpm run db:reset`    | `make db-reset`    | Drop + recreate + migrate + seed (⚠️ destructif) |
 
 ---
 

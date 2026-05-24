@@ -126,6 +126,9 @@
     },
     "db:reset": {
       "cache": false
+    },
+    "db:validate": {
+      "cache": false
     }
   }
 }

@@ -36,6 +36,7 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
     "db:migrate:reset": "prisma migrate reset --force",
+    "db:reset": "prisma migrate reset --force",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
