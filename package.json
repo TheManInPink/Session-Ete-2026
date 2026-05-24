@@ -47,6 +47,7 @@
     "db:studio": "turbo run db:studio --filter=@nina-aes/database",
     "docker:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml up -d",
     "docker:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml down",
+    "docker:ps": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml ps",
     "docker:logs": "docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml logs -f",
     "prepare": "husky"
   },
