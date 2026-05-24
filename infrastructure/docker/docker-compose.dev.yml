@@ -199,7 +199,10 @@ services:
   # - Indexer les 20M+ enregistrements pour des réponses < 100ms
   # Pinné sur 9.4.1 (release du 2026-05-12). Kibana doit suivre la même version.
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.1
+    build:
+      context: .
+      dockerfile: Dockerfile.elasticsearch
+    image: nina-aes/elasticsearch:9.4.1
     container_name: nina-elasticsearch
     restart: unless-stopped
     ports:

@@ -1,0 +1,19 @@
+# ============================================================================
+# NINA-AES — Image Elasticsearch personnalisee
+# ============================================================================
+# Pourquoi un Dockerfile custom plutot que l'image officielle directement :
+# le script scripts/init-elasticsearch.sh definit des analyseurs avec le
+# filtre `phonetic` (double metaphone) pour la recherche floue sur les noms
+# bambara/francais. Ce filtre est fourni par le plugin officiel
+# `analysis-phonetic` qui n'est PAS inclus dans l'image de base.
+#
+# Sans ce Dockerfile, le plugin doit etre installe manuellement apres chaque
+# `docker compose up --force-recreate` ou `docker compose down -v`, ce qui
+# casse la reproductibilite du setup dev.
+#
+# Version pinnee strictement (FROM tag) pour garantir que le plugin matche
+# bien la version d'ES, sinon ES refuse de demarrer (erreur de checksum).
+# ============================================================================
+FROM docker.elastic.co/elasticsearch/elasticsearch:9.4.1
+
+RUN bin/elasticsearch-plugin install --batch analysis-phonetic
