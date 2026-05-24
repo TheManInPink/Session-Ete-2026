@@ -724,18 +724,37 @@ minio:
 # Ouvrir la console web : http://localhost:9001
 # Login : nina_minio_admin / minio_dev_2026!
 
-# Créer les buckets nécessaires via la console web ou via mc CLI :
-docker exec -it nina-minio mc alias set local http://localhost:9000 nina_minio_admin minio_dev_2026!
-docker exec -it nina-minio mc mb local/nina-documents
-docker exec -it nina-minio mc mb local/nina-photos
+# Créer les 4 buckets via le script idempotent (recommandé)
+bash scripts/init-minio.sh
+# Crée nina-photos, nina-documents, nina-scans, nina-backups
+# (re-exécutable sans erreur grâce à --ignore-existing)
 ```
+
+<details>
+<summary>Équivalent manuel via mc CLI (debug / compréhension)</summary>
+
+```powershell
+# Note PowerShell : le `!` final du password doit être protégé par
+# single-quotes, sinon expansion d'historique → "Unexpected token".
+docker exec -it nina-minio mc alias set local http://localhost:9000 nina_minio_admin 'minio_dev_2026!'
+docker exec -it nina-minio mc mb local/nina-photos    --ignore-existing
+docker exec -it nina-minio mc mb local/nina-documents --ignore-existing
+docker exec -it nina-minio mc mb local/nina-scans     --ignore-existing
+docker exec -it nina-minio mc mb local/nina-backups   --ignore-existing
+# Politique de lecture publique pour les photos (DEV uniquement)
+docker exec -it nina-minio mc anonymous set download local/nina-photos
+```
+
+</details>
 
 **Buckets prévus** :
 
-| Bucket           | Contenu                                                    | Service producteur |
-| ---------------- | ---------------------------------------------------------- | ------------------ |
-| `nina-documents` | Fiches Descriptives Individuelles (PDF signés), récépissés | `document-service` |
-| `nina-photos`    | Photos d'identité des citoyens                             | `identity-service` |
+| Bucket           | Contenu                                                    | Service producteur                   |
+| ---------------- | ---------------------------------------------------------- | ------------------------------------ |
+| `nina-photos`    | Photos d'identité des citoyens (lecture publique en dev)   | `identity-service`                   |
+| `nina-documents` | Fiches Descriptives Individuelles (PDF signés), récépissés | `document-service`                   |
+| `nina-scans`     | Documents scannés (actes de naissance, justificatifs)      | `enrollment-service`, `auth-service` |
+| `nina-backups`   | Sauvegardes périodiques (dump PG, exports audit, ES)       | jobs cron / `audit-service`          |
 
 ### 7.2 Elasticsearch 8 — Recherche floue
 
