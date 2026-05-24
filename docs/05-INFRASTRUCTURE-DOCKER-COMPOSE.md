@@ -844,7 +844,7 @@ curl -u 'elastic:elastic_dev_2026!' -X PUT "http://localhost:9200/nina_test_demo
   },
   \"mappings\": {
     \"properties\": {
-      \"nina\":           { \"type\": \"keyword\" },
+      \"nina_number\":    { \"type\": \"keyword\" },
       \"last_name\":      { \"type\": \"text\", \"analyzer\": \"demo_analyzer\" },
       \"first_names\":    { \"type\": \"text\", \"analyzer\": \"demo_analyzer\" },
       \"birth_date\":     { \"type\": \"date\" },
