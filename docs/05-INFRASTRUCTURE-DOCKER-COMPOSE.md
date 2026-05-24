@@ -627,7 +627,8 @@ rabbitmq:
 
 ```powershell
 # Vérifier le conteneur
-docker compose -f docker-compose.dev.yml ps rabbitmq
+docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml ps rabbitmq
+# Raccourci équivalent : pnpm run docker:ps | Select-String rabbitmq
 
 # Accéder à l'interface web d'administration
 # Ouvrir dans le navigateur : http://localhost:15672
@@ -637,17 +638,43 @@ docker compose -f docker-compose.dev.yml ps rabbitmq
 docker exec -it nina-rabbitmq rabbitmqctl status
 # Doit afficher : "Status of node rabbit@..."
 
-# Lister les queues (vide au démarrage)
+# Lister les queues (12 queues pré-chargées via infrastructure/docker/rabbitmq/definitions.json)
 docker exec -it nina-rabbitmq rabbitmqctl list_queues
 # Listing queues for vhost / ...
+# name                              messages
+# identity.created                  0
+# identity.updated                  0
+# identity.correction.requested     0
+# identity.correction.validated     0
+# audit.log                         0
+# notification.email                0
+# notification.sms                  0
+# notification.ussd                 0
+# ai.analysis.requested             0
+# ai.analysis.completed             0
+# document.generation.requested     0
+# dlx.parking                       0
+
+# Lister les exchanges nina.* (4 pré-chargés)
+docker exec -it nina-rabbitmq rabbitmqctl list_exchanges name type | findstr "nina."
+# nina.audit          fanout
+# nina.dlx            fanout
+# nina.events         topic
+# nina.notifications  topic
 ```
 
 **Interface web RabbitMQ** (`http://localhost:15672`) :
 
-- Onglet **Queues** : liste des queues avec nombre de messages en attente
-- Onglet **Exchanges** : liste des exchanges (topic, direct, fanout)
-- Onglet **Connections** : connexions actives des microservices
-- Onglet **Channels** : canaux de communication ouverts
+- Onglet **Queues** : les 12 queues `identity.*`, `audit.*`, `notification.*`, `ai.*`, `document.*`,
+  `dlx.*` avec leur nombre de messages en attente.
+- Onglet **Exchanges** : les 4 exchanges `nina.*` (audit/dlx en fanout, events/notifications en
+  topic), plus les exchanges AMQP par défaut.
+- Onglet **Connections** : connexions actives des microservices (vide tant qu'aucun service NestJS
+  n'est lancé).
+- Onglet **Channels** : canaux de communication ouverts.
+
+> Topologie modifiable dans `infrastructure/docker/rabbitmq/definitions.json` et rechargée au
+> redémarrage du conteneur via `load_definitions` (cf. `rabbitmq.conf`).
 
 ---
 
