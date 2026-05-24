@@ -1267,11 +1267,11 @@ main()
 
 ```powershell
 # S'assurer que PostgreSQL Docker est running et healthy
-docker compose -f docker-compose.dev.yml ps postgres
-# STATUS : healthy
+pnpm run docker:ps | Select-String postgres
+# nina-postgres  postgis/postgis:18-3.6  ...  Up X hours (healthy)
 
 # S'assurer que le fichier .env contient DATABASE_URL
-cat .env | Select-String "DATABASE_URL"
+Get-Content .env | Select-String "DATABASE_URL"
 # DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
 ```
 
@@ -1320,41 +1320,33 @@ Your database is now in sync with your schema.
 ✔ Generated Prisma Client
 ```
 
-### 7.4 Ajouter les index trigram (migration SQL manuelle)
+### 7.4 Index trigram (générés automatiquement par Prisma)
 
-Les index GIN trigram ne sont pas supportés par Prisma Migrate. On crée une migration SQL manuelle :
+> **Évolution** : depuis Prisma 7, GIN + opérateurs `gin_trgm_ops` sont supportés nativement via
+> `@@index([… ops: raw("gin_trgm_ops")], type: Gin, map: "…")`. Plus besoin de migration SQL
+> manuelle.
 
-```powershell
-# Créer une migration vide
-cd packages/database
-pnpm exec prisma migrate dev --create-only --name add_trigram_indexes
+Les index trigram sont déclarés directement dans `schema.prisma` sur les colonnes ASCII normalisées
+(`last_name_ascii`, `first_name_ascii`) et émis par `prisma migrate dev` lors de la migration
+initiale :
+
+```prisma
+// Extrait de packages/database/prisma/schema.prisma — model Citizen
+@@index([lastNameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_citizens_lastname_trgm")
+@@index([firstNameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_citizens_firstname_trgm")
 ```
 
-Puis éditer le fichier SQL généré (`prisma/migrations/TIMESTAMP_add_trigram_indexes/migration.sql`)
-:
+Le SQL émis dans la migration (pour référence — ne pas écrire à la main) :
 
 ```sql
--- Migration : Index trigram pour la recherche floue
--- Ces index utilisent l'extension pg_trgm (activée dans init-db.sql)
-
--- Index GIN trigram sur last_name_ascii (recherche floue) — déjà déclaré via @@index Prisma
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_lastname_trgm
-ON citizens USING gin (last_name_ascii gin_trgm_ops);
-
--- Index GIN trigram sur first_name_ascii — déjà déclaré via @@index Prisma
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_firstname_trgm
-ON citizens USING gin (first_name_ascii gin_trgm_ops);
-
--- Note : pas d'index trigram sur le lieu de naissance — birth_place_id
--- est une FK UUID vers Location ; la recherche floue sur le nom de
--- localité se fait via l'index ES nina_locations (cf. init-elasticsearch.sh).
+-- Auto-généré par 'prisma migrate dev' (extrait de prisma/migrations/.../migration.sql)
+CREATE INDEX "idx_citizens_lastname_trgm"  ON "citizens" USING GIN ("last_name_ascii"  gin_trgm_ops);
+CREATE INDEX "idx_citizens_firstname_trgm" ON "citizens" USING GIN ("first_name_ascii" gin_trgm_ops);
 ```
 
-Puis appliquer :
-
-```powershell
-pnpm exec prisma migrate dev
-```
+Note : pas d'index trigram sur `birth_place_id` — c'est une FK UUID vers `Location`. La recherche
+floue sur le nom de localité se fait via l'index ES `nina_locations` (cf.
+`scripts/init-elasticsearch.sh`).
 
 ### 7.5 Exécuter le seed
 
@@ -1362,16 +1354,14 @@ pnpm exec prisma migrate dev
 # Peupler la base avec les données géographiques du Mali
 pnpm run db:seed
 
-# Sortie attendue :
-# 🌍 Seed — Insertion des données géographiques du Mali...
-#   📍 Régions...
-#   ✅ 11 régions insérées
-#   📍 Cercles...
-#   ✅ 49 cercles insérés
-#   📍 Communes...
-#   ✅ 23 communes insérées
-# ═══════════════════════════════════════════════════
-#   🇲🇱 Géographie du Mali — Seed terminé
+# Sortie attendue (compte derivé de data/mali/ + COMMUNES_PEDAGOGIQUES) :
+# 🌱 [seed] démarrage du seed NINA-AES…
+# ✅ [seed] 20 régions (loi 2023)
+# ✅ [seed] 142 cercles confirmés post-2023
+# ✅ [seed] N communes échantillon (pédagogique)
+# ✅ [seed] 5 institutions
+# ✅ [seed] 6 utilisateurs (1 par rôle UserRole)
+# 🌱 [seed] terminé avec succès.
 ```
 
 ### 7.6 Vérifier avec Prisma Studio
