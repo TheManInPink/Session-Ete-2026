@@ -59,7 +59,7 @@ Dans cette étape, on apprend à :
   minutes.
 
 💡 **Pourquoi un monorepo et pas un multi-repo ?** Avec 11 microservices dans 11 dépôts séparés,
-chaque modification d'un type partagé (`NinaRecord`, `AuditLogEntry`) nécessiterait de publier un
+chaque modification d'un type partagé (`Citizen`, `AuditLogEntry`) nécessiterait de publier un
 package npm, puis de mettre à jour la dépendance dans chaque repo. En monorepo, un seul commit met à
 jour le type et tous ses consommateurs — cohérence garantie.
 
@@ -141,10 +141,10 @@ nina-aes-platform/                          ← Racine du monorepo
 │
 ├── packages/                               ← Bibliothèques internes partagées
 │   ├── shared-types/                       ← Enums, interfaces, DTOs
-│   │   └── src/index.ts                    ← NinaRecord, UserRole, AuditLogEntry...
+│   │   └── src/index.ts                    ← Citizen, UserRole, AuditLogEntry...
 │   ├── database/                           ← Client Prisma + schéma PostgreSQL
 │   │   ├── src/index.ts                    ← Singleton Prisma (globalThis)
-│   │   └── prisma/schema.prisma            ← Modèle NinaRecord initial
+│   │   └── prisma/schema.prisma            ← Modèle Citizen initial
 │   ├── config/                             ← Validation Zod des variables d'env
 │   │   └── src/index.ts                    ← baseEnvSchema + validateEnv<T>()
 │   ├── utils/                              ← Fonctions utilitaires métier
@@ -621,7 +621,7 @@ export enum AuditAction {
 // ═══════════════════════════════════════════════════
 
 /** Structure complète d'un enregistrement NINA */
-export interface NinaRecord {
+export interface Citizen {
   id: string; // UUID v4 interne (clé primaire)
   nina: string; // Numéro NINA — 15 caractères (14 chiffres + 1 lettre)
   nom: string; // Nom de famille
@@ -1009,7 +1009,7 @@ datasource db {
 }
 
 /// Enregistrement NINA — Table principale du système d'identité
-model NinaRecord {
+model Citizen {
   id            String   @id @default(uuid())          // UUID v4 auto-généré
   nina          String   @unique @db.VarChar(15)       // 14 chiffres + 1 lettre
   nom           String   @db.VarChar(100)              // Nom de famille
@@ -1023,7 +1023,7 @@ model NinaRecord {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  @@map("nina_records")                                 // Nom de table snake_case
+  @@map("citizens")                                 // Nom de table snake_case
   @@index([nom, prenoms])                               // Index composite recherche
   @@index([codeRegion, codeCercle, codeCommune])        // Index géographique
 }
@@ -1397,7 +1397,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- pg_trgm : index trigrams pour la recherche floue
--- Permet : SELECT * FROM nina_records WHERE nom % 'Mamadu' (trouve "Mamadou")
+-- Permet : SELECT * FROM citizens WHERE nom % 'Mamadu' (trouve "Mamadou")
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- unaccent : normalisation sans accents
@@ -1622,7 +1622,7 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 ### Packages partagés
 
 - [ ] `packages/shared-types` exporte : `NinaSexe`, `UserRole`, `CorrectionStatus`,
-      `AiConfidenceLevel`, `VulnerabilityCategory`, `AesCountry`, `AuditAction`, `NinaRecord`,
+      `AiConfidenceLevel`, `VulnerabilityCategory`, `AesCountry`, `AuditAction`, `Citizen`,
       `AuditLogEntry`, `ApiResponse<T>`, `PaginatedResponse<T>`
 - [ ] `packages/config` exporte : `baseEnvSchema`, `validateEnv<T>()`, `z`
 - [ ] `packages/utils` exporte : `validateNina()`, `parseNina()`, `computeControlLetter()`,
@@ -1662,13 +1662,13 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 
 ### Alternatives techniques considérées
 
-| Alternative                           | Pourquoi elle n'a pas été retenue                                                                                                                                                                                 |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nx** au lieu de Turborepo           | Nx est plus puissant (generators, affected graph, distributed task execution) mais plus complexe à configurer. Turborepo est plus simple, mieux intégré à Vercel, et suffisant pour un projet universitaire.      |
-| **Multi-repo** (un dépôt par service) | Cohérence inter-services impossible sans publication npm. Chaque modification de `NinaRecord` nécessiterait un cycle publish → update dans 11 repos. Overhead opérationnel disproportionné pour un étudiant seul. |
-| **Lerna**                             | Historiquement populaire mais moins performant que Turborepo (pas de cache de tâches intelligent, pas de parallélisation basée sur le graphe de dépendances). Lerna est désormais maintenu par Nx.                |
-| **npm workspaces** au lieu de pnpm    | npm workspaces fonctionnent mais sont plus lents et consomment plus d'espace disque. pnpm utilise un content-addressable store qui déduplique les dépendances au niveau du disque dur.                            |
-| **yarn workspaces**                   | Performant mais Corepack favorise pnpm pour les projets Node.js modernes. L'écosystème pnpm est mieux intégré à Turborepo.                                                                                        |
+| Alternative                           | Pourquoi elle n'a pas été retenue                                                                                                                                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nx** au lieu de Turborepo           | Nx est plus puissant (generators, affected graph, distributed task execution) mais plus complexe à configurer. Turborepo est plus simple, mieux intégré à Vercel, et suffisant pour un projet universitaire.   |
+| **Multi-repo** (un dépôt par service) | Cohérence inter-services impossible sans publication npm. Chaque modification de `Citizen` nécessiterait un cycle publish → update dans 11 repos. Overhead opérationnel disproportionné pour un étudiant seul. |
+| **Lerna**                             | Historiquement populaire mais moins performant que Turborepo (pas de cache de tâches intelligent, pas de parallélisation basée sur le graphe de dépendances). Lerna est désormais maintenu par Nx.             |
+| **npm workspaces** au lieu de pnpm    | npm workspaces fonctionnent mais sont plus lents et consomment plus d'espace disque. pnpm utilise un content-addressable store qui déduplique les dépendances au niveau du disque dur.                         |
+| **yarn workspaces**                   | Performant mais Corepack favorise pnpm pour les projets Node.js modernes. L'écosystème pnpm est mieux intégré à Turborepo.                                                                                     |
 
 ### ADR-009 — Monorepo Turborepo
 

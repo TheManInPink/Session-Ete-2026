@@ -18,7 +18,7 @@ Deux approches existent :
   résolues localement.
 
 Le projet est développé par un étudiant seul. La priorité est la cohérence inter-services (les types
-partagés comme `NinaRecord` ou `AuditLogEntry` doivent être identiques partout) et la simplicité
+partagés comme `Citizen` ou `AuditLogEntry` doivent être identiques partout) et la simplicité
 opérationnelle (un seul `git clone`, un seul `pnpm install`).
 
 ## Décision
@@ -34,7 +34,7 @@ de premier niveau :
 ## Conséquences positives
 
 - **Cohérence des types** : un seul `packages/shared-types` est importé par tous les services.
-  Modifier `NinaRecord` met à jour tous les consommateurs instantanément — pas besoin de publier sur
+  Modifier `Citizen` met à jour tous les consommateurs instantanément — pas besoin de publier sur
   npm
 - **Orchestration intelligente** : Turborepo analyse le graphe de dépendances et parallélise les
   tâches (build, test, lint). Si `shared-types` n'a pas changé, ses consommateurs ne sont pas
@@ -45,8 +45,8 @@ de premier niveau :
   complet en 5 minutes
 - **Atomic commits** : un seul commit peut modifier un type partagé ET tous les services qui
   l'utilisent — l'historique Git reste cohérent
-- **Refactoring sécurisé** : renommer un champ dans `NinaRecord` fait échouer `check-types` dans
-  tous les services qui l'utilisent — détection immédiate
+- **Refactoring sécurisé** : renommer un champ dans `Citizen` fait échouer `check-types` dans tous
+  les services qui l'utilisent — détection immédiate
 
 ## Conséquences négatives
 
@@ -62,9 +62,9 @@ de premier niveau :
 
 ## Alternatives rejetées
 
-- **Multi-repo (un dépôt par service)** : chaque modification de `NinaRecord` nécessiterait de
-  publier le package `@nina-aes/shared-types` sur npm, puis de mettre à jour la dépendance dans 11
-  repos séparés. Overhead opérationnel incompatible avec un développeur solo
+- **Multi-repo (un dépôt par service)** : chaque modification de `Citizen` nécessiterait de publier
+  le package `@nina-aes/shared-types` sur npm, puis de mettre à jour la dépendance dans 11 repos
+  séparés. Overhead opérationnel incompatible avec un développeur solo
 - **Nx** : plus puissant que Turborepo (generators, distributed task execution, affected graph) mais
   courbe d'apprentissage plus raide. Turborepo est suffisant pour le projet et mieux intégré à
   l'écosystème Next.js/Vercel

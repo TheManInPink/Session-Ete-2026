@@ -337,7 +337,7 @@ Avant de commencer le document 01, vérifier que les éléments suivants sont en
 | Noms de fichiers          | `kebab-case` : `identity-service.controller.ts`                     |
 | Noms de classes           | `PascalCase` : `IdentityController`                                 |
 | Noms de fonctions         | `camelCase` : `findByNina()`                                        |
-| Noms de tables SQL        | `snake_case` : `nina_records`                                       |
+| Noms de tables SQL        | `snake_case` : `citizens`                                           |
 | Variables d'environnement | `SCREAMING_SNAKE_CASE` : `DATABASE_URL`                             |
 | Branches Git              | `type/description` : `feat/identity-service`, `fix/nina-validation` |
 | Commits Git               | Conventional Commits : `feat(identity): add NINA search endpoint`   |

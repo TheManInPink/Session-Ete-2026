@@ -173,13 +173,13 @@ flowchart TB
 
 ### 3.2 Responsabilités par couche (Clean Architecture)
 
-| Couche             | Classe                       | Responsabilité                                   | Dépend de                           |
-| ------------------ | ---------------------------- | ------------------------------------------------ | ----------------------------------- |
-| **Presentation**   | `NinaController`             | Routes HTTP, décorateurs Swagger, validation DTO | `NinaService`                       |
-| **Application**    | `NinaService`                | Orchestration métier, appel validator, audit     | `NinaRepository`, `@nina-aes/utils` |
-| **Domain**         | `NinaRecord` (entité Prisma) | Modèle métier                                    | —                                   |
-| **Infrastructure** | `NinaRepository`             | Requêtes Prisma (y.c. `$queryRaw` pour pg_trgm)  | `PrismaService`                     |
-| **Shared**         | `@nina-aes/utils/nina`       | `validateNina()`, `computeControlLetter()`       | (aucune)                            |
+| Couche             | Classe                    | Responsabilité                                   | Dépend de                           |
+| ------------------ | ------------------------- | ------------------------------------------------ | ----------------------------------- |
+| **Presentation**   | `NinaController`          | Routes HTTP, décorateurs Swagger, validation DTO | `NinaService`                       |
+| **Application**    | `NinaService`             | Orchestration métier, appel validator, audit     | `NinaRepository`, `@nina-aes/utils` |
+| **Domain**         | `Citizen` (entité Prisma) | Modèle métier                                    | —                                   |
+| **Infrastructure** | `NinaRepository`          | Requêtes Prisma (y.c. `$queryRaw` pour pg_trgm)  | `PrismaService`                     |
+| **Shared**         | `@nina-aes/utils/nina`    | `validateNina()`, `computeControlLetter()`       | (aucune)                            |
 
 **Principe** : chaque couche ne connaît que celle en dessous d'elle. Le `Controller` ne touche
 jamais Prisma directement. Ceci facilite :
@@ -1179,12 +1179,12 @@ export class NinaResponseDto {
  */
 
 import { Injectable } from '@nestjs/common';
-import type { NinaRecord, Prisma } from '@prisma/client';
+import type { Citizen, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import type { SearchNinaDto } from './dto/search-nina.dto';
 
-export interface NinaSearchResult extends NinaRecord {
+export interface NinaSearchResult extends Citizen {
   similarity: number;
 }
 
@@ -1195,28 +1195,28 @@ export class NinaRepository {
   /**
    * Recherche exacte par NINA (unique).
    */
-  async findByNina(nina: string): Promise<NinaRecord | null> {
+  async findByNina(nina: string): Promise<Citizen | null> {
     return this.prisma.ninaRecord.findUnique({ where: { nina } });
   }
 
   /**
    * Recherche exacte par UUID.
    */
-  async findById(id: string): Promise<NinaRecord | null> {
+  async findById(id: string): Promise<Citizen | null> {
     return this.prisma.ninaRecord.findUnique({ where: { id } });
   }
 
   /**
    * Création d'un nouvel enregistrement.
    */
-  async create(data: Prisma.NinaRecordCreateInput): Promise<NinaRecord> {
+  async create(data: Prisma.CitizenCreateInput): Promise<Citizen> {
     return this.prisma.ninaRecord.create({ data });
   }
 
   /**
    * Mise à jour partielle par UUID.
    */
-  async update(id: string, data: Prisma.NinaRecordUpdateInput): Promise<NinaRecord> {
+  async update(id: string, data: Prisma.CitizenUpdateInput): Promise<Citizen> {
     return this.prisma.ninaRecord.update({ where: { id }, data });
   }
 
@@ -1243,7 +1243,7 @@ export class NinaRepository {
 
     // Cas trivial : aucune contrainte textuelle → recherche exacte
     if (!query) {
-      const where: Prisma.NinaRecordWhereInput = {};
+      const where: Prisma.CitizenWhereInput = {};
       if (dto.dateNaissance) {
         where.dateNaissance = new Date(dto.dateNaissance);
       }
@@ -1266,7 +1266,7 @@ export class NinaRepository {
           unaccent(lower(nom || ' ' || prenoms)),
           unaccent(lower(${query}))
         ) AS similarity
-      FROM nina_records
+      FROM citizens
       WHERE
         similarity(
           unaccent(lower(nom || ' ' || prenoms)),
@@ -1730,14 +1730,14 @@ Ajouter à la migration Prisma (fichier
 ```sql
 -- Index trigramme pour recherche floue sur nom + prénoms (avec unaccent)
 CREATE INDEX IF NOT EXISTS idx_nina_search_fulltext
-  ON nina_records
+  ON citizens
   USING GIN (
     (unaccent(lower(nom || ' ' || prenoms))) gin_trgm_ops
   );
 
 -- Index simple sur dateNaissance pour filtrage exact
 CREATE INDEX IF NOT EXISTS idx_nina_date_naissance
-  ON nina_records (date_naissance);
+  ON citizens (date_naissance);
 ```
 
 > ⚠️ Ces index sont **créés manuellement** par un fichier SQL (`prisma migrate dev --create-only`

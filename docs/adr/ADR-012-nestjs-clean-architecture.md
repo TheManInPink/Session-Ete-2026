@@ -96,7 +96,7 @@ Règles invariantes :
   besoin de décorateurs `@ApiProperty()` qui n'ont pas leur place sur les entités Prisma
 - **Le `Repository` contient parfois du SQL brut** (cas pg_trgm) → documenté avec des commentaires
   explicites
-- **Pas d'abstraction Domain Model distincte** de l'entité Prisma → on accepte que `NinaRecord` de
+- **Pas d'abstraction Domain Model distincte** de l'entité Prisma → on accepte que `Citizen` de
   Prisma = notre modèle métier pour ce projet académique (un vrai projet d'entreprise créerait une
   classe `Nina` séparée)
 

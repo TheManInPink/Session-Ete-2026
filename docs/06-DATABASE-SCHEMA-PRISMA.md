@@ -101,9 +101,9 @@ erDiagram
     Cercle ||--o{ Commune : "contient"
 
     %% ═══ IDENTITÉ NINA ═══
-    NinaRecord }o--|| Commune : "enregistré dans"
-    NinaRecord ||--o{ NinaCorrection : "corrections"
-    NinaRecord ||--o{ Document : "documents émis"
+    Citizen }o--|| Commune : "enregistré dans"
+    Citizen ||--o{ NinaCorrection : "corrections"
+    Citizen ||--o{ Document : "documents émis"
 
     %% ═══ UTILISATEURS / AUTH ═══
     User ||--o{ NinaCorrection : "soumet/approuve"
@@ -121,13 +121,13 @@ erDiagram
     }
 
     %% ═══ DOCUMENTS ═══
-    Document }o--|| NinaRecord : "concerne"
+    Document }o--|| Citizen : "concerne"
 
     %% ═══ AES INTEROP ═══
-    AesVerification }o--|| NinaRecord : "vérifie"
+    AesVerification }o--|| Citizen : "vérifie"
 
     %% ═══ VULNÉRABILITÉ ═══
-    VulnerabilityRecord }o--|| NinaRecord : "identifie"
+    VulnerabilityRecord }o--|| Citizen : "identifie"
 
     %% ═══ RENDEZ-VOUS ═══
     Appointment }o--|| User : "citoyen"
@@ -144,7 +144,7 @@ erDiagram
 | `Region`              | `regions`               | identity-service              | 4            | Régions du Mali (10)                               |
 | `Cercle`              | `cercles`               | identity-service              | 5            | Cercles (49)                                       |
 | `Commune`             | `communes`              | identity-service              | 5            | Communes (703)                                     |
-| `NinaRecord`          | `nina_records`          | identity-service              | 14           | Enregistrements d'identité NINA                    |
+| `Citizen`             | `citizens`              | identity-service              | 14           | Enregistrements d'identité NINA                    |
 | `User`                | `users`                 | auth-service                  | 15           | Utilisateurs du système (agents, admins, citoyens) |
 | `NinaCorrection`      | `nina_corrections`      | identity-service + ai-service | 16           | Demandes de correction (manuelles et IA)           |
 | `AiAnalysis`          | `ai_analyses`           | ai-service                    | 12           | Résultats d'analyse IA par batch                   |
@@ -162,8 +162,8 @@ erDiagram
 
 | Élément       | Convention Prisma (TypeScript) | Convention SQL (PostgreSQL)     | Mécanisme                           |
 | ------------- | ------------------------------ | ------------------------------- | ----------------------------------- |
-| Nom de modèle | `PascalCase` : `NinaRecord`    | —                               | Prisma n'a pas de table directement |
-| Nom de table  | —                              | `snake_case` : `nina_records`   | `@@map("nina_records")`             |
+| Nom de modèle | `PascalCase` : `Citizen`       | —                               | Prisma n'a pas de table directement |
+| Nom de table  | —                              | `snake_case` : `citizens`       | `@@map("citizens")`                 |
 | Nom de champ  | `camelCase` : `dateNaissance`  | `snake_case` : `date_naissance` | `@map("date_naissance")`            |
 | Clé primaire  | `id`                           | `id`                            | `@id @default(uuid())`              |
 | Clé étrangère | `regionId`                     | `region_id`                     | `@map("region_id")`                 |
@@ -395,7 +395,7 @@ model Commune {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   /// Enregistrements NINA dans cette commune
-  ninaRecords NinaRecord[]
+  ninaRecords Citizen[]
 
   @@unique([cercleId, code])
   @@map("communes")
@@ -406,7 +406,7 @@ model Commune {
 // ═══════════════════════════════════════════════════
 
 /// Enregistrement NINA — identité d'un citoyen malien
-model NinaRecord {
+model Citizen {
   id            String   @id @default(uuid())
   /// Numéro NINA — 15 caractères (14 chiffres + 1 lettre de contrôle)
   nina          String   @unique @db.VarChar(15)
@@ -438,7 +438,7 @@ model NinaRecord {
   aesVerifications   AesVerification[]
   vulnerabilityRecord VulnerabilityRecord?
 
-  @@map("nina_records")
+  @@map("citizens")
   @@index([nom, prenoms])
   @@index([communeId])
   @@index([dateNaissance])
@@ -499,7 +499,7 @@ model NinaCorrection {
   id              String           @id @default(uuid())
   /// Enregistrement NINA concerné
   ninaRecordId    String           @map("nina_record_id")
-  ninaRecord      NinaRecord       @relation(fields: [ninaRecordId], references: [id])
+  ninaRecord      Citizen       @relation(fields: [ninaRecordId], references: [id])
   /// Utilisateur qui a soumis la correction
   submittedById   String           @map("submitted_by_id")
   submittedBy     User             @relation("SubmittedBy", fields: [submittedById], references: [id])
@@ -587,7 +587,7 @@ model AuditLog {
   actorRole     UserRole @map("actor_role")
   /// Type d'action (CREATE, READ, UPDATE, DELETE, LOGIN, etc.)
   action        String   @db.VarChar(20)
-  /// Table/ressource concernée (ex: "nina_records", "users")
+  /// Table/ressource concernée (ex: "citizens", "users")
   resource      String   @db.VarChar(50)
   /// Identifiant de la ressource concernée
   resourceId    String   @map("resource_id") @db.VarChar(100)
@@ -624,7 +624,7 @@ model Document {
   id            String         @id @default(uuid())
   /// Enregistrement NINA concerné
   ninaRecordId  String         @map("nina_record_id")
-  ninaRecord    NinaRecord     @relation(fields: [ninaRecordId], references: [id])
+  ninaRecord    Citizen     @relation(fields: [ninaRecordId], references: [id])
   /// Type de document
   type          DocumentType
   /// Statut actuel
@@ -727,7 +727,7 @@ model AesVerification {
   id              String                @id @default(uuid())
   /// Enregistrement NINA vérifié
   ninaRecordId    String                @map("nina_record_id")
-  ninaRecord      NinaRecord            @relation(fields: [ninaRecordId], references: [id])
+  ninaRecord      Citizen            @relation(fields: [ninaRecordId], references: [id])
   /// Pays interrogé
   targetCountry   AesCountry            @map("target_country")
   /// Statut de la vérification
@@ -760,7 +760,7 @@ model VulnerabilityRecord {
   id            String                @id @default(uuid())
   /// Enregistrement NINA du citoyen
   ninaRecordId  String                @unique @map("nina_record_id")
-  ninaRecord    NinaRecord            @relation(fields: [ninaRecordId], references: [id])
+  ninaRecord    Citizen            @relation(fields: [ninaRecordId], references: [id])
   /// Catégorie de vulnérabilité
   category      VulnerabilityCategory
   /// Priorité de traitement
@@ -884,10 +884,10 @@ model UssdSession {
 
 | Table              | Index                    | Type             | Justification                         |
 | ------------------ | ------------------------ | ---------------- | ------------------------------------- |
-| `nina_records`     | `nina` (UNIQUE)          | B-tree unique    | Recherche directe par NINA — O(log n) |
-| `nina_records`     | `(nom, prenoms)`         | B-tree composite | Recherche par nom complet             |
-| `nina_records`     | `communeId`              | B-tree           | Filtrage par commune                  |
-| `nina_records`     | `dateNaissance`          | B-tree           | Filtrage par date de naissance        |
+| `citizens`         | `nina` (UNIQUE)          | B-tree unique    | Recherche directe par NINA — O(log n) |
+| `citizens`         | `(nom, prenoms)`         | B-tree composite | Recherche par nom complet             |
+| `citizens`         | `communeId`              | B-tree           | Filtrage par commune                  |
+| `citizens`         | `dateNaissance`          | B-tree           | Filtrage par date de naissance        |
 | `audit_logs`       | `sequenceNumber`         | B-tree           | Tri de la chaîne Merkle               |
 | `audit_logs`       | `(resource, resourceId)` | B-tree composite | Audit trail d'une ressource           |
 | `nina_corrections` | `status`                 | B-tree           | Filtrage par statut (dashboard admin) |
@@ -904,17 +904,17 @@ une migration SQL manuelle après la migration initiale.
 -- Migration manuelle : index trigram pour la recherche floue
 -- À exécuter après prisma migrate dev
 
--- Index GIN trigram sur le nom — permet SELECT * FROM nina_records WHERE nom % 'Mamadu'
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_nina_records_nom_trgm
-ON nina_records USING gin (nom gin_trgm_ops);
+-- Index GIN trigram sur le nom — permet SELECT * FROM citizens WHERE nom % 'Mamadu'
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_nom_trgm
+ON citizens USING gin (nom gin_trgm_ops);
 
 -- Index GIN trigram sur les prénoms
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_nina_records_prenoms_trgm
-ON nina_records USING gin (prenoms gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_prenoms_trgm
+ON citizens USING gin (prenoms gin_trgm_ops);
 
 -- Index GIN trigram sur le lieu de naissance
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_nina_records_lieu_trgm
-ON nina_records USING gin (lieu_naissance gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_lieu_trgm
+ON citizens USING gin (lieu_naissance gin_trgm_ops);
 
 -- Configurer le seuil de similarité pour la recherche floue
 -- 0.3 = 30% de similarité minimum (ajustable selon les besoins)
@@ -1314,16 +1314,16 @@ Puis éditer le fichier SQL généré (`prisma/migrations/TIMESTAMP_add_trigram_
 -- Ces index utilisent l'extension pg_trgm (activée dans init-db.sql)
 
 -- Index GIN trigram sur le nom (recherche floue)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_nina_records_nom_trgm
-ON nina_records USING gin (nom gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_nom_trgm
+ON citizens USING gin (nom gin_trgm_ops);
 
 -- Index GIN trigram sur les prénoms
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_nina_records_prenoms_trgm
-ON nina_records USING gin (prenoms gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_prenoms_trgm
+ON citizens USING gin (prenoms gin_trgm_ops);
 
 -- Index GIN trigram sur le lieu de naissance
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_nina_records_lieu_trgm
-ON nina_records USING gin (lieu_naissance gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_lieu_trgm
+ON citizens USING gin (lieu_naissance gin_trgm_ops);
 ```
 
 Puis appliquer :
@@ -1414,7 +1414,7 @@ const audit = await prisma.auditLog.create({
     actorId: userId,
     actorRole: 'AGENT',
     action: 'CREATE',
-    resource: 'nina_records',
+    resource: 'citizens',
     resourceId: recordId,
     ipAddress: req.ip,
     after: { nina: '19001101001001A', nom: 'KEITA' },
@@ -1452,7 +1452,7 @@ Pour la recherche floue, on utilise `$queryRaw` car Prisma ne supporte pas nativ
 const fuzzyResults = await prisma.$queryRaw`
   SELECT id, nina, nom, prenoms, 
          similarity(nom, ${searchTerm}) AS score
-  FROM nina_records
+  FROM citizens
   WHERE nom % ${searchTerm}
      OR prenoms % ${searchTerm}
   ORDER BY score DESC
@@ -1494,7 +1494,7 @@ const fuzzyResults = await prisma.$queryRaw`
 
 - [ ] Le fichier `packages/database/prisma/schema.prisma` contient les 16 modèles
 - [ ] Les 16 enums sont définis (NinaSexe, UserRole, CorrectionStatus, etc.)
-- [ ] Toutes les relations sont définies (Region → Cercle → Commune → NinaRecord, etc.)
+- [ ] Toutes les relations sont définies (Region → Cercle → Commune → Citizen, etc.)
 - [ ] Les conventions de nommage sont respectées (camelCase Prisma, snake_case SQL via @map)
 - [ ] Chaque modèle a `id`, `createdAt`, et `updatedAt` (sauf AuditLog qui n'a pas updatedAt)
 

@@ -345,9 +345,9 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ── Extension 3 : pg_trgm ──
 -- Index trigrams pour la recherche floue
 -- Un trigram est une séquence de 3 caractères : "Mamadou" → {"  M", " Ma", "Mam", "ama", "mad", "ado", "dou", "ou "}
--- Permet : SELECT * FROM nina_records WHERE nom % 'Mamadu'; -- trouve "Mamadou"
+-- Permet : SELECT * FROM citizens WHERE last_name_ascii % 'Mamadu'; -- trouve "Mamadou"
 -- Permet : SELECT similarity('Mamadu', 'Mamadou'); -- retourne ~0.5
--- Nécessite un index GIN : CREATE INDEX ON nina_records USING gin (nom gin_trgm_ops);
+-- Index GIN déclaré côté Prisma : idx_citizens_lastname_trgm (cf. schema.prisma)
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- ── Extension 4 : unaccent ──
@@ -816,12 +816,25 @@ curl -u 'elastic:elastic_dev_2026!' http://localhost:9200/_cluster/health?pretty
 curl -u 'elastic:elastic_dev_2026!' http://localhost:9200
 # "version" : { "number" : "9.4.1" }
 
-# Créer un index de test pour les enregistrements NINA
-curl -u 'elastic:elastic_dev_2026!' -X PUT "http://localhost:9200/nina_records" -H "Content-Type: application/json" -d "{
+# Créer les index réels (recommandé) — nina_citizens (avec phonétique
+# double_metaphone + synonymes noms Mali) + nina_locations.
+bash scripts/init-elasticsearch.sh
+# Idempotent : --fail-with-body sur les PUT, exit non-zéro si l'un échoue.
+# Topologie + analyseurs définis dans le script (source de vérité).
+```
+
+<details>
+<summary>Démo manuelle : créer un index simple <code>nina_test_demo</code> (didactique)</summary>
+
+```powershell
+# ⚠ Cet index est UNIQUEMENT pour comprendre l'API ES — ne pas le confondre
+#   avec nina_citizens créé par init-elasticsearch.sh (analyseurs plus riches:
+#   phonetic + synonymes pour les noms maliens).
+curl -u 'elastic:elastic_dev_2026!' -X PUT "http://localhost:9200/nina_test_demo" -H "Content-Type: application/json" -d "{
   \"settings\": {
     \"analysis\": {
       \"analyzer\": {
-        \"nina_analyzer\": {
+        \"demo_analyzer\": {
           \"type\": \"custom\",
           \"tokenizer\": \"standard\",
           \"filter\": [\"lowercase\", \"asciifolding\"]
@@ -831,15 +844,20 @@ curl -u 'elastic:elastic_dev_2026!' -X PUT "http://localhost:9200/nina_records" 
   },
   \"mappings\": {
     \"properties\": {
-      \"nina\": { \"type\": \"keyword\" },
-      \"nom\": { \"type\": \"text\", \"analyzer\": \"nina_analyzer\" },
-      \"prenoms\": { \"type\": \"text\", \"analyzer\": \"nina_analyzer\" },
-      \"dateNaissance\": { \"type\": \"date\" },
-      \"lieuNaissance\": { \"type\": \"text\", \"analyzer\": \"nina_analyzer\" }
+      \"nina\":           { \"type\": \"keyword\" },
+      \"last_name\":      { \"type\": \"text\", \"analyzer\": \"demo_analyzer\" },
+      \"first_names\":    { \"type\": \"text\", \"analyzer\": \"demo_analyzer\" },
+      \"birth_date\":     { \"type\": \"date\" },
+      \"birth_place\":    { \"type\": \"text\", \"analyzer\": \"demo_analyzer\" }
     }
   }
 }"
+
+# Nettoyer
+curl -u 'elastic:elastic_dev_2026!' -X DELETE "http://localhost:9200/nina_test_demo"
 ```
+
+</details>
 
 ### 7.3 Keycloak 26 — Serveur d'identité (OAuth2 / OIDC)
 
@@ -1224,10 +1242,10 @@ détaillée par catégorie :
 
 ### 10.5 Elasticsearch
 
-| Variable                   | Valeur dev              | Utilisé par        | Description                         |
-| -------------------------- | ----------------------- | ------------------ | ----------------------------------- |
-| `ELASTICSEARCH_URL`        | `http://localhost:9200` | `identity-service` | URL du cluster ES                   |
-| `ELASTICSEARCH_INDEX_NINA` | `nina_records`          | `identity-service` | Index pour les enregistrements NINA |
+| Variable                   | Valeur dev              | Utilisé par        | Description                                                |
+| -------------------------- | ----------------------- | ------------------ | ---------------------------------------------------------- |
+| `ELASTICSEARCH_URL`        | `http://localhost:9200` | `identity-service` | URL du cluster ES                                          |
+| `ELASTICSEARCH_INDEX_NINA` | `nina_citizens`         | `identity-service` | Index principal (créé par `scripts/init-elasticsearch.sh`) |
 
 ### 10.6 Keycloak
 

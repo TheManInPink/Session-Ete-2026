@@ -268,7 +268,7 @@ sequenceDiagram
     alt Recherche par NINA exact (15 caractères)
         FE->>ID: GET /nina/{nina}
         ID->>ID: validateNinaFormat(nina)
-        ID->>PG: SELECT * FROM nina_records WHERE nina = $1
+        ID->>PG: SELECT * FROM citizens WHERE nina = $1
         PG-->>ID: Enregistrement trouvé
     else Recherche floue par nom
         FE->>ID: GET /nina/search?q=Mamadou+Diallo
@@ -303,7 +303,7 @@ sequenceDiagram
     Note over CRON,AI: Exécution quotidienne à 02h00
 
     CRON->>AI: POST /ai/batch/analyze
-    AI->>PG: SELECT * FROM nina_records (batch de 1000)
+    AI->>PG: SELECT * FROM citizens (batch de 1000)
 
     loop Pour chaque enregistrement
         AI->>AI: Étape 1 — Normalisation Unicode
@@ -328,7 +328,7 @@ sequenceDiagram
 
     AGT->>ADM_FE: Clique "Approuver" sur une correction
     ADM_FE->>ID: PATCH /nina/{id} (avec correction)
-    ID->>PG: UPDATE nina_records SET nom = $1
+    ID->>PG: UPDATE citizens SET nom = $1
     ID->>RMQ: Publish audit.actions (action: CORRECT)
     RMQ-->>AUD: Consume → INSERT audit_log (Merkle)
     ID-->>ADM_FE: 200 OK — Correction appliquée

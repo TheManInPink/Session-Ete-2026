@@ -56,8 +56,8 @@ Le client Prisma est exposé comme un **singleton paresseux** via `packages/data
 - **Simplicité opérationnelle** : une seule base à provisionner, monitorer, sauvegarder et
   restaurer. Une seule URL de connexion (`DATABASE_URL`) pour tous les services
 - **Intégrité référentielle** : les foreign keys entre tables de services différents (ex:
-  `NinaCorrection.ninaRecordId → NinaRecord.id`) sont garanties par PostgreSQL. Impossible de créer
-  une correction pour un NINA inexistant
+  `NinaCorrection.ninaRecordId → Citizen.id`) sont garanties par PostgreSQL. Impossible de créer une
+  correction pour un NINA inexistant
 - **Transactions cross-domain** : si un agent crée un enregistrement NINA ET un log d'audit dans la
   même transaction, l'atomicité est native. Pas besoin de saga pattern
 - **Migrations cohérentes** : un seul `prisma migrate dev` met à jour toutes les tables. Pas de
@@ -68,9 +68,9 @@ Le client Prisma est exposé comme un **singleton paresseux** via `packages/data
 
 ## Conséquences négatives
 
-- **Couplage au niveau données** : si le service `identity` modifie la structure de `nina_records`,
-  tous les services qui lisent cette table sont potentiellement impactés. Atténué par le monorepo
-  qui détecte ces changements à la compilation
+- **Couplage au niveau données** : si le service `identity` modifie la structure de `citizens`, tous
+  les services qui lisent cette table sont potentiellement impactés. Atténué par le monorepo qui
+  détecte ces changements à la compilation
 - **Pas d'isolation de déploiement** : on ne peut pas déployer une migration pour un seul service —
   la migration affecte toute la base. Acceptable dans un contexte d'étudiant solo
 - **Scalabilité horizontale limitée** : en théorie, chaque service devrait pouvoir être scalé
