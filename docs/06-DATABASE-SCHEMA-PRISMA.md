@@ -41,13 +41,13 @@ Dans cette étape, on apprend à :
 
 - **Utiliser Prisma comme ORM** — Prisma offre un langage de schéma déclaratif (`.prisma`) qui
   génère automatiquement un client TypeScript typé. Au lieu d'écrire des requêtes SQL à la main, on
-  écrit `prisma.ninaRecord.findMany({ where: { nom: { contains: 'Keita' } } })` et Prisma génère le
-  SQL optimisé.
+  écrit `prisma.citizen.findMany({ where: { lastName: { contains: 'Keita' } } })` et Prisma génère
+  le SQL optimisé.
 
-- **Concevoir des index pour la performance** — Un index sur `(nom, prenoms)` accélère la recherche
-  par nom de 100× sur une base de 20 millions d'enregistrements. Un index GIN trigram sur `nom`
-  permet la recherche floue en temps réel. Chaque index a un coût en écriture, donc on les place
-  stratégiquement.
+- **Concevoir des index pour la performance** — Un index sur `(lastName, firstName)` accélère la
+  recherche par nom de 100× sur une base de 20 millions d'enregistrements. Un index GIN trigram sur
+  `lastNameAscii` permet la recherche floue en temps réel. Chaque index a un coût en écriture, donc
+  on les place stratégiquement.
 
 - **Implémenter la géographie administrative du Mali** — Le système RAVEC divise le Mali en régions,
   cercles et communes. Ces tables de référence sont les données de seed initiales du système.
@@ -160,15 +160,15 @@ erDiagram
 
 ### 3.3 Conventions de nommage
 
-| Élément       | Convention Prisma (TypeScript) | Convention SQL (PostgreSQL)     | Mécanisme                           |
-| ------------- | ------------------------------ | ------------------------------- | ----------------------------------- |
-| Nom de modèle | `PascalCase` : `Citizen`       | —                               | Prisma n'a pas de table directement |
-| Nom de table  | —                              | `snake_case` : `citizens`       | `@@map("citizens")`                 |
-| Nom de champ  | `camelCase` : `dateNaissance`  | `snake_case` : `date_naissance` | `@map("date_naissance")`            |
-| Clé primaire  | `id`                           | `id`                            | `@id @default(uuid())`              |
-| Clé étrangère | `regionId`                     | `region_id`                     | `@map("region_id")`                 |
-| Timestamps    | `createdAt` / `updatedAt`      | `created_at` / `updated_at`     | `@map(...)`                         |
-| Enum          | `PascalCase` : `UserRole`      | Type PostgreSQL personnalisé    | `enum UserRole { ... }`             |
+| Élément       | Convention Prisma (TypeScript) | Convention SQL (PostgreSQL)  | Mécanisme                           |
+| ------------- | ------------------------------ | ---------------------------- | ----------------------------------- |
+| Nom de modèle | `PascalCase` : `Citizen`       | —                            | Prisma n'a pas de table directement |
+| Nom de table  | —                              | `snake_case` : `citizens`    | `@@map("citizens")`                 |
+| Nom de champ  | `camelCase` : `birthDate`      | `snake_case` : `birth_date`  | `@map("birth_date")     `           |
+| Clé primaire  | `id`                           | `id`                         | `@id @default(uuid())`              |
+| Clé étrangère | `regionId`                     | `region_id`                  | `@map("region_id")`                 |
+| Timestamps    | `createdAt` / `updatedAt`      | `created_at` / `updated_at`  | `@map(...)`                         |
+| Enum          | `PascalCase` : `UserRole`      | Type PostgreSQL personnalisé | `enum UserRole { ... }`             |
 
 ---
 
@@ -211,7 +211,7 @@ datasource db {
 // ═══════════════════════════════════════════════════
 
 /// Sexe encodé dans le premier chiffre du NINA
-enum NinaSexe {
+enum Sex {
   MASCULIN  // 1 dans le NINA
   FEMININ   // 2 dans le NINA
 }
@@ -406,43 +406,62 @@ model Commune {
 // ═══════════════════════════════════════════════════
 
 /// Enregistrement NINA — identité d'un citoyen malien
+/// Source de vérité : packages/database/prisma/schema.prisma (model Citizen)
 model Citizen {
-  id            String   @id @default(uuid())
-  /// Numéro NINA — 15 caractères (14 chiffres + 1 lettre de contrôle)
-  nina          String   @unique @db.VarChar(15)
-  /// Nom de famille (uppercase normalisé)
-  nom           String   @db.VarChar(100)
-  /// Prénoms (peut contenir plusieurs prénoms séparés par des espaces)
-  prenoms       String   @db.VarChar(200)
-  /// Date de naissance
-  dateNaissance DateTime @map("date_naissance")
-  /// Lieu de naissance — texte libre
-  lieuNaissance String   @map("lieu_naissance") @db.VarChar(200)
-  /// Sexe (MASCULIN = 1er chiffre NINA est 1, FEMININ = 2)
-  sexe          NinaSexe
-  /// Commune d'enregistrement RAVEC
-  communeId     String   @map("commune_id")
-  commune       Commune  @relation(fields: [communeId], references: [id])
-  /// Photo d'identité — chemin MinIO (bucket nina-photos)
-  photoUrl      String?  @map("photo_url") @db.VarChar(500)
-  /// Hash SHA-256 de la photo (pour le QR code de la Fiche Descriptive)
-  photoHash     String?  @map("photo_hash") @db.VarChar(64)
-  /// Indique si l'enregistrement est actif (false = décédé, radié, etc.)
-  actif         Boolean  @default(true)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id                    String                 @id @default(uuid()) @db.Uuid
+  /// Numéro NINA : 14 chiffres + 1 lettre de contrôle.
+  nina                  String                 @unique @db.VarChar(15)
+  firstName             String                 @map("first_name") @db.VarChar(100)
+  lastName              String                 @map("last_name") @db.VarChar(100)
+  /// Versions ASCII indexées trigram pour recherche fuzzy.
+  firstNameAscii        String                 @map("first_name_ascii") @db.VarChar(100)
+  lastNameAscii         String                 @map("last_name_ascii") @db.VarChar(100)
+  birthDate             DateTime               @map("birth_date") @db.Date
+  sex                   Sex
+  maritalStatus         MaritalStatus          @default(SINGLE) @map("marital_status")
+  profession            String?                @db.VarChar(100)
+  photoUrl              String?                @map("photo_url") @db.VarChar(500)
+  /// Hash SHA-256 de la photo (vérifiable depuis le QR JWT).
+  photoHash             String?                @map("photo_hash") @db.VarChar(64)
+  /// Hash SHA-256 du template biométrique (Bloc F — jamais le template brut).
+  fingerprintHash       String?                @map("fingerprint_hash") @db.VarChar(64)
+  /// Catégorie principale de vulnérabilité (file prioritaire). Le détail
+  /// (preuves, dates de validité, …) reste dans `VulnerabilityRecord`.
+  vulnerabilityCategory VulnerabilityCategory? @map("vulnerability_category")
+  birthPlaceId          String                 @map("birth_place_id") @db.Uuid
+  residenceId           String                 @map("residence_id") @db.Uuid
+  fatherId              String?                @map("father_id") @db.Uuid
+  motherId              String?                @map("mother_id") @db.Uuid
+  preferredLanguage     Language               @default(FR) @map("preferred_language")
+  phoneNumber           String?                @map("phone_number") @db.VarChar(20)
+  email                 String?                @db.VarChar(200)
+  /// Verrou optimiste pour éviter les écrasements concurrents.
+  version               Int                    @default(0)
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  /// Soft delete — préféré à un boolean `actif` car horodaté et compatible
+  /// avec les audits SIGAC ("quand a-t-on retiré le NINA et pourquoi ?").
+  deletedAt             DateTime?              @map("deleted_at") @db.Timestamptz(6)
 
-  /// Relations
-  corrections        NinaCorrection[]
-  documents          Document[]
-  aesVerifications   AesVerification[]
-  vulnerabilityRecord VulnerabilityRecord?
+  birthPlace Location @relation("BirthLocation", fields: [birthPlaceId], references: [id], onDelete: Restrict)
+  residence  Location @relation("ResidenceLocation", fields: [residenceId], references: [id], onDelete: Restrict)
+  father     Parent?  @relation("FatherOf", fields: [fatherId], references: [id], onDelete: Restrict)
+  mother     Parent?  @relation("MotherOf", fields: [motherId], references: [id], onDelete: Restrict)
 
+  correctionRequests CorrectionRequest[]
+  appointments       Appointment[]
+  vulnerabilities    VulnerabilityRecord[]
+  electoralRecord    ElectoralRecord?
+  notifications      Notification[]
+
+  @@index([lastName])
+  @@index([birthDate])
+  @@index([sex])
+  @@index([deletedAt])
+  @@index([vulnerabilityCategory])
+  @@index([lastNameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_citizens_lastname_trgm")
+  @@index([firstNameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_citizens_firstname_trgm")
   @@map("citizens")
-  @@index([nom, prenoms])
-  @@index([communeId])
-  @@index([dateNaissance])
-  @@index([actif])
 }
 
 // ═══════════════════════════════════════════════════
@@ -510,7 +529,7 @@ model NinaCorrection {
   source          CorrectionSource
   /// Statut actuel dans le cycle de vie
   status          CorrectionStatus @default(SOUMISE)
-  /// Champ modifié (ex: "nom", "prenoms", "dateNaissance")
+  /// Champ modifié (ex: "lastName", "firstName", "birthDate")
   fieldName       String           @map("field_name") @db.VarChar(50)
   /// Valeur actuelle (avant correction)
   oldValue        String           @map("old_value") @db.Text
@@ -885,9 +904,9 @@ model UssdSession {
 | Table              | Index                    | Type             | Justification                         |
 | ------------------ | ------------------------ | ---------------- | ------------------------------------- |
 | `citizens`         | `nina` (UNIQUE)          | B-tree unique    | Recherche directe par NINA — O(log n) |
-| `citizens`         | `(nom, prenoms)`         | B-tree composite | Recherche par nom complet             |
-| `citizens`         | `communeId`              | B-tree           | Filtrage par commune                  |
-| `citizens`         | `dateNaissance`          | B-tree           | Filtrage par date de naissance        |
+| `citizens`         | `(lastName)`             | B-tree           | Recherche par nom de famille          |
+| `citizens`         | `residenceId`            | B-tree           | Filtrage par lieu de résidence        |
+| `citizens`         | `birthDate`              | B-tree           | Filtrage par date de naissance        |
 | `audit_logs`       | `sequenceNumber`         | B-tree           | Tri de la chaîne Merkle               |
 | `audit_logs`       | `(resource, resourceId)` | B-tree composite | Audit trail d'une ressource           |
 | `nina_corrections` | `status`                 | B-tree           | Filtrage par statut (dashboard admin) |
@@ -904,31 +923,35 @@ une migration SQL manuelle après la migration initiale.
 -- Migration manuelle : index trigram pour la recherche floue
 -- À exécuter après prisma migrate dev
 
--- Index GIN trigram sur le nom — permet SELECT * FROM citizens WHERE nom % 'Mamadu'
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_nom_trgm
-ON citizens USING gin (nom gin_trgm_ops);
+-- Index GIN trigram sur last_name_ascii — permet SELECT * FROM citizens WHERE last_name_ascii % 'Mamadu'
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_lastname_trgm
+ON citizens USING gin (last_name_ascii gin_trgm_ops);
 
--- Index GIN trigram sur les prénoms
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_prenoms_trgm
-ON citizens USING gin (prenoms gin_trgm_ops);
+-- Index GIN trigram sur first_name_ascii — déjà déclaré via @@index Prisma
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_firstname_trgm
+ON citizens USING gin (first_name_ascii gin_trgm_ops);
 
--- Index GIN trigram sur le lieu de naissance
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_lieu_trgm
-ON citizens USING gin (lieu_naissance gin_trgm_ops);
+-- Note : le lieu de naissance n'est pas indexé trigram — birth_place_id
+-- est une FK UUID vers Location ; la recherche floue sur le nom de la
+-- localité se fait sur Location.name côté ES (nina_locations).
 
 -- Configurer le seuil de similarité pour la recherche floue
 -- 0.3 = 30% de similarité minimum (ajustable selon les besoins)
 SET pg_trgm.similarity_threshold = 0.3;
 ```
 
+> Ces index sont désormais déclarés directement dans `schema.prisma` via
+> `@@index([... ops: gin_trgm_ops], type: Gin, map: "idx_citizens_*")`, donc `prisma migrate dev`
+> les génère automatiquement. Le SQL ci-dessus documente ce que Prisma émet.
+
 ### 5.3 Impact des index sur les performances
 
-| Opération                     | Sans index    | Avec index B-tree   | Avec index GIN trigram  |
-| ----------------------------- | ------------- | ------------------- | ----------------------- |
-| `WHERE nina = '...'`          | Seq scan O(n) | Index scan O(log n) | —                       |
-| `WHERE nom = 'KEITA'`         | Seq scan O(n) | Index scan O(log n) | —                       |
-| `WHERE nom % 'Keita'` (fuzzy) | Seq scan O(n) | —                   | Index scan O(k × log n) |
-| `WHERE nom ILIKE '%eita%'`    | Seq scan O(n) | —                   | Index scan O(k × log n) |
+| Opération                                 | Sans index    | Avec index B-tree   | Avec index GIN trigram  |
+| ----------------------------------------- | ------------- | ------------------- | ----------------------- |
+| `WHERE nina = '...'`                      | Seq scan O(n) | Index scan O(log n) | —                       |
+| `WHERE last_name = 'KEITA'`               | Seq scan O(n) | Index scan O(log n) | —                       |
+| `WHERE last_name_ascii % 'Keita'` (fuzzy) | Seq scan O(n) | —                   | Index scan O(k × log n) |
+| `WHERE last_name ILIKE '%eita%'`          | Seq scan O(n) | —                   | Index scan O(k × log n) |
 
 Sur une base de **20 millions d'enregistrements** (taille estimée du fichier NINA national) :
 
@@ -1313,17 +1336,17 @@ Puis éditer le fichier SQL généré (`prisma/migrations/TIMESTAMP_add_trigram_
 -- Migration : Index trigram pour la recherche floue
 -- Ces index utilisent l'extension pg_trgm (activée dans init-db.sql)
 
--- Index GIN trigram sur le nom (recherche floue)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_nom_trgm
-ON citizens USING gin (nom gin_trgm_ops);
+-- Index GIN trigram sur last_name_ascii (recherche floue) — déjà déclaré via @@index Prisma
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_lastname_trgm
+ON citizens USING gin (last_name_ascii gin_trgm_ops);
 
--- Index GIN trigram sur les prénoms
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_prenoms_trgm
-ON citizens USING gin (prenoms gin_trgm_ops);
+-- Index GIN trigram sur first_name_ascii — déjà déclaré via @@index Prisma
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_firstname_trgm
+ON citizens USING gin (first_name_ascii gin_trgm_ops);
 
--- Index GIN trigram sur le lieu de naissance
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_citizens_lieu_trgm
-ON citizens USING gin (lieu_naissance gin_trgm_ops);
+-- Note : pas d'index trigram sur le lieu de naissance — birth_place_id
+-- est une FK UUID vers Location ; la recherche floue sur le nom de
+-- localité se fait via l'index ES nina_locations (cf. init-elasticsearch.sh).
 ```
 
 Puis appliquer :
@@ -1375,37 +1398,45 @@ Tous les microservices NestJS importent le client Prisma depuis `@nina-aes/datab
 import { prisma } from '@nina-aes/database';
 
 // Rechercher un citoyen par NINA
-const record = await prisma.ninaRecord.findUnique({
+// La hiérarchie géographique est self-référente via Location.parentId
+// (level: 0=pays, 1=région, 2=cercle, 3=commune, …) — on remonte avec
+// `parent` à chaque niveau.
+const record = await prisma.citizen.findUnique({
   where: { nina: '19001101001001A' },
   include: {
-    commune: {
+    residence: {
       include: {
-        cercle: {
-          include: { region: true },
+        parent: {
+          // cercle
+          include: {
+            parent: true, // région
+          },
         },
       },
     },
   },
 });
-// record.commune.cercle.region.nom → "Kayes"
+// record.residence.name              → "Kayes (commune)"
+// record.residence.parent.name       → "Kayes (cercle)"
+// record.residence.parent.parent.name → "Kayes (région)"
 ```
 
 ### 8.2 Exemples de requêtes typiques
 
 ```typescript
-// ── Recherche par nom (exact) ──
-const results = await prisma.ninaRecord.findMany({
+// ── Recherche par nom de famille (exact) ──
+const results = await prisma.citizen.findMany({
   where: {
-    nom: { contains: 'KEITA', mode: 'insensitive' },
+    lastName: { contains: 'KEITA', mode: 'insensitive' },
   },
   take: 20,
-  orderBy: { nom: 'asc' },
+  orderBy: { lastName: 'asc' },
 });
 
-// ── Recherche par commune ──
-const records = await prisma.ninaRecord.findMany({
-  where: { communeId: communeUuid },
-  include: { commune: true },
+// ── Recherche par lieu de résidence ──
+const records = await prisma.citizen.findMany({
+  where: { residenceId: locationUuid },
+  include: { residence: true },
 });
 
 // ── Créer une entrée d'audit ──
@@ -1417,7 +1448,7 @@ const audit = await prisma.auditLog.create({
     resource: 'citizens',
     resourceId: recordId,
     ipAddress: req.ip,
-    after: { nina: '19001101001001A', nom: 'KEITA' },
+    after: { nina: '19001101001001A', lastName: 'KEITA', firstName: 'Mamadou' },
     hash: computeMerkleHash(data, previousHash),
     previousHash: previousHash,
     sequenceNumber: nextSequence,
@@ -1433,12 +1464,12 @@ const pendingCount = await prisma.ninaCorrection.count({
 const page = 1;
 const pageSize = 20;
 const [records, total] = await prisma.$transaction([
-  prisma.ninaRecord.findMany({
+  prisma.citizen.findMany({
     skip: (page - 1) * pageSize,
     take: pageSize,
     orderBy: { createdAt: 'desc' },
   }),
-  prisma.ninaRecord.count(),
+  prisma.citizen.count(),
 ]);
 ```
 
@@ -1448,13 +1479,13 @@ Pour la recherche floue, on utilise `$queryRaw` car Prisma ne supporte pas nativ
 `%` de pg_trgm :
 
 ```typescript
-// Recherche floue par similarité trigram
+// Recherche floue par similarité trigram (sur les versions ASCII indexées GIN)
 const fuzzyResults = await prisma.$queryRaw`
-  SELECT id, nina, nom, prenoms, 
-         similarity(nom, ${searchTerm}) AS score
+  SELECT id, nina, last_name, first_name,
+         similarity(last_name_ascii, ${searchTerm}) AS score
   FROM citizens
-  WHERE nom % ${searchTerm}
-     OR prenoms % ${searchTerm}
+  WHERE last_name_ascii % ${searchTerm}
+     OR first_name_ascii % ${searchTerm}
   ORDER BY score DESC
   LIMIT 20
 `;
@@ -1493,7 +1524,7 @@ const fuzzyResults = await prisma.$queryRaw`
 ### Schéma Prisma
 
 - [ ] Le fichier `packages/database/prisma/schema.prisma` contient les 16 modèles
-- [ ] Les 16 enums sont définis (NinaSexe, UserRole, CorrectionStatus, etc.)
+- [ ] Les 16 enums sont définis (Sex, UserRole, CorrectionStatus, etc.)
 - [ ] Toutes les relations sont définies (Region → Cercle → Commune → Citizen, etc.)
 - [ ] Les conventions de nommage sont respectées (camelCase Prisma, snake_case SQL via @map)
 - [ ] Chaque modèle a `id`, `createdAt`, et `updatedAt` (sauf AuditLog qui n'a pas updatedAt)
