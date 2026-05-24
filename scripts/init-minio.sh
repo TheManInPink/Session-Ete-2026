@@ -13,7 +13,7 @@ echo "=== Initialisation MinIO — Création des buckets ==="
 # Configurer le client MinIO pour se connecter au conteneur local
 docker exec nina-minio mc alias set local http://localhost:9000 \
   "${MINIO_ROOT_USER:-nina_minio_admin}" \
-  "${MINIO_ROOT_PASSWORD:-nina_minio_dev_2026_secure}" 2>/dev/null
+  "${MINIO_ROOT_PASSWORD:-minio_dev_2026!}" 2>/dev/null
 
 # Créer le bucket pour les photos d'identité des citoyens
 docker exec nina-minio mc mb local/nina-photos --ignore-existing
