@@ -1131,15 +1131,27 @@ networks:
 **Inspecter le réseau** :
 
 ```powershell
-# Voir les conteneurs connectés au réseau
+# Voir les conteneurs connectés au réseau (sortie JSON détaillée)
 docker network inspect nina-aes-network
 
-# Résultat : liste de tous les conteneurs avec leur IP interne
-# nina-postgres      172.18.0.2
-# nina-redis         172.18.0.3
-# nina-rabbitmq      172.18.0.4
-# ... etc.
+# Pour juste la liste IP ↔ container (plus lisible) :
+docker network inspect nina-aes-network --format "{{range .Containers}}{{.Name}}: {{.IPv4Address}}`n{{end}}"
+# Exemple — 9 conteneurs, IPs dynamiques attribuées selon l'ordre de démarrage :
+#   nina-keycloak:      172.18.0.2/16
+#   nina-elasticsearch: 172.18.0.3/16
+#   nina-maildev:       172.18.0.4/16
+#   nina-minio:         172.18.0.5/16
+#   nina-kibana:        172.18.0.6/16
+#   nina-redis:         172.18.0.7/16
+#   nina-vault:         172.18.0.8/16
+#   nina-rabbitmq:      172.18.0.9/16
+#   nina-postgres:      172.18.0.10/16
 ```
+
+> ⚠ Les IPs internes (172.18.0.x) sont **attribuées dynamiquement** par Docker selon l'ordre de
+> démarrage des conteneurs — ne pas s'y fier dans le code. Les services se résolvent par **nom DNS**
+> (`postgres`, `redis`, `rabbitmq`, …) à travers la résolution DNS embedded de Docker sur le réseau
+> bridge `nina-aes-network`.
 
 ### 8.3 Opérations courantes — Aide-mémoire
 
