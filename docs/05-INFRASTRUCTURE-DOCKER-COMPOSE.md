@@ -384,8 +384,9 @@ END $$;
 
 ```powershell
 # Vérifier que le conteneur est sain
-docker compose -f docker-compose.dev.yml ps postgres
+docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml ps postgres
 # STATUS doit afficher "healthy"
+# Raccourci équivalent : pnpm run docker:ps | Select-String postgres
 
 # Se connecter en ligne de commande
 docker exec -it nina-postgres psql -U nina_admin -d nina_aes_db
@@ -393,10 +394,13 @@ docker exec -it nina-postgres psql -U nina_admin -d nina_aes_db
 # Vérifier les extensions installées
 # (dans psql)
 \dx
-#  uuid-ossp | 1.1 | public | generate universally unique identifiers (UUIDs)
-#  pgcrypto  | 1.3 | public | cryptographic functions
-#  pg_trgm   | 1.6 | public | text similarity measurement and index searching using trigrams
-#  unaccent  | 1.1 | public | text search dictionary that removes accents
+#  citext    | 1.8   | public     | data type for case-insensitive character strings
+#  pg_trgm   | 1.6   | public     | text similarity measurement and index searching using trigrams
+#  pgcrypto  | 1.4   | public     | cryptographic functions
+#  plpgsql   | 1.0   | pg_catalog | PL/pgSQL procedural language
+#  postgis   | 3.6.3 | public     | PostGIS geometry and geography spatial types and functions
+#  unaccent  | 1.1   | public     | text search dictionary that removes accents
+#  uuid-ossp | 1.1   | public     | generate universally unique identifiers (UUIDs)
 
 # Tester la recherche floue
 SELECT similarity('Mamadu', 'Mamadou');
@@ -406,10 +410,14 @@ SELECT similarity('Mamadu', 'Mamadou');
 SELECT unaccent('Sékou Touré');
 # 'Sekou Toure'
 
-# Vérifier la base de test
+# Vérifier les bases (depuis postgres pour éviter le filtrage par DB courante)
+\c postgres
 \l
-# nina_aes_db      | nina | UTF8
-# nina_aes_test | nina | UTF8
+#       Name      |   Owner    | Encoding | ...
+# ----------------+------------+----------+----
+#  nina_aes_db    | nina_admin | UTF8     | ...
+#  nina_aes_test  | nina_admin | UTF8     | ...
+#  keycloak       | nina_admin | UTF8     | ...
 
 # Quitter psql
 \q
