@@ -10,7 +10,7 @@ set -e
 
 ES_URL="http://localhost:9200"
 ES_USER="elastic"
-ES_PASS="${ELASTIC_PASSWORD:-nina_elastic_dev_2026}"
+ES_PASS="${ELASTIC_PASSWORD:-elastic_dev_2026!}"
 
 echo "=== Initialisation Elasticsearch — Index et analyseurs ==="
 
@@ -23,7 +23,7 @@ echo "  ✓ Elasticsearch est prêt"
 
 # Créer l'index principal pour les citoyens NINA
 # avec des analyseurs personnalisés pour les noms bambara/français
-curl -s -u "$ES_USER:$ES_PASS" -X PUT "$ES_URL/nina_citizens" \
+curl -s --fail-with-body -u "$ES_USER:$ES_PASS" -X PUT "$ES_URL/nina_citizens" \
   -H "Content-Type: application/json" \
   -d '{
   "settings": {
@@ -45,7 +45,7 @@ curl -s -u "$ES_USER:$ES_PASS" -X PUT "$ES_URL/nina_citizens" \
           "synonyms": [
             "mamadou,mamady,mamadu,mamadow",
             "mohamed,mohamad,mohammed,muhamed,mouhamad",
-            "sekou,secou,sékou,seku",
+            "sekou,secou,seku",
             "oumar,omar,oumare,umar",
             "aminata,aminatou,aminta",
             "fatoumata,fatou,fatouma,fatu",
@@ -145,7 +145,7 @@ curl -s -u "$ES_USER:$ES_PASS" -X PUT "$ES_URL/nina_citizens" \
 echo "  ✓ Index nina_citizens créé avec analyseurs phonétiques"
 
 # Créer l'index pour les localités (régions, cercles, communes)
-curl -s -u "$ES_USER:$ES_PASS" -X PUT "$ES_URL/nina_locations" \
+curl -s --fail-with-body -u "$ES_USER:$ES_PASS" -X PUT "$ES_URL/nina_locations" \
   -H "Content-Type: application/json" \
   -d '{
   "settings": {
