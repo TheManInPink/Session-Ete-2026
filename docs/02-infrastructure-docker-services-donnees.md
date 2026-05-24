@@ -963,7 +963,7 @@ services:
     ports:
       - '${VAULT_PORT:-8200}:8200' # API + UI → http://localhost:8200
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: dev-root-token
+      VAULT_DEV_ROOT_TOKEN_ID: nina-dev
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     cap_add:
       - IPC_LOCK
@@ -1622,17 +1622,17 @@ Créer `docs/guides/urls-developpement.md` :
 ```markdown
 # URLs de développement — NINA-AES Platform
 
-| Service               | URL                    | Identifiants                                      |
-| --------------------- | ---------------------- | ------------------------------------------------- |
-| PostgreSQL            | `localhost:5432`       | nina_admin / nina_dev_2026!                       |
-| Redis                 | `localhost:6379`       | mot de passe : redis_dev_2026!                    |
-| RabbitMQ (Management) | http://localhost:15672 | nina_rabbit / rabbit_dev_2026!                    |
-| Elasticsearch         | http://localhost:9200  | elastic / elastic_dev_2026!                       |
-| MinIO (Console)       | http://localhost:9001  | nina_minio_admin / minio_dev_2026!                |
-| MinIO (API S3)        | http://localhost:9000  | idem                                              |
-| Keycloak (Admin)      | http://localhost:8080  | admin / keycloak_admin_2026!                      |
-| Vault (UI/API dev)    | http://localhost:8200  | jeton : `dev-root-token` (mode `-dev` uniquement) |
-| Maildev               | http://localhost:1080  | aucun (accès libre)                               |
+| Service               | URL                    | Identifiants                                |
+| --------------------- | ---------------------- | ------------------------------------------- |
+| PostgreSQL            | `localhost:5432`       | nina_admin / nina_dev_2026!                 |
+| Redis                 | `localhost:6379`       | mot de passe : redis_dev_2026!              |
+| RabbitMQ (Management) | http://localhost:15672 | nina_rabbit / rabbit_dev_2026!              |
+| Elasticsearch         | http://localhost:9200  | elastic / elastic_dev_2026!                 |
+| MinIO (Console)       | http://localhost:9001  | nina_minio_admin / minio_dev_2026!          |
+| MinIO (API S3)        | http://localhost:9000  | idem                                        |
+| Keycloak (Admin)      | http://localhost:8080  | admin / keycloak_admin_2026!                |
+| Vault (UI/API dev)    | http://localhost:8200  | jeton : `nina-dev` (mode `-dev` uniquement) |
+| Maildev               | http://localhost:1080  | aucun (accès libre)                         |
 
 > **Rappel** : ces identifiants sont pour le développement local UNIQUEMENT. En production, tous les
 > secrets passent par HashiCorp Vault.

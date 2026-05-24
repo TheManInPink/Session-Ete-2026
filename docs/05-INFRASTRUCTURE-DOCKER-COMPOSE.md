@@ -922,9 +922,16 @@ keycloak:
 # Ouvrir la console d'administration : http://localhost:8080
 # Login : admin / keycloak_admin_2026!
 
-# Vérifier l'endpoint de santé
-curl http://localhost:8080/health/ready
-# {"status":"UP","checks":[...]}
+# Vérifier que Keycloak répond (endpoint public du realm master)
+curl http://localhost:8080/realms/master
+# {"realm":"master","public_key":"MII...","token-service":"http://localhost:8080/realms/master/protocol/openid-connect","account-service":"...","tokens-not-before":0}
+
+# Note: /health/ready de Keycloak est exposé sur le port management 9000
+# INTERNE au conteneur — non publié vers l'hôte par notre docker-compose.
+# Pour le tester il faudrait soit publier le 9000, soit exec dans le container :
+#   docker exec nina-keycloak curl http://localhost:9000/health/ready
+# (curl n'est pas installé dans l'image Keycloak — utiliser wget ou ajouter
+# une image avec curl si nécessaire pour le healthcheck applicatif.)
 ```
 
 **Configuration Keycloak pour NINA-AES** (à faire manuellement ou via API, détaillé dans le
@@ -954,7 +961,7 @@ vault:
 
   environment:
     # Token racine pour le mode développement
-    VAULT_DEV_ROOT_TOKEN_ID: dev-root-token
+    VAULT_DEV_ROOT_TOKEN_ID: nina-dev
     # Adresse d'écoute
     VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
 
@@ -979,21 +986,28 @@ vault:
 
 ```powershell
 # Ouvrir l'UI web : http://localhost:8200
-# Token : dev-root-token
+# Token : nina-dev  (défini par VAULT_DEV_ROOT_TOKEN_ID dans docker-compose.dev.yml)
 
-# Vérifier le statut
-docker exec -it nina-vault vault status
+# Vérifier le statut (VAULT_ADDR requis : le client défaut HTTPS, notre dev = HTTP)
+docker exec -e VAULT_ADDR=http://localhost:8200 nina-vault vault status
 # Sealed: false  (en mode dev, Vault est automatiquement "unsealed")
 
-# Stocker un secret de test
-docker exec -it nina-vault vault kv put secret/jwt-keys private-key="test-key-content"
+# Stocker un secret de test (VAULT_TOKEN requis)
+docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN=nina-dev \
+  nina-vault vault kv put secret/jwt-keys private-key="test-key-content"
 # Success! Data written to: secret/data/jwt-keys
 
 # Lire le secret
-docker exec -it nina-vault vault kv get secret/jwt-keys
+docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN=nina-dev \
+  nina-vault vault kv get secret/jwt-keys
 # Key            Value
 # ---            -----
 # private-key    test-key-content
+
+# Astuce: pour éviter de répéter -e à chaque commande, entrer dans un shell:
+#   docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN=nina-dev \
+#     -it nina-vault sh
+# puis 'vault kv put/get/...' sans flags supplémentaires.
 ```
 
 **Secrets prévus dans Vault** :
@@ -1033,11 +1047,23 @@ maildev:
 # Ouvrir l'interface web : http://localhost:1080
 # (vide au démarrage — des emails apparaîtront quand notification-service enverra)
 
-# Tester l'envoi SMTP manuellement (PowerShell)
+# Tester via l'API REST Maildev (le plus simple, multi-plateforme)
+curl http://localhost:1080/email
+# [] au démarrage, puis [ { "from": [...], "to": [...], "subject": "...", "html": "...", ... } ]
+# après un envoi.
+
+# Tester l'envoi SMTP manuellement depuis Windows PowerShell 5.1 :
 Send-MailMessage -From "test@nina-aes.ml" -To "citoyen@example.com" `
   -Subject "Test NINA-AES" -Body "Email de test depuis Maildev" `
   -SmtpServer "localhost" -Port 1025
 # L'email apparaît immédiatement dans http://localhost:1080
+
+# ⚠ Send-MailMessage est officiellement DÉPRÉCIÉ par Microsoft
+# (https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/send-mailmessage).
+# Il fonctionne encore sur Windows PowerShell 5.1 mais émettra un warning.
+# Pour PowerShell 7+, utiliser MailKit via le module Send-MailKitMessage :
+#   Install-Module Send-MailKitMessage -Scope CurrentUser
+# Ou simplement passer par l'API HTTP du notification-service quand il sera up.
 ```
 
 ---
@@ -1261,7 +1287,7 @@ détaillée par catégorie :
 | Variable      | Valeur dev              | Utilisé par       | Description                        |
 | ------------- | ----------------------- | ----------------- | ---------------------------------- |
 | `VAULT_ADDR`  | `http://localhost:8200` | Tous les services | URL de l'API Vault                 |
-| `VAULT_TOKEN` | `dev-root-token`        | Tous les services | Token racine (dev mode uniquement) |
+| `VAULT_TOKEN` | `nina-dev`              | Tous les services | Token racine (dev mode uniquement) |
 
 ### 10.8 SMTP (Maildev)
 
@@ -1351,7 +1377,7 @@ détaillée par catégorie :
 
 ### Vault
 
-- [ ] UI accessible : `http://localhost:8200` (token: dev-root-token)
+- [ ] UI accessible : `http://localhost:8200` (token: nina-dev)
 - [ ] `vault status` → Sealed: false
 - [ ] Opérations kv put/get fonctionnelles
 
