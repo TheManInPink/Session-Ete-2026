@@ -127,9 +127,9 @@ microservices, 6 systèmes de stockage.
 ```mermaid
 graph TB
     subgraph "Frontends"
-        FE_CIT["🌐 Portail Citoyen<br/>Next.js 16 — port 4000<br/>6 écrans + PWA"]
-        FE_ADM["🌐 Dashboard Admin<br/>Next.js 16 — port 4001<br/>3 écrans"]
-        FE_GOV["🌐 Portail Gouvernance<br/>Next.js 16 — port 4002<br/>2 écrans"]
+        FE_CIT["🌐 Portail Citoyen<br/>Next.js 16 — port 4001<br/>6 écrans + PWA"]
+        FE_ADM["🌐 Dashboard Admin<br/>Next.js 16 — port 4002<br/>3 écrans"]
+        FE_GOV["🌐 Portail Gouvernance<br/>Next.js 16 — port 4003<br/>2 écrans"]
         FE_MOB["📱 App Mobile<br/>React Native Expo<br/>Scan QR + Offline"]
         FE_USSD["📞 Interface USSD<br/>8 langues nationales<br/>*123*NINA#"]
     end
@@ -253,7 +253,7 @@ portail web.
 sequenceDiagram
     autonumber
     actor C as Citoyen (navigateur)
-    participant FE as Portail Citoyen<br/>Next.js :4000
+    participant FE as Portail Citoyen<br/>Next.js :4001
     participant AUTH as auth-service<br/>:3002
     participant ID as identity-service<br/>:3001
     participant ES as Elasticsearch<br/>:9200
@@ -295,7 +295,7 @@ sequenceDiagram
     participant AI as ai-service<br/>FastAPI :3003
     participant PG as PostgreSQL
     participant RMQ as RabbitMQ
-    participant ADM_FE as Dashboard Admin<br/>Next.js :4001
+    participant ADM_FE as Dashboard Admin<br/>Next.js :4002
     actor AGT as Agent CTDEC
     participant ID as identity-service<br/>:3001
     participant AUD as audit-service<br/>:3007
@@ -340,7 +340,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor C as Citoyen
-    participant FE as Portail Citoyen<br/>:4000
+    participant FE as Portail Citoyen<br/>:4001
     participant DOC as document-service<br/>:3004
     participant ID as identity-service<br/>:3001
     participant VAULT as HashiCorp Vault
@@ -670,9 +670,9 @@ graph TB
         end
 
         subgraph "Processus Node.js (hors Docker)"
-            N_CIT["citizen :4000"]
-            N_ADM["admin :4001"]
-            N_GOV["governance :4002"]
+            N_CIT["citizen :4001"]
+            N_ADM["admin :4002"]
+            N_GOV["governance :4003"]
             N_ID["identity :3001"]
             N_AUTH["auth :3002"]
             N_DOC["document :3004"]

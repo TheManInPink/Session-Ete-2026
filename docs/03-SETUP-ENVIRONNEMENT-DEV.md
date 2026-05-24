@@ -90,9 +90,9 @@ Versions **réellement détectées** sur le poste de travail actuel (avril 2026)
 │  │  PROCESSUS LOCAUX (hors Docker)                                 │  │
 │  │                                                                 │  │
 │  │  Node.js 24.11.1                     Python 3.14.0             │  │
-│  │  ├── citizen       :4000             ├── ai-service     :3003  │  │
-│  │  ├── admin         :4001             └── anticorruption :3009  │  │
-│  │  ├── governance    :4002                                       │  │
+│  │  ├── citizen       :4001             ├── ai-service     :3003  │  │
+│  │  ├── admin         :4002             └── anticorruption :3009  │  │
+│  │  ├── governance    :4003                                       │  │
 │  │  ├── identity-svc  :3001                                       │  │
 │  │  ├── auth-svc      :3002                                       │  │
 │  │  ├── document-svc  :3004                                       │  │
@@ -693,7 +693,7 @@ powershell -ExecutionPolicy Bypass -File scripts\check-env.ps1
 ```powershell
 # 1. Vérifier que le portail citoyen se lance (Next.js)
 pnpm run dev:citizen
-# Ouvrir http://localhost:4000 — la page par défaut doit s'afficher
+# Ouvrir http://localhost:4001 — la page par défaut doit s'afficher
 # Ctrl+C pour arrêter
 
 # 2. Vérifier que le service IA se lance (FastAPI)
@@ -806,7 +806,7 @@ FastAPI) tournent en local hors Docker pour faciliter le debugging et le hot-rel
 - [ ] `docker compose -f docker-compose.dev.yml up -d` — 8 conteneurs running
 - [ ] Extensions PostgreSQL vérifiées (uuid-ossp, pgcrypto, pg_trgm, unaccent)
 - [ ] `scripts/check-env.sh` et `scripts/check-env.ps1` créés et exécutés avec succès
-- [ ] `pnpm run dev:citizen` — portail citoyen accessible sur `http://localhost:4000`
+- [ ] `pnpm run dev:citizen` — portail citoyen accessible sur `http://localhost:4001`
 - [ ] Commit Git : `chore(infra): add dev environment setup scripts and VS Code config`
 - [ ] Mini-rapport rédigé
 - [ ] Aucun secret en clair dans le code (le fichier `.env` est dans `.gitignore`)

@@ -98,15 +98,15 @@ dossier de premier niveau a un rôle précis :
 nina-aes-platform/                          ← Racine du monorepo
 │
 ├── apps/                                   ← 3 applications frontend (Next.js 16)
-│   ├── citizen/                            ← Portail citoyen (port 4000)
+│   ├── citizen/                            ← Portail citoyen (port 4001)
 │   │   ├── src/app/                        ← App Router Next.js
 │   │   ├── package.json                    ← @nina-aes/citizen
 │   │   └── tsconfig.json
-│   ├── admin/                              ← Dashboard administrateur (port 4001)
+│   ├── admin/                              ← Dashboard administrateur (port 4002)
 │   │   ├── src/app/
 │   │   ├── package.json                    ← @nina-aes/admin
 │   │   └── tsconfig.json
-│   └── governance/                         ← Portail gouvernance (port 4002)
+│   └── governance/                         ← Portail gouvernance (port 4003)
 │       ├── src/app/
 │       ├── package.json                    ← @nina-aes/governance
 │       └── tsconfig.json
@@ -203,9 +203,9 @@ consommateur vers la dépendance.
 ```mermaid
 graph TB
     subgraph "apps/ (Next.js 16)"
-        CITIZEN["citizen<br/>:4000"]
-        ADMIN["admin<br/>:4001"]
-        GOV_APP["governance<br/>:4002"]
+        CITIZEN["citizen<br/>:4001"]
+        ADMIN["admin<br/>:4002"]
+        GOV_APP["governance<br/>:4003"]
     end
 
     subgraph "services/ (NestJS 11)"
@@ -1486,10 +1486,10 @@ install: ## Installe toutes les dépendances (pnpm + Python)
 dev: ## Lance tous les services en mode développement
 	pnpm run dev
 
-dev-citizen: ## Lance uniquement le portail citoyen (port 4000)
+dev-citizen: ## Lance uniquement le portail citoyen (port 4001)
 	pnpm run dev:citizen
 
-dev-admin: ## Lance uniquement le dashboard admin (port 4001)
+dev-admin: ## Lance uniquement le dashboard admin (port 4002)
 	pnpm run dev:admin
 
 dev-identity: ## Lance uniquement identity-service (port 3001)
@@ -1599,7 +1599,7 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 - [ ] `turbo.json` définit les tâches : `build`, `dev`, `lint`, `check-types`, `test`, `clean`,
       `db:*`
 - [ ] `pnpm run check-types` passe sur au moins l'app `citizen`
-- [ ] `pnpm run dev:citizen` lance le serveur de dev sur le port 4000
+- [ ] `pnpm run dev:citizen` lance le serveur de dev sur le port 4001
 
 ### Qualité de code
 

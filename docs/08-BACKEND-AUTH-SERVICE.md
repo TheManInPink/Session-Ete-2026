@@ -134,7 +134,7 @@ reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as Citizen App<br/>:4000
+    participant C as Citizen App<br/>:4001
     participant A as auth-service<br/>:3002
     participant K as Keycloak 26.1<br/>:8080
     participant R as Redis 7<br/>:6379
@@ -314,13 +314,13 @@ complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "rootUrl": "http://localhost:4000",
+      "rootUrl": "http://localhost:4001",
       "redirectUris": [
-        "http://localhost:4000/*",
         "http://localhost:4001/*",
-        "http://localhost:4002/*"
+        "http://localhost:4002/*",
+        "http://localhost:4003/*"
       ],
-      "webOrigins": ["http://localhost:4000", "http://localhost:4001", "http://localhost:4002"],
+      "webOrigins": ["http://localhost:4001", "http://localhost:4002", "http://localhost:4003"],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -622,7 +622,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3002),
 
   // ─── CORS ─────────────────────────────────────────────────
-  CORS_ORIGINS: z.string().default('http://localhost:4000,http://localhost:4001'),
+  CORS_ORIGINS: z.string().default('http://localhost:4001,http://localhost:4002'),
 
   // ─── Keycloak ─────────────────────────────────────────────
   KEYCLOAK_URL: z.string().url().default('http://localhost:8080'),
@@ -2428,7 +2428,7 @@ NODE_ENV=development
 PORT=3002
 
 # ─── CORS ─────────────────────────────────────────────────
-CORS_ORIGINS=http://localhost:4000,http://localhost:4001,http://localhost:4002
+CORS_ORIGINS=http://localhost:4001,http://localhost:4002,http://localhost:4003
 
 # ─── Keycloak ─────────────────────────────────────────────
 KEYCLOAK_URL=http://localhost:8080

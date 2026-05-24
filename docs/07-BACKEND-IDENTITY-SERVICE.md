@@ -68,7 +68,7 @@ dates inversées).
 
 Le service `identity-service` vise à :
 
-1. **Démocratiser l'accès** — consultation en ligne depuis l'app citoyenne (port 4000) ou par USSD
+1. **Démocratiser l'accès** — consultation en ligne depuis l'app citoyenne (port 4001) ou par USSD
    (`*456#`)
 2. **Corriger les erreurs** — workflow de signalement + validation par agent (voir doc 09 audit)
 3. **Lutter contre la fraude** — validation mathématique stricte de la clé de contrôle
@@ -123,8 +123,8 @@ Le service `identity-service` vise à :
 ```mermaid
 flowchart TB
     subgraph "Client Apps"
-        CIT[apps/citizen<br/>Next.js :4000]
-        ADM[apps/admin<br/>Next.js :4001]
+        CIT[apps/citizen<br/>Next.js :4001]
+        ADM[apps/admin<br/>Next.js :4002]
         USSD[USSD Gateway<br/>Africa's Talking]
     end
 
@@ -707,7 +707,7 @@ describe('generateNina (round-trip)', () => {
  *                - Validation globale (class-validator)
  *                - Filtre d'exception global
  *                - Swagger UI sur /api/docs
- *                - CORS pour le frontend local (ports 4000, 4001)
+ *                - CORS pour le frontend local (ports 4001, 4002)
  *                - Shutdown hooks pour Prisma (fermeture propre connexion DB)
  *
  * @author      Étudiant UQAR
@@ -761,7 +761,7 @@ async function bootstrap(): Promise<void> {
 
   // ─── 6. CORS — autorise les apps Next.js en développement ─────
   app.enableCors({
-    origin: env.CORS_ORIGINS.split(','), // ex: "http://localhost:4000,http://localhost:4001"
+    origin: env.CORS_ORIGINS.split(','), // ex: "http://localhost:4001,http://localhost:4002"
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   });
@@ -821,7 +821,7 @@ export const envSchema = z.object({
     }),
 
   // ─── CORS ─────────────────────────────────────────────────
-  CORS_ORIGINS: z.string().default('http://localhost:4000,http://localhost:4001'),
+  CORS_ORIGINS: z.string().default('http://localhost:4001,http://localhost:4002'),
 
   // ─── Audit (communication inter-services) ────────────────
   AUDIT_SERVICE_URL: z.string().url().default('http://localhost:3003'),
@@ -2114,7 +2114,7 @@ PORT=3001
 DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
 
 # ─── CORS ─────────────────────────────────────────────────
-CORS_ORIGINS=http://localhost:4000,http://localhost:4001
+CORS_ORIGINS=http://localhost:4001,http://localhost:4002
 
 # ─── Services amis ───────────────────────────────────────
 AUDIT_SERVICE_URL=http://localhost:3003
