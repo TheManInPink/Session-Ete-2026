@@ -39,6 +39,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "//reset": "Reset COMPLET : supprime node_modules + lockfile + cache turbo, fresh install (régénère lockfile), puis prisma generate. À utiliser quand le lockfile est suspect ou pour reproduire un setup ex-nihilo. ⚠ Discarde le mapping déterministe des versions — un soft reset 'pnpm clean && pnpm install && pnpm db:generate' garde le lockfile.",
+    "reset": "rm -rf node_modules .turbo && rm -f pnpm-lock.yaml && pnpm install && pnpm run db:generate",
     "db:generate": "turbo run db:generate --filter=@nina-aes/database",
     "db:migrate": "turbo run db:migrate --filter=@nina-aes/database",
     "db:seed": "turbo run db:seed --filter=@nina-aes/database",
