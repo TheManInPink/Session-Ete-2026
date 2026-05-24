@@ -5,6 +5,7 @@
   "globalDependencies": [".env"],
   "globalEnv": [
     "NODE_ENV",
+    "GIT_SHA",
     "DATABASE_URL",
     "REDIS_URL",
     "RABBITMQ_URL",
