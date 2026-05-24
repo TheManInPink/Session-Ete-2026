@@ -429,8 +429,8 @@ Les microservices NestJS/FastAPI se connectent à PostgreSQL via la variable `DA
 
 ```
 DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
-                         ^^^^  ^^^^^^^^  ^^^^^^^^^  ^^^^  ^^^^^^^^
-                         user  password  host       port  database
+                          ^^^^^^^^^^ ^^^^^^^^^^^^^^ ^^^^^^^^^ ^^^^ ^^^^^^^^^^^
+                          user       password       host      port database
 ```
 
 Le client Prisma (dans `packages/database`) utilise cette URL pour se connecter.
@@ -487,10 +487,15 @@ redis:
 
 ```powershell
 # Vérifier le conteneur
-docker compose -f docker-compose.dev.yml ps redis
+docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml ps redis
+# Raccourci équivalent : pnpm run docker:ps | Select-String redis
 
 # Se connecter en ligne de commande
-docker exec -it nina-redis redis-cli -a redis_dev_2026!
+# Note PowerShell: le `!` final du mot de passe doit être ECHAPPÉ avec `--% `
+# (stop-parsing) ou avec des single-quotes, sinon PowerShell tente une
+# expansion d'historique:
+#   docker exec -it nina-redis redis-cli -a 'redis_dev_2026!'
+docker exec -it nina-redis redis-cli -a 'redis_dev_2026!'
 
 # Tester les opérations de base
 127.0.0.1:6379> SET test:hello "world"
@@ -518,8 +523,8 @@ docker exec -it nina-redis redis-cli -a redis_dev_2026!
 
 ```
 REDIS_URL=redis://:redis_dev_2026!@localhost:6379
-                   ^^^^^^^^  ^^^^^^^^^  ^^^^
-                   password   host      port
+                   ^^^^^^^^^^^^^^^ ^^^^^^^^^ ^^^^
+                   password        host      port
 ```
 
 ⚠️ **Note** : L'URL Redis avec mot de passe commence par `redis://:password@` (double deux-points
