@@ -28,3 +28,14 @@ allowBuilds:
   protobufjs: true
   sharp: true
   unrs-resolver: true
+
+# ─── Overrides CVE (force les versions patchées détectées par Trivy) ──
+# Réviser à chaque bump majeur du graphe de deps.
+# Migrés depuis package.json/pnpm.overrides qui n'est plus lu par pnpm 11
+# (le warning "The pnpm field in package.json is no longer read by pnpm"
+# remontait à chaque commande tant que cette migration n'était pas faite).
+overrides:
+  'lodash@<4.18.0': '>=4.18.0'
+  'fast-uri@<3.1.2': '>=3.1.2'
+  'multer@<2.1.1': '>=2.1.1'
+  '@nestjs/microservices@<11.1.19': '>=11.1.19'
