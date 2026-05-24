@@ -445,9 +445,14 @@ nina-maildev         Up                       0.0.0.0:1025->1025/tcp, 0.0.0.0:10
 **Vérification individuelle de chaque service** :
 
 ```powershell
-# PostgreSQL — connexion test
-docker exec nina-postgres pg_isready -U nina_admin -d nina_aes_db
-# Attendu : /var/run/postgresql:5432 - accepting connections
+# PostgreSQL — connexion test (round-trip SQL réel)
+# Note : pg_isready ne fait qu'un check TCP+startup et répond "accepting connections"
+# même avec un user/db inexistants — d'où ce test plus solide qui vérifie en plus
+# que le rôle existe, que la DB existe et qu'un query roundtrip fonctionne.
+# ⚠️ Le mot de passe n'est PAS validé : le conteneur dev utilise pg_hba trust auth
+# (intentionnel pour la commodité dev). En prod, cette config doit être durcie.
+docker exec -e PGPASSWORD='nina_dev_2026!' nina-postgres psql -U nina_admin -d nina_aes_db -tAc "SELECT 'OK';"
+# Attendu : OK
 
 # Redis — ping
 docker exec nina-redis redis-cli -a redis_dev_2026! ping
@@ -461,8 +466,8 @@ docker exec nina-redis redis-cli -a redis_dev_2026! ping
 # Ouvrir http://localhost:9001 dans le navigateur
 # Login : nina_minio_admin / minio_dev_2026!
 
-# Elasticsearch — santé du cluster
-curl -s http://localhost:9200/_cluster/health?pretty
+# Elasticsearch — santé du cluster (auth requise, xpack.security activé)
+curl -s -u 'elastic:elastic_dev_2026!' http://localhost:9200/_cluster/health?pretty
 # Attendu : "status" : "green" ou "yellow"
 
 # Keycloak — page d'admin

@@ -735,7 +735,7 @@ elasticsearch:
     test:
       [
         'CMD-SHELL',
-        "curl -s http://localhost:9200/_cluster/health | grep -q
+        "curl -s -u elastic:elastic_dev_2026! http://localhost:9200/_cluster/health | grep -q
         '\"status\":\"green\"\\|\"status\":\"yellow\"'",
       ]
     interval: 15s
@@ -749,16 +749,16 @@ elasticsearch:
 **Validation** :
 
 ```powershell
-# Vérifier la santé du cluster
-curl http://localhost:9200/_cluster/health?pretty
+# Vérifier la santé du cluster (xpack.security activé → -u requis)
+curl -u 'elastic:elastic_dev_2026!' http://localhost:9200/_cluster/health?pretty
 # "status" : "green" (ou "yellow" en single-node, c'est normal)
 
 # Vérifier la version
-curl http://localhost:9200
-# "version" : { "number" : "8.17.0" }
+curl -u 'elastic:elastic_dev_2026!' http://localhost:9200
+# "version" : { "number" : "9.4.1" }
 
 # Créer un index de test pour les enregistrements NINA
-curl -X PUT "http://localhost:9200/nina_records" -H "Content-Type: application/json" -d "{
+curl -u 'elastic:elastic_dev_2026!' -X PUT "http://localhost:9200/nina_records" -H "Content-Type: application/json" -d "{
   \"settings\": {
     \"analysis\": {
       \"analyzer\": {
