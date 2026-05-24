@@ -153,7 +153,7 @@ export function maskPhone(phone: unknown): string {
     return '[invalid-phone]';
   }
   // On garde le préfixe `+xxx` ou `00xxx` + 2 chiffres
-  const m = phone.match(/^(\+\d{1,4}|0{2}\d{1,4})(\d{2})/);
+  const m = phone.match(/^(\+\d{3}|0{2}\d{3})(\d{2})/);
   // m[0] = correspondance complète garantie non-undefined si m est défini,
   // mais le typage strict de noUncheckedIndexedAccess l'oblige malgré tout.
   if (!m || m[0] === undefined) return '[invalid-phone]';

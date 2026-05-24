@@ -27,6 +27,7 @@ module.exports = {
           moduleResolution: 'node',
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
+          ignoreDeprecations: '6.0',
         },
       },
     ],

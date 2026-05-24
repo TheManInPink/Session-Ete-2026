@@ -11,8 +11,8 @@ import { maskEmail, maskNina, maskPhone, PII_REDACT_PATHS } from '../redaction.j
 
 describe('maskNina', () => {
   it('masque les 13 caractères centraux en gardant sexe et lettre de contrôle', () => {
-    // NINA fictif : 1 (homme) + 72 (1972) + 12 (déc.) + ... + A (contrôle)
-    expect(maskNina('1721234567890A')).toBe('1*************A');
+    // NINA fictif 15 chars : 1 (homme) + 13 chiffres + A (contrôle)
+    expect(maskNina('17212345678901A')).toBe('1*************A');
   });
 
   it('renvoie [invalid-nina] si la longueur est incorrecte', () => {
