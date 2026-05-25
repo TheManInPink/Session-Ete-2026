@@ -20,9 +20,9 @@ generator client {
   provider        = "prisma-client-js"
   // Prisma 7.x utilise le moteur « client » (queries compilées) qui exige
   // un driver adapter natif. Pour PostgreSQL on utilise `@prisma/adapter-pg`
-  // (cf. `src/index.ts`). `driverAdapters` doit être listé dans les
-  // previewFeatures pour que `new PrismaClient({ adapter })` soit accepté.
-  previewFeatures = ["driverAdapters", "postgresqlExtensions", "relationJoins"]
+  // (cf. `src/index.ts`) — `driverAdapters` est stable depuis Prisma 7 et
+  // n'a plus besoin d'être listé en previewFeatures.
+  previewFeatures = ["postgresqlExtensions", "relationJoins"]
 }
 
 datasource db {
@@ -160,22 +160,22 @@ enum Language {
 /// commune → arrondissement → quartier → village → fraction).
 /// Auto-référente : `parent` relie un niveau à son parent immédiat.
 model Location {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String                                @id @default(uuid()) @db.Uuid
   /// Code administratif officiel (ex. "ML-08-02-005"). Unique.
-  code      String   @unique @db.VarChar(20)
-  name      String   @db.VarChar(150)
+  code      String                                @unique @db.VarChar(20)
+  name      String                                @db.VarChar(150)
   /// Version ASCII (sans diacritiques) pour recherche fuzzy + index trigram.
-  nameAscii String   @map("name_ascii") @db.VarChar(150)
+  nameAscii String                                @map("name_ascii") @db.VarChar(150)
   /// Niveau dans la hiérarchie : 0=pays, 1=région, 2=cercle, 3=commune,
   /// 4=arrondissement, 5=quartier, 6=village, 7=fraction.
-  level     Int      @db.SmallInt
-  parentId  String?  @map("parent_id") @db.Uuid
-  latitude  Decimal? @db.Decimal(10, 7)
-  longitude Decimal? @db.Decimal(10, 7)
+  level     Int                                   @db.SmallInt
+  parentId  String?                               @map("parent_id") @db.Uuid
+  latitude  Decimal?                              @db.Decimal(10, 7)
+  longitude Decimal?                              @db.Decimal(10, 7)
   /// Point géographique PostGIS (EPSG:4326). Rempli par trigger SQL.
   geom      Unsupported("geography(Point,4326)")?
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime                              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   parent   Location?  @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   children Location[] @relation("LocationHierarchy")
@@ -282,27 +282,27 @@ model Parent {
 
 /// Demande de correction d'un champ NINA (workflow citoyen ↔ agent).
 model CorrectionRequest {
-  id                String           @id @default(uuid()) @db.Uuid
-  citizenId         String           @map("citizen_id") @db.Uuid
-  requestedByUserId String?          @map("requested_by_user_id") @db.Uuid
+  id                  String           @id @default(uuid()) @db.Uuid
+  citizenId           String           @map("citizen_id") @db.Uuid
+  requestedByUserId   String?          @map("requested_by_user_id") @db.Uuid
   /// Agent assigné (alias UI : `reviewedBy`).
-  reviewedBy        String?          @map("reviewed_by") @db.Uuid
-  field             String           @db.VarChar(50)
-  currentValue      String           @map("current_value") @db.VarChar(500)
-  proposedValue     String           @map("proposed_value") @db.VarChar(500)
-  reason            String           @db.Text
+  reviewedBy          String?          @map("reviewed_by") @db.Uuid
+  field               String           @db.VarChar(50)
+  currentValue        String           @map("current_value") @db.VarChar(500)
+  proposedValue       String           @map("proposed_value") @db.VarChar(500)
+  reason              String           @db.Text
   /// URL MinIO du justificatif scanné (CIN, acte de naissance…).
-  justificationDocUrl String?        @map("justification_doc_url") @db.VarChar(500)
+  justificationDocUrl String?          @map("justification_doc_url") @db.VarChar(500)
   /// Score IA (0-100) — cf. doc 11 (ai-service).
-  aiScore           Decimal?         @map("ai_score") @db.Decimal(5, 2)
-  aiVerdict         String?          @map("ai_verdict") @db.VarChar(30)
-  aiExplanation     Json?            @map("ai_explanation")
-  status            CorrectionStatus @default(DRAFT)
-  decidedAt         DateTime?        @map("decided_at") @db.Timestamptz(6)
-  decisionReason    String?          @map("decision_reason") @db.Text
-  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt         DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  aiScore             Decimal?         @map("ai_score") @db.Decimal(5, 2)
+  aiVerdict           String?          @map("ai_verdict") @db.VarChar(30)
+  aiExplanation       Json?            @map("ai_explanation")
+  status              CorrectionStatus @default(DRAFT)
+  decidedAt           DateTime?        @map("decided_at") @db.Timestamptz(6)
+  decisionReason      String?          @map("decision_reason") @db.Text
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt           DateTime?        @map("deleted_at") @db.Timestamptz(6)
 
   citizen     Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
   requestedBy User?   @relation("CorrectionRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
@@ -488,34 +488,34 @@ model AesVerificationLog {
 
 /// Alerte anti-corruption (signalement + détection automatique IA).
 model CorruptionAlert {
-  id                      String        @id @default(uuid()) @db.Uuid
+  id                     String        @id @default(uuid()) @db.Uuid
   /// Rapporteur (agent ou citoyen identifié). Null = lanceur d'alerte anonyme.
-  reporterId              String?       @map("reporter_id") @db.Uuid
+  reporterId             String?       @map("reporter_id") @db.Uuid
   /// Agent visé par le signalement (cible). Null = non nominatif.
-  agentUserId             String?       @map("agent_user_id") @db.Uuid
-  assignedToUserId        String?       @map("assigned_to_user_id") @db.Uuid
-  severity                AlertSeverity @default(LOW)
+  agentUserId            String?       @map("agent_user_id") @db.Uuid
+  assignedToUserId       String?       @map("assigned_to_user_id") @db.Uuid
+  severity               AlertSeverity @default(LOW)
   /// Catégorie : BRIBERY, FORGERY, FAVORITISM, ABUSE, PROCUREMENT, OTHER.
-  category                String        @db.VarChar(30)
-  title                   String        @db.VarChar(300)
-  description             String        @map("body") @db.Text
+  category               String        @db.VarChar(30)
+  title                  String        @db.VarChar(300)
+  description            String        @map("body") @db.Text
   /// URLs MinIO des pièces jointes (chiffrées SSE-C).
-  evidenceUrls            String[]      @map("evidence_urls")
+  evidenceUrls           String[]      @map("evidence_urls")
   /// Jeton anonyme remis au lanceur d'alerte pour suivre l'instruction sans
   /// révéler son identité (rotation Vault).
-  anonymousReporterToken  String?       @unique @map("anonymous_reporter_token") @db.VarChar(128)
+  anonymousReporterToken String?       @unique @map("anonymous_reporter_token") @db.VarChar(128)
   /// Score d'intégrité IA (0-100), 5 facteurs pondérés (cf. doc 23).
-  integrityScore          Decimal       @default(0) @map("integrity_score") @db.Decimal(5, 2)
+  integrityScore         Decimal       @default(0) @map("integrity_score") @db.Decimal(5, 2)
   /// Montant impliqué en XOF si détournement financier.
-  estimatedAmount         Decimal?      @map("estimated_amount") @db.Decimal(18, 2)
+  estimatedAmount        Decimal?      @map("estimated_amount") @db.Decimal(18, 2)
   /// Payload chiffré asymétriquement (clé publique inspecteur, cf. doc 23).
-  encryptedPayload        Bytes?        @map("encrypted_payload")
-  encryptionKeyId         String?       @map("encryption_key_id") @db.VarChar(64)
+  encryptedPayload       Bytes?        @map("encrypted_payload")
+  encryptionKeyId        String?       @map("encryption_key_id") @db.VarChar(64)
   /// Statut : RECEIVED, TRIAGED, INVESTIGATING, SUBSTANTIATED, DISMISSED, CLOSED.
-  status                  String        @default("RECEIVED") @db.VarChar(30)
-  channel                 String        @db.VarChar(20)
-  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  status                 String        @default("RECEIVED") @db.VarChar(30)
+  channel                String        @db.VarChar(20)
+  createdAt              DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   reporter   User? @relation("AlertReporter", fields: [reporterId], references: [id], onDelete: Restrict)
   agent      User? @relation("AlertAgent", fields: [agentUserId], references: [id], onDelete: Restrict)
@@ -634,25 +634,25 @@ model GovernanceMessage {
 
 /// Fiche de vulnérabilité rattachée à un·e citoyen·ne (priorisation files).
 model VulnerabilityRecord {
-  id                  String                @id @default(uuid()) @db.Uuid
-  citizenId           String                @map("citizen_id") @db.Uuid
-  category            VulnerabilityCategory
-  description         String?               @db.Text
+  id                 String                @id @default(uuid()) @db.Uuid
+  citizenId          String                @map("citizen_id") @db.Uuid
+  category           VulnerabilityCategory
+  description        String?               @db.Text
   /// P1 (urgent) → P3 (standard). Stocké en VARCHAR pour rétro-compat.
-  priority            String                @default("P3") @db.VarChar(2)
-  verifiedByUserId    String?               @map("verified_by_user_id") @db.Uuid
-  verifiedAt          DateTime?             @map("verified_at") @db.Timestamptz(6)
+  priority           String                @default("P3") @db.VarChar(2)
+  verifiedByUserId   String?               @map("verified_by_user_id") @db.Uuid
+  verifiedAt         DateTime?             @map("verified_at") @db.Timestamptz(6)
   /// Preuve (certificat médical, attestation) — URL MinIO.
-  evidenceUrl         String?               @map("evidence_url") @db.VarChar(500)
+  evidenceUrl        String?               @map("evidence_url") @db.VarChar(500)
   /// Canal de notification préféré : SMS, USSD, VOICE, IN_PERSON, EMAIL.
-  deliveryPreference  String                @default("SMS") @map("delivery_preference") @db.VarChar(20)
+  deliveryPreference String                @default("SMS") @map("delivery_preference") @db.VarChar(20)
   /// Numéro de téléphone pour rappels USSD (peut différer du téléphone Citizen
   /// si la fiche couvre une personne tierce — accompagnant, soignant…).
-  ussdPhone           String?               @map("ussd_phone") @db.VarChar(20)
-  activeFrom          DateTime              @default(now()) @map("active_from") @db.Date
-  activeUntil         DateTime?             @map("active_until") @db.Date
-  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  ussdPhone          String?               @map("ussd_phone") @db.VarChar(20)
+  activeFrom         DateTime              @default(now()) @map("active_from") @db.Date
+  activeUntil        DateTime?             @map("active_until") @db.Date
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   citizen    Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
   verifiedBy User?   @relation(fields: [verifiedByUserId], references: [id], onDelete: Restrict)

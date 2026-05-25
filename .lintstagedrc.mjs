@@ -58,9 +58,14 @@ export default {
     return [`prettier --write ${quoted}`];
   },
 
+  // Le plugin `prettier-plugin-prisma` v5.x est incompatible Prisma 7
+  // (cherche `prisma/build/types.js` qui n'existe plus). On utilise donc
+  // directement `prisma format` — l'outil officiel, garanti aligné avec
+  // la version installée. Sur Windows lint-staged passe les paths via
+  // cmd.exe ; pas de double-quote autour de --schema= pour éviter que
+  // les guillemets soient préservés littéralement dans le path.
   '*.prisma': (files) => {
     if (files.length === 0) return [];
-    const quoted = files.map((f) => `"${f}"`).join(' ');
-    return [`prettier --write --plugin=prisma ${quoted}`];
+    return files.map((f) => `pnpm exec prisma format --schema=${f}`);
   },
 };
