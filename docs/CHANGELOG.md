@@ -3,10 +3,47 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-25
+> **Dernière mise à jour** : 2026-05-25 (patch 0bis — doc 10 v2.0 + ADR-006 addendum + ADR-026)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0bis. Patch 2026-05-25 — `docs/10` v2.0 réécrit (PROMPT 3.3 design Vault Transit + Object Lock)
+
+Réécriture complète de `docs/10-BACKEND-DOCUMENT-SERVICE.md` (passage v1 → **v2.0**, ~1060 lignes).
+Le **design** du service est mis à jour ; **aucun code applicatif n'est encore écrit** sous
+`services/document-service/src/` (le scaffold contient toujours `app.controller.ts`,
+`app.module.ts`, `main.ts`, `modules/health/`). Le code complet est planifié en PROMPT 3.4.
+
+Écarts vs design v1 documentés en §0 ailleurs (cf. §Addendum d'ADR-006) :
+
+| Domaine              | v1 (avril 2026)                                           | **v2.0 (2026-05-25)**                                                             |
+| -------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Signature QR         | Clé chargée depuis `kv-v2` en RAM applicative             | **Vault Transit** `transit/sign/nina-qr-signing/sha2-256` — clé jamais hors Vault |
+| Payload JWT          | `nina` + `biometric_hash` + iat/iss/exp                   | **+ `jti` + `fdi.hash` (SHA-256 JSON canonique) + `citizen` minimisé + `wm`**     |
+| Révocation           | Non documentée                                            | **Redis SET `qr:rev:<jti>` avec TTL aligné sur `exp`** + endpoint `DELETE /:id`   |
+| Stockage MinIO       | SSE-C par citoyen                                         | **Bucket `fiches` avec `--with-lock` + Object Lock COMPLIANCE 10 ans**            |
+| Internationalisation | 8 langues annoncées (FR, BM, SNK, FF, TMQ, HAU, MOS, DJE) | **Recentré P0 sur 4 langues (FR, BM, SNK, FUV)** ; 4 autres repoussées Bloc B     |
+| `kid` du JWT         | `jwt-rs256-v1` statique                                   | **`nina-qr-signing-v{N}`** lié à `latest_version` Vault (rotation à chaud)        |
+| Endpoints            | 5                                                         | **6** (+ `GET /metrics` mTLS only pour scrape Prometheus)                         |
+| Référence ADR        | ADR-006 seul                                              | **ADR-006 + Addendum 2026-05-25 + nouveau ADR-026 (Vault Transit)**               |
+
+**Nouveaux artefacts créés dans le même change set** :
+
+- `docs/adr/ADR-006-jwt-rs256-qr-code.md` — section "Addendum 2026-05-25" ajoutée (payload v2.0,
+  signature Vault Transit, révocation Redis, rotation à chaud avec coexistence v(N-1)/v(N))
+- `docs/adr/ADR-026-vault-transit-qr-signing.md` — **nouveau** (porte le passage de 25 → 26 ADRs)
+- `infrastructure/vault/policies/document-service.hcl` — politique minimale (sign + read key only,
+  deny rotate + export, deny autres clés)
+
+**À produire au prochain PROMPT (3.4)** :
+
+- `infrastructure/vault/init/05-create-qr-key.sh` (génération initiale `nina-qr-signing` au boot)
+- Script init MinIO pour créer le bucket `fiches` avec `--with-lock` (irréversible)
+- Scaffold complet `services/document-service/src/` (modules `documents/`, `fdi/`, `pdf/`, `qr/`,
+  `templates/`, `storage/`, `audit/`, `i18n/`) — pattern à suivre = `auth-service` (PROMPT 3.2)
+
+---
 
 ### 0. Patch 2026-05-25 — auth-service Phases 1-10 livrées (PROMPT 3.2 scaffold complet)
 

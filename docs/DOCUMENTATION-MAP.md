@@ -6,8 +6,8 @@
 >
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
-> **Dernière mise à jour** : 16 mai 2026 · **Status** : ✅ initialisé (après clôture des 27 docs +
-> 25 ADRs).
+> **Dernière mise à jour** : 25 mai 2026 · **Status** : ✅ initialisé (après clôture des 27 docs +
+> **26 ADRs** — ADR-026 ajouté avec la réécriture v2.0 de `docs/10`).
 
 ---
 
@@ -40,9 +40,9 @@
                               │
                               ▼ Justifie
 ┌──────────────────────────────────────────────────────────────────┐
-│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…025)   │
+│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…026)   │
 │  ─────────────────────────────────────────────────────────────   │
-│  25 ADRs (001 à 025) — décisions stratégiques avec :             │
+│  26 ADRs (001 à 026) — décisions stratégiques avec :             │
 │   • Contexte document (lien vers doc Tier 2 associée)            │
 │   • Décision + Conséquences positives / négatives                │
 │   • Note souveraineté + Alternatives rejetées                    │
@@ -87,10 +87,10 @@ formulations adaptées :
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: |
 | `AGENTS.md`                       | Mentionne seulement `validate:data` + `validate:schemas`, pas `verify:repo` (chaîne complète préférée)                                                                        |  🟡 P1   |
 | `AGENTS.md`                       | Pas de mention de la commande `docs:sync:check`                                                                                                                               |  🟡 P1   |
-| `CLAUDE.md`                       | Pas de mention explicite des 25 ADRs comme référence                                                                                                                          |  🟢 P2   |
+| `CLAUDE.md`                       | Pas de mention explicite des 26 ADRs comme référence                                                                                                                          |  🟢 P2   |
 | `.cursor/rules/ai-governance.mdc` | Pas de section « Data and validation discipline » comme copilot                                                                                                               |  🟢 P2   |
 | `.cursor/rules/graphify.mdc`      | ~~Pointe vers `graphify-out/` mais le snapshot est du 5 mai (stale 11 jours)~~ ✅ Résolu le 17 mai 2026 — `graphify update` exécuté (613 nodes / 598 edges / 183 communautés) |    ✅    |
-| `README.md`                       | Ne référence pas `MAINTENANCE.md` ni les 25 ADRs                                                                                                                              |  🟡 P1   |
+| `README.md`                       | Ne référence pas `MAINTENANCE.md` ni les 26 ADRs                                                                                                                              |  🟡 P1   |
 | Tous                              | Pas de référence vers `docs/00-README-INDEX.md` dans `README.md` à la racine                                                                                                  |  🟢 P2   |
 
 ### 2.4 Hub de synchronisation : `MAINTENANCE.md §3`
@@ -389,7 +389,7 @@ automatiquement → risque de drift silencieuse.
 
 4. **Aligner les 4 fichiers IA** sur les 5 invariants partagés :
    - `AGENTS.md` : ajouter mention `verify:repo` + `docs:sync:check`
-   - `CLAUDE.md` : ajouter référence aux 25 ADRs comme source
+   - `CLAUDE.md` : ajouter référence aux 26 ADRs comme source
    - `README.md` : enrichir avec liens MAINTENANCE.md + DOCUMENTATION-MAP.md
 
 5. ~~**Re-générer graphify** ou marquer le snapshot comme stale~~ ✅ **Fait le 17 mai 2026** :
@@ -520,7 +520,7 @@ Cadence recommandée : revue trimestrielle + à chaque release majeure (tag Git 
 2026-05-16  DOCUMENTATION-MAP.md + fixes P0/P1                       (ce commit)
 ```
 
-État final : **27/27 docs canoniques + 25 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
+État final : **27/27 docs canoniques + 26 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
 (ce doc) = ~30 000 lignes de documentation cohérente.**
 
 ---

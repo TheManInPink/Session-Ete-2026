@@ -88,18 +88,20 @@ pnpm format
 
 Quand vous changez **ceci** → vous **devez** mettre à jour **cela** :
 
-| Modification                                  | Action obligatoire                                                                  |
-| --------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Versions d'un package (`package.json`)        | `docs/CHANGELOG.md` §1 (tableau versions effectives)                                |
-| Schéma Prisma (`schema.prisma`)               | Migration Prisma + `docs/06-DATABASE-SCHEMA-PRISMA.md` + ADR-011                    |
-| Variable d'environnement (`@nina-aes/config`) | `.env.example` + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md`                         |
-| Données Mali (`data/mali/*.json`)             | `pnpm run validate:data` + bump `metadata.version` (`YYYY.MM.DD`)                   |
-| JSON Schema (`schemas/*.schema.json`)         | `pnpm run validate:schemas` + section §3 dans `docs/data/mali-divisions.md`         |
-| Conventions IA (CLAUDE/AGENTS/copilot/cursor) | Synchroniser les 4 fichiers (cf. §4 ci-dessous)                                     |
-| Diagrammes UML (`docs/diagrams/*.puml`)       | Mention dans `docs/CHANGELOG.md` §3 + lien depuis `docs/02-ARCHITECTURE-GLOBALE.md` |
-| Nouveau script `pnpm run <X>`                 | `MAINTENANCE.md` §2.1 + bandeau dans `docs/03-SETUP-ENVIRONNEMENT-DEV.md`           |
-| Image Docker (`docker-compose.dev.yml`)       | `docs/CHANGELOG.md` §1 + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md` bandeau         |
-| Endpoint API (NestJS controller)              | `docs/api/<service>.md` (à créer si absent) + ADR si décision structurante          |
+| Modification                                  | Action obligatoire                                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Versions d'un package (`package.json`)        | `docs/CHANGELOG.md` §1 (tableau versions effectives)                                                                              |
+| Schéma Prisma (`schema.prisma`)               | Migration Prisma + `docs/06-DATABASE-SCHEMA-PRISMA.md` + ADR-011                                                                  |
+| Variable d'environnement (`@nina-aes/config`) | `.env.example` + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md`                                                                       |
+| Données Mali (`data/mali/*.json`)             | `pnpm run validate:data` + bump `metadata.version` (`YYYY.MM.DD`)                                                                 |
+| JSON Schema (`schemas/*.schema.json`)         | `pnpm run validate:schemas` + section §3 dans `docs/data/mali-divisions.md`                                                       |
+| Conventions IA (CLAUDE/AGENTS/copilot/cursor) | Synchroniser les 4 fichiers (cf. §4 ci-dessous)                                                                                   |
+| Diagrammes UML (`docs/diagrams/*.puml`)       | Mention dans `docs/CHANGELOG.md` §3 + lien depuis `docs/02-ARCHITECTURE-GLOBALE.md`                                               |
+| Nouveau script `pnpm run <X>`                 | `MAINTENANCE.md` §2.1 + bandeau dans `docs/03-SETUP-ENVIRONNEMENT-DEV.md`                                                         |
+| Image Docker (`docker-compose.dev.yml`)       | `docs/CHANGELOG.md` §1 + `docs/05-INFRASTRUCTURE-DOCKER-COMPOSE.md` bandeau                                                       |
+| Endpoint API (NestJS controller)              | `docs/api/<service>.md` (à créer si absent) + ADR si décision structurante                                                        |
+| Bucket MinIO avec immutabilité (FDI, audit)   | Créer avec `mc mb --with-lock` (irréversible) + `mc retention set --default compliance` ; cf. `docs/10` §10.1                     |
+| Clé Vault Transit (signature documents)       | Politique HCL minimale dans `infrastructure/vault/policies/<service>.hcl` + `kid` versionné dans le JWT + ADR dédié (cf. ADR-026) |
 
 > 🔁 **Règle d'or** : si vous ouvrez une PR qui touche une de ces zones sans mettre à jour le
 > compagnon documentaire, `pnpm verify:repo` doit échouer (au minimum `docs:sync:check`).
@@ -203,13 +205,15 @@ pnpm run verify:repo
 
 ## 7. Rotation des secrets et données sensibles
 
-| Élément                          | Cadence    | Procédure                                              |
-| -------------------------------- | ---------- | ------------------------------------------------------ |
-| `JWT_SECRET`                     | 90 jours   | Régénérer 32+ chars · Vault Transit · `pnpm docker:up` |
-| Clé publique CTDEC (mobile)      | 90 jours   | Mettre à jour `embedded-keys.ts` + OTA Expo            |
-| `POSTGRES_PASSWORD`              | 30 jours   | Vault Database secrets engine (cf. doc 15)             |
-| Refresh tokens utilisateur       | 7 jours    | TTL dans `JWT_REFRESH_EXPIRATION` (cf. config)         |
-| Token anonyme SIGAC (rapporteur) | À création | Vault Transit ; rotation clé v3 ↦ v4 (doc 23)          |
+| Élément                          | Cadence    | Procédure                                                                                       |
+| -------------------------------- | ---------- | ----------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`                     | 90 jours   | Régénérer 32+ chars · Vault Transit · `pnpm docker:up`                                          |
+| Clé publique CTDEC (mobile)      | 90 jours   | Mettre à jour `embedded-keys.ts` + OTA Expo                                                     |
+| `POSTGRES_PASSWORD`              | 30 jours   | Vault Database secrets engine (cf. doc 15)                                                      |
+| Refresh tokens utilisateur       | 7 jours    | TTL dans `JWT_REFRESH_EXPIRATION` (cf. config)                                                  |
+| Token anonyme SIGAC (rapporteur) | À création | Vault Transit ; rotation clé v3 ↦ v4 (doc 23)                                                   |
+| Clé QR FDI `nina-qr-signing`     | 180 jours  | Vault Transit `rotate` (CronJob) ; coexistence v(N-1)/v(N) 180j (= TTL d'une FDI) — cf. ADR-026 |
+| FDI émise (TTL JWT QR)           | 180 jours  | `FDI_TTL_DAYS=180` ; ré-émission gratuite pour le citoyen via portail (doc 10)                  |
 
 ---
 
