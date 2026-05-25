@@ -62,6 +62,25 @@ export class UserRepository implements OnModuleDestroy {
     });
   }
 
+  /**
+   * Active MFA TOTP pour un user — stocke le secret déjà chiffré (Vault
+   * Transit `vault:vN:<...>`) et flippe le flag `mfaEnabled`.
+   */
+  enableMfaTotp(id: string, encryptedSecret: string) {
+    return prisma.user.update({
+      where: { id },
+      data: { mfaSecret: encryptedSecret, mfaEnabled: true },
+    });
+  }
+
+  /** Désactive MFA TOTP (purge le secret). Utilisé par les flows de reset MFA. */
+  disableMfa(id: string) {
+    return prisma.user.update({
+      where: { id },
+      data: { mfaSecret: null, mfaEnabled: false },
+    });
+  }
+
   async onModuleDestroy(): Promise<void> {
     // disconnectPrisma est idempotent — sûr si plusieurs modules le déclenchent.
     await disconnectPrisma().catch(() => undefined);

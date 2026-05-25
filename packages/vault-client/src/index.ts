@@ -204,6 +204,36 @@ export class VaultClient {
   }
 
   /**
+   * Chiffre un payload avec une clé Transit. Le ciphertext retourné est
+   * au format `vault:vN:<base64>` et inclut la version de clé utilisée —
+   * il est auto-suffisant pour le déchiffrement même après rotation.
+   *
+   * @param keyName       Nom de la clé Transit côté Vault.
+   * @param payloadBase64 Données en clair, encodées base64.
+   */
+  async transitEncrypt(keyName: string, payloadBase64: string): Promise<string> {
+    const res = await this.request<{ data: { ciphertext: string } }>(
+      'POST',
+      `transit/encrypt/${keyName}`,
+      { plaintext: payloadBase64 },
+    );
+    return res.data.ciphertext;
+  }
+
+  /**
+   * Déchiffre un ciphertext Transit (`vault:vN:<base64>`). Retourne le
+   * plaintext encodé base64 — au caller de décoder selon le type d'origine.
+   */
+  async transitDecrypt(keyName: string, ciphertext: string): Promise<string> {
+    const res = await this.request<{ data: { plaintext: string } }>(
+      'POST',
+      `transit/decrypt/${keyName}`,
+      { ciphertext },
+    );
+    return res.data.plaintext;
+  }
+
+  /**
    * Rotation manuelle d'une clé Transit (réservé policy `admin`).
    * Crée une nouvelle `key_version` ; les anciennes versions restent
    * disponibles pour déchiffrement (sauf si `min_decryption_version`

@@ -101,6 +101,27 @@ export class VaultService implements OnModuleInit, OnModuleDestroy {
     return this.client;
   }
 
+  /**
+   * Chiffre un secret MFA TOTP via Vault Transit. Le caller passe le
+   * secret en clair (string base32) ; on encode en base64 pour Vault et
+   * on retourne le ciphertext `vault:vN:<...>` à stocker en DB.
+   */
+  async encryptMfaSecret(plaintextSecret: string): Promise<string> {
+    const keyName = this.config.get('VAULT_TRANSIT_MFA_KEY', { infer: true });
+    const b64 = Buffer.from(plaintextSecret, 'utf8').toString('base64');
+    return this.getClient().transitEncrypt(keyName, b64);
+  }
+
+  /**
+   * Déchiffre un secret MFA TOTP stocké en DB (`vault:vN:<...>`). Retourne
+   * la string base32 originale.
+   */
+  async decryptMfaSecret(ciphertext: string): Promise<string> {
+    const keyName = this.config.get('VAULT_TRANSIT_MFA_KEY', { infer: true });
+    const b64 = await this.getClient().transitDecrypt(keyName, ciphertext);
+    return Buffer.from(b64, 'base64').toString('utf8');
+  }
+
   // ─── interne ─────────────────────────────────────────────────────
 
   private buildAuthConfig(

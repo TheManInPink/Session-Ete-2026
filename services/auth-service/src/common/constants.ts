@@ -16,8 +16,10 @@ export const REDIS_KEYS = {
   otpRegister: (phone: string) => `otp:register:${phone}`,
   /** OTP MFA SMS (userId → code) : `auth:otp:mfa:<userId>` */
   otpMfa: (userId: string) => `otp:mfa:${userId}`,
-  /** Secret TOTP utilisateur : `auth:mfa:totp:<userId>` */
-  mfaTotpSecret: (userId: string) => `mfa:totp:${userId}`,
+  /** Secret TOTP pending (avant confirmation) : `auth:mfa:totp:pending:<userId>` */
+  mfaTotpPending: (userId: string) => `mfa:totp:pending:${userId}`,
+  /** jti d'un challenge MFA consommé : `auth:mfa:challenge:<jti>` (présent = invalidé). */
+  mfaChallengeUsed: (jti: string) => `mfa:challenge:${jti}`,
   /** jti d'un token de reset password actif : `auth:reset:<jti>` */
   resetJti: (jti: string) => `reset:${jti}`,
   /** Compteur de rate-limit login : `auth:throttle:login:<ip>` */
@@ -32,6 +34,10 @@ export const TTL = {
   otpMfaSeconds: 300,
   /** Lifetime maximum d'une famille de refresh tokens (= JWT_REFRESH_TTL_SECONDS). */
   refreshFamilySeconds: 604_800,
+  /** Secret TOTP en attente de confirmation (10 min suffit pour scanner + confirmer). */
+  mfaTotpPendingSeconds: 600,
+  /** Durée maximale pendant laquelle on garde le jti d'un challenge comme « consommé ». */
+  mfaChallengeUsedSeconds: 900,
 } as const;
 
 /** Codes d'erreur retournés par l'API (alignés sur OWASP — pas de fuite d'info user enum). */

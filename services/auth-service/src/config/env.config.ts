@@ -55,6 +55,8 @@ export const EnvSchema = z.object({
   VAULT_APPROLE_ROLE_ID: z.string().optional(),
   VAULT_APPROLE_SECRET_ID: z.string().optional(),
   VAULT_KUBERNETES_ROLE: z.string().optional(),
+  /** Nom de la clé Transit utilisée pour chiffrer les secrets MFA TOTP au repos. */
+  VAULT_TRANSIT_MFA_KEY: z.string().min(1).default('auth-mfa-secret'),
 
   // ─── Argon2id (OWASP) ───────────────────────────────────────────
   ARGON2_MEMORY_KIB: z.coerce.number().int().min(19_456).default(19_456),

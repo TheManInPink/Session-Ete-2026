@@ -28,6 +28,7 @@ import * as jwt from 'jsonwebtoken';
 import { AUTH_ERRORS } from '../common/constants.js';
 import type {
   JwtAccessPayload,
+  JwtMfaChallengePayload,
   JwtRefreshPayload,
   JwtResetPayload,
   UserRole,
@@ -63,6 +64,13 @@ export interface SignedRefresh {
 /** Données minimales pour émettre un reset token. */
 export interface SignResetInput {
   userId: string;
+}
+
+/** Données minimales pour émettre un challenge MFA. */
+export interface SignMfaChallengeInput {
+  userId: string;
+  role: UserRole;
+  kcSub: string;
 }
 
 @Injectable()
@@ -127,6 +135,45 @@ export class JwtCryptoService {
       keyid: kid,
     });
     return { token, jti, family, expiresAt: Date.now() + this.refreshTtl * 1000 };
+  }
+
+  /**
+   * Émet un challenge MFA RS256 (TTL = JWT_RESET_TTL_SECONDS, par défaut 5 min).
+   * Le `jti` doit être consommé une seule fois côté MfaService (Redis).
+   */
+  signMfaChallenge(input: SignMfaChallengeInput): {
+    token: string;
+    jti: string;
+    expiresAt: number;
+  } {
+    const { kid, privatePem } = this.vault.getJwtKeys();
+    const jti = randomUUID();
+    const payload: Pick<JwtMfaChallengePayload, 'sub' | 'purpose' | 'jti' | 'role' | 'kcSub'> = {
+      sub: input.userId,
+      purpose: 'mfa-challenge',
+      jti,
+      role: input.role,
+      kcSub: input.kcSub,
+    };
+    // On réutilise volontairement le même TTL que le reset (5 min) — la
+    // durée est cohérente avec la fenêtre raisonnable d'une saisie MFA.
+    const token = jwt.sign(payload, privatePem, {
+      algorithm: 'RS256',
+      issuer: this.issuer,
+      audience: this.audience,
+      expiresIn: this.resetTtl,
+      keyid: kid,
+    });
+    return { token, jti, expiresAt: Date.now() + this.resetTtl * 1000 };
+  }
+
+  /** Vérifie un challenge MFA. Lance `UnauthorizedException` si invalide. */
+  verifyMfaChallenge(token: string): JwtMfaChallengePayload {
+    const decoded = this.verify<JwtMfaChallengePayload>(token);
+    if (decoded.purpose !== 'mfa-challenge' || !decoded.jti) {
+      throw new UnauthorizedException(AUTH_ERRORS.TOKEN_INVALID);
+    }
+    return decoded;
   }
 
   /** Émet un reset password token RS256 (TTL 15 min, usage unique via jti Redis). */

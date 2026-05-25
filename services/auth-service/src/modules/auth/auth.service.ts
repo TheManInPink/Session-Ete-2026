@@ -53,11 +53,14 @@ export interface AuthSession {
 /**
  * Réponse de `login` pour les rôles à MFA obligatoire — pas de tokens à
  * cette étape, le client doit présenter son MFA via les endpoints
- * Phase 6 pour obtenir une session complète.
+ * `/auth/mfa/*` pour obtenir une session complète.
  */
 export interface MfaPending {
   mfaRequired: true;
-  userId: string;
+  /** JWT challenge MFA (TTL 5 min). À soumettre aux endpoints verify/challenge. */
+  challenge: string;
+  /** Méthodes MFA effectivement disponibles pour cet user. */
+  methods: Array<'totp' | 'sms'>;
 }
 
 @Injectable()
@@ -169,7 +172,15 @@ export class AuthService {
 
     const role = user.role as unknown as UserRole;
     if (MFA_REQUIRED_ROLES.has(role)) {
-      return { mfaRequired: true, userId: user.id };
+      const challenge = this.jwt.signMfaChallenge({
+        userId: user.id,
+        role,
+        kcSub: keycloakSub,
+      });
+      const methods: Array<'totp' | 'sms'> = [];
+      if (user.mfaEnabled && user.mfaSecret) methods.push('totp');
+      if (user.phoneNumber) methods.push('sms');
+      return { mfaRequired: true, challenge: challenge.token, methods };
     }
 
     await this.users.updateLastLogin(user.id).catch((err: unknown) => {
@@ -204,6 +215,34 @@ export class AuthService {
     // stockant mfa au niveau famille dans Redis.
     void decoded;
     return this.refreshSvc.rotate(dto.refresh, /* mfa */ false);
+  }
+
+  // ─── MFA : émission de session post-vérification ─────────────────
+
+  /**
+   * Émet une `AuthSession` complète avec `mfa: true` après qu'un endpoint
+   * `/auth/mfa/{totp,sms}/verify` ait validé le second facteur. Le caller fournit
+   * userId / role / kcSub extraits du challenge consommé.
+   */
+  async completeMfa(params: {
+    userId: string;
+    role: UserRole;
+    kcSub: string;
+  }): Promise<AuthSession> {
+    const user = await this.users.findById(params.userId);
+    if (!user) throw new UnauthorizedException(AUTH_ERRORS.TOKEN_INVALID);
+
+    await this.users.updateLastLogin(user.id).catch((err: unknown) => {
+      this.logger.warn(`updateLastLogin échoué pour ${user.id}: ${(err as Error).message}`);
+    });
+
+    return this.issueSession({
+      userId: user.id,
+      email: user.email,
+      role: params.role,
+      keycloakId: params.kcSub,
+      mfa: true,
+    });
   }
 
   // ─── Logout ───────────────────────────────────────────────────────

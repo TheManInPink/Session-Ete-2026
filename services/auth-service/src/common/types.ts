@@ -76,6 +76,25 @@ export interface JwtResetPayload {
   exp: number;
 }
 
+/**
+ * Payload du token de challenge MFA (RS256, TTL 5 min, usage unique).
+ *
+ * Émis par `/auth/login` quand le rôle exige MFA — le client le présente
+ * aux endpoints `/auth/mfa/{totp,sms}/verify` pour obtenir une session complète.
+ */
+export interface JwtMfaChallengePayload {
+  sub: string;
+  purpose: 'mfa-challenge';
+  jti: string;
+  role: UserRole;
+  /** kcSub propagé pour le claim final de l'access token. */
+  kcSub: string;
+  iss: string;
+  aud: string;
+  iat: number;
+  exp: number;
+}
+
 /** Projection user attachée à `request.user` après JwtAuthGuard. */
 export interface AuthSubject {
   userId: string;
