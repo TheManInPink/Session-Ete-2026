@@ -1,37 +1,33 @@
 /**
  * @file        main.ts
- * @description Point d'entrée du microservice auth-service — Authentification et autorisation
+ * @description Point d'entrée du microservice auth-service.
+ *
+ *              Bootstrap minimal — toute la config applicative est lue
+ *              depuis `ConfigService` (env validée par Zod, cf.
+ *              `config/env.config.ts`). Pas de ValidationPipe global :
+ *              les DTOs sont validés par `ZodValidationPipe` route-par-route
+ *              (le pipe class-validator stripperait silencieusement les
+ *              propriétés non-décorées de nos type aliases Zod).
+ *
  * @author      Étudiant UQAR
  * @date        2026
  * @module      auth-service
  */
 
+import { Logger, RequestMethod } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger, RequestMethod } from '@nestjs/common';
-import { AppModule } from './app.module';
 
-/** Port d'écoute du service */
-const PORT = process.env.PORT || 3002;
+import { AppModule } from './app.module.js';
+import type { AppEnv } from './config/env.config.js';
 
-/**
- * Fonction de démarrage du microservice.
- * Configure les pipes de validation globaux et lance le serveur HTTP.
- */
 async function bootstrap(): Promise<void> {
   const logger = new Logger('auth-service');
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  const config = app.get(ConfigService<AppEnv, true>);
 
-  // Validation automatique des DTOs entrants (class-validator)
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // Supprime les propriétés non décorées
-      forbidNonWhitelisted: true, // Rejette les propriétés inconnues
-      transform: true, // Transforme les payloads en instances de DTO
-    }),
-  );
-
-  // Préfixe global — santé et JWKS restent à la racine (interop / probes)
+  // Préfixe global — santé et JWKS restent à la racine (interop / probes).
   app.setGlobalPrefix('api/v1', {
     exclude: [
       { path: 'health', method: RequestMethod.GET },
@@ -39,12 +35,28 @@ async function bootstrap(): Promise<void> {
     ],
   });
 
-  // Activation de CORS pour le développement
-  app.enableCors();
+  // CORS — liste explicite depuis env (vide → toutes origines refusées).
+  const corsOrigins = config
+    .get('CORS_ORIGINS', { infer: true })
+    .split(',')
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0);
+  if (corsOrigins.length > 0) {
+    app.enableCors({
+      origin: corsOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    });
+    logger.log(`CORS activé pour : ${corsOrigins.join(', ')}`);
+  }
 
-  await app.listen(PORT);
-  logger.log(`auth-service démarré sur le port ${PORT}`);
-  logger.log(`JWKS proxy: http://localhost:${PORT}/.well-known/jwks.json`);
+  // Hooks SIGTERM → onModuleDestroy (Prisma disconnect, Redis quit, Vault destroy).
+  app.enableShutdownHooks();
+
+  const port = config.get('AUTH_SERVICE_PORT', { infer: true });
+  await app.listen(port);
+  logger.log(`auth-service démarré sur le port ${port}`);
+  logger.log(`JWKS proxy : http://localhost:${port}/.well-known/jwks.json`);
 }
 
-bootstrap();
+void bootstrap();

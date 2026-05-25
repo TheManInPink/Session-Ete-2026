@@ -19,14 +19,16 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Ip,
   Post,
+  Req,
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
-import { Public } from '@nina-aes/auth-guards';
+import { Public, type AuthSubject } from '@nina-aes/auth-guards';
 
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 
@@ -34,6 +36,7 @@ import { AuthService, type AuthSession, type MfaPending } from './auth.service.j
 import { type ForgotPasswordDto, ForgotPasswordSchema } from './dto/forgot-password.dto.js';
 import { type LoginDto, LoginSchema } from './dto/login.dto.js';
 import { type LogoutDto, LogoutSchema } from './dto/logout.dto.js';
+import type { MeResponse } from './dto/me.dto.js';
 import { type RefreshDto, RefreshSchema } from './dto/refresh.dto.js';
 import {
   type RegisterRequestOtpDto,
@@ -130,5 +133,17 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(ResetPasswordSchema))
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
     await this.auth.resetPassword(dto);
+  }
+
+  // ─── Profile (authentifié) ───────────────────────────────────────
+
+  /**
+   * Profil de l'utilisateur courant — protégé par les guards globaux.
+   * `mfaVerified` reflète l'état de la session courante (claim `mfa` du
+   * token), pas l'enrôlement TOTP (qui est `mfaEnabled`).
+   */
+  @Get('me')
+  me(@Req() req: { user: AuthSubject }): Promise<MeResponse> {
+    return this.auth.getMe(req.user.userId, req.user.mfa);
   }
 }

@@ -37,6 +37,7 @@ import { UserRepository } from '../user/user.repository.js';
 import type { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 import type { LogoutDto } from './dto/logout.dto.js';
+import type { MeResponse } from './dto/me.dto.js';
 import type { RefreshDto } from './dto/refresh.dto.js';
 import type { RegisterRequestOtpDto } from './dto/register-request-otp.dto.js';
 import type { RegisterVerifyDto } from './dto/register-verify.dto.js';
@@ -338,6 +339,35 @@ export class AuthService {
       // si l'écriture Keycloak a échoué).
       throw err;
     }
+  }
+
+  // ─── Profile ─────────────────────────────────────────────────────
+
+  /**
+   * Retourne la projection publique d'un user (cf. {@link MeResponse}).
+   * Le `mfaVerified` est tiré du claim de la session courante — il ne
+   * provient PAS de la DB (qui ne sait que l'enrôlement, pas l'état de
+   * la session en cours).
+   */
+  async getMe(userId: string, mfaVerified: boolean): Promise<MeResponse> {
+    const user = await this.users.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException(AUTH_ERRORS.TOKEN_INVALID);
+    }
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role as unknown as UserRole,
+      phoneNumber: user.phoneNumber,
+      preferredLanguage: user.preferredLanguage,
+      mfaEnabled: user.mfaEnabled,
+      mfaVerified,
+      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+      createdAt: user.createdAt.toISOString(),
+    };
   }
 
   // ─── Helpers internes ─────────────────────────────────────────────
