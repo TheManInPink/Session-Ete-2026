@@ -18,9 +18,16 @@
  */
 
 import { config as baseConfig } from '@repo/eslint-config/base';
+import globals from 'globals';
 
 export default [
   ...baseConfig,
+  {
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
   {
     // Ignorer les artefacts générés et les répertoires non-pertinents
     ignores: [

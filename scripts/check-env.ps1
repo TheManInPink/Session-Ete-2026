@@ -10,7 +10,7 @@ Write-Host " NINA-AES — Vérification de l'environnement"   -ForegroundColor C
 Write-Host "═══════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 
-function Check-Tool {
+function Test-Tool {
     param([string]$Name, [string]$Command)
     try {
         $version = Invoke-Expression $Command 2>&1
@@ -22,12 +22,12 @@ function Check-Tool {
 }
 
 Write-Host "── Outils de développement ──"
-Check-Tool "Node.js"        "node --version"
-Check-Tool "pnpm"           "pnpm --version"
-Check-Tool "Python"         "python --version"
-Check-Tool "Git"            "git --version"
-Check-Tool "Docker"         "docker --version"
-Check-Tool "Docker Compose" "docker compose version"
+Test-Tool "Node.js"        "node --version"
+Test-Tool "pnpm"           "pnpm --version"
+Test-Tool "Python"         "python --version"
+Test-Tool "Git"            "git --version"
+Test-Tool "Docker"         "docker --version"
+Test-Tool "Docker Compose" "docker compose version"
 
 Write-Host ""
 Write-Host "── Conteneurs Docker ──"
