@@ -22,7 +22,7 @@ export const AlertSeveritySchema = z.enum(['INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRI
 
 /** Pièce jointe (URL signée MinIO). */
 export const EvidenceAttachmentSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   filename: z.string().max(200),
   contentType: z.string().max(100),
   sizeBytes: z
@@ -49,13 +49,13 @@ export const AnonymousAlertReceiptSchema = z.object({
   /** Token de suivi (format `vault:v<n>:<hash>`). */
   trackingToken: z.string().min(8).max(128),
   /** ID interne (utile pour l'auditeur, pas exposé au rapporteur). */
-  alertId: z.string().uuid(),
+  alertId: z.uuid(),
   /** Sévérité estimée par le classifieur NLP. */
   estimatedSeverity: AlertSeveritySchema,
   /** Catégorie reclassée (peut différer du choix utilisateur). */
   classifiedCategory: AlertCategorySchema,
   /** Date de création (ISO 8601). */
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
 });
 
 /** Suivi d'une instruction via le token. Aucune PII exposée. */
@@ -64,7 +64,7 @@ export const AnonymousAlertStatusSchema = z.object({
   status: z.enum(['RECEIVED', 'TRIAGED', 'INVESTIGATING', 'SUBSTANTIATED', 'DISMISSED', 'CLOSED']),
   publicNotes: z.array(
     z.object({
-      date: z.string().datetime(),
+      date: z.iso.datetime(),
       message: z.string().max(2000),
     }),
   ),

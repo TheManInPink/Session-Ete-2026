@@ -16,9 +16,9 @@ import type { HttpClient } from '../core/http-client';
  * (inclut id, createdAt, updatedAt — pas dans le DTO d'entrée).
  */
 const CitizenResponseSchema = citizenDtoSchema.extend({
-  id: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  id: z.uuid(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 
 export type Citizen = z.infer<typeof CitizenResponseSchema>;

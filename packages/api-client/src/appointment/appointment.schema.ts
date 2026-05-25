@@ -19,8 +19,8 @@ export const PriorityLevelSchema = z.enum(['P1', 'P2', 'P3']);
 
 /** Créneau disponible côté serveur. */
 export const SlotSchema = z.object({
-  startsAt: z.string().datetime(),
-  centerId: z.string().uuid(),
+  startsAt: z.iso.datetime(),
+  centerId: z.uuid(),
   centerName: z.string(),
   priority: PriorityLevelSchema,
   queueNumber: z.number().int().positive(),
@@ -28,23 +28,23 @@ export const SlotSchema = z.object({
 
 /** Rendez-vous existant. */
 export const AppointmentSchema = z.object({
-  id: z.string().uuid(),
-  citizenId: z.string().uuid(),
-  centerId: z.string().uuid(),
+  id: z.uuid(),
+  citizenId: z.uuid(),
+  centerId: z.uuid(),
   centerName: z.string(),
   status: AppointmentStatusSchema,
   priority: PriorityLevelSchema,
   queueNumber: z.number().int().positive(),
-  scheduledAt: z.string().datetime(),
-  completedAt: z.string().datetime().nullable(),
+  scheduledAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().nullable(),
   notes: z.string().nullable(),
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
 });
 
 /** DTO de prise de rendez-vous. */
 export const CreateAppointmentDtoSchema = z.object({
-  centerId: z.string().uuid(),
-  scheduledAt: z.string().datetime(),
+  centerId: z.uuid(),
+  scheduledAt: z.iso.datetime(),
   reason: z.string().trim().min(5).max(500),
 });
 
