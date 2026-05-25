@@ -138,11 +138,14 @@ COMMENT ON SCHEMA notification IS 'Templates SMS/email, historique des envois';
 -- qui utilise unaccent pour ignorer les accents
 
 -- PostgreSQL ne supporte pas `IF NOT EXISTS` sur CREATE TEXT SEARCH CONFIGURATION ;
--- on enveloppe dans un bloc anonyme et on avale `duplicate_object` pour rester idempotent.
+-- on pré-check via pg_ts_config pour rester idempotent (un bloc EXCEPTION ne
+-- suffit pas : Postgres lève `unique_violation` (23505) ici, pas
+-- `duplicate_object` (42710) — donc un simple catch raterait la cible).
 DO $$
 BEGIN
-  CREATE TEXT SEARCH CONFIGURATION french_unaccent (COPY = french);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (SELECT 1 FROM pg_ts_config WHERE cfgname = 'french_unaccent') THEN
+    CREATE TEXT SEARCH CONFIGURATION french_unaccent (COPY = french);
+  END IF;
 END $$;
 
 ALTER TEXT SEARCH CONFIGURATION french_unaccent
