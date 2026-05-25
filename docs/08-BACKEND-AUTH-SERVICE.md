@@ -8,6 +8,81 @@
 
 ---
 
+## 0. Statut implémentation (mis à jour 2026-05-25, fin Phase 10)
+
+Le scaffold complet du service a été livré en 10 phases (PROMPT 3.2). Cette section décrit l'état
+**réel** — la suite du document reste la **référence design**. Les écarts notables sont listés
+explicitement.
+
+### Endpoints livrés
+
+| Méthode + Path                           | Public | Throttle  | Notes                                      |
+| ---------------------------------------- | ------ | --------- | ------------------------------------------ |
+| `POST /api/v1/auth/register/request-otp` | ✅     | —         | Réponse uniforme (anti user-enum)          |
+| `POST /api/v1/auth/register/verify`      | ✅     | —         | Keycloak admin API → DB → tokens           |
+| `POST /api/v1/auth/login`                | ✅     | 5/900s/IP | Renvoie `MfaPending` ou `AuthSession`      |
+| `POST /api/v1/auth/refresh`              | ✅     | —         | Rotation famille + détection rejeu         |
+| `POST /api/v1/auth/logout`               | ✅     | —         | Idempotent (204)                           |
+| `POST /api/v1/auth/mfa/totp/setup`       | —      | —         | Auth requis ; QR otpauth                   |
+| `POST /api/v1/auth/mfa/totp/confirm`     | —      | —         | Auth requis ; chiffre secret Vault Transit |
+| `POST /api/v1/auth/mfa/totp/verify`      | ✅     | —         | Preuve = challenge JWT                     |
+| `POST /api/v1/auth/mfa/sms/challenge`    | ✅     | —         | Preuve = challenge JWT                     |
+| `POST /api/v1/auth/mfa/sms/verify`       | ✅     | —         | Preuve = challenge JWT                     |
+| `POST /api/v1/auth/password/forgot`      | ✅     | —         | Réponse uniforme 202 + envoi SMS           |
+| `POST /api/v1/auth/password/reset`       | ✅     | —         | Consume-once jti + PUT Keycloak            |
+| `GET  /api/v1/auth/me`                   | —      | —         | Projection `MeResponse` (anti-leak)        |
+| `GET  /health`                           | ✅     | —         | Probe Docker/K3s (hors prefix `api/v1`)    |
+| `GET  /.well-known/jwks.json`            | ✅     | —         | Proxy JWKS Keycloak (hors prefix)          |
+
+### Écarts vs design initial
+
+1. **JWT signés par Vault, pas Keycloak.** `auth-service` émet ses propres access/refresh RS256
+   (clés chargées de `kv/data/auth/jwt` au boot) plutôt que de servir uniquement de proxy vers
+   Keycloak. Keycloak reste source de vérité pour le password (validé via `password` grant) et le
+   SSO.
+2. **`@nina-aes/auth-guards` est un workspace dédié** (créé en Phase 3) que les autres microservices
+   consommeront via DI d'un `JwtVerifier`.
+3. **Détection de rejeu basée sur famille de refresh tokens** (OWASP refresh token rotation
+   cheatsheet) — déclenche la révocation de toute la famille sur jti rejoué.
+4. **MFA TOTP** chiffré au repos via **Vault Transit** (`vault:vN:<...>`) — clé `auth-mfa-secret` à
+   provisionner côté Vault.
+5. **Pas de `@nestjs/throttler`** : `LoginThrottleGuard` custom utilise `RedisService.incrEx` (Lua
+   atomique) pour un compteur strict par IP.
+6. **DTOs Zod (pas class-validator)** — `ZodValidationPipe` par route, les types DTOs sont des
+   `z.infer<typeof Schema>`. Le `ValidationPipe` global a été retiré en Phase 8 (incompatible avec
+   nos type aliases).
+7. **Reset password : pas encore de force-logout des sessions actives** (différé — nécessite un
+   index per-user des familles de refresh ; cf. roadmap Phase 11).
+
+### Modules clés (`services/auth-service/src/`)
+
+| Module          | Rôle                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| `config/`       | Validation Zod fail-fast de l'env                                                                           |
+| `vault/`        | Chargement strict des clés JWT + helpers MFA Transit                                                        |
+| `redis/`        | `ioredis` préfixé + helpers `setNxEx` / `incrEx` (Lua)                                                      |
+| `crypto/`       | `ArgonService` + `JwtCryptoService` (sign/verify access/refresh/reset/mfa-challenge)                        |
+| `keycloak/`     | `KeycloakAdminService` (create user, reset password) + `KeycloakAuthService` (password grant)               |
+| `sms/`          | Provider abstrait + `MockSmsProvider` (dev) + `AfricasTalkingSmsProvider`                                   |
+| `modules/auth/` | `AuthService` + `AuthController` + `MfaController` + `OtpService` + `RefreshService` + `LoginThrottleGuard` |
+| `modules/user/` | `UserRepository` (Prisma)                                                                                   |
+| `jwks/`         | Proxy JWKS Keycloak avec cache (existant pré-PROMPT 3.2)                                                    |
+
+### Tests (Phase 10)
+
+- **17 tests unitaires** couvrent Argon (5), OTP (5), Refresh rotation/replay (3), Throttle guard
+  (4).
+- **2 tests e2e smoke** vérifient `/health` + l'application du prefix `api/v1`.
+- L'e2e complet (flows métier register/login/MFA/reset bout à bout) attend l'infra Docker e2e — cf.
+  doc 18 § stratégie.
+
+### Realm Keycloak (Phase 9)
+
+`infrastructure/keycloak/import/realm-nina-aes.json` — importé automatiquement au boot via
+`start-dev --import-realm`. Voir `infrastructure/keycloak/README.md`.
+
+---
+
 ## Table des matières
 
 1. [Objectif pédagogique](#1-objectif-pédagogique)

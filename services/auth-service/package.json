@@ -24,9 +24,9 @@
     "start:prod": "node dist/main",
     "check-types": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
-    "test": "jest --passWithNoTests",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage --passWithNoTests",
+    "test": "jest --config ./test/jest.config.ts --passWithNoTests",
+    "test:watch": "jest --config ./test/jest.config.ts --watch",
+    "test:cov": "jest --config ./test/jest.config.ts --coverage --passWithNoTests",
     "test:e2e": "jest --config ./test/jest-e2e.json --passWithNoTests",
     "clean": "rimraf dist"
   },

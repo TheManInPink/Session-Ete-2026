@@ -3,10 +3,27 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-24
+> **Dernière mise à jour** : 2026-05-25
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0. Patch 2026-05-25 — auth-service Phases 1-10 livrées (PROMPT 3.2 scaffold complet)
+
+Scaffold complet du `auth-service` matérialisé en 10 commits incrémentaux (`feat(auth): phase N/10`)
+plus le realm Keycloak (`feat(infra): phase 9/10`). Cf. `docs/08-BACKEND-AUTH-SERVICE.md` §0 pour la
+liste exhaustive des endpoints + écarts vs design initial.
+
+- **15 endpoints REST** livrés (register, login, refresh, logout, MFA TOTP/SMS, password reset, /me)
+- **3 packages nouveaux/modifiés** : `@nina-aes/auth-guards` (workspace dédié) + ajouts à
+  `@nina-aes/vault-client` (`transitEncrypt`/`transitDecrypt`)
+- **Realm Keycloak** importé automatiquement (`infrastructure/keycloak/import/`)
+- **Tests Phase 10** : 17 unitaires (Argon, OTP, Refresh rotation/replay, ThrottleGuard) + 2 e2e
+  smoke (health + prefix `api/v1`)
+
+Écarts notables documentés dans §0 du doc 08 : JWT signés par Vault et non Keycloak,
+`LoginThrottleGuard` custom Redis (au lieu de `@nestjs/throttler`), DTOs Zod (pas class-validator),
+MFA TOTP chiffré via Vault Transit.
 
 ---
 
