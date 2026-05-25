@@ -31,14 +31,14 @@ export default [
   {
     // Ignorer les artefacts générés et les répertoires non-pertinents
     ignores: [
-      'node_modules/**',
-      'dist/**',
-      'out/**',
-      '.turbo/**',
-      '.next/**',
-      'build/**',
-      'coverage/**',
-      'playwright-report/**',
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/out/**',
+      '**/.turbo/**',
+      '**/.next/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/playwright-report/**',
       'graphify-out/**',
       'data/_raw/**',
       'docs/**',
