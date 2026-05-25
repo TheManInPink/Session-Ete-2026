@@ -1,0 +1,106 @@
+# Workflow GitHub Actions : garde-fou contre le drift de versions
+# Empêche un nouveau service de revenir à NestJS 10 / TS 5 dans le repo.
+# Référence : docs/MIGRATION-2026-05.md et docs/VERSIONS-MAI-2026.md
+
+name: version-check
+
+on:
+  pull_request:
+    paths:
+      - '**/package.json'
+      - '**/tsconfig.json'
+      - '.github/workflows/version-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - '**/package.json'
+      - '**/tsconfig.json'
+
+jobs:
+  enforce-versions:
+    name: Vérifier l'alignement des versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cloner le dépôt
+        uses: actions/checkout@v4
+
+      # Pourquoi : valide qu'aucun package.json ne réintroduit NestJS 10,
+      # TypeScript 5, ou Node 22 dans les services/. Sans ce garde-fou,
+      # un futur dev pourrait scaffolder un nouveau service avec un nestjs new
+      # qui pointe par défaut sur l'ancienne génération.
+      - name: Vérifier les versions NestJS / TypeScript / @types/node
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Code de retour cumulé : 0 = OK, autre = au moins une violation.
+          FAIL=0
+
+          echo "::group::Audit des services/*"
+          for pkg in services/*/package.json; do
+            # Récupère les versions clés via grep + sed (pas de jq pour rester portable)
+            nestjs_common=$(grep -oE '"@nestjs/common":\s*"\^?[0-9]+' "$pkg" | head -1 | grep -oE '[0-9]+$' || echo "")
+            ts_version=$(grep -oE '"typescript":\s*"\^?[0-9]+' "$pkg" | head -1 | grep -oE '[0-9]+$' || echo "")
+            types_node=$(grep -oE '"@types/node":\s*"\^?[0-9]+' "$pkg" | head -1 | grep -oE '[0-9]+$' || echo "")
+            has_engines=$(grep -c '"engines"' "$pkg" || true)
+
+            # NestJS doit être >= 11 si déclaré
+            if [ -n "$nestjs_common" ] && [ "$nestjs_common" -lt 11 ]; then
+              echo "::error file=$pkg::@nestjs/common < 11 détecté (version: $nestjs_common). Cible v3.0 : 11.1.18+."
+              FAIL=1
+            fi
+
+            # TypeScript doit être >= 6 si déclaré
+            if [ -n "$ts_version" ] && [ "$ts_version" -lt 6 ]; then
+              echo "::error file=$pkg::typescript < 6 détecté (version: $ts_version). Cible v3.0 : 6.0.2+."
+              FAIL=1
+            fi
+
+            # @types/node doit être >= 24 si déclaré
+            if [ -n "$types_node" ] && [ "$types_node" -lt 24 ]; then
+              echo "::error file=$pkg::@types/node < 24 détecté (version: $types_node). Cible v3.0 : 25.5.2+."
+              FAIL=1
+            fi
+
+            # Tous les services doivent déclarer engines.node
+            if [ "$has_engines" -eq 0 ]; then
+              echo "::warning file=$pkg::Champ 'engines' absent. Ajouter \"engines\": { \"node\": \">=24.0.0\" }."
+            fi
+          done
+          echo "::endgroup::"
+
+          echo "::group::Audit des packages/*"
+          for pkg in packages/*/package.json; do
+            ts_version=$(grep -oE '"typescript":\s*"\^?[0-9]+' "$pkg" | head -1 | grep -oE '[0-9]+$' || echo "")
+            types_node=$(grep -oE '"@types/node":\s*"\^?[0-9]+' "$pkg" | head -1 | grep -oE '[0-9]+$' || echo "")
+
+            if [ -n "$ts_version" ] && [ "$ts_version" -lt 6 ]; then
+              echo "::error file=$pkg::typescript < 6 détecté (version: $ts_version)."
+              FAIL=1
+            fi
+            if [ -n "$types_node" ] && [ "$types_node" -lt 24 ]; then
+              echo "::error file=$pkg::@types/node < 24 détecté (version: $types_node)."
+              FAIL=1
+            fi
+          done
+          echo "::endgroup::"
+
+          # Détection des tsconfig qui pointent vers un base file inexistant
+          echo "::group::Vérification des extends tsconfig"
+          if [ ! -f "tsconfig.base.json" ]; then
+            for tsc in services/*/tsconfig.json packages/*/tsconfig.json; do
+              if grep -q '"extends".*"\.\./\.\./tsconfig\.base\.json"' "$tsc" 2>/dev/null; then
+                echo "::error file=$tsc::Référence vers tsconfig.base.json inexistant. Soit créer ce fichier, soit retirer le extends."
+                FAIL=1
+              fi
+            done
+          fi
+          echo "::endgroup::"
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo ""
+            echo "❌ Au moins une violation détectée. Consulter docs/MIGRATION-2026-05.md pour le plan."
+            exit 1
+          fi
+
+          echo "✅ Toutes les versions alignées sur la cible v3.0."
