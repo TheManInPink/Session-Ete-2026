@@ -137,9 +137,13 @@ COMMENT ON SCHEMA notification IS 'Templates SMS/email, historique des envois';
 -- Créer une configuration de recherche texte personnalisée
 -- qui utilise unaccent pour ignorer les accents
 
-CREATE TEXT SEARCH CONFIGURATION IF NOT EXISTS french_unaccent (
-    COPY = french
-);
+-- PostgreSQL ne supporte pas `IF NOT EXISTS` sur CREATE TEXT SEARCH CONFIGURATION ;
+-- on enveloppe dans un bloc anonyme et on avale `duplicate_object` pour rester idempotent.
+DO $$
+BEGIN
+  CREATE TEXT SEARCH CONFIGURATION french_unaccent (COPY = french);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TEXT SEARCH CONFIGURATION french_unaccent
     ALTER MAPPING FOR hword, hword_part, word

@@ -15,12 +15,12 @@ class AIServiceSettings(BaseSettings):
     port: int = 3003
 
     # Base de données NINA (lecture seule)
-    database_url: str = "postgresql://nina:nina_dev@localhost:5432/nina_aes"
+    database_url: str = "postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db"
 
     # Seuils du pipeline IA
-    ai_auto_threshold: float = 85.0      # Score >= 85% → correction automatique
-    ai_review_threshold: float = 60.0    # Score 60-84% → revue manuelle
-    ai_batch_size: int = 1000            # Nombre d'enregistrements par batch
+    ai_auto_threshold: float = 85.0  # Score >= 85% → correction automatique
+    ai_review_threshold: float = 60.0  # Score 60-84% → revue manuelle
+    ai_batch_size: int = 1000  # Nombre d'enregistrements par batch
 
     # Modèle XGBoost
     xgboost_model_path: str = "../../ai-models/trained/xgboost_nina.json"

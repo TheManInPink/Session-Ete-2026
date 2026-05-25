@@ -86,9 +86,12 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
 
   // ── Bases de données & infrastructures ─────────────────────────────────
-  DATABASE_URL: z.string().url().default('postgresql://nina:nina_dev@localhost:5432/nina_aes'),
+  DATABASE_URL: z
+    .string()
+    .url()
+    .default('postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db?schema=public'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
-  RABBITMQ_URL: z.string().default('amqp://nina:nina_dev@localhost:5672'),
+  RABBITMQ_URL: z.string().default('amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672'),
   ELASTICSEARCH_URL: z.string().url().default('http://localhost:9200'),
 
   // ── Stockage objet MinIO ──────────────────────────────────────────────

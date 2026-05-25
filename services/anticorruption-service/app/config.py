@@ -8,7 +8,7 @@ class SIGACSettings(BaseSettings):
 
     host: str = "0.0.0.0"
     port: int = 3009
-    database_url: str = "postgresql://nina:nina_dev@localhost:5432/nina_aes"
+    database_url: str = "postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db"
 
     # Seuils de scoring d'intégrité
     integrity_critical_threshold: float = 40.0
