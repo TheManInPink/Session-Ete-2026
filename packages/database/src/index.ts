@@ -271,4 +271,26 @@ export async function disconnectPrisma(): Promise<void> {
 // ──────────────────────────────────────────────────────────────────────────────
 
 export { PrismaClient, Prisma };
+// Re-export les types de modèles générés — évite aux consommateurs (services)
+// de devoir taper `Prisma.UserGetPayload<{}>` ou de référencer des chemins
+// .pnpm internes dans leurs .d.ts (cf. TS4023 sur les declaration emits).
+export type {
+  User,
+  Citizen,
+  Parent,
+  CorrectionRequest,
+  AuditLog,
+  Appointment,
+  AesVerificationLog,
+  CorruptionAlert,
+  GovernanceDirective,
+  DirectiveRecipient,
+  GovernanceMessage,
+  VulnerabilityRecord,
+  Institution,
+  ElectoralRecord,
+  KioskSession,
+  Notification,
+  Location,
+} from '@prisma/client';
 export default prisma;

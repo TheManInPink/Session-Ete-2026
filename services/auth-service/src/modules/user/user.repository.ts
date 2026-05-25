@@ -11,7 +11,7 @@
  */
 
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Prisma, disconnectPrisma, prisma } from '@nina-aes/database';
+import { Prisma, type User, disconnectPrisma, prisma } from '@nina-aes/database';
 
 /** Création initiale d'un user à la fin du flow `/register/verify`. */
 export interface CreateUserInput {
@@ -28,7 +28,7 @@ export interface CreateUserInput {
 @Injectable()
 export class UserRepository implements OnModuleDestroy {
   /** Crée un user. Lève `Prisma.PrismaClientKnownRequestError` (P2002) si email/username existe. */
-  create(input: CreateUserInput) {
+  create(input: CreateUserInput): Promise<User> {
     return prisma.user.create({
       data: {
         keycloakId: input.keycloakId,
@@ -43,11 +43,11 @@ export class UserRepository implements OnModuleDestroy {
     });
   }
 
-  findById(id: string) {
+  findById(id: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
   }
 
-  findByEmail(email: string) {
+  findByEmail(email: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { email } });
   }
 
@@ -55,17 +55,17 @@ export class UserRepository implements OnModuleDestroy {
    * Résout un user par email ou username — utilisé par les flows `/login`
    * et `/password/forgot` où le client peut soumettre l'un ou l'autre.
    */
-  findByEmailOrUsername(identifier: string) {
+  findByEmailOrUsername(identifier: string): Promise<User | null> {
     return prisma.user.findFirst({
       where: { OR: [{ email: identifier }, { username: identifier }] },
     });
   }
 
-  findByKeycloakId(keycloakId: string) {
+  findByKeycloakId(keycloakId: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { keycloakId } });
   }
 
-  updateLastLogin(id: string) {
+  updateLastLogin(id: string): Promise<User> {
     return prisma.user.update({
       where: { id },
       data: { lastLoginAt: new Date() },
@@ -76,7 +76,7 @@ export class UserRepository implements OnModuleDestroy {
    * Active MFA TOTP pour un user — stocke le secret déjà chiffré (Vault
    * Transit `vault:vN:<...>`) et flippe le flag `mfaEnabled`.
    */
-  enableMfaTotp(id: string, encryptedSecret: string) {
+  enableMfaTotp(id: string, encryptedSecret: string): Promise<User> {
     return prisma.user.update({
       where: { id },
       data: { mfaSecret: encryptedSecret, mfaEnabled: true },
@@ -84,7 +84,7 @@ export class UserRepository implements OnModuleDestroy {
   }
 
   /** Désactive MFA TOTP (purge le secret). Utilisé par les flows de reset MFA. */
-  disableMfa(id: string) {
+  disableMfa(id: string): Promise<User> {
     return prisma.user.update({
       where: { id },
       data: { mfaSecret: null, mfaEnabled: false },
