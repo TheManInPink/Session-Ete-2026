@@ -1,23 +1,36 @@
 /**
  * @file        index.ts
- * @description Point d'entrée du package `@nina-aes/auth-guards`.
+ * @description Point d'entrée de `@nina-aes/auth-guards`.
  *
- *              Ce package fournit aux microservices NINA-AES les Guards NestJS
- *              et décorateurs nécessaires pour valider les JWT RS256 émis par
- *              `auth-service` (port 3002) :
+ *              Le package fournit aux microservices NINA-AES les Guards
+ *              NestJS et décorateurs nécessaires pour valider les access
+ *              tokens RS256 émis par `auth-service`.
  *
- *                - {@link JwtAuthGuard}   — vérifie le Bearer token via JWKS Keycloak
- *                - {@link RolesGuard}     — RBAC (couplé au décorateur @Roles)
- *                - {@link MfaGuard}       — exige `mfa: true` dans le claim
- *                - @Roles(...roles)       — déclare les rôles autorisés
- *                - @RequireMfa()          — exige MFA validée
- *                - @Public()              — bypass JwtAuthGuard
+ *              Wiring type (dans un microservice consommateur) :
+ *              ```ts
+ *              @Module({
+ *                providers: [
+ *                  { provide: JWT_VERIFIER, useExisting: MonJwtVerifierService },
+ *                  { provide: APP_GUARD, useClass: JwtAuthGuard },
+ *                  { provide: APP_GUARD, useClass: RolesGuard },
+ *                  { provide: APP_GUARD, useClass: MfaGuard },
+ *                ],
+ *              })
+ *              ```
  *
- *              Stub Phase 1 — les Guards seront implémentés en Phase 3.
+ *              L'ordre des guards globaux est garanti par l'ordre de
+ *              déclaration dans le tableau `providers` (NestJS 11+).
  *
  * @module      @nina-aes/auth-guards
  */
 
-// Phase 3 : exporter ici les guards/décorateurs effectifs.
-// Marqueur pour que le package soit résolvable par pnpm dès Phase 1.
+export * from './types.js';
+export * from './decorators/public.decorator.js';
+export * from './decorators/roles.decorator.js';
+export * from './decorators/require-mfa.decorator.js';
+export * from './guards/jwt-auth.guard.js';
+export * from './guards/roles.guard.js';
+export * from './guards/mfa.guard.js';
+
+/** Version exportée pour debug / health-check. */
 export const AUTH_GUARDS_PACKAGE_VERSION = '0.1.0';

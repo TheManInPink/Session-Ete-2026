@@ -1,21 +1,62 @@
 /**
  * @file        app.module.ts
- * @description Module racine du microservice auth-service
+ * @description Module racine du microservice auth-service.
+ *
+ *              Wiring de haut niveau :
+ *                - `ConfigModule` global avec validation Zod fail-fast.
+ *                - `VaultModule` (charge les clés JWT au boot).
+ *                - `RedisModule` (refresh tokens, OTP, throttle).
+ *                - `CryptoModule` (Argon2 + JwtCryptoService).
+ *                - Guards globaux APP_GUARD dans l'ordre :
+ *                  JwtAuthGuard → RolesGuard → MfaGuard.
+ *                  Toute route doit explicitement opt-out via `@Public()`.
+ *
  * @author      Étudiant UQAR
  * @date        2026
  * @module      auth-service
  */
 
-import { Module } from '@nestjs/common';
+import { Module, type Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import {
+  JWT_VERIFIER,
+  type JwtVerifier,
+  JwtAuthGuard,
+  MfaGuard,
+  RolesGuard,
+} from '@nina-aes/auth-guards';
 
 import { AppController } from './app.controller';
 import { validateEnv } from './config/env.config.js';
 import { CryptoModule } from './crypto/crypto.module.js';
+import { JwtCryptoService } from './crypto/jwt.service.js';
 import { JwksService } from './jwks/jwks.service';
 import { RedisModule } from './redis/redis.module.js';
 import { VaultModule } from './vault/vault.module.js';
 import { WellKnownController } from './well-known/well-known.controller';
+
+/**
+ * Adapter qui projette un `JwtAccessPayload` (interne) en `AuthSubject`
+ * (contrat public de `@nina-aes/auth-guards`). Évite de coupler le package
+ * de guards aux types internes du service.
+ */
+const jwtVerifierProvider: Provider = {
+  provide: JWT_VERIFIER,
+  useFactory: (jwt: JwtCryptoService): JwtVerifier => ({
+    verifyAccess: (token: string) => {
+      const p = jwt.verifyAccess(token);
+      return {
+        userId: p.sub,
+        role: p.role,
+        mfa: p.mfa,
+        ...(p.email !== undefined ? { email: p.email } : {}),
+        ...(p.kcSub !== undefined ? { kcSub: p.kcSub } : {}),
+      };
+    },
+  }),
+  inject: [JwtCryptoService],
+};
 
 @Module({
   imports: [
@@ -30,6 +71,13 @@ import { WellKnownController } from './well-known/well-known.controller';
     CryptoModule,
   ],
   controllers: [AppController, WellKnownController],
-  providers: [JwksService],
+  providers: [
+    JwksService,
+    jwtVerifierProvider,
+    // Ordre de déclaration = ordre d'exécution des guards globaux.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: MfaGuard },
+  ],
 })
 export class AppModule {}

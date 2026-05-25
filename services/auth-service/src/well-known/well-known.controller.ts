@@ -6,6 +6,7 @@
  */
 
 import { Controller, Get, Header } from '@nestjs/common';
+import { Public } from '@nina-aes/auth-guards';
 
 import { JwksService } from '../jwks/jwks.service';
 
@@ -17,6 +18,7 @@ export class WellKnownController {
    * Proxy JWKS — permet aux autres services de valider les JWT sans appeler Keycloak directement.
    * En-tête `Cache-Control` cohérent avec le TTL mémoire (10 min).
    */
+  @Public()
   @Get('jwks.json')
   @Header('Cache-Control', 'public, max-age=600')
   async getJwks() {
