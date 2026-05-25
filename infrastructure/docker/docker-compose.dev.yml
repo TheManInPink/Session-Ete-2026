@@ -354,8 +354,12 @@ services:
       KC_PROXY_HEADERS: xforwarded
       # Cache distribué désactivé en dev (single node)
       KC_CACHE: local
-    # Démarrer en mode développement
-    command: start-dev
+    # Démarrer en mode développement + importer le realm nina-aes au boot.
+    # `--import-realm` skip silencieusement si le realm existe déjà → idempotent.
+    command: start-dev --import-realm
+    volumes:
+      # Realm JSON (cf. infrastructure/keycloak/README.md).
+      - ../keycloak/import:/opt/keycloak/data/import:ro
     depends_on:
       postgres:
         condition: service_healthy
