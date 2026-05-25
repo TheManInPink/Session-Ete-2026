@@ -8,10 +8,11 @@
 import { Global, Module } from '@nestjs/common';
 
 import { KeycloakAdminService } from './keycloak-admin.service.js';
+import { KeycloakAuthService } from './keycloak-auth.service.js';
 
 @Global()
 @Module({
-  providers: [KeycloakAdminService],
-  exports: [KeycloakAdminService],
+  providers: [KeycloakAdminService, KeycloakAuthService],
+  exports: [KeycloakAdminService, KeycloakAuthService],
 })
 export class KeycloakModule {}
