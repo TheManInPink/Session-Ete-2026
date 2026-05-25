@@ -32,7 +32,10 @@ import { validateEnv } from './config/env.config.js';
 import { CryptoModule } from './crypto/crypto.module.js';
 import { JwtCryptoService } from './crypto/jwt.service.js';
 import { JwksService } from './jwks/jwks.service';
+import { KeycloakModule } from './keycloak/keycloak.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { RedisModule } from './redis/redis.module.js';
+import { SmsModule } from './sms/sms.module.js';
 import { VaultModule } from './vault/vault.module.js';
 import { WellKnownController } from './well-known/well-known.controller';
 
@@ -69,6 +72,9 @@ const jwtVerifierProvider: Provider = {
     VaultModule,
     RedisModule,
     CryptoModule,
+    SmsModule,
+    KeycloakModule,
+    AuthModule,
   ],
   controllers: [AppController, WellKnownController],
   providers: [
