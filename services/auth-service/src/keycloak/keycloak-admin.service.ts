@@ -110,6 +110,37 @@ export class KeycloakAdminService {
     return { keycloakId };
   }
 
+  /**
+   * Réinitialise le password Keycloak d'un user (flow `/auth/password/reset`).
+   * Le nouveau password est posé non-temporaire — l'utilisateur n'a pas à
+   * le changer au login suivant.
+   */
+  async resetPassword(keycloakId: string, newPassword: string): Promise<void> {
+    const token = await this.getAdminToken();
+    const realmBase = this.realmBaseUrl();
+
+    const res = await fetch(`${realmBase}/users/${keycloakId}/reset-password`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type: 'password', value: newPassword, temporary: false }),
+    });
+
+    if (res.status === 404) {
+      // User Keycloak inexistant → désynchro DB/IdP. On lève en erreur
+      // métier ; le caller décide si on log loud + audit (Phase 10).
+      throw new InternalServerErrorException('AUTH_USER_NOT_FOUND_KEYCLOAK');
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      this.logger.error(`Keycloak reset-password KO (${res.status}): ${text}`);
+      throw new ServiceUnavailableException('AUTH_KEYCLOAK_UNAVAILABLE');
+    }
+    this.logger.log(`Password Keycloak réinitialisé (id=${keycloakId})`);
+  }
+
   // ─── interne ──────────────────────────────────────────────────────
 
   private async assignRealmRole(token: string, userId: string, roleName: string): Promise<void> {

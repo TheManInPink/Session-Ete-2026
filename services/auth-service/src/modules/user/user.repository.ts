@@ -51,6 +51,16 @@ export class UserRepository implements OnModuleDestroy {
     return prisma.user.findUnique({ where: { email } });
   }
 
+  /**
+   * Résout un user par email ou username — utilisé par les flows `/login`
+   * et `/password/forgot` où le client peut soumettre l'un ou l'autre.
+   */
+  findByEmailOrUsername(identifier: string) {
+    return prisma.user.findFirst({
+      where: { OR: [{ email: identifier }, { username: identifier }] },
+    });
+  }
+
   findByKeycloakId(keycloakId: string) {
     return prisma.user.findUnique({ where: { keycloakId } });
   }

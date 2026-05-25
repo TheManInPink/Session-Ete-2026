@@ -34,11 +34,13 @@ import { RedisService } from '../../redis/redis.service.js';
 import { SMS_PROVIDER, type SmsProvider } from '../../sms/sms.types.js';
 import { UserRepository } from '../user/user.repository.js';
 
+import type { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 import type { LogoutDto } from './dto/logout.dto.js';
 import type { RefreshDto } from './dto/refresh.dto.js';
 import type { RegisterRequestOtpDto } from './dto/register-request-otp.dto.js';
 import type { RegisterVerifyDto } from './dto/register-verify.dto.js';
+import type { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { OtpService } from './otp.service.js';
 import { RefreshService } from './refresh.service.js';
 
@@ -254,6 +256,88 @@ export class AuthService {
    */
   async logout(dto: LogoutDto): Promise<void> {
     await this.refreshSvc.revoke(dto.refresh);
+  }
+
+  // ─── Reset password ──────────────────────────────────────────────
+
+  /**
+   * Initie un reset password. La réponse est toujours 202, indépendamment
+   * de l'existence du compte (anti user-enum OWASP ASVS V11.1).
+   *
+   * Si l'identifier résout un user :
+   *   1. on émet un reset JWT (TTL 15 min, jti unique) ;
+   *   2. on stocke le jti en Redis (clé `reset:<jti>`) — la consommation
+   *      au moment du `/reset` supprime cette clé, ce qui rend le token
+   *      mono-usage ;
+   *   3. on envoie le token via SMS au numéro enregistré (à défaut d'un
+   *      service email dans le scaffold). En MOCK_SMS=true (dev) le code
+   *      apparaît dans les logs.
+   */
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ accepted: true }> {
+    const user = await this.users.findByEmailOrUsername(dto.identifier);
+    if (!user) {
+      // Réponse uniforme — aucune fuite de signal côté client.
+      return { accepted: true };
+    }
+
+    const reset = this.jwt.signReset({ userId: user.id });
+    await this.redis.setEx(
+      REDIS_KEYS.resetJti(reset.jti),
+      Math.ceil((reset.expiresAt - Date.now()) / 1000),
+      user.id,
+    );
+
+    if (user.phoneNumber) {
+      await this.sms.send(
+        user.phoneNumber,
+        `NINA-AES : votre lien de reinitialisation est valable 15 minutes. Token: ${reset.token}`,
+      );
+    } else {
+      // Pas de canal SMS — on log côté serveur (ops support) au lieu
+      // d'échouer silencieusement. Le client reçoit quand même 202.
+      this.logger.warn(
+        `Reset password demandé pour user ${user.id} sans phoneNumber — token non délivré.`,
+      );
+    }
+    return { accepted: true };
+  }
+
+  /**
+   * Consomme un reset token et met à jour le password côté Keycloak.
+   *
+   * On NE révoque PAS encore les sessions actives ici (refresh tokens
+   * de l'utilisateur). Phase 10 ajoutera un index par-user des familles
+   * pour permettre un force-logout-all-sessions atomique. En attendant,
+   * la fenêtre de risque est bornée par le TTL access (15 min).
+   */
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const decoded = this.jwt.verifyReset(dto.token);
+
+    // Consume-once : si la clé n'existe plus, le token a déjà servi
+    // (ou a été révoqué). DEL d'une clé absente retourne 0 → on rejette.
+    const removed = await this.redis.del(REDIS_KEYS.resetJti(decoded.jti));
+    if (removed === 0) {
+      throw new UnauthorizedException(AUTH_ERRORS.TOKEN_INVALID);
+    }
+
+    const user = await this.users.findById(decoded.sub);
+    if (!user) {
+      this.logger.error(`Reset token valide pour user ${decoded.sub} inexistant en DB`);
+      throw new UnauthorizedException(AUTH_ERRORS.TOKEN_INVALID);
+    }
+
+    try {
+      await this.keycloakAdmin.resetPassword(user.keycloakId, dto.newPassword);
+    } catch (err) {
+      this.logger.error(
+        `Keycloak resetPassword échoué pour ${user.keycloakId}: ${(err as Error).message}`,
+      );
+      // Re-jeter — la clé Redis a déjà été consommée ; le client devra
+      // refaire un /forgot pour obtenir un nouveau token (comportement
+      // intentionnel : un token ne doit pas pouvoir être réutilisé même
+      // si l'écriture Keycloak a échoué).
+      throw err;
+    }
   }
 
   // ─── Helpers internes ─────────────────────────────────────────────

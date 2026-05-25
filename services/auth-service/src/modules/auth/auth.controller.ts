@@ -31,6 +31,7 @@ import { Public } from '@nina-aes/auth-guards';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 
 import { AuthService, type AuthSession, type MfaPending } from './auth.service.js';
+import { type ForgotPasswordDto, ForgotPasswordSchema } from './dto/forgot-password.dto.js';
 import { type LoginDto, LoginSchema } from './dto/login.dto.js';
 import { type LogoutDto, LogoutSchema } from './dto/logout.dto.js';
 import { type RefreshDto, RefreshSchema } from './dto/refresh.dto.js';
@@ -39,6 +40,7 @@ import {
   RegisterRequestOtpSchema,
 } from './dto/register-request-otp.dto.js';
 import { type RegisterVerifyDto, RegisterVerifySchema } from './dto/register-verify.dto.js';
+import { type ResetPasswordDto, ResetPasswordSchema } from './dto/reset-password.dto.js';
 import { LoginThrottleGuard } from './login-throttle.guard.js';
 
 @Controller('auth')
@@ -102,5 +104,31 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(LogoutSchema))
   async logout(@Body() dto: LogoutDto): Promise<void> {
     await this.auth.logout(dto);
+  }
+
+  // ─── Reset password ──────────────────────────────────────────────
+
+  /**
+   * Initie le reset password. Réponse uniforme 202 (anti user-enum).
+   * Si le user existe, un reset JWT est envoyé via SMS.
+   */
+  @Public()
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UsePipes(new ZodValidationPipe(ForgotPasswordSchema))
+  forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ accepted: true }> {
+    return this.auth.forgotPassword(dto);
+  }
+
+  /**
+   * Consomme un reset token et change le password (Keycloak). 204 sur succès.
+   * Le client doit ensuite refaire un /login.
+   */
+  @Public()
+  @Post('password/reset')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UsePipes(new ZodValidationPipe(ResetPasswordSchema))
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    await this.auth.resetPassword(dto);
   }
 }
