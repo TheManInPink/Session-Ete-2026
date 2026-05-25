@@ -3,7 +3,7 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-23
+> **Dernière mise à jour** : 2026-05-24
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
@@ -22,6 +22,28 @@ la commande / au fichier qui matérialise la décision.
 | Compose & .env               | implicite                                     | **`docker compose --env-file .env -f …`** (script `docker:up` mis à jour)    |
 | Vitest (`packages/database`) | `^2.2.0`                                      | **`^4.1.5`** (la 2.2 n'existait pas)                                         |
 | TypeScript root tsconfig     | `moduleResolution: node`, `baseUrl`           | **`NodeNext`**, `baseUrl` retiré, placeholder `scripts/typecheck.ts`         |
+
+### 1.0 Patch 2026-05-24 — `docs/08` aligné PROMPT 3.2 (auth-service)
+
+Patch ciblé sur `docs/08-BACKEND-AUTH-SERVICE.md` (préservation des 2607 lignes existantes) pour
+couvrir les exigences manquantes du PROMPT 3.2 (master prompt v3) :
+
+| Domaine                  | Modification                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Titre (L1)               | Keycloak `26.1` → **`26.6.2`** ; mention **Node.js 24.14+ LTS** ; Redis `7` → **`8.6`** ; PG `17` → **`18`**                                                                                                                                                                                                                                                                                                            |
+| Rate limit `/auth/login` | `5 req / 60 s / IP` → **`5 req / 900 s (15 min) / IP`** (anti-bruteforce OWASP ASVS V11.1)                                                                                                                                                                                                                                                                                                                              |
+| Table § 3.3 endpoints    | +6 endpoints : `register/otp/send`, `mfa/enable`, `mfa/verify`, `mfa/sms`, `password/forgot`, `password/reset`                                                                                                                                                                                                                                                                                                          |
+| Table § 3.4 RBAC         | 4 → **6 rôles** : ajout `SUPERVISOR`, `AUDITOR`, `ANTICORRUPTION_INSPECTOR` ; `governance_viewer` marqué _legacy_ (mappé sur `auditor`) ; table « Politique MFA par rôle »                                                                                                                                                                                                                                              |
+| Realm JSON § 4.3         | Mêmes 6 rôles ajoutés au realm Keycloak (`composites` mis à jour : `admin > supervisor > agent > citizen`)                                                                                                                                                                                                                                                                                                              |
+| § 6.13bis (nouveau)      | DTOs (`RegisterCitizenDto` étendu téléphone+OTP, `EnableMfaDto`, `VerifyMfaDto`, `SendMfaSmsDto`, `ForgotPasswordDto`, `ResetPasswordDto`, `SendRegisterOtpDto`) + méthodes service (TOTP via `otplib`, QR via `qrcode`, SMS via `africastalking`, reset JWT signé RS256 usage unique via Redis `jti`) + handlers controller + table Argon2id/Vault + esquisse `MfaGuard` extrait dans `@nina-aes/auth-guards` (doc 15) |
+| § 7.1bis (nouveau)       | Politique MFA : optionnel `CITIZEN`, **obligatoire** pour `AGENT/SUPERVISOR/ADMIN/AUDITOR/ANTICORRUPTION_INSPECTOR` (claim `amr` RFC 8176 vérifié par `MfaGuard`)                                                                                                                                                                                                                                                       |
+
+Dépendances NPM additionnelles documentées : `otplib ^12.0.1`, `qrcode ^1.5.4`,
+`africastalking ^0.7.3`, `nodemailer ^7.0.5`, `argon2 ^0.43.0`. Aucune dépendance étrangère sensible
+(souveraineté préservée).
+
+**Implémentation code non encore réalisée** — le doc 08 décrit la cible ; le scaffolding du
+`services/auth-service/` reste à produire (suit le pattern `identity-service` du doc 07).
 
 ### 1.1 Bump 2026-05-23 — Images Docker infrastructure
 
@@ -2161,3 +2183,59 @@ Start-Process http://localhost:3001  # admin / nina-dev-only
 - `Makefile` : 5 nouvelles cibles `monitoring-*`
 
 `pnpm run verify:repo` ✅ vert.
+
+## 31. identity-service — décision de scope (PROMPT 3.1, 2026-05-24)
+
+Audit du PROMPT 3.1 contre le code réel de `services/identity-service/` : **service à ~95 %
+conforme** (27 fichiers, ~1 400 lignes, modules `citizen` / `correction` / `location` / `health`
+tous présents avec pipelines AI + SIGAC + RabbitMQ + cache Redis + soft delete + verrou optimiste).
+
+### 31.1 Endpoints reportés (non implémentés délibérément)
+
+| Endpoint demandé par PROMPT 3.1      | Statut     | Reporté à       | Justification                                                                                          |
+| ------------------------------------ | ---------- | --------------- | ------------------------------------------------------------------------------------------------------ |
+| `GET /api/v1/citizens/:id/fiche-pdf` | ❌ reporté | doc 10 + PROMPT | `document-service` est encore une coquille (seul `modules/health/` existe). Pas de PDF/QR à proxyfier. |
+| `GET /api/v1/citizens/:id/history`   | ❌ reporté | doc 09 + PROMPT | `audit-service` est encore une coquille (seul `modules/health/` existe). Pas d'API Merkle à proxyfier. |
+
+**Pourquoi reporter plutôt qu'ajouter un proxy 503/501** : éviter du code mort qui pollue Swagger,
+donne une fausse impression d'avancement et déclencherait des faux positifs en tests E2E. Le pattern
+HTTP est déjà éprouvé (`correction.service.ts:252-303` → `callAi` / `callSigac` : `HttpService` +
+`timeout(...)` + `catchError(fallback)`), donc l'effort marginal au moment du branchement réel est
+~30 lignes par endpoint. Aucun risque technique à dérisquer maintenant.
+
+### 31.2 Divergences PROMPT 3.1 ↔ existant à garder (décisions architecturales)
+
+| Sujet                    | PROMPT 3.1                          | **Réel** (à garder)                                     | Raison                                                                                    |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Recherche fuzzy citoyens | Elasticsearch + phonetic plugin     | **PostgreSQL trigram (GIN)**                            | Volume CTDEC < 1 M lignes — fallback suffisant, marqué _Hors scope V1_ dans le service.   |
+| Audit des mutations      | Appel HTTP direct à `audit-service` | **Event-driven RabbitMQ** (`citizen.*`, `correction.*`) | Découplage propre, `audit-service` consomme — meilleure pattern.                          |
+| Validation des DTOs      | « Zod » (cf. prompt)                | **`class-validator` + `class-transformer`**             | Convention NestJS standard, déjà en place partout dans le monorepo.                       |
+| Paramètre pagination     | `limit`                             | **`pageSize`**                                          | Cohérence avec autres services (à confirmer au moment de la doc 12 frontend integration). |
+
+### 31.3 Bonus déjà présents (au-delà du PROMPT 3.1)
+
+- `ThrottlerModule` 100 req/min/IP (anti-bruteforce sur lectures NINA)
+- Verrou optimiste `version++` sur `Citizen` (anti-write-skew agent ↔ correction)
+- Allowlist des champs corrigeables (`firstName`, `lastName`, `profession`, `maritalStatus`) dans
+  `correction.service.ts:187` — empêche un agent d'altérer `nina` ou `birthDate` via le workflow
+  correction (mutations critiques restent ADMIN-only via `PUT /citizens/:id`)
+- Mode `MOCK_EXTERNAL_SERVICES=true` pour dev/CI sans `ai-service` ni `anticorruption-service`
+- Cache invalidation pattern (`citizen:nina:*`) après chaque update / soft delete
+- Trois endpoints health : `/health` (complet), `/health/live` (liveness K8s), `/health/ready`
+  (readiness sans externes optionnels)
+
+### 31.4 À faire au branchement réel (rappel pour doc 09 et doc 10)
+
+Quand `audit-service` exposera `GET /api/v1/events?entityType=citizen&entityId=…` (doc 09 + ADR-007)
+et `document-service` exposera `GET /api/v1/documents/fiche/:citizenId` retournant un PDF signé (doc
+10 + ADR-008), **ajouter les 2 proxys dans le PR du service cible**, pas dans un PR séparé
+d'identity-service — évite la dette "proxy en attente d'implémenté".
+
+### 31.5 Cross-références
+
+- `docs/07-BACKEND-IDENTITY-SERVICE.md` : spec canonique (laisse la mention des 2 endpoints, ils
+  reviendront)
+- `docs/09-BACKEND-AUDIT-SERVICE.md` : à compléter avec section "proxy depuis identity-service"
+- `docs/10-BACKEND-DOCUMENT-SERVICE.md` : à compléter avec section "proxy depuis identity-service"
+- `services/identity-service/README.md` : déjà honnête (ne liste pas les endpoints non implémentés)
+  — pas de modification

@@ -1,9 +1,10 @@
-# 08 — Backend : Auth-Service (NestJS 11 + Keycloak 26.1)
+# 08 — Backend : Auth-Service (NestJS 11.1 + Keycloak 26.6.2)
 
 > **Projet** : NINA-AES Platform **Document** : 08/26 **Service** : `auth-service` —
-> Authentification, autorisation, gestion des sessions **Port** : `3002` **Stack** : NestJS 11.1 ·
-> Keycloak 26.1 · Passport · JWT RS256 · Redis 7 · PostgreSQL 17 **Auteur** : Étudiant UQAR **Date**
-> : Avril 2026 **Prérequis** : [Document 07 — Identity Service](./07-BACKEND-IDENTITY-SERVICE.md)
+> Authentification, autorisation, gestion des sessions **Port** : `3002` **Stack** : Node.js 24.14+
+> LTS · NestJS 11.1 · Keycloak 26.6.2 · Passport · JWT RS256 · Redis 8.6 · PostgreSQL 18 **Auteur**
+> : Étudiant UQAR **Date** : Mai 2026 **Prérequis** :
+> [Document 07 — Identity Service](./07-BACKEND-IDENTITY-SERVICE.md)
 
 ---
 
@@ -192,28 +193,50 @@ sequenceDiagram
 
 ### 3.3 Endpoints REST exposés
 
-| Méthode | Route                           | Rate limit    | Rôle         | Description                              |
-| ------- | ------------------------------- | ------------- | ------------ | ---------------------------------------- |
-| `POST`  | `/api/v1/auth/login`            | 5 req/min/IP  | public       | Authentification par username + password |
-| `POST`  | `/api/v1/auth/refresh`          | 20 req/min/IP | public       | Rotation du refresh token                |
-| `POST`  | `/api/v1/auth/logout`           | 30 req/min/IP | auth         | Révocation du refresh token actif        |
-| `POST`  | `/api/v1/auth/register/citizen` | 3 req/h/IP    | public       | Inscription citoyenne (NINA + password)  |
-| `GET`   | `/api/v1/auth/me`               | 60 req/min    | auth         | Infos utilisateur connecté               |
-| `GET`   | `/.well-known/jwks.json`        | 1000 req/min  | public       | Proxy JWKS Keycloak (cache 10 min)       |
-| `GET`   | `/health`                       | —             | public       | Probe Docker/K8s                         |
-| `GET`   | `/api/docs`                     | —             | public (dev) | Swagger UI                               |
+| Méthode | Route                            | Rate limit      | Rôle         | Description                                              |
+| ------- | -------------------------------- | --------------- | ------------ | -------------------------------------------------------- |
+| `POST`  | `/api/v1/auth/login`             | 5 req/15 min/IP | public       | Authentification par username + password                 |
+| `POST`  | `/api/v1/auth/refresh`           | 20 req/min/IP   | public       | Rotation du refresh token                                |
+| `POST`  | `/api/v1/auth/logout`            | 30 req/min/IP   | auth         | Révocation du refresh token actif                        |
+| `POST`  | `/api/v1/auth/register/otp/send` | 3 req/10 min/IP | public       | Envoie l'OTP SMS de vérification téléphone (PROMPT 3.2)  |
+| `POST`  | `/api/v1/auth/register/citizen`  | 3 req/h/IP      | public       | Inscription citoyenne (NINA + OTP + password)            |
+| `POST`  | `/api/v1/auth/mfa/enable`        | 5 req/5 min/IP  | auth         | Active TOTP (renvoie QR code)                            |
+| `POST`  | `/api/v1/auth/mfa/verify`        | 10 req/5 min/IP | auth         | Vérifie code TOTP (active définitivement le MFA)         |
+| `POST`  | `/api/v1/auth/mfa/sms`           | 3 req/10 min/IP | public       | Envoie OTP MFA SMS (Africa's Talking) pendant le login   |
+| `POST`  | `/api/v1/auth/password/forgot`   | 3 req/h/IP      | public       | Envoie e-mail de reset signé (réponse 204 systématique)  |
+| `POST`  | `/api/v1/auth/password/reset`    | 5 req/15 min/IP | public       | Applique le nouveau mot de passe (token + MFA si activé) |
+| `GET`   | `/api/v1/auth/me`                | 60 req/min      | auth         | Infos utilisateur connecté                               |
+| `GET`   | `/.well-known/jwks.json`         | 1000 req/min    | public       | Proxy JWKS Keycloak (cache 10 min)                       |
+| `GET`   | `/health`                        | —               | public       | Probe Docker/K8s                                         |
+| `GET`   | `/api/docs`                      | —               | public (dev) | Swagger UI                                               |
 
 ### 3.4 Rôles RBAC définis
 
-| Rôle Keycloak       | Portée                                          | Exemples d'opérations autorisées          |
-| ------------------- | ----------------------------------------------- | ----------------------------------------- |
-| `citizen`           | Consultation propre NINA, corrections signalées | `GET /nina/:ownNina`, `POST /corrections` |
-| `agent`             | Gestion des corrections, recherche floue        | `PATCH /nina/:id`, `POST /nina/search`    |
-| `admin`             | CRUD complet NINA, gestion utilisateurs         | `POST /nina`, `DELETE /users/:id`         |
-| `governance_viewer` | Lecture seule dashboards gouvernance            | `GET /governance/dashboards/*`            |
+| Rôle Keycloak                | Mapping interne `UserRole` | Portée                                          | Exemples d'opérations autorisées          |
+| ---------------------------- | -------------------------- | ----------------------------------------------- | ----------------------------------------- |
+| `citizen`                    | `CITIZEN`                  | Consultation propre NINA, corrections signalées | `GET /nina/:ownNina`, `POST /corrections` |
+| `agent`                      | `AGENT`                    | Gestion des corrections, recherche floue        | `PATCH /nina/:id`, `POST /nina/search`    |
+| `supervisor`                 | `SUPERVISOR`               | Validation des corrections agents, escalades    | `POST /corrections/:id/approve`           |
+| `admin`                      | `ADMIN`                    | CRUD complet NINA, gestion utilisateurs         | `POST /nina`, `DELETE /users/:id`         |
+| `auditor`                    | `AUDITOR`                  | Lecture immuable des logs Merkle + dashboards   | `GET /audit/*`, `GET /governance/*`       |
+| `anticorruption_inspector`   | `ANTICORRUPTION_INSPECTOR` | Module SIGAC : signalements + investigations    | `GET /sigac/*`, `POST /sigac/cases`       |
+| `governance_viewer` (legacy) | (mappé sur `AUDITOR`)      | Conservé pour compat. — sera retiré au doc 22   | `GET /governance/dashboards/*`            |
 
-**Hiérarchie** : `admin > agent > citizen` (l'admin hérite de tous les droits des rôles inférieurs).
-`governance_viewer` est isolé (lecture dashboards seulement).
+**Hiérarchie composite** : `admin > supervisor > agent > citizen` (héritage descendant — un admin
+hérite de tous les droits des rôles inférieurs). `auditor` et `anticorruption_inspector` sont
+**isolés** (silos fonctionnels : lecture audit / investigation anti-corruption — pas d'héritage des
+autres rôles).
+
+**Politique MFA** (cf. § 7.x ci-dessous) :
+
+| Rôle                       | MFA             | Méthodes acceptées       |
+| -------------------------- | --------------- | ------------------------ |
+| `CITIZEN`                  | **Optionnel**   | TOTP, SMS                |
+| `AGENT`                    | **Obligatoire** | TOTP (préféré), SMS      |
+| `SUPERVISOR`               | **Obligatoire** | TOTP                     |
+| `ADMIN`                    | **Obligatoire** | TOTP + WebAuthn (doc 15) |
+| `AUDITOR`                  | **Obligatoire** | TOTP                     |
+| `ANTICORRUPTION_INSPECTOR` | **Obligatoire** | TOTP + WebAuthn (doc 15) |
 
 ---
 
@@ -295,14 +318,28 @@ complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
         "composites": { "realm": ["citizen"] }
       },
       {
-        "name": "admin",
-        "description": "Administrateur plateforme — CRUD complet",
+        "name": "supervisor",
+        "description": "Superviseur RAVEC — valide les corrections agents et arbitre les escalades",
         "composite": true,
         "composites": { "realm": ["agent"] }
       },
       {
+        "name": "admin",
+        "description": "Administrateur plateforme — CRUD complet, gestion users",
+        "composite": true,
+        "composites": { "realm": ["supervisor"] }
+      },
+      {
+        "name": "auditor",
+        "description": "Auditeur — lecture immuable des logs Merkle + dashboards gouvernance (silo)"
+      },
+      {
+        "name": "anticorruption_inspector",
+        "description": "Inspecteur anti-corruption SIGAC — accès signalements et investigations (silo)"
+      },
+      {
         "name": "governance_viewer",
-        "description": "Lecture dashboards gouvernance (ARMP, CPC, BVG)"
+        "description": "(Legacy) Lecture dashboards gouvernance (ARMP, CPC, BVG) — sera mappé sur auditor"
       }
     ]
   },
@@ -1748,11 +1785,12 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // ─── POST /api/v1/auth/login ──────────────────────────────
+  // PROMPT 3.2 — 5 tentatives / 15 min / IP (anti-bruteforce conforme OWASP ASVS V11.1).
   @Public()
   @Throttle({
     default: {
       limit: 5,
-      ttl: 60_000,
+      ttl: 900_000,
     },
   })
   @Post('login')
@@ -1855,6 +1893,416 @@ export class AuthController {
   })
   async registerCitizen(@Body() dto: RegisterCitizenDto) {
     return this.authService.registerCitizen(dto);
+  }
+}
+```
+
+### 6.13bis Extensions PROMPT 3.2 — MFA (TOTP + SMS), Password Reset, OTP téléphone
+
+Cette sous-section couvre les endpoints additionnels exigés par le **PROMPT 3.2** (master prompt v3)
+: MFA TOTP, MFA SMS via Africa's Talking, reset de mot de passe par e-mail signé, et extension du
+`/register/citizen` au numéro de téléphone avec vérification OTP préalable. Elle complète § 6.13
+sans le réécrire.
+
+#### a) Dépendances supplémentaires (à ajouter au `package.json` § 6.1)
+
+```jsonc
+{
+  "dependencies": {
+    "otplib": "^12.0.1", // TOTP RFC 6238 + HOTP RFC 4226
+    "qrcode": "^1.5.4", // Génération QR Code Base64 pour l'app authenticator
+    "africastalking": "^0.7.3", // SDK officiel (USSD/SMS — 8 langues nationales)
+    "nodemailer": "^7.0.5", // Envoi e-mail signé (reset)
+    "argon2": "^0.43.0", // Hash mémoire-hard pour les secrets MFA stockés
+  },
+}
+```
+
+> **Note souveraineté** : `africastalking` est l'API panafricaine de l'opérateur kenyan Africa's
+> Talking ; aucune dépendance US sensible. Pour la prod, on routera via le gateway local Orange Mali
+> (cf. doc 14 § 3.2).
+
+#### b) DTOs additionnels — `src/auth/dto/*.ts`
+
+```ts
+/**
+ * @file        services/auth-service/src/auth/dto/register-citizen.dto.ts
+ * @description Extension PROMPT 3.2 : ajout du téléphone + jeton de vérif OTP préalable.
+ */
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsString, Length, Matches, MinLength } from 'class-validator';
+
+export class RegisterCitizenDto {
+  @ApiProperty({ example: '198071504270422K', description: 'NINA 14 chiffres + 1 lettre' })
+  @IsString()
+  @Matches(/^[12]\d{13}[A-Z]$/)
+  nina!: string;
+
+  @ApiProperty({ example: 'amadou.traore' })
+  @IsString()
+  @Length(3, 32)
+  username!: string;
+
+  @ApiProperty({ example: 'amadou.traore@example.ml' })
+  @IsEmail()
+  email!: string;
+
+  /** PROMPT 3.2 — format E.164 (Mali +223, Burkina +226, Niger +227). */
+  @ApiProperty({ example: '+22376000000' })
+  @Matches(/^\+22[3-7]\d{8}$/)
+  phone!: string;
+
+  @ApiProperty({ minLength: 12 })
+  @IsString()
+  @MinLength(12)
+  password!: string;
+
+  /**
+   * Jeton opaque renvoyé par `POST /auth/register/otp/send` après envoi du SMS.
+   * L'utilisateur doit l'inclure avec son OTP pour prouver la possession du numéro.
+   */
+  @ApiProperty({ description: 'Jeton de session OTP (24 caractères)' })
+  @IsString()
+  @Length(24, 24)
+  otpToken!: string;
+
+  @ApiProperty({ example: '482931', description: 'OTP à 6 chiffres reçu par SMS' })
+  @IsString()
+  @Length(6, 6)
+  @IsNotEmpty()
+  otpCode!: string;
+}
+```
+
+```ts
+/**
+ * @file        services/auth-service/src/auth/dto/mfa.dto.ts
+ */
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString, Length, Matches } from 'class-validator';
+
+export class EnableMfaDto {} // body vide : utilisateur identifié par JWT
+
+export class VerifyMfaDto {
+  @ApiProperty({ example: '482931' })
+  @IsString()
+  @Length(6, 6)
+  code!: string;
+}
+
+export class SendMfaSmsDto {
+  /** Optionnel pendant le login (non-authentifié) : on identifie via le `mfaChallengeId`. */
+  @ApiProperty({ required: false, example: 'b3d7f0a4-3e91-4c2a-9d8b-2f1e0e6cf0a1' })
+  @IsString()
+  mfaChallengeId?: string;
+}
+
+export class VerifyMfaSmsDto {
+  @ApiProperty({ example: 'b3d7f0a4-3e91-4c2a-9d8b-2f1e0e6cf0a1' })
+  @IsString()
+  mfaChallengeId!: string;
+
+  @ApiProperty({ example: '482931' })
+  @Matches(/^\d{6}$/)
+  code!: string;
+}
+```
+
+```ts
+/**
+ * @file        services/auth-service/src/auth/dto/password-reset.dto.ts
+ */
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString, Length, MinLength } from 'class-validator';
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'amadou.traore@example.ml' })
+  @IsEmail()
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  /** JWT signé RS256 (TTL 30 min) reçu par e-mail — claims : `sub`, `purpose=pwd_reset`. */
+  @ApiProperty({ description: 'Token JWT reset reçu dans le lien e-mail' })
+  @IsString()
+  token!: string;
+
+  @ApiProperty({ minLength: 12 })
+  @IsString()
+  @MinLength(12)
+  newPassword!: string;
+
+  @ApiProperty({ example: '482931', required: false, description: 'OTP MFA si activé' })
+  @IsString()
+  @Length(6, 6)
+  mfaCode?: string;
+}
+
+export class SendRegisterOtpDto {
+  @ApiProperty({ example: '+22376000000' })
+  @IsString()
+  phone!: string;
+}
+```
+
+#### c) Méthodes ajoutées à `AuthService` — extrait commenté
+
+```ts
+/**
+ * @file        services/auth-service/src/auth/auth.service.ts (extrait — section 6.13bis)
+ * @description Méthodes MFA + Password reset + OTP téléphone (PROMPT 3.2).
+ *
+ * Sécurité :
+ *  - Secret TOTP chiffré (AES-256-GCM) avec clé chargée depuis Vault au démarrage.
+ *  - Codes SMS hashés en Argon2id avant stockage Redis (TTL 5 min).
+ *  - Token reset = JWT RS256 (clé Keycloak) avec claim `purpose=pwd_reset`, usage unique
+ *    (jti tracé dans Redis pour empêcher la réutilisation).
+ */
+
+import { authenticator } from 'otplib';
+import * as qrcode from 'qrcode';
+import * as argon2 from 'argon2';
+import { randomBytes } from 'node:crypto';
+import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+
+@Injectable()
+export class AuthService {
+  // … (méthodes existantes : login, refresh, logout, me, registerCitizen, etc.)
+
+  // ─── REGISTER OTP (étape préalable au /register/citizen) ─────────────────
+  /**
+   * Envoie un OTP à 6 chiffres au numéro fourni et retourne un `otpToken` opaque
+   * que l'utilisateur devra inclure dans son inscription pour prouver la possession.
+   */
+  async sendRegisterOtp(phone: string): Promise<{ otpToken: string; ttlSec: number }> {
+    const code = String(Math.floor(100_000 + Math.random() * 900_000));
+    const otpToken = randomBytes(12).toString('hex'); // 24 chars
+    const hashed = await argon2.hash(code, { type: argon2.argon2id });
+
+    // Redis : clé éphémère (TTL 5 min) — jamais le code en clair.
+    await this.redis.setEx(`otp:register:${otpToken}`, 300, JSON.stringify({ phone, hashed }));
+
+    await this.smsGateway.send({
+      to: phone,
+      message: `NINA-AES : votre code de vérification est ${code}. Valide 5 minutes.`,
+    });
+
+    return { otpToken, ttlSec: 300 };
+  }
+
+  /**
+   * Inscription citoyen : vérifie OTP → vérifie NINA via identity-service → crée user Keycloak.
+   * Remplace la méthode `registerCitizen` historique (qui ne demandait que email + NINA).
+   */
+  async registerCitizen(dto: RegisterCitizenDto): Promise<RegisterResult> {
+    const raw = await this.redis.get(`otp:register:${dto.otpToken}`);
+    if (!raw) throw new BadRequestException('OTP expiré ou inconnu');
+    const { phone, hashed } = JSON.parse(raw);
+    if (phone !== dto.phone) throw new BadRequestException('Téléphone non concordant');
+    if (!(await argon2.verify(hashed, dto.otpCode))) {
+      throw new BadRequestException('Code OTP invalide');
+    }
+    await this.redis.del(`otp:register:${dto.otpToken}`);
+
+    await this.identityClient.assertNinaExists(dto.nina);
+    return this.keycloak.createCitizenUser(dto);
+  }
+
+  // ─── MFA TOTP ─────────────────────────────────────────────────────────────
+  /**
+   * Active TOTP : génère un secret base32, le stocke chiffré (AES-GCM, clé Vault),
+   * renvoie le QR code Base64 (otpauth:// scanné par Google Authenticator, Authy, FreeOTP…).
+   * L'activation n'est pas finalisée tant que `/mfa/verify` n'a pas confirmé un code.
+   */
+  async enableMfa(userId: string, username: string): Promise<{ qrCodeDataUrl: string }> {
+    const secret = authenticator.generateSecret(); // 32 chars base32
+    const cipher = this.vault.encryptAesGcm(secret);
+    await this.keycloak.setUserAttribute(userId, 'mfa_totp_pending', cipher);
+
+    const otpAuthUrl = authenticator.keyuri(username, 'NINA-AES', secret);
+    const qrCodeDataUrl = await qrcode.toDataURL(otpAuthUrl);
+    return { qrCodeDataUrl };
+  }
+
+  /** Vérifie le code TOTP — promeut `mfa_totp_pending` → `mfa_totp_enabled`. */
+  async verifyMfa(userId: string, code: string): Promise<{ enabled: true }> {
+    const cipher = await this.keycloak.getUserAttribute(userId, 'mfa_totp_pending');
+    if (!cipher) throw new BadRequestException('Aucune activation TOTP en attente');
+    const secret = this.vault.decryptAesGcm(cipher);
+
+    if (!authenticator.verify({ token: code, secret })) {
+      throw new UnauthorizedException('Code TOTP invalide');
+    }
+    await this.keycloak.setUserAttribute(userId, 'mfa_totp_enabled', cipher);
+    await this.keycloak.deleteUserAttribute(userId, 'mfa_totp_pending');
+    return { enabled: true };
+  }
+
+  // ─── MFA SMS (fallback pour téléphones non-smartphones / contexte USSD) ────
+  /**
+   * Génère un code 6 chiffres, le hash Argon2id, le stocke en Redis (TTL 5 min)
+   * et l'envoie via Africa's Talking. Retourne le `mfaChallengeId` à présenter
+   * dans `/mfa/sms/verify`.
+   */
+  async sendMfaSms(userId: string, phone: string): Promise<{ mfaChallengeId: string }> {
+    const code = String(Math.floor(100_000 + Math.random() * 900_000));
+    const mfaChallengeId = randomBytes(16).toString('hex');
+    const hashed = await argon2.hash(code, { type: argon2.argon2id });
+
+    await this.redis.setEx(
+      `mfa:sms:${mfaChallengeId}`,
+      300,
+      JSON.stringify({ userId, hashed, attempts: 0 }),
+    );
+    await this.smsGateway.send({
+      to: phone,
+      message: `NINA-AES : code de vérification ${code}. Valide 5 minutes.`,
+    });
+    return { mfaChallengeId };
+  }
+
+  // ─── PASSWORD RESET ───────────────────────────────────────────────────────
+  /**
+   * Étape 1 — envoie un e-mail contenant un lien signé `?token=<JWT RS256>`.
+   * Aucune information n'est divulguée si l'e-mail n'existe pas (réponse 204 dans tous les cas).
+   */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.keycloak.findUserByEmail(email).catch(() => null);
+    if (!user) return; // anti-énumération : silence
+
+    const token = await this.jwtSigner.signAsync(
+      { sub: user.id, purpose: 'pwd_reset', jti: randomBytes(12).toString('hex') },
+      { expiresIn: '30m' },
+    );
+    await this.mailer.sendResetEmail(email, token);
+  }
+
+  /** Étape 2 — vérifie le token (signature + jti pas déjà consommé) puis applique le nouveau mdp. */
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const payload = await this.jwtSigner.verifyAsync(dto.token);
+    if (payload.purpose !== 'pwd_reset') throw new UnauthorizedException();
+
+    const used = await this.redis.get(`pwd_reset:jti:${payload.jti}`);
+    if (used) throw new UnauthorizedException('Lien déjà utilisé');
+    await this.redis.setEx(`pwd_reset:jti:${payload.jti}`, 1800, '1');
+
+    // Si MFA activé sur le compte, exiger le code en plus du lien.
+    const mfaEnabled = await this.keycloak.hasMfaEnabled(payload.sub);
+    if (mfaEnabled) {
+      if (!dto.mfaCode) throw new UnauthorizedException('MFA requis');
+      await this.verifyMfa(payload.sub, dto.mfaCode);
+    }
+    await this.keycloak.resetPassword(payload.sub, dto.newPassword);
+  }
+}
+```
+
+#### d) Handlers ajoutés à `AuthController` — extrait
+
+```ts
+/**
+ * @file        services/auth-service/src/auth/auth.controller.ts (extrait — section 6.13bis)
+ */
+
+// ─── POST /api/v1/auth/register/otp/send ──────────────────────
+@Public()
+@Throttle({ default: { limit: 3, ttl: 600_000 } })
+@Post('register/otp/send')
+@HttpCode(HttpStatus.ACCEPTED)
+@ApiOperation({ summary: 'Envoie un OTP SMS au numéro fourni (préalable à /register/citizen)' })
+async sendRegisterOtp(@Body() dto: SendRegisterOtpDto) {
+  return this.authService.sendRegisterOtp(dto.phone);
+}
+
+// ─── POST /api/v1/auth/mfa/enable ─────────────────────────────
+@UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 5, ttl: 300_000 } })
+@Post('mfa/enable')
+@ApiBearerAuth()
+@ApiOperation({ summary: 'Active TOTP (renvoie le QR code à scanner)' })
+async enableMfa(@CurrentUser() user: AuthenticatedUser) {
+  return this.authService.enableMfa(user.id, user.username);
+}
+
+// ─── POST /api/v1/auth/mfa/verify ─────────────────────────────
+@UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 10, ttl: 300_000 } })
+@Post('mfa/verify')
+@ApiBearerAuth()
+@ApiOperation({ summary: 'Vérifie un code TOTP (active définitivement le MFA)' })
+async verifyMfa(@CurrentUser() user: AuthenticatedUser, @Body() dto: VerifyMfaDto) {
+  return this.authService.verifyMfa(user.id, dto.code);
+}
+
+// ─── POST /api/v1/auth/mfa/sms ────────────────────────────────
+// Public car appelé pendant le login (l'utilisateur n'a pas encore d'access token).
+// Le contexte est porté par `mfaChallengeId` créé lors de l'étape /login.
+@Public()
+@Throttle({ default: { limit: 3, ttl: 600_000 } })
+@Post('mfa/sms')
+@ApiOperation({ summary: 'Envoie un OTP MFA par SMS (Africa\'s Talking)' })
+async sendMfaSms(@Body() dto: SendMfaSmsDto) {
+  return this.authService.requestSmsChallenge(dto.mfaChallengeId);
+}
+
+// ─── POST /api/v1/auth/password/forgot ────────────────────────
+@Public()
+@Throttle({ default: { limit: 3, ttl: 3_600_000 } })
+@Post('password/forgot')
+@HttpCode(HttpStatus.NO_CONTENT)
+@ApiOperation({ summary: 'Envoie un e-mail de reset (réponse 204 quel que soit le résultat)' })
+async forgotPassword(@Body() dto: ForgotPasswordDto) {
+  await this.authService.forgotPassword(dto.email);
+}
+
+// ─── POST /api/v1/auth/password/reset ─────────────────────────
+@Public()
+@Throttle({ default: { limit: 5, ttl: 900_000 } })
+@Post('password/reset')
+@HttpCode(HttpStatus.NO_CONTENT)
+@ApiOperation({ summary: 'Applique le nouveau mot de passe (token JWT + MFA si activé)' })
+async resetPassword(@Body() dto: ResetPasswordDto) {
+  await this.authService.resetPassword(dto);
+}
+```
+
+#### e) Hachage Argon2id et chargement Vault
+
+| Élément                            | Choix retenu                                                                                                                                                                                          |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hash des mots de passe utilisateur | Délégué à **Keycloak** (politique realm : `argon2id` — voir Admin Console → Authentication → Password Policy). Paramètres recommandés OWASP 2026 : `memoryCost=19456`, `timeCost=2`, `parallelism=1`. |
+| Hash des OTP / codes SMS           | `argon2.hash(code, { type: argon2.argon2id })` côté NestJS (jamais en clair en Redis).                                                                                                                |
+| Secrets TOTP                       | Chiffrés AES-256-GCM avec une **clé KEK chargée depuis Vault** au démarrage (`vault kv get secret/auth-service/mfa-kek`).                                                                             |
+| Clés JWT RS256                     | Gérées par Keycloak ; côté NestJS, on utilise la JWKS publique (cf. § 6.9). Aucune clé privée locale.                                                                                                 |
+| Secrets clients OAuth, SMS, SMTP   | Chargés depuis Vault au démarrage par le `VaultConfigLoader` (cf. doc 15 § 4). Jamais en `.env` en prod.                                                                                              |
+
+Voir **doc 15 — Security Hardening** pour l'intégration complète Vault (Agent sidecar K3s,
+politiques ACL, rotation auto).
+
+#### f) Package `@nina-aes/auth-guards` (à extraire)
+
+Les `JwtAuthGuard`, `RolesGuard`, et un nouveau **`MfaGuard`** seront extraits dans
+`packages/auth-guards/` au doc 15 pour être réutilisés par les 10 autres microservices.
+
+```ts
+/**
+ * @file        packages/auth-guards/src/mfa.guard.ts (prévu — doc 15)
+ * @description Exige que le JWT porte le claim `amr` contenant 'mfa' OU 'otp'.
+ *              Combiné avec @Roles() pour appliquer la politique : MFA obligatoire pour
+ *              AGENT/SUPERVISOR/ADMIN/AUDITOR/ANTICORRUPTION_INSPECTOR, optionnel pour CITIZEN.
+ */
+@Injectable()
+export class MfaGuard implements CanActivate {
+  canActivate(ctx: ExecutionContext): boolean {
+    const { user } = ctx.switchToHttp().getRequest();
+    const requireMfa = (user.roles as string[]).some((r) => r !== 'citizen');
+    if (!requireMfa) return true;
+
+    const amr = (user.amr ?? []) as string[];
+    if (!amr.includes('mfa') && !amr.includes('otp')) {
+      throw new UnauthorizedException('MFA requis pour ce rôle');
+    }
+    return true;
   }
 }
 ```
@@ -2037,8 +2485,35 @@ export class NinaController {
 }
 ```
 
-Grâce à la hiérarchie Keycloak (`admin > agent > citizen`), un admin peut tout faire, un agent peut
-lire et rechercher mais pas supprimer, et un citoyen ne peut que consulter.
+Grâce à la hiérarchie Keycloak (`admin > supervisor > agent > citizen`), un admin peut tout faire,
+un agent peut lire et rechercher mais pas supprimer, et un citoyen ne peut que consulter. Les rôles
+**isolés** `auditor` et `anticorruption_inspector` ne sont **pas** dans la chaîne d'héritage : ils
+n'apportent que leurs droits silos.
+
+### 7.1bis Politique MFA par rôle (PROMPT 3.2)
+
+Le `MfaGuard` (§ 6.13bis · f — sera extrait dans `@nina-aes/auth-guards` au doc 15) applique la
+règle suivante :
+
+- **CITIZEN** : MFA **optionnel**. L'utilisateur peut l'activer via `POST /auth/mfa/enable`. Sans
+  MFA, le `JwtAuthGuard` seul suffit.
+- **AGENT, SUPERVISOR, ADMIN, AUDITOR, ANTICORRUPTION_INSPECTOR** : MFA **obligatoire**. Le
+  `MfaGuard` exige le claim `amr` contenant `mfa` ou `otp` dans le JWT, sinon `401 Unauthorized`.
+
+Cette exigence est portée par le claim standard **`amr`** (Authentication Methods References,
+RFC 8176) injecté par Keycloak après une étape TOTP ou SMS validée. La promotion d'un utilisateur
+vers un rôle non-citoyen sans MFA activé est **refusée côté Keycloak** par un _required action_
+`CONFIGURE_TOTP` ajouté automatiquement par un _event listener_ (cf. doc 15 § 6.2).
+
+Exemple d'application combinée :
+
+```ts
+// Route hautement sensible : suppression d'un NINA — admin + MFA obligatoires.
+@UseGuards(JwtAuthGuard, RolesGuard, MfaGuard)
+@Roles('admin')
+@Delete('nina/:id')
+async deleteNina(@Param('id') id: string) { /* … */ }
+```
 
 ### 7.2 Rotation des refresh tokens — protection contre le vol
 
@@ -2056,13 +2531,18 @@ Keycloak applique également cette rotation via l'option `revokeRefreshToken: tr
 
 ### 7.3 Rate limiting détaillé
 
-| Route                         | TTL    | Limite | Justification                 |
-| ----------------------------- | ------ | ------ | ----------------------------- |
-| `POST /auth/login`            | 60 s   | 5      | Protection brute force        |
-| `POST /auth/register/citizen` | 3600 s | 3      | Prévention spam d'inscription |
-| `POST /auth/refresh`          | 60 s   | 20     | Refresh légitime fréquent     |
-| `POST /auth/logout`           | 60 s   | 30     | Logout multi-session          |
-| `GET /auth/me`                | 60 s   | 60     | Usage quotidien normal        |
+| Route                         | TTL    | Limite | Justification                               |
+| ----------------------------- | ------ | ------ | ------------------------------------------- |
+| `POST /auth/login`            | 900 s  | 5      | **PROMPT 3.2** : 5 essais / 15 min anti-bf  |
+| `POST /auth/register/citizen` | 3600 s | 3      | Prévention spam d'inscription               |
+| `POST /auth/refresh`          | 60 s   | 20     | Refresh légitime fréquent                   |
+| `POST /auth/logout`           | 60 s   | 30     | Logout multi-session                        |
+| `GET /auth/me`                | 60 s   | 60     | Usage quotidien normal                      |
+| `POST /auth/mfa/enable`       | 300 s  | 5      | Activation TOTP : limiter le bruit          |
+| `POST /auth/mfa/verify`       | 300 s  | 10     | Saisie code TOTP (faute de frappe possible) |
+| `POST /auth/mfa/sms`          | 600 s  | 3      | Coût SMS Africa's Talking + anti-flood      |
+| `POST /auth/password/forgot`  | 3600 s | 3      | Limiter l'envoi d'e-mails de reset par IP   |
+| `POST /auth/password/reset`   | 900 s  | 5      | Empêcher le brute force sur le token reset  |
 
 Ces limites sont appliquées **par IP** (via `@nestjs/throttler`). Dans le code (§ 6.13), chaque
 route porte un décorateur `@Throttle({ default: { limit, ttl } })` aligné sur ce tableau (`ttl` en
