@@ -79,12 +79,12 @@ except ImportError as exc:
     )
     sys.exit(2)
 
-# Parser BeautifulSoup : lxml (rapide, optionnel) ou html.parser (builtin Python)
-try:
-    import lxml  # noqa: F401
-    BS_PARSER = "lxml"
-except ImportError:
-    BS_PARSER = "html.parser"
+# Parser BeautifulSoup : lxml (rapide, optionnel) ou html.parser (builtin Python).
+# On sonde avec find_spec pour éviter un vrai import (sinon ruff F401 / Pyright
+# "unresolved" si le package est absent de l'env).
+from importlib.util import find_spec
+
+BS_PARSER = "lxml" if find_spec("lxml") is not None else "html.parser"
 
 # ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -112,6 +112,7 @@ logger = logging.getLogger("enrich-cercles")
 
 # ─── Modèle de données ──────────────────────────────────────────────────────
 
+
 @dataclass
 class Region:
     code: str
@@ -122,15 +123,17 @@ class Region:
 @dataclass
 class CercleCandidate:
     """Cercle extrait de Wikipédia, candidat à l'ajout."""
+
     nom: str
-    region_label: Optional[str]   # nom de région tel qu'apparu sur Wikipédia
-    region_code: Optional[str]    # résolu après mapping
+    region_label: Optional[str]  # nom de région tel qu'apparu sur Wikipédia
+    region_code: Optional[str]  # résolu après mapping
     lat: Optional[float] = None
     lng: Optional[float] = None
     geocode_source: Optional[str] = None  # "nominatim" | "wikipedia-link" | None
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
+
 
 def normalize(name: str) -> str:
     """Normalise un nom pour comparaison : NFD, lowercase, supprime tirets/espaces/apostrophes."""
@@ -151,6 +154,7 @@ def save_json(path: Path, data: dict) -> None:
 
 
 # ─── Étape 1 : charger les référentiels existants ──────────────────────────
+
 
 def load_regions() -> dict[str, Region]:
     """Index des régions par nom normalisé."""
@@ -176,6 +180,7 @@ def load_cercles_known() -> tuple[dict, set[str]]:
 
 # ─── Étape 2 : fetch + parse Wikipédia ──────────────────────────────────────
 
+
 def fetch_wikipedia_html(cache_dir: Path) -> str:
     """Télécharge la page Wikipédia avec cache local 24 h."""
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -200,7 +205,9 @@ def fetch_wikipedia_html(cache_dir: Path) -> str:
     return html
 
 
-def parse_wikipedia(html: str, regions_index: dict[str, Region]) -> list[CercleCandidate]:
+def parse_wikipedia(
+    html: str, regions_index: dict[str, Region]
+) -> list[CercleCandidate]:
     """
     Extrait les cercles depuis la structure Wikipédia.
 
@@ -236,7 +243,7 @@ def parse_wikipedia(html: str, regions_index: dict[str, Region]) -> list[CercleC
         # Lire les en-têtes
         header_cells = [
             th.get_text(separator=" ", strip=True).lower()
-            for th in element.find_all("th")[: 10]  # limite raisonnable
+            for th in element.find_all("th")[:10]  # limite raisonnable
         ]
         col_cercle = _find_column_index(header_cells, ["cercle", "nom"])
         col_region = _find_column_index(header_cells, ["région", "region"])
@@ -250,7 +257,11 @@ def parse_wikipedia(html: str, regions_index: dict[str, Region]) -> list[CercleC
             if col_cercle is not None and col_cercle < len(cells):
                 name_cell = cells[col_cercle]
             else:
-                name_cell = cells[0] if cells[0].name == "td" else (cells[1] if len(cells) > 1 else None)
+                name_cell = (
+                    cells[0]
+                    if cells[0].name == "td"
+                    else (cells[1] if len(cells) > 1 else None)
+                )
 
             if name_cell is None or name_cell.name != "td":
                 continue
@@ -288,17 +299,26 @@ def parse_wikipedia(html: str, regions_index: dict[str, Region]) -> list[CercleC
             region_code = None
             if region_label:
                 # Essayer d'extraire un nom de région pur (ex. "Région de Kayes" → "Kayes")
-                cleaned = re.sub(r"^(région|district)\s+(de\s+|du\s+|d')\s*", "", region_label, flags=re.IGNORECASE)
+                cleaned = re.sub(
+                    r"^(région|district)\s+(de\s+|du\s+|d')\s*",
+                    "",
+                    region_label,
+                    flags=re.IGNORECASE,
+                )
                 cleaned = cleaned.strip()
-                ref = regions_index.get(normalize(cleaned)) or regions_index.get(normalize(region_label))
+                ref = regions_index.get(normalize(cleaned)) or regions_index.get(
+                    normalize(region_label)
+                )
                 if ref:
                     region_code = ref.code
 
-            candidates.append(CercleCandidate(
-                nom=nom,
-                region_label=region_label,
-                region_code=region_code,
-            ))
+            candidates.append(
+                CercleCandidate(
+                    nom=nom,
+                    region_label=region_label,
+                    region_code=region_code,
+                )
+            )
 
     return candidates
 
@@ -313,6 +333,7 @@ def _find_column_index(headers: list[str], keywords: list[str]) -> Optional[int]
 
 
 # ─── Étape 3 : géocodage Nominatim (politesse 1 req/s) ──────────────────────
+
 
 class NominatimClient:
     def __init__(self, enabled: bool = True):
@@ -356,14 +377,18 @@ class NominatimClient:
 
 # ─── Étape 4 : fusion non destructive ──────────────────────────────────────
 
+
 def build_new_entry(
     candidate: CercleCandidate,
     next_seq_by_region: dict[str, int],
 ) -> Optional[dict]:
     """Construit une entrée cercles.json depuis un candidat enrichi."""
     if not candidate.region_code:
-        logger.warning("Ignoré (région non résolue) : %s [%s]",
-                       candidate.nom, candidate.region_label)
+        logger.warning(
+            "Ignoré (région non résolue) : %s [%s]",
+            candidate.nom,
+            candidate.region_label,
+        )
         return None
 
     seq = next_seq_by_region.get(candidate.region_code, 1)
@@ -401,20 +426,30 @@ def compute_next_seq(existing: list[dict]) -> dict[str, int]:
 
 # ─── Pipeline ──────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Enrichit cercles.json depuis Wikipédia FR + Nominatim.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Dry-run par défaut. Passe --write pour appliquer.",
     )
-    parser.add_argument("--write", action="store_true",
-                        help="Écrit le résultat dans cercles.json (sinon dry-run).")
-    parser.add_argument("--no-geocode", action="store_true",
-                        help="Désactive Nominatim (offline). Confiance: basse pour tous les nouveaux.")
-    parser.add_argument("--cache-dir", type=Path, default=ROOT / ".cache",
-                        help="Répertoire de cache HTML (défaut : .cache/).")
-    parser.add_argument("--verbose", "-v", action="store_true",
-                        help="Logs détaillés.")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Écrit le résultat dans cercles.json (sinon dry-run).",
+    )
+    parser.add_argument(
+        "--no-geocode",
+        action="store_true",
+        help="Désactive Nominatim (offline). Confiance: basse pour tous les nouveaux.",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=ROOT / ".cache",
+        help="Répertoire de cache HTML (défaut : .cache/).",
+    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Logs détaillés.")
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -424,14 +459,19 @@ def main() -> int:
 
     logger.info("═══ Enrichissement cercles.json ═══")
     logger.info("Mode : %s", "WRITE" if args.write else "DRY-RUN")
-    logger.info("Géocode : %s", "désactivé" if args.no_geocode else "Nominatim (1 req/s)")
+    logger.info(
+        "Géocode : %s", "désactivé" if args.no_geocode else "Nominatim (1 req/s)"
+    )
 
     regions_index = load_regions()
     cercles_data, known_norm = load_cercles_known()
     existing_cercles = cercles_data["cercles"]
     distinct_regions = {r.code for r in regions_index.values()}
-    logger.info("Référentiel actuel : %d cercles, %d régions",
-                len(existing_cercles), len(distinct_regions))
+    logger.info(
+        "Référentiel actuel : %d cercles, %d régions",
+        len(existing_cercles),
+        len(distinct_regions),
+    )
 
     # Fetch + parse
     try:
@@ -456,11 +496,15 @@ def main() -> int:
         if result:
             cand.lat, cand.lng = result
             cand.geocode_source = "nominatim"
-            logger.info("✓ %-25s [%s] → (%.4f, %.4f)",
-                        cand.nom, cand.region_code, cand.lat, cand.lng)
+            logger.info(
+                "✓ %-25s [%s] → (%.4f, %.4f)",
+                cand.nom,
+                cand.region_code,
+                cand.lat,
+                cand.lng,
+            )
         else:
-            logger.info("✗ %-25s [%s] → géocode KO",
-                        cand.nom, cand.region_code or "?")
+            logger.info("✗ %-25s [%s] → géocode KO", cand.nom, cand.region_code or "?")
 
     # Construction des entrées
     # Politique : seuls les candidats GÉOCODÉS sont ajoutés au JSON canonique.
@@ -485,7 +529,7 @@ def main() -> int:
     # Rapport
     print()
     print("═" * 70)
-    print(f"RAPPORT D'ENRICHISSEMENT")
+    print("RAPPORT D'ENRICHISSEMENT")
     print("═" * 70)
     print(f"Cercles existants  : {len(existing_cercles)}")
     print(f"Extraits Wikipédia : {len(candidates)}")
@@ -494,11 +538,15 @@ def main() -> int:
     print(f"  ↳ ajoutés (géocodés)              : {len(new_entries)}")
     print(f"  ↳ ignorés (région non résolue)    : {skipped_no_region}")
     print(f"  ↳ ignorés (géocode Nominatim KO)  : {len(skipped_no_geocode)}")
-    print(f"Total final si écrit  : {len(existing_cercles) + len(new_entries)} / 159 attendus")
+    print(
+        f"Total final si écrit  : {len(existing_cercles) + len(new_entries)} / 159 attendus"
+    )
     print()
 
     if skipped_no_geocode:
-        print(f"⚠️  {len(skipped_no_geocode)} cercles sans coordonnée — à enrichir manuellement :")
+        print(
+            f"⚠️  {len(skipped_no_geocode)} cercles sans coordonnée — à enrichir manuellement :"
+        )
         for s in skipped_no_geocode:
             print(f"     - {s}")
         print("    Pistes : ajouter manuellement dans cercles.json après vérification")
@@ -513,9 +561,11 @@ def main() -> int:
     # Aperçu des 5 premières entrées
     print("APERÇU (5 premières nouvelles entrées) :")
     for e in new_entries[:5]:
-        print(f"  {e['code']:<10} {e['nom']:<25} {e['region_code']} "
-              f"({e['centroide']['lat']:.3f}, {e['centroide']['lng']:.3f}) "
-              f"confiance={e['confiance']}")
+        print(
+            f"  {e['code']:<10} {e['nom']:<25} {e['region_code']} "
+            f"({e['centroide']['lat']:.3f}, {e['centroide']['lng']:.3f}) "
+            f"confiance={e['confiance']}"
+        )
     print()
 
     if args.write:
