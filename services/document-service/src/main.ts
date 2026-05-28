@@ -1,62 +1,57 @@
 /**
  * @file        main.ts
- * @description Point d'entrée du microservice document-service — Génération de documents PDF et QR codes
- * @author      Étudiant UQAR
- * @date        2026
+ * @description Bootstrap du microservice document-service (port 3004).
+ *              Active Helmet, CORS, Swagger, ValidationPipe, logger NestJS.
  * @module      document-service
  */
-
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
+import type { Env } from './config/env.schema';
 
-/** Port d'écoute du service */
-const PORT = process.env.PORT || 3004;
-
-/**
- * Fonction de démarrage du microservice.
- * Configure les pipes de validation globaux et lance le serveur HTTP.
- */
 async function bootstrap(): Promise<void> {
   const logger = new Logger('document-service');
+  const app = await NestFactory.create(AppModule, { bufferLogs: false });
 
-  const app = await NestFactory.create(AppModule);
+  const cfg = app.get(ConfigService<Env, true>);
+  const port = cfg.get('PORT', { infer: true });
+  const corsOrigins = cfg.get('CORS_ORIGINS', { infer: true })!.split(',');
 
-  // Validation automatique des DTOs entrants (class-validator)
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // Supprime les propriétés non décorées
-      forbidNonWhitelisted: true, // Rejette les propriétés inconnues
-      transform: true, // Transforme les payloads en instances de DTO
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Swagger nécessite inline styles/scripts en dev
     }),
   );
-
-  // Préfixe global pour toutes les routes de ce service
   app.setGlobalPrefix('api/v1');
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+  );
+  app.enableCors({ origin: corsOrigins, credentials: true });
 
-  // Activation de CORS pour le développement
-  app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
-  });
-
-  const config = new DocumentBuilder()
-    .setTitle('NINA-AES Document Service')
-    .setDescription('Service de gestion documentaire — stockage et génération de documents')
-    .setVersion('1.0')
+  const swaggerCfg = new DocumentBuilder()
+    .setTitle('NINA-AES — document-service')
+    .setDescription(
+      'Fiche Descriptive Individuelle (FDI) : PDF officiel CTDEC, ' +
+        'QR JWT RS256 signé via Vault Transit, stockage MinIO WORM 10 ans.',
+    )
+    .setVersion('0.1.0')
     .addBearerAuth()
-    .addTag('documents', 'Gestion des documents')
-    .addTag('storage', 'Stockage fichiers (MinIO)')
-    .addTag('certificates', 'Génération de certificats')
-    .addTag('health', 'Health check')
+    .addTag('documents', 'Génération + révocation FDI (auth requise)')
+    .addTag('public-documents', 'Vérification QR offline-friendly (sans auth)')
+    .addTag('health', 'Healthcheck (MinIO + Vault + Postgres)')
     .build();
+  const swaggerDoc = SwaggerModule.createDocument(app, swaggerCfg);
+  SwaggerModule.setup('api/docs', app, swaggerDoc);
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  await app.listen(PORT);
-  logger.log(`document-service démarré sur le port ${PORT}`);
-  console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
+  await app.listen(port);
+  logger.log(`document-service ready on http://localhost:${port}`);
+  logger.log(`Swagger UI:        http://localhost:${port}/api/docs`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  new Logger('document-service').error('bootstrap failed', err instanceof Error ? err.stack : err);
+  process.exit(1);
+});
