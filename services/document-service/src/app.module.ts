@@ -20,6 +20,8 @@ import { QrModule } from './qr/qr.module';
 import { TemplateModule } from './templates/template.module';
 import { PdfModule } from './pdf/pdf.module';
 import { StorageModule } from './storage/storage.module';
+import { AuditPublisherModule } from './audit/audit-publisher.module';
+import { FdiModule } from './fdi/fdi.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { StorageModule } from './storage/storage.module';
     TemplateModule,
     PdfModule,
     StorageModule,
+    AuditPublisherModule,
+    FdiModule,
     HealthModule,
   ],
   controllers: [AppController],
