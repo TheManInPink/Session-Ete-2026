@@ -12,7 +12,7 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   CORS_ORIGINS: z.string().default('http://localhost:4001'),
 
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.url(),
 
   REDIS_URL: z.string().default('redis://localhost:6379'),
   REDIS_KEY_PREFIX: z.string().default('document-service:'),
@@ -22,7 +22,7 @@ export const envSchema = z.object({
   RABBITMQ_NOTIF_EXCHANGE: z.string().default('notification.events'),
 
   // Vault Transit pour signer le QR
-  VAULT_ADDR: z.string().url().default('http://localhost:8200'),
+  VAULT_ADDR: z.url().default('http://localhost:8200'),
   VAULT_TOKEN: z.string().min(1).default('dev-only-root-token'),
   VAULT_QR_SIGNING_KEY: z.string().default('nina-qr-signing'),
 
@@ -36,13 +36,13 @@ export const envSchema = z.object({
   MINIO_RETENTION_YEARS: z.coerce.number().int().positive().default(10),
 
   // identity-service (HTTP en P0 — gRPC reporté Bloc B)
-  IDENTITY_SERVICE_URL: z.string().url().default('http://localhost:3001'),
+  IDENTITY_SERVICE_URL: z.url().default('http://localhost:3001'),
 
   // JWKS QR publique (consommée par les mobiles et /verify-qr)
-  JWKS_QR_URL: z.string().url().default('http://localhost:3002/.well-known/jwks-qr.json'),
+  JWKS_QR_URL: z.url().default('http://localhost:3002/.well-known/jwks-qr.json'),
 
   // JWKS auth-service (utilisée par JwtAuthGuard pour valider les access tokens)
-  AUTH_JWKS_URL: z.string().url().default('http://localhost:3002/.well-known/jwks.json'),
+  AUTH_JWKS_URL: z.url().default('http://localhost:3002/.well-known/jwks.json'),
 
   // FDI
   FDI_TTL_DAYS: z.coerce.number().int().positive().default(180),
