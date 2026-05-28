@@ -19,6 +19,7 @@ import { VaultModule } from './vault/vault.module';
 import { QrModule } from './qr/qr.module';
 import { TemplateModule } from './templates/template.module';
 import { PdfModule } from './pdf/pdf.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { PdfModule } from './pdf/pdf.module';
     QrModule,
     TemplateModule,
     PdfModule,
+    StorageModule,
     HealthModule,
   ],
   controllers: [AppController],
