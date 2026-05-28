@@ -10,9 +10,9 @@
  * @module      document-service/documents
  */
 import { BadRequestException, PipeTransform } from '@nestjs/common';
-import type { ZodTypeAny, z } from 'zod';
+import type { ZodType, z } from 'zod';
 
-export class ZodBodyPipe<T extends ZodTypeAny> implements PipeTransform {
+export class ZodBodyPipe<T extends ZodType> implements PipeTransform {
   constructor(private readonly schema: T) {}
 
   transform(value: unknown): z.infer<T> {
