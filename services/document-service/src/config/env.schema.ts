@@ -41,6 +41,9 @@ export const envSchema = z.object({
   // JWKS QR publique (consommée par les mobiles et /verify-qr)
   JWKS_QR_URL: z.string().url().default('http://localhost:3002/.well-known/jwks-qr.json'),
 
+  // JWKS auth-service (utilisée par JwtAuthGuard pour valider les access tokens)
+  AUTH_JWKS_URL: z.string().url().default('http://localhost:3002/.well-known/jwks.json'),
+
   // FDI
   FDI_TTL_DAYS: z.coerce.number().int().positive().default(180),
   FDI_PUPPETEER_POOL_SIZE: z.coerce.number().int().positive().default(4),

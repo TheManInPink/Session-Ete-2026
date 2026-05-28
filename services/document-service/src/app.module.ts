@@ -22,6 +22,8 @@ import { PdfModule } from './pdf/pdf.module';
 import { StorageModule } from './storage/storage.module';
 import { AuditPublisherModule } from './audit/audit-publisher.module';
 import { FdiModule } from './fdi/fdi.module';
+import { AuthModule } from './auth/auth.module';
+import { DocumentsModule } from './documents/documents.module';
 
 @Module({
   imports: [
@@ -49,7 +51,9 @@ import { FdiModule } from './fdi/fdi.module';
     PdfModule,
     StorageModule,
     AuditPublisherModule,
+    AuthModule,
     FdiModule,
+    DocumentsModule,
     HealthModule,
   ],
   controllers: [AppController],
