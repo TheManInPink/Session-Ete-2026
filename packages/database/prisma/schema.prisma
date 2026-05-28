@@ -778,3 +778,112 @@ model Notification {
   @@index([createdAt])
   @@map("notifications")
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  17. DOCUMENTS — Fiche Descriptive Individuelle (PDF + QR JWT RS256)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Type de document généré par `document-service`.
+enum DocumentType {
+  FICHE_DESCRIPTIVE
+  EXTRAIT_NAISSANCE
+  CERTIFICAT_NATIONALITE
+}
+
+/// Motif de révocation d'un document émis.
+enum DocumentRevocationReason {
+  DECEASED
+  FRAUD_DETECTED
+  DATA_CORRECTION
+  CITIZEN_REQUEST
+  OTHER
+}
+
+/// Action journalisée sur un document (download, vérification QR).
+enum DocumentAccessAction {
+  DOWNLOAD
+  VERIFY_QR
+}
+
+/// Résultat d'une action sur un document.
+enum DocumentAccessResult {
+  SUCCESS
+  FAILURE
+}
+
+/// Document émis (FDI principalement). Append-only — toute mise à jour
+/// passe par une nouvelle ligne + révocation de l'ancienne.
+model Document {
+  id             String       @id @default(uuid()) @db.Uuid
+  /// Identifiant unique du JWT QR (UUID v7). Clé de révocation O(1).
+  jti            String       @unique @db.Uuid
+  /// NINA du citoyen (dénormalisé pour découpler du cycle de vie Citizen).
+  nina           String       @db.VarChar(15)
+  type           DocumentType @default(FICHE_DESCRIPTIVE)
+  /// Numéro de souche imprimé sur le PDF (FDI-YYYY-NNNNNNN).
+  serialNumber   String       @unique @map("serial_number") @db.VarChar(32)
+  /// Code ISO 639-3 de la langue rendue (fra, bam, snk, fuv).
+  language       String       @db.VarChar(3)
+  /// SHA-256 du HTML source rendu (canonical, avant Puppeteer).
+  sha256Html     String       @map("sha256_html") @db.VarChar(64)
+  /// SHA-256 du PDF final (après pdf-lib post-process).
+  sha256Pdf      String       @map("sha256_pdf") @db.VarChar(64)
+  /// Key id Vault Transit qui a signé le QR (`nina-qr-signing-vN`).
+  kid            String       @db.VarChar(64)
+  minioBucket    String       @default("fiches") @map("minio_bucket") @db.VarChar(64)
+  minioObjectKey String       @map("minio_object_key") @db.VarChar(256)
+  minioVersionId String?      @map("minio_version_id") @db.VarChar(64)
+  issuedAt       DateTime     @default(now()) @map("issued_at") @db.Timestamptz(6)
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz(6)
+  /// userId Keycloak qui a déclenché l'émission (agent ou self-service).
+  issuedBy       String       @map("issued_by") @db.Uuid
+  issuedFromIp   String       @map("issued_from_ip") @db.VarChar(45)
+  /// Watermark court (12 chars de SHA-256(ip|userAgent|jti)) imprimé en filigrane.
+  watermark      String       @db.VarChar(16)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  revocation DocumentRevocation?
+  accessLogs DocumentAccessLog[]
+
+  @@index([nina, type])
+  @@index([issuedAt])
+  @@index([expiresAt])
+  @@map("documents")
+}
+
+/// Révocation d'un document (1 ligne par jti révoqué, append-only).
+model DocumentRevocation {
+  id         String                   @id @default(uuid()) @db.Uuid
+  documentId String                   @unique @map("document_id") @db.Uuid
+  reason     DocumentRevocationReason
+  reasonText String?                  @map("reason_text") @db.Text
+  revokedAt  DateTime                 @default(now()) @map("revoked_at") @db.Timestamptz(6)
+  revokedBy  String                   @map("revoked_by") @db.Uuid
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+
+  @@map("document_revocations")
+}
+
+/// Journal d'accès à un document (download + vérification QR).
+/// Append-only — sert d'audit local en complément de l'audit Merkle global.
+model DocumentAccessLog {
+  id         String               @id @default(uuid()) @db.Uuid
+  documentId String?              @map("document_id") @db.Uuid
+  action     DocumentAccessAction
+  /// Pour VERIFY_QR sans documentId (si le jti n'existe pas en base — anti-fraude).
+  jti        String?              @db.Uuid
+  ipAddress  String               @map("ip_address") @db.VarChar(45)
+  userAgent  String?              @map("user_agent") @db.VarChar(500)
+  result     DocumentAccessResult
+  /// VALID | EXPIRED | REVOKED | HASH_MISMATCH | BAD_SIGNATURE | BAD_CLAIM | INVALID
+  reasonCode String?              @map("reason_code") @db.VarChar(32)
+  occurredAt DateTime             @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([jti])
+  @@index([occurredAt])
+  @@index([action, result])
+  @@map("document_access_logs")
+}
