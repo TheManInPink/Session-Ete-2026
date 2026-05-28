@@ -1,0 +1,24 @@
+<div class="identity-block">
+  <dl class="identity-grid">
+    <dt>{{t "fdi.nina"}}</dt>
+    <dd class="nina-formatted">{{formatNina citizen.nina}}</dd>
+
+    <dt>{{t "fdi.lastName"}}</dt>
+    <dd class="value-strong">{{citizen.lastName}}</dd>
+
+    <dt>{{t "fdi.firstName"}}</dt>
+    <dd class="value-strong">{{citizen.firstName}}</dd>
+
+    <dt>{{t "fdi.birthDate"}}</dt>
+    <dd>{{formatDate citizen.birthDate language}}</dd>
+
+    <dt>{{t "fdi.sex"}}</dt>
+    <dd>{{t (concat "fdi.sex." citizen.sex)}}</dd>
+
+    <dt>{{t "fdi.matrimonial"}}</dt>
+    <dd>{{t (concat "fdi.matrimonial." citizen.maritalStatus)}}</dd>
+
+    <dt>{{t "fdi.profession"}}</dt>
+    <dd>{{#if citizen.profession}}{{citizen.profession}}{{else}}—{{/if}}</dd>
+  </dl>
+</div>

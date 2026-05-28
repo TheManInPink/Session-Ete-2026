@@ -1,0 +1,66 @@
+{
+  "_comment": "Bamanankan (BM). Termes officiels validés à confirmer avec un linguiste partenaire CTDEC avant production.",
+  "ctdec": {
+    "fullName": "Sigida latigɛko Gafe Jɛnsɛnso",
+    "address": "Baba Diarra Sira, BP 215 — Bamakɔ"
+  },
+  "republic": {
+    "name": "Mali Faso",
+    "motto": "Jamana Kelen — Hadamadenya Kelen — Limaniya Kelen"
+  },
+  "fdi": {
+    "title": "Mɔgɔ Sigida Sɛbɛn",
+    "documentId": "Sɛbɛn nimɔrɔ :",
+    "serial": {
+      "label": "Sɛbɛn lakana nimɔrɔ :",
+      "short": "Nim. :"
+    },
+    "nina": "NINA",
+    "lastName": "Jamu",
+    "firstName": "Tɔgɔ",
+    "birthDate": "Bange don",
+    "sex": {
+      "label": "Cɛya / Musoya",
+      "MALE": "Cɛ",
+      "FEMALE": "Muso",
+      "UNKNOWN": "Ma fɔ"
+    },
+    "matrimonial": {
+      "label": "Furusiri ko",
+      "SINGLE": "Furubali",
+      "MARRIED": "Furula",
+      "DIVORCED": "Furusalen",
+      "WIDOWED": "Cɛsalen / Musosalen",
+      "SEPARATED": "Bolokafara",
+      "CIVIL_UNION": "Jɛnɲɔgɔnya"
+    },
+    "profession": "Baara",
+    "photo": {
+      "missing": "Ja tɛ yen"
+    },
+    "birthPlace": "Bange yɔrɔ",
+    "residence": "Sigi yɔrɔ",
+    "country": "Jamana",
+    "country.code": "Jamana lakana",
+    "region": "Mara",
+    "cercle": "Cɛrɛkɔlɔ",
+    "arrondissement": "Aronndisɛman",
+    "commune": "Komini",
+    "quartier": "Kin / Dugu",
+    "fraction": "Fraksɔn",
+    "hameau": "Daala",
+    "secteur": "Sɛktɛri",
+    "parents": "Bangebagaw",
+    "father": "Fa",
+    "mother": "Ba",
+    "issuedOn": "Don",
+    "signedBy": "CTDEC — Bamakɔ",
+    "justification": {
+      "body": "Sɛbɛn nin b'a jira ko mɔgɔ in ye a ka sigida ɲɛfɔ a ka sɛbɛnw fɛ minw bɛ CTDEC kɔnɔ ani minw lakananen don baarakɛla cɛw fɛ.",
+      "fdiNumber": "Mɔgɔ kelen ka sɛbɛn nimɔrɔ"
+    },
+    "qr": {
+      "scanInstructions": "I bɛ se ka QR in suguya ka sɛbɛn lakanani sɛgɛsɛgɛli kɛ"
+    }
+  }
+}

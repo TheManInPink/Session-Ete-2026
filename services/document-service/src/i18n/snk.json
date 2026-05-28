@@ -1,0 +1,15 @@
+{
+  "_comment": "Soninké (SNK) — squelette en attente de traduction par un linguiste partenaire. i18next utilisera fra.json en fallback pour toute clé non remplie.",
+  "ctdec": {
+    "fullName": "Centre de Traitement des Données de l'État Civil",
+    "address": "Rue Baba Diarra, BP 215 — Bamako"
+  },
+  "republic": {
+    "name": "Mali Jamáane",
+    "motto": "Yere Kafu — Sigi N'sandi — Yi N'gandi"
+  },
+  "fdi": {
+    "title": "Yere Sɛbɛn Sandi",
+    "_TODO": "Traductions soninké à compléter Sprint 5 — cf. docs/26 §livrables linguistiques."
+  }
+}

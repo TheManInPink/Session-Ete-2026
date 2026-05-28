@@ -1,0 +1,65 @@
+{
+  "ctdec": {
+    "fullName": "Centre de Traitement des Données de l'État Civil",
+    "address": "Rue Baba Diarra, BP 215 — Bamako"
+  },
+  "republic": {
+    "name": "République du Mali",
+    "motto": "Un Peuple — Un But — Une Foi"
+  },
+  "fdi": {
+    "title": "Fiche Descriptive Individuelle",
+    "documentId": "Identifiant fiche :",
+    "serial": {
+      "label": "N° de souche :",
+      "short": "N° :"
+    },
+    "nina": "NINA",
+    "lastName": "Nom",
+    "firstName": "Prénom(s)",
+    "birthDate": "Date de naissance",
+    "sex": {
+      "label": "Sexe",
+      "MALE": "Homme",
+      "FEMALE": "Femme",
+      "UNKNOWN": "Non précisé"
+    },
+    "matrimonial": {
+      "label": "Situation matrimoniale",
+      "SINGLE": "Célibataire",
+      "MARRIED": "Marié(e)",
+      "DIVORCED": "Divorcé(e)",
+      "WIDOWED": "Veuf / Veuve",
+      "SEPARATED": "Séparé(e)",
+      "CIVIL_UNION": "Pacsé(e)"
+    },
+    "profession": "Profession",
+    "photo": {
+      "missing": "Photo non fournie"
+    },
+    "birthPlace": "Lieu de naissance",
+    "residence": "Lieu de résidence",
+    "country": "Pays",
+    "country.code": "Code pays",
+    "region": "Région",
+    "cercle": "Cercle",
+    "arrondissement": "Arrondissement",
+    "commune": "Commune",
+    "quartier": "Quartier / Village",
+    "fraction": "Fraction",
+    "hameau": "Hameau",
+    "secteur": "Secteur",
+    "parents": "Parents",
+    "father": "Père",
+    "mother": "Mère",
+    "issuedOn": "Fait le",
+    "signedBy": "CTDEC — Bamako",
+    "justification": {
+      "body": "Le présent document atteste que l'intéressé(e) a justifié de son état civil par la présentation des pièces officielles enregistrées au CTDEC et certifié(es) conformes par les services compétents.",
+      "fdiNumber": "N° fiche individuelle"
+    },
+    "qr": {
+      "scanInstructions": "Scannez ce QR pour vérifier l'authenticité"
+    }
+  }
+}

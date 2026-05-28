@@ -17,6 +17,7 @@ import { IdentityClientModule } from './identity-client/identity-client.module';
 import { RedisModule } from './redis/redis.module';
 import { VaultModule } from './vault/vault.module';
 import { QrModule } from './qr/qr.module';
+import { TemplateModule } from './templates/template.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { QrModule } from './qr/qr.module';
     VaultModule,
     IdentityClientModule,
     QrModule,
+    TemplateModule,
     HealthModule,
   ],
   controllers: [AppController],

@@ -1,0 +1,15 @@
+{
+  "_comment": "Peul / Fulfulde (FUV) — squelette en attente de traduction par un linguiste partenaire. i18next utilisera fra.json en fallback pour toute clé non remplie.",
+  "ctdec": {
+    "fullName": "Centre de Traitement des Données de l'État Civil",
+    "address": "Rue Baba Diarra, BP 215 — Bamako"
+  },
+  "republic": {
+    "name": "Leydi Mali",
+    "motto": "Renndo Gootol — Yiɗde Gootol — Liimaaku Gootol"
+  },
+  "fdi": {
+    "title": "Kaartal Neɗɗo Goɗɗo",
+    "_TODO": "Traductions fulfulde à compléter Sprint 5 — cf. docs/26 §livrables linguistiques."
+  }
+}

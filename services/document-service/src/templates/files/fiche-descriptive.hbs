@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="{{language}}">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FDI — {{citizen.nina}}</title>
+    <style>{{{css}}}</style>
+  </head>
+  <body>
+    {{> header-ctdec}}
+
+    <main class="fdi">
+      <section class="top-band">
+        <div class="serial">
+          <strong>{{t "fdi.serial.label"}}</strong>
+          <span class="serial-value">{{document.serialNumber}}</span>
+          <span class="serial-date">{{formatDate document.issuedAt language}}</span>
+        </div>
+        <div class="document-id">
+          <small>{{t "fdi.documentId"}} {{document.id}}</small>
+        </div>
+      </section>
+
+      <h1 class="fdi-title">{{t "fdi.title"}}</h1>
+
+      <section class="identity-row">
+        {{> photo-block}}
+        {{> identity-block}}
+      </section>
+
+      <section class="places">
+        <h2 class="section-title">{{t "fdi.birthPlace"}}</h2>
+        {{#with birthPlace}}
+          {{> place-hierarchy}}
+        {{/with}}
+
+        <h2 class="section-title">{{t "fdi.residence"}}</h2>
+        {{#with residence}}
+          {{> place-hierarchy}}
+        {{/with}}
+      </section>
+
+      <section class="parents">
+        <h2 class="section-title">{{t "fdi.parents"}}</h2>
+        {{> parents-block}}
+      </section>
+
+      {{> justification-block}}
+
+      <footer class="fdi-footer">
+        <div class="coat-of-arms" aria-hidden="true">★</div>
+        <div class="signature-block">
+          <p>{{t "fdi.issuedOn"}} <strong>{{formatDate document.issuedAt language}}</strong></p>
+          <p class="ctdec-signature">{{t "fdi.signedBy"}}</p>
+        </div>
+        {{> qr-footer}}
+      </footer>
+
+      <div class="watermark" aria-hidden="true">{{document.watermark}}</div>
+    </main>
+  </body>
+</html>

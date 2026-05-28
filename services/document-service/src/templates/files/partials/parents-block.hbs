@@ -1,0 +1,32 @@
+<div class="parents-grid">
+  <div class="parent-card">
+    <h3>{{t "fdi.father"}}</h3>
+    {{#if citizen.father}}
+      <p>
+        <span>{{t "fdi.lastName"}} :</span>
+        <strong>{{citizen.father.lastName}}</strong>
+      </p>
+      <p>
+        <span>{{t "fdi.firstName"}} :</span>
+        <strong>{{citizen.father.firstName}}</strong>
+      </p>
+    {{else}}
+      <p class="missing">—</p>
+    {{/if}}
+  </div>
+  <div class="parent-card">
+    <h3>{{t "fdi.mother"}}</h3>
+    {{#if citizen.mother}}
+      <p>
+        <span>{{t "fdi.lastName"}} :</span>
+        <strong>{{citizen.mother.lastName}}</strong>
+      </p>
+      <p>
+        <span>{{t "fdi.firstName"}} :</span>
+        <strong>{{citizen.mother.firstName}}</strong>
+      </p>
+    {{else}}
+      <p class="missing">—</p>
+    {{/if}}
+  </div>
+</div>

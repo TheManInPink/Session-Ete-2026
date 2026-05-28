@@ -3,6 +3,11 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "assets": [
+      { "include": "templates/files/**/*.hbs", "outDir": "dist", "watchAssets": true },
+      { "include": "templates/files/**/*.css", "outDir": "dist", "watchAssets": true },
+      { "include": "i18n/*.json", "outDir": "dist", "watchAssets": true }
+    ]
   }
 }

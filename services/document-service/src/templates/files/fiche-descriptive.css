@@ -1,0 +1,277 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * Fiche Descriptive Individuelle — CSS A4 imprimable
+ * Aligné design du papier CTDEC actuel (rue Baba Diarra, Bamako).
+ * Polices web-safe par défaut ; Noto Sans recommandée si installée
+ * dans le conteneur Puppeteer (apt install fonts-noto).
+ * ──────────────────────────────────────────────────────────────────────── */
+
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans', 'Liberation Sans', Arial, sans-serif;
+  color: #111;
+  font-size: 10pt;
+  margin: 0;
+  position: relative;
+}
+
+/* ─── En-tête CTDEC ──────────────────────────────────────────────────── */
+.ctdec-header {
+  display: grid;
+  grid-template-columns: 16mm 1fr 50mm;
+  gap: 4mm;
+  align-items: center;
+  border-bottom: 1.5pt solid #000;
+  padding-bottom: 3mm;
+  margin-bottom: 4mm;
+}
+.ctdec-logo {
+  font-size: 28pt;
+  text-align: center;
+}
+.ctdec-name {
+  font-size: 22pt;
+  margin: 0;
+  letter-spacing: 1px;
+}
+.ctdec-fullname {
+  font-size: 8pt;
+  margin: 1mm 0 0;
+  font-style: italic;
+}
+.ctdec-address {
+  font-size: 7.5pt;
+  margin: 0.5mm 0 0;
+  color: #444;
+}
+.ctdec-republic {
+  text-align: right;
+  font-size: 9pt;
+}
+.ctdec-republic .motto {
+  font-style: italic;
+  margin: 1mm 0 0;
+}
+
+/* ─── Bandeau souche / id ────────────────────────────────────────────── */
+.top-band {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 8.5pt;
+  border: 0.4pt solid #ccc;
+  padding: 1.5mm 3mm;
+  margin-bottom: 4mm;
+}
+.serial-value {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  margin: 0 4mm;
+  font-weight: 700;
+}
+.serial-date {
+  color: #555;
+}
+
+/* ─── Titre principal ────────────────────────────────────────────────── */
+.fdi-title {
+  text-align: center;
+  font-size: 14pt;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border-bottom: 1pt solid #000;
+  padding-bottom: 3mm;
+  margin: 0 0 5mm;
+}
+
+/* ─── Bloc identité (photo + données) ────────────────────────────────── */
+.identity-row {
+  display: grid;
+  grid-template-columns: 50mm 1fr;
+  gap: 8mm;
+  align-items: start;
+  margin-bottom: 5mm;
+}
+.photo-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2mm;
+}
+.citizen-photo,
+.citizen-photo-placeholder {
+  width: 50mm;
+  height: 60mm;
+  border: 0.6pt solid #888;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 8pt;
+}
+.photo-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 7.5pt;
+  color: #555;
+  text-align: center;
+}
+
+.identity-block .identity-grid {
+  display: grid;
+  grid-template-columns: 40mm 1fr;
+  row-gap: 1.4mm;
+  column-gap: 4mm;
+  margin: 0;
+}
+.identity-grid dt {
+  font-weight: 600;
+  color: #444;
+}
+.identity-grid dd {
+  margin: 0;
+}
+.nina-formatted {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 12pt;
+  letter-spacing: 0.4px;
+}
+.value-strong {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ─── Titres de section ──────────────────────────────────────────────── */
+.section-title {
+  font-size: 10pt;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: #f0f0f0;
+  border-left: 2pt solid #000;
+  padding: 1mm 2mm;
+  margin: 4mm 0 1.5mm;
+}
+
+/* ─── Hiérarchie administrative ──────────────────────────────────────── */
+.place-hierarchy {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-bottom: 3mm;
+}
+.place-hierarchy th,
+.place-hierarchy td {
+  border: 0.4pt solid #999;
+  padding: 1.2mm 2mm;
+  text-align: left;
+}
+.place-hierarchy th {
+  background: #fafafa;
+  width: 28mm;
+  font-weight: 600;
+  color: #555;
+}
+
+/* ─── Parents ────────────────────────────────────────────────────────── */
+.parents-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5mm;
+}
+.parent-card {
+  border: 0.4pt solid #999;
+  padding: 2.5mm 3mm;
+  font-size: 9pt;
+}
+.parent-card h3 {
+  margin: 0 0 1.5mm;
+  font-size: 9pt;
+  border-bottom: 0.4pt solid #ccc;
+  padding-bottom: 1mm;
+}
+.parent-card p {
+  margin: 0.6mm 0;
+}
+.parent-card .missing {
+  color: #aaa;
+  font-style: italic;
+  text-align: center;
+}
+
+/* ─── Bloc justification ─────────────────────────────────────────────── */
+.justification {
+  margin-top: 5mm;
+  padding: 3mm 4mm;
+  background: #fafafa;
+  border-left: 2pt solid #444;
+  font-size: 9pt;
+}
+.justification .just-text {
+  font-style: italic;
+  margin: 0 0 2mm;
+}
+
+/* ─── Pied de page + QR ──────────────────────────────────────────────── */
+.fdi-footer {
+  display: grid;
+  grid-template-columns: 18mm 1fr 50mm;
+  gap: 4mm;
+  align-items: center;
+  margin-top: 6mm;
+  padding-top: 3mm;
+  border-top: 1pt solid #000;
+}
+.fdi-footer .coat-of-arms {
+  font-size: 30pt;
+  text-align: center;
+  color: #777;
+}
+.signature-block p {
+  margin: 0.5mm 0;
+  font-size: 9pt;
+}
+.ctdec-signature {
+  font-style: italic;
+  color: #555;
+}
+
+.qr-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1mm;
+}
+.qr-image {
+  border: 0.4pt solid #ccc;
+}
+.qr-instructions {
+  text-align: center;
+  font-size: 7pt;
+  color: #444;
+}
+.qr-jti {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 6pt;
+  color: #888;
+  word-break: break-all;
+}
+
+/* ─── Watermark anti-fraude ──────────────────────────────────────────── */
+.watermark {
+  position: fixed;
+  bottom: 4mm;
+  right: 4mm;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 6pt;
+  color: #bbb;
+  letter-spacing: 1px;
+}

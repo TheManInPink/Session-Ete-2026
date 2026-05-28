@@ -1,0 +1,11 @@
+<div class="photo-block">
+  {{#if citizen.photoUrl}}
+    <img src="{{citizen.photoUrl}}" alt="" class="citizen-photo" />
+  {{else}}
+    <div class="citizen-photo-placeholder">{{t "fdi.photo.missing"}}</div>
+  {{/if}}
+  <div class="photo-caption">
+    <small>{{t "fdi.serial.short"}} {{document.serialNumber}}</small>
+    <small>{{formatDate document.issuedAt language}}</small>
+  </div>
+</div>
