@@ -30,6 +30,11 @@ import { DocumentsModule } from './documents/documents.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
+      // Charge le .env racine du monorepo (priorité racine — DATABASE_URL
+      // etc. y est défini en référence aux POSTGRES_*).
+      // expandVariables=true pour résoudre ${VAR} style.
+      envFilePath: ['../../.env', '.env'],
+      expandVariables: true,
       validate: (env) => validateEnv(env as Record<string, unknown>),
     }),
     ScheduleModule.forRoot(),

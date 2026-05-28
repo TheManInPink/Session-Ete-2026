@@ -70,6 +70,10 @@ async function renderHtml(lang: 'fra' | 'bam', qrToken: string): Promise<string>
   Handlebars.registerHelper('formatNina', formatNinaHelper);
   Handlebars.registerHelper('formatDate', formatDateHelper);
   Handlebars.registerHelper('concat', (a, b) => `${a}${b}`);
+  Handlebars.registerHelper('t', function (key: string, options: Handlebars.HelperOptions) {
+    const lang = (options.data?.root?.language as string) ?? 'fra';
+    return i18next.getFixedT(lang)(key);
+  });
 
   // Partials
   const srcDir = join(__dirname, '..', 'src');
@@ -98,8 +102,6 @@ async function renderHtml(lang: 'fra' | 'bam', qrToken: string): Promise<string>
       interpolation: { escapeValue: false },
     });
   }
-  const t = i18next.getFixedT(lang);
-
   const qrDataUrl = await qrcode.toDataURL(qrToken, {
     errorCorrectionLevel: 'H',
     margin: 1,
@@ -139,7 +141,6 @@ async function renderHtml(lang: 'fra' | 'bam', qrToken: string): Promise<string>
     language: lang,
     qrDataUrl,
     css,
-    t: (k: string, opts?: Record<string, unknown>) => t(k, opts ?? {}),
   });
 }
 

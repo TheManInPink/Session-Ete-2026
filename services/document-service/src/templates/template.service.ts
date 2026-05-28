@@ -52,6 +52,13 @@ export class TemplateService implements OnModuleInit {
     Handlebars.registerHelper('formatNina', formatNinaHelper);
     Handlebars.registerHelper('formatDate', formatDateHelper);
     Handlebars.registerHelper('concat', (a, b) => `${a}${b}`);
+    // `t` enregistré comme helper global → survit aux switches de contexte
+    // {{#with ...}} qui sinon dépouillent les données passées au compile.
+    // Lit la langue depuis options.data.root.language (toujours accessible).
+    Handlebars.registerHelper('t', function (key: string, options: Handlebars.HelperOptions) {
+      const lang = (options.data?.root?.language as string) ?? 'fra';
+      return i18next.getFixedT(lang)(key);
+    });
 
     const filesDir = join(__dirname, 'files');
     const partialsDir = join(filesDir, 'partials');
@@ -90,7 +97,6 @@ export class TemplateService implements OnModuleInit {
       margin: 1,
       scale: 6,
     });
-    const t = i18next.getFixedT(input.language);
     const html = this.compiled({
       citizen: input.citizen,
       birthPlace: this.flatten(input.birthPlace),
@@ -99,7 +105,6 @@ export class TemplateService implements OnModuleInit {
       language: input.language,
       qrDataUrl,
       css: this.css,
-      t: (key: string, opts?: Record<string, unknown>) => t(key, opts ?? {}),
     });
     const sha256Html = createHash('sha256').update(html).digest('hex');
     return { html, sha256Html };

@@ -1,0 +1,9 @@
+# Artefacts générés par scripts/demo-fdi.ts (locaux uniquement)
+demo-fdi-*.pdf
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Coverage
+coverage/
