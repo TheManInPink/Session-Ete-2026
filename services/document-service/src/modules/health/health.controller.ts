@@ -1,18 +1,77 @@
+/**
+ * @file        health.controller.ts
+ * @description Healthcheck enrichi : MinIO (bucket fiches) + identity-service
+ *              + Postgres. Vault et RabbitMQ sont best-effort (échec n'invalide
+ *              pas le service, juste un warn).
+ *
+ *              GET /api/v1/health         — détaillé
+ *              GET /api/v1/health/live    — liveness (toujours 200 si process up)
+ *              GET /api/v1/health/ready   — readiness (deps critiques)
+ *
+ * @module      document-service/modules/health
+ */
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import {
+  HealthCheck,
+  HealthCheckService,
+  HealthIndicatorResult,
+  PrismaHealthIndicator,
+} from '@nestjs/terminus';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Public } from '@nina-aes/auth-guards';
+import { prisma } from '@nina-aes/database';
+import { MinioService } from '../../storage/minio.service';
+import { IdentityClient } from '../../identity-client/identity.client';
 
 @ApiTags('health')
+@Public()
 @Controller('health')
 export class HealthController {
+  constructor(
+    private readonly hc: HealthCheckService,
+    private readonly db: PrismaHealthIndicator,
+    private readonly minio: MinioService,
+    private readonly identity: IdentityClient,
+  ) {}
+
   @Get()
-  @ApiOperation({ summary: 'Health check du service documentaire' })
+  @HealthCheck()
+  @ApiOperation({ summary: 'Healthcheck détaillé (Postgres + MinIO + identity)' })
   check() {
+    return this.hc.check([
+      async () => this.db.pingCheck('postgres', prisma),
+      async (): Promise<HealthIndicatorResult> => {
+        const ok = await this.minio.ping();
+        return { minio: { status: ok ? 'up' : 'down' } };
+      },
+      async (): Promise<HealthIndicatorResult> => {
+        const ok = await this.identity.ping();
+        return { 'identity-service': { status: ok ? 'up' : 'down' } };
+      },
+    ]);
+  }
+
+  @Get('live')
+  @ApiOperation({ summary: 'Liveness probe — process up' })
+  live(): { status: 'live'; service: 'document-service'; timestamp: string } {
     return {
-      status: 'healthy',
+      status: 'live',
       service: 'document-service',
-      version: '0.0.1',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
     };
+  }
+
+  @Get('ready')
+  @HealthCheck()
+  @ApiOperation({ summary: 'Readiness probe — Postgres + MinIO obligatoires' })
+  ready() {
+    return this.hc.check([
+      async () => this.db.pingCheck('postgres', prisma),
+      async (): Promise<HealthIndicatorResult> => {
+        const ok = await this.minio.ping();
+        if (!ok) throw new Error('MinIO bucket fiches indisponible');
+        return { minio: { status: 'up' } };
+      },
+    ]);
   }
 }
