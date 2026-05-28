@@ -13,6 +13,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { validateEnv, type Env } from './config/env.schema';
 import { AppController } from './app.controller';
 import { HealthModule } from './modules/health/health.module';
+import { IdentityClientModule } from './identity-client/identity-client.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { HealthModule } from './modules/health/health.module';
       ],
     }),
     TerminusModule,
+    IdentityClientModule,
     HealthModule,
   ],
   controllers: [AppController],
