@@ -65,7 +65,11 @@ const jwtVerifierProvider: Provider = {
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      // Charge le .env racine du monorepo en priorité (DATABASE_URL etc.
+      // y est défini en référence aux POSTGRES_*). expandVariables=true
+      // pour résoudre ${VAR} composés.
+      envFilePath: ['../../.env', '.env.local', '.env'],
+      expandVariables: true,
       validate: validateEnv,
     }),
     // Ordre important : Vault doit être prêt avant Crypto (qui en dépend).

@@ -39,7 +39,7 @@ export class HealthController {
   @ApiOperation({ summary: 'Healthcheck détaillé (Postgres + MinIO + identity)' })
   check() {
     return this.hc.check([
-      async () => this.db.pingCheck('postgres', prisma),
+      async () => this.db.pingCheck('postgres', prisma as never),
       async (): Promise<HealthIndicatorResult> => {
         const ok = await this.minio.ping();
         return { minio: { status: ok ? 'up' : 'down' } };
@@ -66,7 +66,7 @@ export class HealthController {
   @ApiOperation({ summary: 'Readiness probe — Postgres + MinIO obligatoires' })
   ready() {
     return this.hc.check([
-      async () => this.db.pingCheck('postgres', prisma),
+      async () => this.db.pingCheck('postgres', prisma as never),
       async (): Promise<HealthIndicatorResult> => {
         const ok = await this.minio.ping();
         if (!ok) throw new Error('MinIO bucket fiches indisponible');
