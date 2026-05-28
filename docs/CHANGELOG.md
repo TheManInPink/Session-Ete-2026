@@ -3,10 +3,66 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-25 (patch 0bis — doc 10 v2.0 + ADR-006 addendum + ADR-026)
+> **Dernière mise à jour** : 2026-05-28 (patch 0ter — document-service Phases 1-10 livrées)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0ter. Patch 2026-05-28 — document-service Phases 1-10 livrées (PROMPT 3.3 scaffold complet)
+
+Scaffold complet du `document-service` matérialisé en 10 commits incrémentaux
+(`feat(document): phase N/10`) + 1 chore monorepo (pnpm 11.4 + verifyDepsBeforeRun).
+
+| Phase | Commit    | Livrable                                                                              |
+| ----- | --------- | ------------------------------------------------------------------------------------- |
+| 1/10  | `fe00b5f` | Foundation : deps (Puppeteer, pdf-lib, jose, minio, ioredis…) + env Zod + bootstrap   |
+| chore | `ee3b200` | pnpm 11.2 → 11.4 + `verifyDepsBeforeRun: false` (fix race Windows bin shim)           |
+| 2/10  | `b1e9a3a` | Prisma : Document + DocumentRevocation + DocumentAccessLog + triggers append-only     |
+| 3/10  | `c37b8d8` | IdentityClient HTTP vers identity-service:3001 + types DTO                            |
+| 4/10  | `af57b8a` | QR module : Vault Transit RS256 (kid versionné) + JWKS cache 24h + révocation Redis   |
+| 5/10  | `e8a5823` | Templates Handlebars + 8 partials + CSS A4 + i18n 4 langues (FR/BM/SNK/FUV)           |
+| 6/10  | `c4880ad` | PDF Puppeteer pool (CONCURRENCY_CONTEXT × 4) + pdf-lib (PDF/A-3b + qr.jwt attachment) |
+| 7/10  | `99b2d3f` | Storage MinIO (Object Lock COMPLIANCE 10 ans + presign 1h)                            |
+| 8/10  | `69010e9` | FdiService orchestrateur (9 étapes) + AuditPublisher RabbitMQ + serial + watermark    |
+| 9/10  | `bc9fac4` | Controllers REST (6 endpoints) + DTOs Zod + JwksJwtVerifier + Health Terminus enrichi |
+| 10/10 | `4f491fb` | Tests : 23 unit + 7 e2e smoke + script `demo:fdi` autonome (rendu local sans stack)   |
+
+**Endpoints exposés** :
+
+- `POST /api/v1/documents/fdi` — JWT + role citizen|agent|admin
+- `GET  /api/v1/documents/:id/download-url` — JWT + role citizen|agent|admin
+- `DELETE /api/v1/documents/:id` — JWT + role admin
+- `POST /api/v1/public/documents/verify-qr` — PUBLIC, rate-limit 30/min/IP
+- `GET  /api/v1/health` + `/live` + `/ready` — Terminus (Postgres + MinIO + identity)
+- `GET  /api/docs` — Swagger OpenAPI 3.1
+
+**Écarts notables vs doc 10 v2.0** :
+
+- `JwksJwtVerifier` (sync, contrat `JwtVerifier` de `@nina-aes/auth-guards`) ajouté côté
+  document-service au lieu d'être dans `@nina-aes/auth-guards` — il dépend d'env (`AUTH_JWKS_URL`)
+  propre au consommateur
+- `@nina-aes/vault-client.transitSign` étendu avec opts
+  `{ prehashed, signatureAlgorithm: 'pkcs1v15' | 'pss', hashAlgorithm }` + nouveau
+  `transitReadKey()` pour `kid` versionné (backward-compat, 4 tests existants verts)
+- `i18n` recentré P0 sur 4 langues (FR complet, BM partiel, SNK + FUV squelettes avec fallback FR) —
+  4 autres langues planifiées Sprint 5 Bloc B
+- Script `demo:fdi` (génère 2 PDFs locaux FR + BM, JWT factice ad-hoc, sans appel
+  Vault/MinIO/identity) — pratique pour démo soutenance UQAR
+
+**Couverture tests** : 23 unit (canonical, format-nina, watermark, revocation, DTOs Zod) + 7 e2e
+smoke (health/live contract + verify-qr DTO pipeline). Tests HTTP complets avec testcontainers
+reportés à doc 18 (testing strategy).
+
+**Implémentation code restant à produire (hors document-service)** :
+
+- `infrastructure/vault/init/05-create-qr-key.sh` (génération initiale de la clé `nina-qr-signing`
+  RSA 3072 au boot Vault dev)
+- Script init MinIO pour créer le bucket `fiches` avec `--with-lock` + retention COMPLIANCE 3650d
+  (irréversible — voir docs/10 §10.1)
+- `auth-service` doit exposer `/.well-known/jwks.json` (consommé par JwksJwtVerifier) — déjà prévu
+  cf. CHANGELOG patch 0 §0
+
+---
 
 ### 0bis. Patch 2026-05-25 — `docs/10` v2.0 réécrit (PROMPT 3.3 design Vault Transit + Object Lock)
 
