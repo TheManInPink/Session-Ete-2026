@@ -183,24 +183,84 @@ export class VaultClient {
    * Signe un payload avec une clé du Transit engine. La clé privée
    * NE QUITTE JAMAIS Vault. La signature retournée est au format
    * `vault:vN:<base64>`.
+   *
+   * @param keyName   nom de la clé Transit
+   * @param payloadBase64 payload à signer, encodé base64
+   * @param opts      options Vault :
+   *   - `prehashed`            : true si `payloadBase64` est déjà un hash
+   *                              (Vault ne hashera pas une seconde fois)
+   *   - `signatureAlgorithm`   : `pss` (défaut côté Vault pour RSA) ou
+   *                              `pkcs1v15` (RS256/RFC 7518 — requis pour
+   *                              les JWT QR FDI lisibles par les mobiles)
+   *   - `hashAlgorithm`        : `sha2-256` (défaut) | `sha2-384` | `sha2-512`
    */
-  async transitSign(keyName: string, payloadBase64: string): Promise<TransitSignature> {
+  async transitSign(
+    keyName: string,
+    payloadBase64: string,
+    opts: {
+      prehashed?: boolean;
+      signatureAlgorithm?: 'pss' | 'pkcs1v15';
+      hashAlgorithm?: 'sha2-256' | 'sha2-384' | 'sha2-512';
+    } = {},
+  ): Promise<TransitSignature> {
+    const body: Record<string, unknown> = { input: payloadBase64 };
+    if (opts.prehashed !== undefined) body.prehashed = opts.prehashed;
+    if (opts.signatureAlgorithm) body.signature_algorithm = opts.signatureAlgorithm;
+    if (opts.hashAlgorithm) body.hash_algorithm = opts.hashAlgorithm;
     const res = await this.request<{ data: { signature: string; key_version: number } }>(
       'POST',
       `transit/sign/${keyName}`,
-      { input: payloadBase64 },
+      body,
     );
     return { signature: res.data.signature, keyVersion: res.data.key_version };
   }
 
-  /** Vérifie une signature Transit. */
-  async transitVerify(keyName: string, payloadBase64: string, signature: string): Promise<boolean> {
+  /**
+   * Vérifie une signature Transit. Mêmes options que {@link transitSign}.
+   */
+  async transitVerify(
+    keyName: string,
+    payloadBase64: string,
+    signature: string,
+    opts: {
+      prehashed?: boolean;
+      signatureAlgorithm?: 'pss' | 'pkcs1v15';
+      hashAlgorithm?: 'sha2-256' | 'sha2-384' | 'sha2-512';
+    } = {},
+  ): Promise<boolean> {
+    const body: Record<string, unknown> = { input: payloadBase64, signature };
+    if (opts.prehashed !== undefined) body.prehashed = opts.prehashed;
+    if (opts.signatureAlgorithm) body.signature_algorithm = opts.signatureAlgorithm;
+    if (opts.hashAlgorithm) body.hash_algorithm = opts.hashAlgorithm;
     const res = await this.request<{ data: { valid: boolean } }>(
       'POST',
       `transit/verify/${keyName}`,
-      { input: payloadBase64, signature },
+      body,
     );
     return res.data.valid;
+  }
+
+  /**
+   * Lit les métadonnées d'une clé Transit (incl. `latest_version`,
+   * nécessaire pour construire un `kid` JWT versionné).
+   */
+  async transitReadKey(keyName: string): Promise<{
+    latestVersion: number;
+    minDecryptionVersion: number;
+    type: string;
+  }> {
+    const res = await this.request<{
+      data: {
+        latest_version: number;
+        min_decryption_version: number;
+        type: string;
+      };
+    }>('GET', `transit/keys/${keyName}`);
+    return {
+      latestVersion: res.data.latest_version,
+      minDecryptionVersion: res.data.min_decryption_version,
+      type: res.data.type,
+    };
   }
 
   /**

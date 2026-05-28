@@ -14,6 +14,9 @@ import { validateEnv, type Env } from './config/env.schema';
 import { AppController } from './app.controller';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityClientModule } from './identity-client/identity-client.module';
+import { RedisModule } from './redis/redis.module';
+import { VaultModule } from './vault/vault.module';
+import { QrModule } from './qr/qr.module';
 
 @Module({
   imports: [
@@ -33,7 +36,10 @@ import { IdentityClientModule } from './identity-client/identity-client.module';
       ],
     }),
     TerminusModule,
+    RedisModule,
+    VaultModule,
     IdentityClientModule,
+    QrModule,
     HealthModule,
   ],
   controllers: [AppController],
