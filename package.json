@@ -76,7 +76,7 @@
   },
   "//lint-staged": "Config déportée dans .lintstagedrc.mjs (form fonction pour filtrer eslint.config.js)",
   "//pnpm-overrides": "Migrés vers pnpm-workspace.yaml (pnpm 11 ne lit plus le bloc 'pnpm' de package.json).",
-  "packageManager": "pnpm@11.2.2",
+  "packageManager": "pnpm@11.4.0",
   "engines": {
     "node": ">=24.0.0",
     "pnpm": ">=10.0.0"

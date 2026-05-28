@@ -3,6 +3,13 @@ packages:
   - 'packages/*'
   - 'services/*'
 
+# ─── pnpm 11 — désactive le check `pnpm install` implicite avant chaque ─
+# script. Ce check (par défaut "warn") devient une erreur dans le contexte
+# `turbo run check-types` parallel sur Windows à cause d'une race condition
+# sur la création des bin shims. On le désactive : `pnpm install` reste
+# obligatoire manuel, mais turbo ne le redéclenche plus en parallèle.
+verifyDepsBeforeRun: false
+
 # ─── pnpm 11 — allowlist explicite des packages dont les scripts ─────
 # `postinstall` sont autorisés à s'exécuter à l'installation.
 #
@@ -27,6 +34,7 @@ allowBuilds:
   esbuild: true
   prisma: true
   protobufjs: true
+  puppeteer: false
   sharp: true
   unrs-resolver: true
 
