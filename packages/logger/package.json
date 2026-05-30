@@ -3,22 +3,25 @@
   "version": "0.2.0",
   "private": true,
   "description": "Logger structuré NINA-AES — Pino + corrélation + masquage PII + exporters Loki + module NestJS",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./nestjs": {
-      "types": "./src/nestjs/index.ts",
-      "default": "./src/nestjs/index.ts"
+      "types": "./dist/nestjs/index.d.ts",
+      "default": "./dist/nestjs/index.js"
     }
   },
   "scripts": {
+    "build": "tsc",
     "check-types": "tsc --noEmit",
     "test": "jest --passWithNoTests",
-    "test:cov": "jest --coverage --passWithNoTests"
+    "test:cov": "jest --coverage --passWithNoTests",
+    "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
     "pino": "^9.5.0",
