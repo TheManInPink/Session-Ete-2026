@@ -254,6 +254,36 @@ Librairie utilisée : `canonicalize` ^2.1.0 (déjà compilé dans `@nina-aes/sha
 
 ## 6. Modèle Prisma
 
+> ### ⚠️ Schéma réel (as-built — mai 2026)
+>
+> Le bloc `prisma` illustratif ci-dessous (conçu en avril) a **divergé** du schéma réellement
+> implémenté. La **source canonique** est `packages/database/prisma/schema.prisma`. Champs réels de
+> `AuditLog` :
+>
+> `id` (BigInt) · `userId` (UUID?, FK `users` — `null` pour l'ingestion AMQP afin d'éviter toute
+> violation de clé étrangère ; l'acteur brut est conservé dans `newValue`) · `actorType` · `action`
+> · `entityType` · `entityId` · `oldValue` (Json?) · `newValue` (Json?) · `ipAddress` (Inet?) ·
+> `payloadHash` · `previousHash` · `merkleHash` (unique) · `signature?` · `sourceEventId`
+> (VarChar(100), **unique** → idempotence) · `correlationId` · `occurredAt` · `createdAt`.
+>
+> Modèle `AuditRoot` réel (`audit_roots`) : `id` (BigInt) · `chainRootHash` · `lastLogId` (BigInt) ·
+> `logCountCovered` · `signature` (hex 128) · `signingKeyId` · `publishedExternal` · `signedAt`.
+>
+> Calculs (cf. `src/audit/chain.ts`) :
+> `payloadHash = SHA256( canonicalJson({action, actorType, correlationId, entityId, entityType, ipAddress, newValue, oldValue, sourceEventId, userId}) )`
+> où `canonicalJson` trie récursivement les clés (indispensable car JSONB réordonne les clés au
+> stockage ; même fonction dans le script offline) ;
+> `merkleHash = SHA256( previousHash | payloadHash | occurredAt(ISO) | sourceEventId )`.
+>
+> Migration réelle : `20260530120000_audit_chain_immutability` — une seule fonction trigger partagée
+> `nina_reject_audit_mutation()` (BEFORE UPDATE/DELETE sur les deux tables) + REVOKE best-effort si
+> le rôle `nina_app` existe.
+>
+> Signature : Ed25519 (`@noble/ed25519`), clé chargée depuis **Vault KV** (`VAULT_AUDIT_KEY_PATH`,
+> défaut `audit/signing-key`), repli clé éphémère en dev. Intégrité du chaînage sous concurrence :
+> verrou consultatif transactionnel `pg_advisory_xact_lock` (un seul `append` à la fois,
+> multi-instances). ADR alignées : ADR-007 (Merkle), ADR-014 (append-only), ADR-027 (guards locaux).
+
 Fichier : `packages/database/prisma/schema.prisma` (section audit ajoutée)
 
 ```prisma
@@ -1451,8 +1481,11 @@ Les 5 endpoints sont documentés avec :
 - [ ] ✅ Couverture tests ≥ 85%
 - [ ] ✅ Healthcheck `GET /health` retourne 200 avec Postgres + RabbitMQ UP
 - [ ] ✅ Commit Conventional Commits : `feat(audit): append-only Merkle chain + Ed25519 sealing`
-- [ ] ✅ ADR-009 rédigée :
-      [ADR-009 — Merkle chain for audit immutability](./adr/ADR-009-merkle-chain-audit.md)
+- [ ] ✅ ADR alignées (pas de nouvel ADR : la numérotation 009 est déjà prise par
+      `rabbitmq-event-bus`) : [ADR-006 — Merkle audit trail](./adr/ADR-006-merkle-audit-trail.md),
+      [ADR-026 — Immutabilité du journal d'audit](./adr/ADR-026-audit-log-immutability.md),
+      [ADR-007 — Ed25519](./adr/ADR-007-ed25519-interop-aes.md),
+      [ADR-027 — Guards locaux par service](./adr/ADR-027-guards-local-per-service.md)
 
 ---
 

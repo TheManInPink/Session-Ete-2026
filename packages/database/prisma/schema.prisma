@@ -414,6 +414,41 @@ model AuditLog {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+//  6bis. AUDIT_ROOTS — racines scellées Ed25519 (ancrage temporel)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Racine périodique scellée de la chaîne d'audit (cf. doc 09 §12).
+///
+/// Toutes les heures, `audit-service` lit le dernier `AuditLog.merkleHash`
+/// (la « racine » courante de la chaîne) et signe `chainRootHash|signedAt`
+/// avec une clé Ed25519 (privée gardée dans Vault). Même si un attaquant
+/// parvenait à réécrire toute la chaîne en base, il ne pourrait pas reforger
+/// une signature Ed25519 valide → la falsification reste prouvable.
+///
+/// Table également append-only (mêmes triggers que `audit_logs`).
+model AuditRoot {
+  /// BigInt aligné sur la volumétrie de `AuditLog`.
+  id                BigInt   @id @default(autoincrement())
+  /// `merkleHash` du dernier `AuditLog` couvert par cette racine.
+  chainRootHash     String   @map("chain_root_hash") @db.VarChar(64)
+  /// id du dernier `AuditLog` couvert (borne haute de l'intervalle scellé).
+  lastLogId         BigInt   @map("last_log_id")
+  /// Nombre total de logs couverts au moment du scellement (cumulatif).
+  logCountCovered   Int      @map("log_count_covered")
+  /// Signature Ed25519 (hex, 128 chars) de `chainRootHash|signedAt(ISO)`.
+  signature         String   @db.VarChar(160)
+  /// Identifiant de la clé de signature (support rotation Vault).
+  signingKeyId      String   @map("signing_key_id") @db.VarChar(80)
+  /// Vrai si la racine a été publiée sur un canal externe (notarisation hebdo).
+  publishedExternal Boolean  @default(false) @map("published_external")
+  signedAt          DateTime @default(now()) @map("signed_at") @db.Timestamptz(6)
+
+  @@index([signedAt])
+  @@index([lastLogId])
+  @@map("audit_roots")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 //  7. APPOINTMENTS — RDV en CTDEC, mairie ou antenne mobile RAVEC
 // ──────────────────────────────────────────────────────────────────────────────
 

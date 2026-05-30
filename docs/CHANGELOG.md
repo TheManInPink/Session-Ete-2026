@@ -3,10 +3,43 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-30 (patch 0octies — `pnpm docker:up` auto-bootstrap MinIO)
+> **Dernière mise à jour** : 2026-05-30 (patch 0novies — audit-service : chaîne Merkle complète +
+> scellement Ed25519)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0novies. Patch 2026-05-30 — `audit-service` : implémentation Merkle complète (PROMPT 3.4)
+
+Passage du **squelette** à un service complet (`services/audit-service/`, port 3007).
+
+**Livré** :
+
+- **Chaîne Merkle SHA-256 append-only** : `previousHash → merkleHash` (`src/audit/chain.ts` —
+  `canonicalJson` à clés triées, **pas** la lib `canonicalize` : indispensable car JSONB réordonne
+  les clés au stockage ; fonction dupliquée à l'identique dans le script offline).
+- **Immutabilité DB** : migration `20260530120000_audit_chain_immutability` — table `audit_roots` +
+  triggers `BEFORE UPDATE/DELETE` (fonction partagée `nina_reject_audit_mutation()`) sur
+  `audit_logs` ET `audit_roots` + REVOKE best-effort (`nina_app`). Modèle Prisma `AuditRoot` ajouté.
+- **Scellement horaire** Ed25519 (`@noble/ed25519`, clé **Vault KV** `VAULT_AUDIT_KEY_PATH`, repli
+  clé éphémère en dev) → `audit_roots`.
+- **Consumer RabbitMQ** (`amqp-connection-manager`) : `nina.audit` (fanout) + `nina.events` (topic,
+  patterns `citizen.#`/`correction.#`/…), **batching** 500 ms / 1000, ACK différé après commit,
+  idempotence `source_event_id`.
+- **Anti-fork de chaîne** : chaque `append` prend un `pg_advisory_xact_lock` (sérialisation globale
+  POST + batch, multi-instances).
+- **API REST** `/api/v1/audit` : POST (m2m), liste paginée, `/verify`, `/export` (CSV + signature
+  Ed25519 en en-têtes), `/:id`, `/:id/proof`, `/roots/latest`. Guards JWKS locaux (ADR-027).
+- **Vérif offline** `pnpm --filter @nina-aes/audit-service verify:chain`.
+
+**Drift signalé (non corrigé ici)** : `document-service` publie sur l'exchange `audit.events`,
+`identity-service` sur `nina-aes.events` — ni l'un ni l'autre ne correspond à `nina.events` consommé
+par audit-service. Réconciliation à faire côté publishers (cf. README audit-service §2).
+
+**Versions** : `@noble/hashes@^1.8.0` (la 1.9.0 n'existe pas ; la v2 déplace les sous-chemins) ;
+`canonicalize` retiré du service.
+
+ADR alignées : ADR-007 (Merkle), ADR-014 (audit append-only), ADR-027 (guards).
 
 ### 0octies. Patch 2026-05-30 — `pnpm docker:up` auto-bootstrap MinIO (scripts/minio-bootstrap.mjs)
 
