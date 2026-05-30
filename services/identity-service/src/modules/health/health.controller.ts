@@ -70,14 +70,21 @@ export class HealthController {
         rabbitmq: { status: this.rabbit.isConnected() ? 'up' : 'down' },
       }),
 
-      // ai-service (HTTP /health, optionnel — degraded si KO)
+      // ai-service (HTTP /health/live, optionnel — best-effort : ne casse jamais la readiness)
       async (): Promise<HealthIndicatorResult> => {
         try {
-          return await this.httpIndicator.pingCheck('ai-service', `${AI_URL}/health/live`, {
+          const result = await this.httpIndicator.pingCheck('ai-service', `${AI_URL}/health/live`, {
             timeout: 2_000,
           });
+          // Terminus 11 : pingCheck RENVOIE un résultat `down` (au lieu de throw) sur
+          // erreur réseau (ECONNREFUSED/timeout). On le requalifie en `up` car ai-service
+          // est optionnel — son indisponibilité ne doit pas faire échouer /health.
+          if (result['ai-service']?.status === 'down') {
+            return { 'ai-service': { status: 'up', warning: 'unreachable' } };
+          }
+          return result;
         } catch {
-          // Best-effort : ai-service optionnel, retourne up pour pas casser readiness
+          // Erreur non-Axios (rare) — best-effort identique.
           return { 'ai-service': { status: 'up', warning: 'unreachable' } };
         }
       },
