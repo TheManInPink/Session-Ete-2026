@@ -31,6 +31,12 @@ echo "  ✓ Bucket nina-scans créé (documents scannés)"
 docker exec nina-minio mc mb local/nina-backups --ignore-existing
 echo "  ✓ Bucket nina-backups créé (sauvegardes)"
 
+# Créer le bucket WORM des Fiches Descriptives Individuelles (FDI)
+# Object Lock + rétention COMPLIANCE 10 ans (ADR-026) — doit être activé à la création
+docker exec nina-minio mc mb --with-lock local/fiches --ignore-existing
+docker exec nina-minio mc retention set --default compliance 3650d local/fiches
+echo "  ✓ Bucket fiches créé (FDI WORM — Object Lock COMPLIANCE 10 ans)"
+
 # Politique de lecture publique pour les photos (en dev seulement)
 docker exec nina-minio mc anonymous set download local/nina-photos
 

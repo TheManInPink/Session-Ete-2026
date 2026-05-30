@@ -17,6 +17,10 @@
  *                - nina-documents  → PDFs FDI (versioning activé)
  *                - nina-scans      → actes de naissance scannés
  *                - nina-backups    → dumps pgBackRest
+ *                - fiches          → FDI WORM : Object Lock + rétention
+ *                                    COMPLIANCE 10 ans (ADR-026, docs/10 §10.1).
+ *                                    document-service exige ce bucket mais refuse
+ *                                    de le créer (irréversible) → infra ici.
  *
  *              Stratégie d'invocation : `docker exec nina-minio mc ...`
  *              (le client mc est embarqué dans l'image MinIO serveur, pas
@@ -50,6 +54,10 @@ const ROOT_PASS =
   process.env.MINIO_ROOT_PASSWORD || process.env.MINIO_SECRET_KEY || 'minio_dev_2026!';
 const HEALTH_URL = process.env.MINIO_HEALTH_URL || 'http://localhost:9000/minio/health/live';
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+
+// Bucket WORM des Fiches Descriptives Individuelles (cf. env.schema.ts / ADR-026).
+const BUCKET_FICHES = process.env.MINIO_BUCKET_FICHES || 'fiches';
+const FICHES_RETENTION_DAYS = process.env.MINIO_FICHES_RETENTION_DAYS || '3650'; // 10 ans
 
 const log = (msg) => console.log(`\x1b[32m[minio-bootstrap]\x1b[0m ${msg}`);
 const debug = (msg) =>
@@ -130,6 +138,32 @@ function setAnonymousDownload(name) {
   }
 }
 
+/**
+ * Crée un bucket WORM — Object Lock activé À LA CRÉATION (`mc mb --with-lock`)
+ * + rétention COMPLIANCE par défaut. Object Lock ne peut PAS être ajouté après
+ * coup : si le bucket existe déjà sans lock, `--ignore-existing` no-ope et le
+ * `retention set` échoue → on le signale au lieu de masquer le problème.
+ * `--with-lock` active implicitement le versioning. Idempotent.
+ */
+function ensureLockedBucket(name, retentionDays) {
+  mc(['mb', '--with-lock', '--ignore-existing', `local/${name}`]);
+  log(`✓ bucket WORM local/${name} (object-lock activé)`);
+  const r = mc(
+    ['retention', 'set', '--default', 'compliance', `${retentionDays}d`, `local/${name}`],
+    {
+      throwOnFail: false,
+    },
+  );
+  if (r.status === 0) {
+    log(`✓ rétention COMPLIANCE ${retentionDays}d par défaut sur local/${name}`);
+  } else {
+    warn(
+      `retention set ${name} → ${r.status} (${r.stderr}). ` +
+        `Bucket préexistant sans Object Lock ? Recréez-le (docker:reset) pour activer le WORM.`,
+    );
+  }
+}
+
 // ─── Main ──────────────────────────────────────────────────────────
 async function main() {
   log(`Cible : container ${CONTAINER} (health ${HEALTH_URL})`);
@@ -148,9 +182,17 @@ async function main() {
   // Anonymous read sur les photos uniquement (dev seulement — pas de PII directe)
   setAnonymousDownload('nina-photos');
 
+  // Bucket WORM des Fiches Descriptives Individuelles (FDI) — Object Lock +
+  // rétention COMPLIANCE 10 ans (ADR-026). document-service exige ce bucket mais
+  // refuse de le créer lui-même (irréversible) → responsabilité de l'infra.
+  ensureLockedBucket(BUCKET_FICHES, FICHES_RETENTION_DAYS);
+
   log('');
   log('✅ Bootstrap terminé');
-  log(`   • ${BUCKETS.length} buckets prêts ; versioning sur nina-documents`);
+  log(
+    `   • ${BUCKETS.length + 1} buckets prêts ; versioning sur nina-documents ; ` +
+      `WORM (COMPLIANCE ${FICHES_RETENTION_DAYS}d) sur ${BUCKET_FICHES}`,
+  );
   log(`   • Console : http://localhost:9001  ·  API : http://localhost:9000`);
   log('');
   warn('Anonymous read sur nina-photos = DEV uniquement. En prod, IAM + pre-signed URLs.');
