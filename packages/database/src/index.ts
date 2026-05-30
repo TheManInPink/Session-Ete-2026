@@ -319,6 +319,7 @@ export type {
   Parent,
   CorrectionRequest,
   AuditLog,
+  AuditRoot,
   Appointment,
   AesVerificationLog,
   CorruptionAlert,

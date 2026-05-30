@@ -13,7 +13,7 @@
  * @module      audit-service/audit
  */
 import { Injectable } from '@nestjs/common';
-import { prisma, Prisma, type AuditLog } from '@nina-aes/database';
+import { prisma, Prisma, type AuditLog, type AuditRoot } from '@nina-aes/database';
 
 /** Filtres de recherche paginée. */
 export interface AuditQuery {
@@ -78,12 +78,12 @@ export class AuditLogRepository {
   // ── Racines scellées ────────────────────────────────────────────────────
 
   /** Dernière racine scellée. */
-  latestRoot() {
+  latestRoot(): Promise<AuditRoot | null> {
     return prisma.auditRoot.findFirst({ orderBy: { id: 'desc' } });
   }
 
   /** Première racine couvrant un log donné (preuve d'inclusion). */
-  findRootCoveringLog(logId: bigint) {
+  findRootCoveringLog(logId: bigint): Promise<AuditRoot | null> {
     return prisma.auditRoot.findFirst({
       where: { lastLogId: { gte: logId } },
       orderBy: { lastLogId: 'asc' },
@@ -97,7 +97,7 @@ export class AuditLogRepository {
     logCountCovered: number;
     signature: string;
     signingKeyId: string;
-  }) {
+  }): Promise<AuditRoot> {
     return prisma.auditRoot.create({ data });
   }
 }
