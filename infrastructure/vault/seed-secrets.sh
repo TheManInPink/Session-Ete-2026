@@ -6,13 +6,17 @@
 # Bloc A en local. À exécuter APRÈS vault-init.sh.
 #
 # Secrets injectés :
-#   - kv/data/jwt              → paire RS256 générée à la volée
+#   - kv/data/jwt              → paire RS256 générée à la volée (legacy, par-fichier)
+#   - kv/data/auth/jwt         → shape {private_pem, public_pem, kid} attendue par
+#                                services/auth-service/src/vault/vault.service.ts
 #   - kv/data/database/*       → connection strings Postgres par service
 #   - kv/data/africastalking   → API key + username (placeholder en dev)
 #   - kv/data/aes/certs        → chemins certificats mTLS (cf. Makefile certs-generate)
 #   - kv/data/keycloak         → admin_password + client_secret citizen-app
 #   - kv/data/minio            → access_key + secret_key
 #   - kv/data/sigac            → clé Ed25519 procureur (dev factice)
+#   - transit/keys/auth-mfa-secret      → chiffrement secrets TOTP au repos (auth-service)
+#   - transit/keys/nina-qr-signing      → signature QR FDI (RSA 3072, ADR-026)
 #
 # Idempotent : ré-exécutable, écrase les valeurs existantes.
 #
@@ -60,6 +64,46 @@ vault kv put kv/jwt/public \
   algorithm="RS256" \
   >/dev/null
 log "  ✓ kv/data/jwt/public"
+
+# ─── 1bis. JWT shape attendue par auth-service (PROMPT 3.2 / Vault strict) ──
+# vault.service.ts (services/auth-service/src/vault/vault.service.ts) lit le
+# secret pointé par VAULT_JWT_KEYS_PATH (défaut: auth/jwt) et exige les
+# champs { private_pem, public_pem, kid } EN UN SEUL secret. On stocke la
+# MÊME paire que ci-dessus pour rester cohérent en dev (en prod, chaque
+# rotation incrémente le kid via rotate-secrets.sh).
+KID="dev-rs256-$(date -u +%Y%m%d)"
+vault kv put kv/auth/jwt \
+  private_pem=@"$TMP_DIR/jwt_private.pem" \
+  public_pem=@"$TMP_DIR/jwt_public.pem" \
+  kid="$KID" \
+  algorithm="RS256" \
+  generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  >/dev/null
+log "  ✓ kv/data/auth/jwt (shape attendue par auth-service, kid=$KID)"
+
+# ─── 1ter. Transit key — chiffrement secrets TOTP au repos (auth-service) ──
+if ! vault read transit/keys/auth-mfa-secret >/dev/null 2>&1; then
+  vault write -f transit/keys/auth-mfa-secret \
+    type=aes256-gcm96 \
+    exportable=false \
+    deletion_allowed=false \
+    >/dev/null
+  log "  ✓ transit/keys/auth-mfa-secret (AES-256-GCM96, VAULT_TRANSIT_MFA_KEY)"
+else
+  log "  · transit/keys/auth-mfa-secret déjà présente"
+fi
+
+# ─── 1quater. Transit key — signature QR FDI (document-service, ADR-026) ──
+if ! vault read transit/keys/nina-qr-signing >/dev/null 2>&1; then
+  vault write -f transit/keys/nina-qr-signing \
+    type=rsa-3072 \
+    exportable=false \
+    deletion_allowed=false \
+    >/dev/null
+  log "  ✓ transit/keys/nina-qr-signing (RSA-3072, ADR-026)"
+else
+  log "  · transit/keys/nina-qr-signing déjà présente"
+fi
 
 # ─── 2. Database connection strings (DEV uniquement) ───────────────
 log "Database connection strings (dev) …"

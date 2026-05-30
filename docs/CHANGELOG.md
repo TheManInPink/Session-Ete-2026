@@ -3,10 +3,39 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-30 (patch 0quater — auth-guards refacto type-only / ADR-027)
+> **Dernière mise à jour** : 2026-05-30 (patch 0quinquies — seed Vault auth/jwt + transit keys)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quinquies. Patch 2026-05-30 — `infrastructure/vault/seed-secrets.sh` aligné sur auth-service
+
+Le script `seed-secrets.sh` créait `kv/data/jwt/private` + `kv/data/jwt/public` (deux secrets
+séparés, schéma legacy). Or `vault.service.ts` (PROMPT 3.2) lit `VAULT_JWT_KEYS_PATH` (défaut
+`auth/jwt`) et exige les champs **`{private_pem, public_pem, kid}` en un seul secret**. Au boot
+d'`auth-service`, `VaultService.loadJwtKeys()` retournait 404 sur `kv/data/auth/jwt`.
+
+**Sections ajoutées au script** (`§1bis`, `§1ter`, `§1quater`) :
+
+- `kv/data/auth/jwt` — shape exacte attendue par `vault.service.ts` (mêmes PEMs RSA 2048 que
+  `kv/jwt/private` legacy, ajout du champ `kid="dev-rs256-YYYYMMDD"`).
+- `transit/keys/auth-mfa-secret` (AES-256-GCM96) — chiffrement au repos des secrets TOTP MFA côté
+  `auth-service` (`VAULT_TRANSIT_MFA_KEY`).
+- `transit/keys/nina-qr-signing` (RSA-3072, non exportable) — signature des QR FDI côté
+  `document-service` (cf. [ADR-026](./adr/ADR-026-vault-transit-qr-signing.md)).
+
+**Validation runtime** :
+
+- Engines `kv-v2` et `transit` activés dans le container `nina-vault`.
+- `auth-service` boot OK sur `:3002` : log critique
+  `[VaultService] Clés JWT chargées depuis Vault (kid=dev-rs256-20260530, path=auth/jwt)` puis
+  `Nest application successfully started`.
+- `curl http://localhost:3002/.well-known/jwks.json` → 200 OK (JWKS publié).
+- Tous les modules initialisés : VaultModule, RedisModule, CryptoModule, SmsModule, KeycloakModule,
+  AppModule, AuthModule (13 routes mappées).
+
+**Reste à faire (out of scope ici)** : intégrer ce seed au `pnpm docker:up` ou créer une commande
+`pnpm vault:seed` pour automatiser le bootstrap quand un dev démarre le stack la première fois.
 
 ### 0quater. Patch 2026-05-30 — `@nina-aes/auth-guards` refacto type-only (ADR-027)
 
