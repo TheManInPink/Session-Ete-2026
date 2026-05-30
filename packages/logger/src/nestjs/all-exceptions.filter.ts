@@ -71,6 +71,22 @@ export interface ErrorResponse {
  * POURQUOI une fonction et pas un switch dans le filtre : permet de tester
  * unitairement la classification sans bootstrapper NestJS.
  */
+/**
+ * Détecte une `HttpException` de façon robuste. `instanceof` PEUT échouer si le
+ * service consommateur charge une COPIE distincte de `@nestjs/common` (résolution
+ * pnpm/peer-deps ou frontière ESM↔CJS) → on duck-type aussi sur getStatus()/
+ * getResponse(). Sans ça, un 404 légitime tomberait dans le cas 500 par défaut.
+ */
+function isHttpExceptionLike(exc: unknown): exc is HttpException {
+  return (
+    exc instanceof HttpException ||
+    (typeof exc === 'object' &&
+      exc !== null &&
+      typeof (exc as HttpException).getStatus === 'function' &&
+      typeof (exc as HttpException).getResponse === 'function')
+  );
+}
+
 function classifyError(exc: unknown): {
   status: number;
   code: string;
@@ -78,7 +94,7 @@ function classifyError(exc: unknown): {
   details?: unknown;
 } {
   // Cas 1 : HttpException explicite — on respecte le status et tente d'extraire un code
-  if (exc instanceof HttpException) {
+  if (isHttpExceptionLike(exc)) {
     const status = exc.getStatus();
     const response = exc.getResponse();
 
