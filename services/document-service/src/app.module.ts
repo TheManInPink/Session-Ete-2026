@@ -11,6 +11,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TerminusModule } from '@nestjs/terminus';
 import { validateEnv, type Env } from './config/env.schema';
+import { AppController } from './app.controller';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityClientModule } from './identity-client/identity-client.module';
 import { RedisModule } from './redis/redis.module';
@@ -60,11 +61,10 @@ import { DocumentsModule } from './documents/documents.module';
     DocumentsModule,
     HealthModule,
   ],
-  // Aucun contrôleur racine : la santé est entièrement servie par HealthController
-  // (HealthModule) sur /health (détaillé) + /health/{live,ready} — exclus du préfixe
-  // api/v1 (sonde Docker/K3s curl /health). L'ancien AppController.getHealth()
-  // doublonnait et masquait le check Terminus.
-  controllers: [],
+  // AppController : page d'accueil JSON sur `/` (exclu du préfixe api/v1, cf. main.ts).
+  // La santé reste servie par HealthController (HealthModule) sur /health, /health/live,
+  // /health/ready — jamais par un @Get('health') ici (doublon qui masquait le Terminus).
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}

@@ -5,7 +5,7 @@
  * @module      document-service
  */
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, RequestMethod } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -25,8 +25,11 @@ async function bootstrap(): Promise<void> {
       contentSecurityPolicy: false, // Swagger nécessite inline styles/scripts en dev
     }),
   );
-  // Préfixe global API ; /health* exclu pour matcher la sonde Docker/K3s (curl /health)
-  app.setGlobalPrefix('api/v1', { exclude: ['health', 'health/live', 'health/ready'] });
+  // Préfixe global API ; /health* exclu (sonde Docker curl /health) et `/` (page d'accueil)
+  // exclu du préfixe pour répondre à la racine du service au lieu d'un 404.
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health', 'health/live', 'health/ready', { path: '/', method: RequestMethod.GET }],
+  });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
