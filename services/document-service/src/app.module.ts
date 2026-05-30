@@ -11,7 +11,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TerminusModule } from '@nestjs/terminus';
 import { validateEnv, type Env } from './config/env.schema';
-import { AppController } from './app.controller';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityClientModule } from './identity-client/identity-client.module';
 import { RedisModule } from './redis/redis.module';
@@ -61,7 +60,10 @@ import { DocumentsModule } from './documents/documents.module';
     DocumentsModule,
     HealthModule,
   ],
-  controllers: [AppController],
+  // Aucun contrôleur racine : la santé est entièrement servie par HealthController
+  // (HealthModule) sur /api/v1/health (détaillé) + /api/v1/health/{live,ready}.
+  // L'ancien AppController.getHealth() doublonnait et masquait le check Terminus.
+  controllers: [],
   providers: [],
 })
 export class AppModule {}
