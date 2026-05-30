@@ -4,9 +4,9 @@
  *              + Postgres. Vault et RabbitMQ sont best-effort (échec n'invalide
  *              pas le service, juste un warn).
  *
- *              GET /api/v1/health         — détaillé
- *              GET /api/v1/health/live    — liveness (toujours 200 si process up)
- *              GET /api/v1/health/ready   — readiness (deps critiques)
+ *              GET /health         — détaillé (exclu du préfixe api/v1)
+ *              GET /health/live    — liveness (toujours 200 si process up)
+ *              GET /health/ready   — readiness (deps critiques)
  *
  * @module      document-service/modules/health
  */

@@ -25,7 +25,8 @@ async function bootstrap(): Promise<void> {
       contentSecurityPolicy: false, // Swagger nécessite inline styles/scripts en dev
     }),
   );
-  app.setGlobalPrefix('api/v1');
+  // Préfixe global API ; /health* exclu pour matcher la sonde Docker/K3s (curl /health)
+  app.setGlobalPrefix('api/v1', { exclude: ['health', 'health/live', 'health/ready'] });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

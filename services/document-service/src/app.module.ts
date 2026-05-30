@@ -61,8 +61,9 @@ import { DocumentsModule } from './documents/documents.module';
     HealthModule,
   ],
   // Aucun contrôleur racine : la santé est entièrement servie par HealthController
-  // (HealthModule) sur /api/v1/health (détaillé) + /api/v1/health/{live,ready}.
-  // L'ancien AppController.getHealth() doublonnait et masquait le check Terminus.
+  // (HealthModule) sur /health (détaillé) + /health/{live,ready} — exclus du préfixe
+  // api/v1 (sonde Docker/K3s curl /health). L'ancien AppController.getHealth()
+  // doublonnait et masquait le check Terminus.
   controllers: [],
   providers: [],
 })

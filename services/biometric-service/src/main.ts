@@ -18,7 +18,8 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  app.setGlobalPrefix('api/v1');
+  // Préfixe global API ; /health exclu pour matcher la sonde Docker/K3s (curl /health)
+  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
   app.enableCors({
     origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
   });
