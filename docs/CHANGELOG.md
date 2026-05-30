@@ -3,10 +3,47 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-30 (patch 0septies — env preload via `@nina-aes/database`)
+> **Dernière mise à jour** : 2026-05-30 (patch 0octies — `pnpm docker:up` auto-bootstrap MinIO)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0octies. Patch 2026-05-30 — `pnpm docker:up` auto-bootstrap MinIO (scripts/minio-bootstrap.mjs)
+
+Symétrise le pattern `vault-bootstrap` pour MinIO. L'ancienne sidecar `minio-init` du
+docker-compose.dev.yml créait **un seul** bucket (`nina-documents`) alors que
+`scripts/init-minio.sh` en crée **quatre** + applique les policies — duplication partielle, source
+de drift.
+
+**Solution** : `scripts/minio-bootstrap.mjs` (Node, idempotent, cross-platform, sans dep npm
+nouvelle — utilise `docker exec nina-minio mc` car le client `mc` est embarqué dans l'image MinIO
+serveur). Couvre :
+
+- 4 buckets : `nina-photos`, `nina-documents`, `nina-scans`, `nina-backups`
+- Versioning activé sur `nina-documents` (rollback FDI en dev)
+- Anonymous read sur `nina-photos` (dev only — pas de PII directe)
+
+**Caractéristiques** :
+
+- **Idempotent** — `mc mb --ignore-existing`, `mc version enable` (no-op si déjà actif),
+  `mc anonymous set` (re-applicable).
+- **Robuste** — poll `/minio/health/live` jusqu'à 60s.
+- **Cross-platform** — Node 24, pas de dépendance `mc` CLI côté hôte ni SDK npm.
+
+**Wiring** :
+
+```jsonc
+// package.json
+"docker:up": "docker compose ... up -d && pnpm run vault:bootstrap && pnpm run minio:bootstrap",
+"minio:bootstrap": "node scripts/minio-bootstrap.mjs"
+```
+
+**Cleanup associé** : suppression de la sidecar `minio-init` du `docker-compose.dev.yml` (34 lignes
+; couverture incomplète, remplacée par le nouveau script qui fait strictement plus).
+
+**Compatibilité avec `scripts/init-minio.sh`** : le script bash reste l'oracle si on doit seeder
+manuellement (debug, env distant). `minio-bootstrap.mjs` est volontairement le miroir fonctionnel
+pour le flow automatisé.
 
 ### 0septies. Patch 2026-05-30 — env preload `@nina-aes/database` + fix `28P01` identity-service
 

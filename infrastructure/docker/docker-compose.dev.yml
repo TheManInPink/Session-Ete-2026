@@ -287,40 +287,6 @@ services:
       - nina-network
 
   # ──────────────────────────────────────────────────────────────
-  # MinIO init — Création automatique du bucket par défaut
-  # ──────────────────────────────────────────────────────────────
-  # Job one-shot : attend que MinIO soit healthy, configure l'alias,
-  # crée le bucket `nina-documents` (idempotent), pose une policy public-read.
-  # Évite l'étape manuelle « créer le bucket via la console » au premier boot.
-  minio-init:
-    # `minio/mc` (client CLI) suit un calendrier de release indépendant de
-    # `minio/minio` (serveur) — la dernière mc disponible est antérieure à la
-    # dernière release serveur. Avec l'archivage du repo MinIO (avril 2026),
-    # le tag `latest` est figé et ne reçoit plus de mises à jour — autant
-    # pinner explicitement la dernière release mc officielle pour rendre le
-    # bootstrap reproductible (et éviter qu'un pull futur tire une image
-    # ré-uploadée par un tiers).
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
-    container_name: nina-minio-init
-    depends_on:
-      minio:
-        condition: service_healthy
-    environment:
-      MC_HOST_nina: http://${MINIO_ROOT_USER:-${MINIO_ACCESS_KEY:-nina_minio_admin}}:${MINIO_ROOT_PASSWORD:-${MINIO_SECRET_KEY:-minio_dev_2026!}}@minio:9000
-    entrypoint: >
-      /bin/sh -c "
-        echo 'Création du bucket nina-documents...' &&
-        mc mb --ignore-existing nina/nina-documents &&
-        echo 'Bucket prêt — versionning activé en dev pour faciliter le rollback' &&
-        mc version enable nina/nina-documents &&
-        echo '✅ MinIO bootstrapped' &&
-        exit 0
-      "
-    networks:
-      - nina-network
-    restart: 'no'
-
-  # ──────────────────────────────────────────────────────────────
   # Keycloak 26.6.2 — Serveur d'identité (OAuth2 / OIDC / RBAC)
   # ──────────────────────────────────────────────────────────────
   # Centralise l'authentification de TOUS les acteurs du système :
