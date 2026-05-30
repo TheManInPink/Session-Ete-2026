@@ -30,6 +30,7 @@ async function bootstrap(): Promise<void> {
   // Préfixe global — santé et JWKS restent à la racine (interop / probes).
   app.setGlobalPrefix('api/v1', {
     exclude: [
+      { path: '/', method: RequestMethod.GET },
       { path: 'health', method: RequestMethod.GET },
       { path: '.well-known/jwks.json', method: RequestMethod.GET },
     ],
