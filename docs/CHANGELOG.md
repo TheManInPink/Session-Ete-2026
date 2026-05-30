@@ -3,10 +3,47 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-30 (patch 0quinquies — seed Vault auth/jwt + transit keys)
+> **Dernière mise à jour** : 2026-05-30 (patch 0sexies — `pnpm docker:up` auto-seed Vault)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0sexies. Patch 2026-05-30 — `pnpm docker:up` auto-seed Vault (scripts/vault-bootstrap.mjs)
+
+Vault dev mode utilise un storage `inmem` — chaque restart du container `nina-vault` efface tous les
+secrets. Re-jouer manuellement `seed-secrets.sh` à chaque `docker:up` est friable (et le script
+complet a 11 sections dépendantes de Postgres/Keycloak/MinIO qui ne sont pas toutes nécessaires au
+boot de tous les services).
+
+**Solution** : `scripts/vault-bootstrap.mjs` (Node, aucune dep externe) appelle l'API Vault HTTP
+directement et seed le **strict minimum** requis par les services actuellement implémentés :
+
+- `kv/data/auth/jwt` (RSA 2048, `kid=dev-rs256-YYYYMMDD-HHHH`) → `auth-service`
+- `transit/keys/auth-mfa-secret` (AES-256-GCM96) → `auth-service` TOTP MFA
+- `transit/keys/nina-qr-signing` (RSA-3072 non exportable) → `document-service` QR FDI
+
+**Caractéristiques** :
+
+- **Idempotent** — si `kv/data/auth/jwt` contient déjà la shape attendue, skip (préserve le `kid`
+  existant entre boots). Les engines `kv-v2` et `transit` ont aussi un check « already mounted ».
+- **Robuste au démarrage** — poll `/sys/health` jusqu'à 60 s pour laisser Vault s'auto-init en mode
+  dev (typiquement <2 s).
+- **Cross-platform** — Node 24, `fetch` natif, `crypto.generateKeyPairSync` natif. Pas de dépendance
+  à `openssl` CLI ni au binaire `vault`.
+
+**Wiring** :
+
+```jsonc
+// package.json
+"docker:up": "docker compose ... up -d && pnpm run vault:bootstrap",
+"docker:up:bare": "docker compose ... up -d",          // escape hatch
+"vault:bootstrap": "node scripts/vault-bootstrap.mjs"  // invocation directe
+```
+
+**Compatibilité avec `infrastructure/vault/seed-secrets.sh`** : le script bash reste l'oracle pour
+le seed COMPLET (Keycloak, MinIO, database creds, SIGAC), invoqué manuellement quand ces services
+sont effectivement câblés. `vault-bootstrap.mjs` est volontairement le sous-ensemble strictement
+nécessaire au boot.
 
 ### 0quinquies. Patch 2026-05-30 — `infrastructure/vault/seed-secrets.sh` aligné sur auth-service
 
