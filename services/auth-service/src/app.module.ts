@@ -19,15 +19,10 @@
 import { Module, type Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import {
-  JWT_VERIFIER,
-  type JwtVerifier,
-  JwtAuthGuard,
-  MfaGuard,
-  RolesGuard,
-} from '@nina-aes/auth-guards';
+import { JWT_VERIFIER, type JwtVerifier } from '@nina-aes/auth-guards';
 
 import { AppController } from './app.controller';
+import { JwtAuthGuard, MfaGuard, RolesGuard } from './auth/guards/index.js';
 import { validateEnv } from './config/env.config.js';
 import { CryptoModule } from './crypto/crypto.module.js';
 import { JwtCryptoService } from './crypto/jwt.service.js';

@@ -958,7 +958,9 @@ export type Env = z.infer<typeof envSchema>;
  */
 import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard, Roles, RolesGuard } from '@nina-aes/auth-guards';
+// Depuis ADR-027 : Roles + types depuis le package ; classes Guards locales au service.
+import { Roles } from '@nina-aes/auth-guards';
+import { JwtAuthGuard, RolesGuard } from '../auth/guards/index.js';
 import { Request } from 'express';
 import { FdiService } from '../fdi/fdi.service';
 import { StorageService } from '../storage/minio.service';

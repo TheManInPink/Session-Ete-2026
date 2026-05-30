@@ -773,8 +773,10 @@ import { AuditService } from './audit.service';
 import { QueryAuditDto } from './dtos/query.dto';
 import { AuditLogRepository } from './repositories/audit-log.repository';
 import { Throttle } from '@nestjs/throttler';
-// Guards importés depuis @nina-aes/auth-guards (package interne du doc 08)
-import { JwtAuthGuard, RolesGuard, Roles } from '@nina-aes/auth-guards';
+// Décorateur + clés depuis @nina-aes/auth-guards (type-only depuis ADR-027) ; classes Guards
+// locales au service (à copier dans services/audit-service/src/auth/guards/).
+import { Roles } from '@nina-aes/auth-guards';
+import { JwtAuthGuard, RolesGuard } from '../auth/guards/index.js';
 
 @ApiTags('audit')
 @ApiBearerAuth()

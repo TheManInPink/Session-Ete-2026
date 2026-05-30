@@ -3,10 +3,47 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-28 (patch 0ter — document-service Phases 1-10 livrées)
+> **Dernière mise à jour** : 2026-05-30 (patch 0quater — auth-guards refacto type-only / ADR-027)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quater. Patch 2026-05-30 — `@nina-aes/auth-guards` refacto type-only (ADR-027)
+
+Le package `@nina-aes/auth-guards` v0.1.0 exportait les **classes Nest `@Injectable()`**
+`JwtAuthGuard`, `RolesGuard`, `MfaGuard`. Au boot d'`auth-service`, NestJS levait
+`UnknownDependenciesException(Reflector)` — cause : duplication physique de `@nestjs/core` côté pnpm
+store (deux hashs de peer-deps → deux classes `Reflector` distinctes → identité DI cassée).
+
+**Décision** (cf. [ADR-027](./adr/ADR-027-auth-guards-type-only-package.md)) : le package devient
+**type-only / metadata-only** (v0.2.0). Les classes Guards sont **dupliquées localement** dans
+chaque service consommateur sous `services/<svc>/src/auth/guards/`. Seul le contrat partagé (types
+`AuthSubject`/`JwtVerifier`, token DI `JWT_VERIFIER`, clés de métadonnées) et les décorateurs
+`SetMetadata`-purs (`@Public`, `@Roles`, `@RequireMfa`) restent dans `auth-guards`.
+
+**Validation runtime** :
+
+- `auth-service` boot OK sur `:3002` — tous les modules s'initialisent (Vault, Redis, Crypto, Sms,
+  Keycloak, AppModule, AuthModule) et les 13 routes sont mappées.
+- `document-service` boot toujours OK sur `:3004` (guards locaux dans `src/auth/guards/`).
+- Échec restant orthogonal : `VaultService.loadJwtKeys()` 404 sur `kv/data/auth/jwt` (seed Vault
+  manquant — n'est PAS lié à la DI, est un script de provisioning à exécuter une fois).
+
+**Fichiers modifiés** :
+
+- `packages/auth-guards/` : `src/guards/` supprimé ; `src/index.ts` réécrit ; `package.json` v0.2.0
+  (peer-dep `@nestjs/core` retirée, ne reste que `@nestjs/common`).
+- `services/auth-service/src/auth/guards/` (NEW) : `jwt-auth.guard.ts`, `roles.guard.ts`,
+  `mfa.guard.ts`, `index.ts`.
+- `services/document-service/src/auth/guards/` (NEW) : `jwt-auth.guard.ts`, `roles.guard.ts`,
+  `index.ts`.
+- `services/auth-service/src/app.module.ts` : import des guards depuis chemin local.
+- `services/document-service/src/documents/documents.controller.ts` : import des guards depuis
+  chemin local.
+
+**Règle d'or** posée par l'ADR : _tout package workspace
+`@nina-aes/_`consommé par un service Nest ne doit exporter que des éléments « erased au build » (types) ou des constantes pures (strings, symbols, fonctions sans DI). Toute classe`@Injectable()`
+doit vivre dans le service consommateur.\*
 
 ### 0ter. Patch 2026-05-28 — document-service Phases 1-10 livrées (PROMPT 3.3 scaffold complet)
 

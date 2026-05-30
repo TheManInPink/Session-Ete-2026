@@ -22,7 +22,8 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard, Roles, RolesGuard, type AuthSubject } from '@nina-aes/auth-guards';
+import { Roles, type AuthSubject } from '@nina-aes/auth-guards';
+import { JwtAuthGuard, RolesGuard } from '../auth/guards/index.js';
 import { prisma } from '@nina-aes/database';
 import type { Request } from 'express';
 import { FdiService } from '../fdi/fdi.service';

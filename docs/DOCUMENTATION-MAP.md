@@ -6,8 +6,8 @@
 >
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
-> **Dernière mise à jour** : 25 mai 2026 · **Status** : ✅ initialisé (après clôture des 27 docs +
-> **26 ADRs** — ADR-026 ajouté avec la réécriture v2.0 de `docs/10`).
+> **Dernière mise à jour** : 30 mai 2026 · **Status** : ✅ initialisé (après clôture des 27 docs +
+> **27 ADRs** — ADR-027 ajouté pour la refacto type-only de `@nina-aes/auth-guards`).
 
 ---
 

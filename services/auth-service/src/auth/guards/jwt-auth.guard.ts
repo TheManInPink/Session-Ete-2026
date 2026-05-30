@@ -11,7 +11,12 @@
  *              Les messages d'erreur restent génériques (`AUTH_TOKEN_INVALID`)
  *              pour ne pas révéler la cause exacte du rejet (anti-oracle).
  *
- * @module      @nina-aes/auth-guards
+ *              ⚠️  Classe **locale au service** (ADR-027) — ne JAMAIS l'extraire
+ *              dans un package workspace partagé : ça force la duplication
+ *              physique de `@nestjs/core` côté pnpm store et casse l'identité
+ *              de `Reflector` (UnknownDependenciesException).
+ *
+ * @module      auth-service/auth/guards
  */
 
 import {
@@ -22,9 +27,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
-import { JWT_VERIFIER, type JwtVerifier } from '../types.js';
+import { IS_PUBLIC_KEY, JWT_VERIFIER, type JwtVerifier } from '@nina-aes/auth-guards';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -48,8 +51,6 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractBearer(request.headers.authorization);
     if (!token) throw new UnauthorizedException('AUTH_TOKEN_INVALID');
 
-    // verifier.verifyAccess() lève déjà UnauthorizedException si invalide ;
-    // on laisse remonter sans capture pour ne pas masquer la cause au logger.
     request.user = this.verifier.verifyAccess(token);
     return true;
   }

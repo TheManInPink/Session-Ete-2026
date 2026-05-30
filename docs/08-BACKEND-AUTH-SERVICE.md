@@ -40,8 +40,13 @@ explicitement.
    (clés chargées de `kv/data/auth/jwt` au boot) plutôt que de servir uniquement de proxy vers
    Keycloak. Keycloak reste source de vérité pour le password (validé via `password` grant) et le
    SSO.
-2. **`@nina-aes/auth-guards` est un workspace dédié** (créé en Phase 3) que les autres microservices
-   consommeront via DI d'un `JwtVerifier`.
+2. **`@nina-aes/auth-guards` est un workspace dédié type-only / metadata-only** (v0.2.0+ ; voir
+   [ADR-027](./adr/ADR-027-auth-guards-type-only-package.md)) que les autres microservices
+   consomment pour le **contrat** (`JwtVerifier`, `AuthSubject`, token DI `JWT_VERIFIER`) et les
+   **décorateurs** (`@Public`, `@Roles`, `@RequireMfa`). Les classes Guards (`JwtAuthGuard`,
+   `RolesGuard`, `MfaGuard`) sont **dupliquées localement** dans chaque service consommateur sous
+   `src/auth/guards/` — voir ADR-027 pour la justification (duplication `@nestjs/core` côté pnpm
+   store qui casse l'identité du `Reflector` lorsque le Guard est partagé).
 3. **Détection de rejeu basée sur famille de refresh tokens** (OWASP refresh token rotation
    cheatsheet) — déclenche la révocation de toute la famille sur jti rejoué.
 4. **MFA TOTP** chiffré au repos via **Vault Transit** (`vault:vN:<...>`) — clé `auth-mfa-secret` à
@@ -2354,10 +2359,24 @@ async resetPassword(@Body() dto: ResetPasswordDto) {
 Voir **doc 15 — Security Hardening** pour l'intégration complète Vault (Agent sidecar K3s,
 politiques ACL, rotation auto).
 
-#### f) Package `@nina-aes/auth-guards` (à extraire)
+#### f) Package `@nina-aes/auth-guards` (type-only depuis v0.2.0)
 
-Les `JwtAuthGuard`, `RolesGuard`, et un nouveau **`MfaGuard`** seront extraits dans
-`packages/auth-guards/` au doc 15 pour être réutilisés par les 10 autres microservices.
+> ⚠️ **Note d'historique** : la version initiale (v0.1.0) exportait `JwtAuthGuard`, `RolesGuard`,
+> `MfaGuard` comme classes `@Injectable()` partagées. Cette approche a été abandonnée — cf.
+> [ADR-027](./adr/ADR-027-auth-guards-type-only-package.md). Le package n'exporte plus que :
+>
+> - **Types** : `AuthSubject`, `JwtVerifier`, `UserRole`
+> - **Token DI** : `JWT_VERIFIER` (`Symbol`)
+> - **Décorateurs `SetMetadata`-purs** : `@Public()`, `@Roles()`, `@RequireMfa()`
+> - **Clés de métadonnées** : `IS_PUBLIC_KEY`, `ROLES_KEY`, `REQUIRE_MFA_KEY`
+>
+> Les **classes Guards** sont dupliquées dans chaque service consommateur :
+>
+> - `services/auth-service/src/auth/guards/{jwt-auth,roles,mfa}.guard.ts`
+> - `services/document-service/src/auth/guards/{jwt-auth,roles}.guard.ts`
+>
+> Le pseudo-code ci-dessous reste valable comme **référence d'implémentation** (chaque service copie
+> ces ~30 lignes verbatim) :
 
 ```ts
 /**
@@ -2567,8 +2586,8 @@ n'apportent que leurs droits silos.
 
 ### 7.1bis Politique MFA par rôle (PROMPT 3.2)
 
-Le `MfaGuard` (§ 6.13bis · f — sera extrait dans `@nina-aes/auth-guards` au doc 15) applique la
-règle suivante :
+Le `MfaGuard` (§ 6.13bis · f — implémentation locale au service depuis ADR-027, sous
+`services/auth-service/src/auth/guards/mfa.guard.ts`) applique la règle suivante :
 
 - **CITIZEN** : MFA **optionnel**. L'utilisateur peut l'activer via `POST /auth/mfa/enable`. Sans
   MFA, le `JwtAuthGuard` seul suffit.
