@@ -3,10 +3,49 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-30 (patch 0sexies — `pnpm docker:up` auto-seed Vault)
+> **Dernière mise à jour** : 2026-05-30 (patch 0septies — env preload via `@nina-aes/database`)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0septies. Patch 2026-05-30 — env preload `@nina-aes/database` + fix `28P01` identity-service
+
+Boot d'`identity-service` échouait avec `password authentication failed for user "nina_admin"`
+(`SQLSTATE 28P01`). Diagnostic double :
+
+1. **`ConfigModule.forRoot({ isGlobal: true })`** sans `envFilePath` ni `expandVariables: true` dans
+   4 services (identity-service, enrollment-service, api-gateway, ussd-service) — même bug déjà
+   corrigé pour `auth-service` et `document-service`. Le `.env` racine n'était pas chargé,
+   `DATABASE_URL` restait `undefined`.
+2. **`packages/database/src/index.ts`** avait un fallback drift hardcodé
+   `postgresql://nina_admin:nina_dev_2026_secure@...` (password obsolète vs `.env` actuel
+   `nina_dev_2026!`). Le PrismaPg adapter tombait en mode "wrong-password silencieux".
+
+**Mais le fix ConfigModule seul ne suffit pas** : `@nina-aes/database` instancie `prisma` **au
+top-level** (singleton), donc à l'import-time d'un controller — avant que `ConfigModule.forRoot()`
+ait pu charger l'env. Trois symptômes possibles selon le shell : 28P01, fallback drift, ou la
+nouvelle erreur fail-loud `DATABASE_URL is not set`.
+
+**Solution finale** : pré-chargement du `.env` directement dans `@nina-aes/database` (auto-discovery
+en remontant l'arbre depuis `cwd`). Self-healing, transparent pour tous les consommateurs, aucune
+action côté services.
+
+**Changements** :
+
+- `packages/database/src/index.ts` :
+  - Ajout `preloadRootEnv()` au top : remonte 6 niveaux à la recherche d'un `.env`, le charge avec
+    `dotenv` + `dotenv-expand` (idempotent — n'écrase pas les vars déjà set dans `process.env`).
+  - `createBareClient()` : fallback hardcodé supprimé → **throw clair** si `DATABASE_URL` absent.
+- `packages/database/package.json` : `dotenv` + `dotenv-expand` promus `devDependencies` →
+  `dependencies`.
+- 4 services :
+  `ConfigModule.forRoot({ envFilePath: ['../../.env', '.env'], expandVariables: true })` ajouté
+  (défense en profondeur — `@nina-aes/database` charge déjà l'env, mais le ConfigModule doit le voir
+  aussi pour `cfg.get('DATABASE_URL')` etc.).
+
+**Validation runtime** : `identity-service` boot OK sur `:3001` ; `GET /health` →
+`{database: up, redis: up, rabbitmq: up}` (le seul `down` restant est `ai-service` FastAPI non
+démarré, orthogonal).
 
 ### 0sexies. Patch 2026-05-30 — `pnpm docker:up` auto-seed Vault (scripts/vault-bootstrap.mjs)
 

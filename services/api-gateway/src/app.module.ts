@@ -21,7 +21,12 @@ import { ProxyModule } from './modules/proxy/proxy.module.js';
 @Module({
   imports: [
     // ─── Variables d'environnement (validation Zod via @nina-aes/config) ──
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Charge le .env racine du monorepo (cf. auth-service / identity-service).
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['../../.env', '.env'],
+      expandVariables: true,
+    }),
 
     // ─── Logger structuré central — DOIT être importé en premier ────────
     LoggerModule.forRoot({

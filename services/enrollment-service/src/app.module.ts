@@ -13,7 +13,13 @@ import { HealthController } from './modules/health/health.controller.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // Charge le .env racine du monorepo (cf. auth-service / identity-service
+      // pour le rationale : DATABASE_URL référence ${POSTGRES_*}).
+      envFilePath: ['../../.env', '.env'],
+      expandVariables: true,
+    }),
     LoggerModule.forRoot({
       service: 'enrollment-service',
       environment: process.env.NODE_ENV,

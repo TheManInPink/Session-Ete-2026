@@ -37,6 +37,12 @@ import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
+      // Charge le .env racine du monorepo (DATABASE_URL etc. y est défini en
+      // référence aux POSTGRES_*). expandVariables=true pour résoudre ${VAR}
+      // composés. Sans ça, le fallback de @nina-aes/database lèverait
+      // (cf. createBareClient).
+      envFilePath: ['../../.env', '.env'],
+      expandVariables: true,
     }),
 
     ThrottlerModule.forRoot([

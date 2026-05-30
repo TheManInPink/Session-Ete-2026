@@ -23,8 +23,39 @@
  * @module      @nina-aes/database
  */
 
+import { existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { config as loadDotenv } from 'dotenv';
+import { expand as expandDotenv } from 'dotenv-expand';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Pre-load .env (avant l'instantiation top-level de `prisma`)
+// ──────────────────────────────────────────────────────────────────────────────
+// `prisma` est créé à l'import-time (singleton). Les services Nest qui
+// l'importent au top de leurs controllers font évaluer ce module AVANT que
+// `ConfigModule.forRoot()` ait pu charger leur .env. Si on attend que Nest
+// charge l'env, on plante.
+//
+// Stratégie : remonter l'arbre des dossiers depuis `cwd()` à la recherche
+// d'un `.env` (typiquement le `.env` racine du monorepo). Si trouvé, on le
+// charge avec expansion `${VAR}`. Idempotent : si DATABASE_URL est déjà set
+// dans l'env hôte, ce loader ne l'écrase pas (comportement dotenv par défaut).
+function preloadRootEnv(): void {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    const candidate = resolve(dir, '.env');
+    if (existsSync(candidate)) {
+      expandDotenv(loadDotenv({ path: candidate }));
+      return;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return;
+    dir = parent;
+  }
+}
+preloadRootEnv();
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Configuration
@@ -63,9 +94,17 @@ const SOFT_DELETE_MODELS = new Set<string>(['Citizen', 'User', 'CorrectionReques
  * @returns Un `PrismaClient` non étendu.
  */
 function createBareClient(): PrismaClient {
-  const connectionString =
-    process.env.DATABASE_URL ??
-    'postgresql://nina_admin:nina_dev_2026_secure@localhost:5432/nina_aes_db?schema=public';
+  // Fail loud si DATABASE_URL n'est pas chargée. Le fallback historique (avec
+  // un mot de passe codé en dur) provoquait des bugs silencieux 28P01 quand
+  // un service oubliait `envFilePath: ['../../.env']` dans son ConfigModule —
+  // le PrismaPg adapter se connectait avec des credentials obsolètes.
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      'DATABASE_URL is not set. Each NestJS service must load the root .env via ' +
+        "`ConfigModule.forRoot({ envFilePath: ['../../.env', '.env'], expandVariables: true })`.",
+    );
+  }
   const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({
     adapter,
