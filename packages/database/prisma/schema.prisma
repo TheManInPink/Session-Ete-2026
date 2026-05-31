@@ -795,6 +795,11 @@ model Notification {
   templateKey        String    @map("template_key") @db.VarChar(100)
   language           Language  @default(FR)
   payload            Json
+  /// Clé d'idempotence : SHA-256(recipient | channel | templateKey | payload canonique).
+  /// Nullable → les envois en masse non idempotents (broadcast) gardent NULL
+  /// (Postgres autorise plusieurs NULL sous un index UNIQUE). Un doublon
+  /// transactionnel (retry at-least-once) lève P2002 → renvoi de l'existant.
+  dedupeKey          String?   @unique @map("dedupe_key") @db.VarChar(64)
   providerId         String?   @map("provider_id") @db.VarChar(100)
   sentAt             DateTime? @map("sent_at") @db.Timestamptz(6)
   deliveredAt        DateTime? @map("delivered_at") @db.Timestamptz(6)

@@ -132,6 +132,78 @@
       }
     },
     {
+      "name": "notification.push",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "nina.dlx",
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "notification.work",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notification.retry.1",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 60000,
+        "x-dead-letter-exchange": "nina.notifications",
+        "x-dead-letter-routing-key": "notification.requeue"
+      }
+    },
+    {
+      "name": "notification.retry.2",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 300000,
+        "x-dead-letter-exchange": "nina.notifications",
+        "x-dead-letter-routing-key": "notification.requeue"
+      }
+    },
+    {
+      "name": "notification.retry.3",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 1800000,
+        "x-dead-letter-exchange": "nina.notifications",
+        "x-dead-letter-routing-key": "notification.requeue"
+      }
+    },
+    {
+      "name": "notification.retry.4",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 7200000,
+        "x-dead-letter-exchange": "nina.notifications",
+        "x-dead-letter-routing-key": "notification.requeue"
+      }
+    },
+    {
+      "name": "notification.retry.5",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 43200000,
+        "x-dead-letter-exchange": "nina.notifications",
+        "x-dead-letter-routing-key": "notification.requeue"
+      }
+    },
+    {
       "name": "ai.analysis.requested",
       "vhost": "/",
       "durable": true,
@@ -232,6 +304,22 @@
       "destination": "notification.ussd",
       "destination_type": "queue",
       "routing_key": "notification.ussd",
+      "arguments": {}
+    },
+    {
+      "source": "nina.notifications",
+      "vhost": "/",
+      "destination": "notification.push",
+      "destination_type": "queue",
+      "routing_key": "notification.push",
+      "arguments": {}
+    },
+    {
+      "source": "nina.notifications",
+      "vhost": "/",
+      "destination": "notification.work",
+      "destination_type": "queue",
+      "routing_key": "notification.requeue",
       "arguments": {}
     },
     {

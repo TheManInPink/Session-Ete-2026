@@ -1,0 +1,35 @@
+{
+  "correction-submitted": {
+    "sms": "NINA-AES : votre demande de correction n°{id} est bien reçue. Vous serez notifié(e) à chaque étape.",
+    "email": {
+      "subject": "NINA-AES — Demande de correction n°{id} reçue",
+      "body": "Bonjour,\n\nVotre demande de correction n°{id} a bien été enregistrée. Notre équipe va l'examiner et vous recevrez une notification à chaque changement de statut.\n\nCe message est automatique, merci de ne pas y répondre.\n\nNINA-AES — République du Mali"
+    }
+  },
+  "correction-approved": {
+    "sms": "NINA-AES : votre demande de correction n°{id} a été APPROUVÉE. Détails sur le portail citoyen.",
+    "email": {
+      "subject": "NINA-AES — Demande de correction n°{id} approuvée",
+      "body": "Bonjour,\n\nBonne nouvelle : votre demande de correction n°{id} a été approuvée. Les modifications sont désormais effectives sur votre fiche.\n\nNINA-AES — République du Mali"
+    }
+  },
+  "appointment-confirmed": {
+    "sms": "NINA-AES : votre rendez-vous est confirmé le {date} à {location}. Présentez-vous avec une pièce d'identité.",
+    "email": {
+      "subject": "NINA-AES — Rendez-vous confirmé le {date}",
+      "body": "Bonjour,\n\nVotre rendez-vous est confirmé :\n- Date : {date}\n- Lieu : {location}\n\nMerci de vous présenter muni(e) d'une pièce d'identité.\n\nNINA-AES — République du Mali"
+    }
+  },
+  "appointment-reminder-24h": {
+    "sms": "NINA-AES : rappel — votre rendez-vous est demain {date} à {location}. À bientôt."
+  },
+  "mfa-code": {
+    "sms": "NINA-AES : votre code de vérification est {code}. Valable {ttl} min. Ne le partagez avec personne."
+  },
+  "whistleblower-token": {
+    "sms": "SIGAC : votre jeton de suivi anonyme est {token}. Conservez-le précieusement, il ne sera plus affiché et permet de suivre votre signalement."
+  },
+  "ussd-confirmation": {
+    "sms": "NINA-AES : opération {ref} enregistrée avec succès. Merci."
+  }
+}

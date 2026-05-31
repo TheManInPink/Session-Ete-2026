@@ -3,11 +3,82 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-30 (patch 0novies — audit-service : chaîne Merkle complète +
-> scellement Ed25519)
+> **Dernière mise à jour** : 2026-05-31 (patch 0decies — notification-service : multicanal
+> SMS/email/push + consumer RabbitMQ avec ré-essai exponentiel + DLQ)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0decies. Patch 2026-05-31 — `notification-service` : multicanal complet (PROMPT 3.5)
+
+Passage du **squelette** (5 fichiers, 2 controllers) à un service complet
+(`services/notification-service/`, port 3005).
+
+**Livré** :
+
+- **3 canaux** derrière une interface `ChannelProvider` + un `ChannelDispatcher` :
+  - **SMS** Africa's Talking (`src/notifications/channels/sms.provider.ts`) — client REST `fetch`
+    (pas le SDK : style `vault-client`, testable, souveraineté), sandbox détecté via
+    `AT_USERNAME=sandbox`, mapping des statuts DLR.
+  - **Email** SMTP nodemailer (Maildev en dev) — import nommé `createTransport` (pas de défaut CJS).
+  - **Push** FCM HTTP v1 (`push.provider.ts`) — OAuth2 « service account JWT bearer » signé RS256
+    avec `node:crypto` (sans `firebase-admin`), repli **dev simulé** (`FCM_ENABLED=false` par
+    défaut, app mobile non encore livrée).
+- **API REST** `/api/v1/notifications` : `POST /send` (synchrone), `POST /broadcast` (ADMIN, publie
+  sur RabbitMQ), `GET /:id/status`, `GET /templates`, `GET /metrics`, `POST /atalking/callback`
+  (webhook DLR `@Public` + secret partagé). Guards JWKS locaux (ADR-027).
+- **Consumer RabbitMQ** (`amqp-connection-manager`, workers parallèles via `prefetch`) consommant
+  `notification.sms/.email/.ussd/.push` + la file de ré-injection `notification.work`. Dispatch par
+  `body.channel` (la file n'est qu'un transport).
+- **Ré-essai exponentiel → DLQ** : files de délai TTL par palier `notification.retry.1..5` (1 min /
+  5 min / 30 min / 2 h / 12 h) ; dead-letter → `nina.notifications` clé `notification.requeue` →
+  `notification.work`. Échec définitif → `nina.dlx` → `dlx.parking`. (Une file PAR palier : évite le
+  blocage en tête de file des TTL hétérogènes ; pas de plugin delayed-message requis.)
+- **Idempotence** : colonne `notifications.dedupe_key` **UNIQUE** (nullable) — migration
+  `20260531120000_notification_dedupe_key`. Clé =
+  `SHA-256(recipient|canal|template|variables canoniques)`. La création joue le rôle de **verrou
+  atomique** (create-first) : sur P2002, l'existant est renvoyé (succès / PENDING dédupliqués) ou
+  repris pour ré-essai si `FAILED` (compare-and-set atomique).
+- **Templates 8 langues** (`src/notifications/templates/locales/*.json`, copiés en `dist` via
+  `nest-cli.json` assets). **FR complet** ; les 7 autres langues retombent sur FR (relecture
+  locuteur natif en attente — cf. gap « Fichiers i18n manquants »).
+- **Tests** : 4 suites / 25 tests mockés (templates, cœur métier dont idempotence/course/ré-essai,
+  fournisseur AT `fetch` mocké, topologie). + smoke test d'intégration manuel (cf. encadré
+  ci-dessous).
+
+**Écarts docs (code fait foi)** :
+
+- `docs/06-DATABASE-SCHEMA-PRISMA.md` montre `Notification` sans `dedupe_key` → colonne ajoutée par
+  la migration `20260531120000_notification_dedupe_key`.
+- `infrastructure/docker/rabbitmq/definitions.json` gagne 7 files (`notification.push`,
+  `notification.work`, `notification.retry.1..5`) + 2 liaisons — alignées 1:1 sur la topologie
+  assertée par le service (cf. `src/notifications/consumer/amqp.topology.ts`).
+- Nouvelles variables d'env (préfixes `AT_*`, `SMTP_*`, `FCM_*`, `RABBITMQ_*`, `NOTIFICATION_*`) :
+  schéma Zod `src/config/env.schema.ts` ; déjà présentes dans `.env`/`.env.example` pour AT et SMTP.
+
+**Choix notables** : SDK Africa's Talking **non utilisé** (client `fetch` typé, mockable) ; secrets
+attendus **injectés par Vault Agent** dans l'environnement (l'app ne lit pas Vault directement).
+
+**Revue adverse + smoke test d'intégration (correctifs appliqués)** : ACK **durable** (NACK+requeue
+si la republication retry/DLQ échoue — plus de perte silencieuse) ; **double-envoi concurrent
+neutralisé** — la CRÉATION de la ligne (contrainte `UNIQUE(dedupe_key)`) sert de **verrou atomique
+d'expédition** (« create-first » : seul le créateur expédie), et le ré-essai d'une ligne `FAILED`
+est repris par un _compare-and-set_ atomique `FAILED→PENDING` (`claimForRetry`) ; validation des
+champs du compte de service FCM ; repli `providerId` email sur `response` ; webhook DLR via en-tête
+`x-callback-token`.
+
+> Le **smoke test local** (Postgres + RabbitMQ + Maildev) a **révélé** ce double-envoi (2 e-mails
+> pour 2 publications identiques) que les tests mockés ne voyaient pas — corrigé (create-first) puis
+> re-vérifié (1 e-mail / 1 ligne). Validés aussi en exécution réelle : topologie assertée **sans
+> 406**, retry → `notification.retry.1`, DLQ → `dlx.parking`, santé Postgres. (NB poste de dev :
+> `localhost` résout en IPv6 `::1` d'abord ; les drivers Node échouent en `ECONNRESET` sur les
+> mappings Docker IPv4 — lancer avec `POSTGRES_HOST=127.0.0.1` + `RABBITMQ_URL`/`SMTP_HOST` en
+> `127.0.0.1`.)
+
+**Limite connue (résiduelle — à traiter en phase tests/charge, doc 18 / k6)** : si un worker
+**crashe en plein envoi**, la ligne reste `PENDING` ; une redélivrance la considère « en cours » et
+ne ré-expédie pas → notification non livrée jusqu'à réarmement. Fermeture = balayeur réarmant les
+`PENDING` périmés (`updated_at` ancien). Reporté (probabilité très faible, hors chemin nominal).
 
 ### 0novies. Patch 2026-05-30 — `audit-service` : implémentation Merkle complète (PROMPT 3.4)
 
