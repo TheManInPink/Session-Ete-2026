@@ -3,11 +3,78 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-31 (patch 0decies — notification-service : multicanal
-> SMS/email/push + consumer RabbitMQ avec ré-essai exponentiel + DLQ)
+> **Dernière mise à jour** : 2026-06-04 (patch 0undecies — appointment-service : prise de RDV,
+> centres d'enrôlement + modèle Prisma EnrollmentCenter)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0undecies. Patch 2026-06-04 — `appointment-service` : prise de RDV + centres (PROMPT 3.6)
+
+Passage du **squelette** (3 fichiers, 1 controller `/health`) à un service complet
+(`services/appointment-service/`, port 3008). **ADR :
+[ADR-028](./adr/ADR-028-appointment-service-centres-file-attente.md).**
+
+**Livré** :
+
+- **Centres d'enrôlement** (`GET /api/v1/centers`) : liste filtrable (`region`, `cercle`, `service`,
+  `openNow`, recherche géo `lat`+`lng`+`radius` triée par distance — Haversine applicatif), détail
+  (`:id`), **disponibilités** (`:id/availability`) avec créneaux **STANDARD vs PRIORITAIRE**
+  (fenêtre 07:00–09:00 réservée aux vulnérables), et **suggestion** du centre le plus proche libre
+  (`/centers/suggest`). Routes publiques (annuaire) + throttler.
+- **Rendez-vous** (`/api/v1/appointments`) : création, annulation, **check-in** (entrée en file +
+  numéro), **clôture** — transitions de statut **atomiques** (compare-and-set `updateMany`).
+- **File d'attente virtuelle** Redis (sorted set par centre/jour, score = arrivée − bonus de
+  priorité ⇒ vulnérables prioritaires) + estimation d'attente (heuristique, placeholder ML).
+- **No-show** : balayage cron (`@nestjs/schedule`) → **blacklist temporaire 48 h** (clé Redis TTL)
+  après 2 absences sur 90 j. **Rappels SMS** confirmation + **J-1** + **H-2** publiés sur l'exchange
+  `nina.notifications` (consommés par `notification-service`), **idempotents** via `idempotencyKey`.
+- **Anti-surbooking** : `createBookingAtomic` prend un `pg_advisory_xact_lock` au niveau **JOUR** et
+  revérifie les 3 niveaux de capacité (créneau / nature / jour) **dans la transaction** — ferme la
+  fenêtre TOCTOU du pré-contrôle en lecture.
+- **Tests** : 5 suites / 39 tests mockés (géo, grille/disponibilité, file, cœur métier RDV, filtres
+  centres). `check-types` + `build` + `lint` verts.
+
+**Schéma & seed** :
+
+- **Nouveau modèle Prisma `EnrollmentCenter`** (1:1 `Institution` via `institution_id @unique`) —
+  profil opérationnel d'un centre (services, capacité, quotas, fenêtre prioritaire, horaires
+  `openingHours` JSON, géo lat/lng, fuseau). Migration **additive**
+  `20260604120000_enrollment_centers`. Re-export du type dans `@nina-aes/database`. Les
+  `Appointment` continuent de référencer `institutions(id)` (= `centerId`).
+- **Seed** : +5 antennes RAVEC (Kati, Kayes, Sikasso, Ségou, Mopti) ⇒ 10 institutions ; +6 profils
+  `EnrollmentCenter` (CTDEC Bamako + 5 antennes). Idempotent (`upsert`).
+
+**notification-service** (additif) : 2 templates ajoutés au catalogue + locale FR —
+`appointment-reminder-2h` (H-2, vars `heure`/`location`) et `appointment-cancelled` (SMS+email, vars
+`date`/`location`). Test de catalogue mis à jour (7 → 9 templates).
+
+**Revue adverse (workflow multi-agents — 6 problèmes confirmés, tous corrigés)** :
+
+- 🔴 **Quotas journaliers non atomiques** (seul `parallelDesks` revérifié) → verrou consultatif
+  **niveau jour** + recompte des 3 niveaux en transaction.
+- 🔴 **IDOR/BOLA** : un `CITIZEN` pouvait lire/annuler/créer le RDV d'autrui et vider toute la base
+  (pas de liaison `JWT.sub ↔ Citizen.id`) → opérations **médiées** (AGENT/SUPERVISOR/ADMIN, AUDITOR
+  en lecture) ; `GET /appointments` exige un filtre de portée (`citizenId`/`centerId`) + pagination
+  (≤ 200/page). Self-service CITIZEN rouvrable quand le binding d'identité existera.
+- 🟠 **Fenêtre cron de rappel sans marge** (10 = intervalle) → défaut **15 min** (recouvrement) +
+  commentaire corrigé.
+- 🟡 Désalignement de clé de file (jour RDV vs jour courant) → documenté (`?date`).
+
+**Écarts docs (code fait foi)** :
+
+- `docs/06-DATABASE-SCHEMA-PRISMA.md` (§3.2) et `ADR-011` annoncent « 16 modèles » et n'incluent ni
+  les modèles `document-service` (Document/Revocation/AccessLog), ni `AuditRoot`, ni
+  `EnrollmentCenter` : ce sont des artefacts de spec initiale.
+  **`packages/database/prisma/schema.prisma` fait foi** (22 modèles). `EnrollmentCenter` ajouté au
+  récap §3.2 + addendum « évolutions » dans ADR-011.
+- Variables d'env propres au service (`APPOINTMENT_*`) : défauts Zod dans `src/config/env.schema.ts`
+  (non requises dans `.env.example`). `REDIS_URL`/`RABBITMQ_URL`/`APPOINTMENT_SERVICE_PORT` déjà
+  présentes.
+
+**Limite connue** : pas de self-service CITIZEN direct tant que la liaison `JWT.sub ↔ Citizen.id`
+n'est pas livrée (ressort `identity`/`auth-service`) ; les citoyens passent par un agent ou le BFF
+du portail (compte de service AGENT). Cf. README §7 + ADR-028 §5.
 
 ### 0decies. Patch 2026-05-31 — `notification-service` : multicanal complet (PROMPT 3.5)
 

@@ -332,5 +332,6 @@ export type {
   KioskSession,
   Notification,
   Location,
+  EnrollmentCenter,
 } from '@prisma/client';
 export default prisma;

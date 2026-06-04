@@ -13,9 +13,11 @@ import {
 describe('TemplateRegistry', () => {
   const registry = new TemplateRegistry();
 
-  it('liste les 7 templates du catalogue', () => {
-    expect(registry.list()).toHaveLength(7);
+  it('liste les 9 templates du catalogue', () => {
+    expect(registry.list()).toHaveLength(9);
     expect(registry.has('mfa-code')).toBe(true);
+    expect(registry.has('appointment-reminder-2h')).toBe(true);
+    expect(registry.has('appointment-cancelled')).toBe(true);
     expect(registry.has('inconnu')).toBe(false);
   });
 

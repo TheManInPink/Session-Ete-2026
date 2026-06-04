@@ -42,6 +42,18 @@ export const TEMPLATES: readonly TemplateDef[] = [
     description: 'Rappel de rendez-vous 24 h avant l’échéance.',
   },
   {
+    key: 'appointment-reminder-2h',
+    channels: [SMS],
+    requiredVars: ['heure', 'location'],
+    description: 'Rappel de rendez-vous 2 h avant l’échéance (jour J).',
+  },
+  {
+    key: 'appointment-cancelled',
+    channels: [SMS, EMAIL],
+    requiredVars: ['date', 'location'],
+    description: 'Confirmation d’annulation d’un rendez-vous (CTDEC / antenne RAVEC).',
+  },
+  {
     key: 'mfa-code',
     channels: [SMS],
     requiredVars: ['code', 'ttl'],

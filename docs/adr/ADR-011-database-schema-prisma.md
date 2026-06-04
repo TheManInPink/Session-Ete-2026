@@ -92,3 +92,19 @@ Le client Prisma est exposé comme un **singleton paresseux** via `packages/data
   meilleure documentation
 - **SQL brut sans ORM** : contrôle total mais coût de maintenance élevé avec 16 modèles. Chaque
   requête devrait être écrite, typée et maintenue manuellement
+
+## Évolutions post-décision (additives)
+
+La décision (schéma unifié dans `@nina-aes/database`) reste valable ; le schéma a simplement été
+**étendu** au fil des services, sans la remettre en cause :
+
+- **document-service** : `Document`, `DocumentRevocation`, `DocumentAccessLog` + 4 enums (migration
+  `20260525120000`).
+- **audit-service** : `AuditRoot` (ancrage Ed25519, migration `20260530120000`) ; idempotence
+  `notifications.dedupe_key` (migration `20260531120000`).
+- **appointment-service** : `EnrollmentCenter` (1:1 `Institution`, migration `20260604120000`) —
+  profil opérationnel d'un centre. Décision dédiée :
+  **[ADR-028](./ADR-028-appointment-service-centres-file-attente.md)**.
+
+Le décompte « 16 modèles » de cet ADR correspond à la spec initiale (PROMPT 1.3). Le schéma
+implémenté en compte davantage — **`packages/database/prisma/schema.prisma` fait foi**.

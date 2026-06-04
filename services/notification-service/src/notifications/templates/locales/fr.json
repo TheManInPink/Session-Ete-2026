@@ -23,6 +23,16 @@
   "appointment-reminder-24h": {
     "sms": "NINA-AES : rappel — votre rendez-vous est demain {date} à {location}. À bientôt."
   },
+  "appointment-reminder-2h": {
+    "sms": "NINA-AES : votre rendez-vous est dans environ 2 heures, aujourd'hui à {heure}, à {location}. Pensez à votre pièce d'identité."
+  },
+  "appointment-cancelled": {
+    "sms": "NINA-AES : votre rendez-vous du {date} à {location} a été annulé. Vous pouvez en reprogrammer un sur le portail citoyen ou par USSD.",
+    "email": {
+      "subject": "NINA-AES — Rendez-vous du {date} annulé",
+      "body": "Bonjour,\n\nVotre rendez-vous est annulé :\n- Date : {date}\n- Lieu : {location}\n\nVous pouvez reprogrammer un nouveau rendez-vous à tout moment sur le portail citoyen ou via le menu USSD.\n\nCe message est automatique, merci de ne pas y répondre.\n\nNINA-AES — République du Mali"
+    }
+  },
   "mfa-code": {
     "sms": "NINA-AES : votre code de vérification est {code}. Valable {ttl} min. Ne le partagez avec personne."
   },
