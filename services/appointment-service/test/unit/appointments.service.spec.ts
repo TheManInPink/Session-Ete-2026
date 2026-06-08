@@ -113,7 +113,7 @@ function build(
     ...overrides.centers,
   };
   const queue = {
-    enqueue: jest.fn().mockResolvedValue(undefined),
+    enqueue: jest.fn().mockResolvedValue(true),
     position: jest
       .fn()
       .mockResolvedValue({ position: 3, peopleAhead: 2, queueSize: 3, estimatedWaitMin: 30 }),
@@ -244,7 +244,10 @@ describe('AppointmentsService cycle de vie', () => {
   });
 
   it('check-in : confirme, met en file et attribue un numéro', async () => {
-    const { service, queue, repo } = build();
+    const { service, queue, repo } = build({
+      // findById reflète l'état persisté après le CAS gardé (queueNumber écrit).
+      repo: { findById: jest.fn().mockResolvedValue(makeRow({ queueNumber: 3 })) },
+    });
     const res = await service.checkIn('appt-1', { userId: 'kc-sub', role: 'agent', mfa: false });
     expect(repo.transition).toHaveBeenCalledWith('appt-1', ['SCHEDULED'], 'CONFIRMED', {
       agentId: 'user-uuid',
@@ -252,6 +255,33 @@ describe('AppointmentsService cycle de vie', () => {
     expect(queue.enqueue).toHaveBeenCalled();
     expect(res.queue.position).toBe(3);
     expect(res.queueNumber).toBe(3);
+  });
+
+  it('check-in : ne ré-écrit PAS un RDV annulé en concurrence (CAS gardé)', async () => {
+    // 1re transition (SCHEDULED→CONFIRMED) OK, 2e (CONFIRMED→CONFIRMED) échoue
+    // ⇒ le RDV a changé d'état entre-temps : pas de résurrection, conflit + retrait file.
+    const { service, queue } = build({
+      repo: {
+        transition: jest.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false),
+      },
+    });
+    await expect(
+      service.checkIn('appt-1', { userId: 'kc-sub', role: 'agent', mfa: false }),
+    ).rejects.toThrow(/interrompu/i);
+    expect(queue.remove).toHaveBeenCalled();
+  });
+
+  it('check-in : mode dégradé si Redis indisponible (enqueue=false ⇒ pas de numéro)', async () => {
+    const { service, repo } = build({
+      repo: { findById: jest.fn().mockResolvedValue(makeRow({ queueNumber: null })) },
+      queue: { enqueue: jest.fn().mockResolvedValue(false) },
+    });
+    const res = await service.checkIn('appt-1', { userId: 'kc-sub', role: 'agent', mfa: false });
+    expect(res.queue.position).toBe(0); // pas de position en mode dégradé
+    // le CAS gardé écrit queueNumber=null (et non un faux « 0 »)
+    expect(repo.transition).toHaveBeenLastCalledWith('appt-1', ['CONFIRMED'], 'CONFIRMED', {
+      queueNumber: null,
+    });
   });
 
   it('clôture un RDV servi', async () => {

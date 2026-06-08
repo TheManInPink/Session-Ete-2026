@@ -286,26 +286,45 @@ export class AppointmentsService {
       throw new ConflictException(`Check-in impossible (statut actuel : ${row.status}).`);
     }
 
-    // Entrée en file (priorité prise en compte dans le score), puis numéro.
-    await this.queue.enqueue(
+    // Entrée en file (priorité prise en compte dans le score). Si Redis est
+    // indisponible, `enqueue` renvoie false : le RDV reste CONFIRMED mais sans
+    // numéro de passage (mode dégradé explicite, plutôt qu'un faux « 0 »).
+    const slotCfg = await this.centers.getCenter(row.centerId);
+    const enqueued = await this.queue.enqueue(
       row.centerId,
       row.scheduledAt,
       id,
       Date.now(),
       row.priority as PriorityLevel,
     );
-    const slotCfg = await this.centers.getCenter(row.centerId);
-    const pos = await this.queue.position(
-      row.centerId,
-      row.scheduledAt,
+    const pos: QueuePosition = enqueued
+      ? await this.queue.position(
+          row.centerId,
+          row.scheduledAt,
+          id,
+          slotCfg.slotDurationMin,
+          slotCfg.parallelDesks,
+        )
+      : { position: 0, peopleAhead: 0, queueSize: 0, estimatedWaitMin: 0 };
+
+    // Numéro de passage écrit via un compare-and-set GARDÉ sur CONFIRMED : si le
+    // RDV a été annulé/clôturé en concurrence entre-temps, on ne le « ressuscite »
+    // PAS — on défait l'entrée de file et on signale le conflit.
+    const claimed = await this.repo.transition(
       id,
-      slotCfg.slotDurationMin,
-      slotCfg.parallelDesks,
+      [AppointmentStatus.CONFIRMED],
+      AppointmentStatus.CONFIRMED,
+      { queueNumber: enqueued ? pos.position : null },
     );
-    const updated = await this.repo.updateStatus(id, {
-      status: AppointmentStatus.CONFIRMED,
-      queueNumber: pos.position,
-    });
+    if (!claimed) {
+      await this.queue.remove(row.centerId, row.scheduledAt, id);
+      const current = await this.repo.findById(id);
+      throw new ConflictException(
+        `Check-in interrompu : le rendez-vous a changé d'état (${current?.status ?? 'inconnu'}).`,
+      );
+    }
+
+    const updated = await this.requireAppointment(id);
     return { ...this.toView(updated), queue: pos };
   }
 

@@ -56,6 +56,8 @@ export class QueueService {
    * @param appointmentId UUID du RDV.
    * @param arrivalMs     Horodatage d'arrivée (ms epoch).
    * @param priority      Priorité opérationnelle (P1/P2/P3).
+   * @returns `true` si l'insertion a réussi, `false` si Redis est indisponible
+   *          (l'appelant doit alors traiter le mode dégradé — pas de numéro).
    */
   async enqueue(
     centerId: string,
@@ -63,11 +65,13 @@ export class QueueService {
     appointmentId: string,
     arrivalMs: number,
     priority: PriorityLevelT,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const key = this.queueKey(centerId, day);
     const score = arrivalMs - PRIORITY_BONUS_MS[priority];
-    await this.redis.enqueue(key, appointmentId, score);
-    await this.redis.expire(key, QUEUE_TTL_SECONDS);
+    const ok = await this.redis.enqueue(key, appointmentId, score);
+    // TTL posé uniquement si l'insertion a réussi (sinon EXPIRE sur clé absente).
+    if (ok) await this.redis.expire(key, QUEUE_TTL_SECONDS);
+    return ok;
   }
 
   /** Retire un RDV de la file (clôture / annulation après check-in). */

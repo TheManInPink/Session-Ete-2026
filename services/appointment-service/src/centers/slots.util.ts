@@ -67,6 +67,9 @@ export function daySlotStarts(config: CenterSlotConfig, dayStart: Date): SlotSta
   if (!range) return [];
   const [from, to] = range;
   const step = config.slotDurationMin;
+  // Garde défensive : un pas <= 0 (config corrompue) provoquerait une boucle
+  // infinie (step 0) ou une grille vide silencieuse (step < 0). On refuse.
+  if (step <= 0) return [];
   const out: SlotStart[] = [];
   // Dernier créneau commençant tel qu'il finit AU PLUS TARD à la fermeture.
   for (let m = from; m + step <= to; m += step) {
@@ -99,6 +102,7 @@ export function computeDayAvailability(
   config: CenterSlotConfig,
   dayStart: Date,
   occ: DayOccupancy,
+  now?: Date,
 ): DayAvailability {
   const date = utcDateKey(dayStart);
   const starts = daySlotStarts(config, dayStart);
@@ -115,14 +119,20 @@ export function computeDayAvailability(
   const priorityRemaining = Math.max(0, config.priorityQuota - occ.priorityCount);
   const capacityRemaining = Math.max(0, config.capacityPerDay - occ.total);
 
-  const slots: AvailabilitySlot[] = starts.map((s) => {
-    const iso = s.start.toISOString();
-    const booked = occ.perSlot.get(iso) ?? 0;
-    const perSlotRemaining = Math.max(0, config.parallelDesks - booked);
-    const kindRemaining = s.kind === 'PRIORITY' ? priorityRemaining : standardRemaining;
-    const remaining = Math.min(perSlotRemaining, kindRemaining, capacityRemaining);
-    return { start: iso, kind: s.kind, capacity: config.parallelDesks, booked, remaining };
-  });
+  // Pour le jour courant, on ne propose pas les créneaux déjà passés : ils
+  // seraient affichés « disponibles » alors que la réservation les refuse
+  // (scheduledAt <= now). Filtrage uniquement si `now` est fourni.
+  const nowMs = now?.getTime();
+  const slots: AvailabilitySlot[] = starts
+    .filter((s) => nowMs === undefined || s.start.getTime() > nowMs)
+    .map((s) => {
+      const iso = s.start.toISOString();
+      const booked = occ.perSlot.get(iso) ?? 0;
+      const perSlotRemaining = Math.max(0, config.parallelDesks - booked);
+      const kindRemaining = s.kind === 'PRIORITY' ? priorityRemaining : standardRemaining;
+      const remaining = Math.min(perSlotRemaining, kindRemaining, capacityRemaining);
+      return { start: iso, kind: s.kind, capacity: config.parallelDesks, booked, remaining };
+    });
 
   return {
     date,

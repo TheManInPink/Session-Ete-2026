@@ -67,6 +67,12 @@ describe('daySlotStarts', () => {
     const slots = daySlotStarts(config({ openingHours: { mon: null } }), day);
     expect(slots).toEqual([]);
   });
+
+  it('renvoie [] si slotDurationMin <= 0 (garde anti-boucle infinie)', () => {
+    const day = new Date('2026-06-08T00:00:00Z');
+    expect(daySlotStarts(config({ slotDurationMin: 0 }), day)).toEqual([]);
+    expect(daySlotStarts(config({ slotDurationMin: -15 }), day)).toEqual([]);
+  });
 });
 
 describe('isOpenAt', () => {
@@ -114,5 +120,15 @@ describe('computeDayAvailability', () => {
     const res = computeDayAvailability(config(), day, occ);
     for (const s of res.slots) expect(s.remaining).toBeLessThanOrEqual(1);
     expect(res.summary.capacityRemaining).toBe(1);
+  });
+
+  it('filtre les créneaux passés du jour quand `now` est fourni', () => {
+    const now = new Date('2026-06-08T08:45:00Z'); // 08:00 et 08:30 déjà passés
+    const res = computeDayAvailability(config(), day, emptyOcc(), now);
+    expect(res.open).toBe(true);
+    expect(res.slots.map((s) => s.start)).toEqual([
+      '2026-06-08T09:00:00.000Z',
+      '2026-06-08T09:30:00.000Z',
+    ]);
   });
 });
