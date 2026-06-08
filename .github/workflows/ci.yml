@@ -385,6 +385,7 @@ jobs:
     permissions:
       contents: read
       security-events: write # Upload SARIF vers GitHub Security tab
+      pull-requests: read # gitleaks-action liste les commits de la PR (sinon 403 sur pull_request)
 
     steps:
       - name: Checkout (full history pour gitleaks)
@@ -400,12 +401,23 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+          # IMPORTANT : sans ceci, le format SARIF fait scanner TOUTES les
+          # sévérités et `exit-code:1` se déclenche aussi sur des findings
+          # LOW/MEDIUM — le filtre `severity: CRITICAL,HIGH` est ignoré pour le
+          # gate. On limite donc SARIF + exit-code à CRITICAL,HIGH (intention).
+          limit-severities-for-sarif: true
           format: sarif
           output: trivy-fs.sarif
           exit-code: '1'
 
+      # `continue-on-error` : l'upload code-scanning échoue ("Resource not
+      # accessible by integration") sur les runs `pull_request` / quand GitHub
+      # Advanced Security n'est pas activé. C'est de la VISIBILITÉ (onglet
+      # Security), pas un gate — un échec d'upload ne doit pas faire échouer le
+      # job sécurité (le gate, c'est l'exit-code de Trivy lui-même).
       - name: Upload Trivy SARIF
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-fs.sarif
@@ -447,4 +459,7 @@ jobs:
       - name: Bandit scan FastAPI services
         run: |
           pip install bandit[toml]
-          bandit -r services/ai-service/app services/anticorruption-service/app -ll
+          # -s B104 : le bind sur 0.0.0.0 est INTENTIONNEL pour des services
+          # FastAPI conteneurisés (joignables dans le conteneur / K3s) — l'isolation
+          # se fait au niveau réseau/conteneur, pas au bind. Faux positif en contexte.
+          bandit -r services/ai-service/app services/anticorruption-service/app -ll -s B104

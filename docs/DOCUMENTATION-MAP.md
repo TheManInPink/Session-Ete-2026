@@ -6,8 +6,9 @@
 >
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
-> **Dernière mise à jour** : 30 mai 2026 · **Status** : ✅ initialisé (après clôture des 27 docs +
-> **27 ADRs** — ADR-027 ajouté pour la refacto type-only de `@nina-aes/auth-guards`).
+> **Dernière mise à jour** : 4 juin 2026 · **Status** : ✅ initialisé (27 docs + **28 ADRs** —
+> ADR-028 ajouté pour l'appointment-service : centres d'enrôlement, modèle `EnrollmentCenter`, file
+> d'attente virtuelle et autorisation médiée).
 
 ---
 
@@ -40,9 +41,9 @@
                               │
                               ▼ Justifie
 ┌──────────────────────────────────────────────────────────────────┐
-│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…026)   │
+│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…028)   │
 │  ─────────────────────────────────────────────────────────────   │
-│  26 ADRs (001 à 026) — décisions stratégiques avec :             │
+│  28 ADRs (001 à 028) — décisions stratégiques avec :             │
 │   • Contexte document (lien vers doc Tier 2 associée)            │
 │   • Décision + Conséquences positives / négatives                │
 │   • Note souveraineté + Alternatives rejetées                    │
@@ -118,35 +119,35 @@ Toutes les règles « si tu changes X, mets à jour Y » convergent vers `MAINTE
 
 ### 3.1 Catalogue séquentiel 00-26 (27 docs)
 
-|   # | Doc                            |     Lignes | ADR(s) liée(s)         | Statut code                          |
-| --: | ------------------------------ | ---------: | ---------------------- | ------------------------------------ |
-|  00 | README INDEX                   |        495 | —                      | ✅ Index navigation                  |
-|  01 | CAHIER-DES-CHARGES             | (existant) | ADR-001                | ✅ existant                          |
-|  02 | ARCHITECTURE-GLOBALE           | (existant) | ADR-002                | ✅ existant                          |
-|  03 | SETUP-ENVIRONNEMENT-DEV        | (existant) | —                      | ✅ existant                          |
-|  04 | MONOREPO-STRUCTURE             | (existant) | ADR-009                | ✅ existant                          |
-|  05 | INFRASTRUCTURE-DOCKER-COMPOSE  | (existant) | ADR-010                | ✅ implémenté Bloc A                 |
-|  06 | DATABASE-SCHEMA-PRISMA         | (existant) | ADR-005, ADR-011       | ✅ 16 modèles seed                   |
-|  07 | BACKEND-IDENTITY-SERVICE       | (existant) | ADR-003, ADR-012       | ⏳ scaffold                          |
-|  08 | BACKEND-AUTH-SERVICE           | (existant) | ADR-013                | ⏳ scaffold                          |
-|  09 | BACKEND-AUDIT-SERVICE          | (existant) | ADR-007, ADR-014       | ⏳ scaffold                          |
-|  10 | BACKEND-DOCUMENT-SERVICE       | (existant) | ADR-006                | ⏳ scaffold                          |
-|  11 | AI-SERVICE-FASTAPI             | (existant) | ADR-004, ADR-015       | ⏳ scaffold + tests                  |
-|  12 | FRONTEND-INTEGRATION-API       | (existant) | —                      | ✅ apps/citizen + admin Sessions 1-5 |
-|  13 | MOBILE-APP-EXPO                | (existant) | **❌ aucun ADR**       | ⏳ scaffold                          |
-|  14 | USSD-SERVICE-AFRICAS-TALKING   |        915 | ADR-008                | ⏳ scaffold                          |
-|  15 | SECURITY-HARDENING             |        533 | **❌ aucun ADR dédié** | ⏳ Vault déployé seul                |
-|  16 | CICD-GITHUB-ACTIONS            |        931 | ADR-016                | ⏳ ci.yml historique présent         |
-|  17 | MONITORING-OBSERVABILITY       |       1091 | ADR-017                | ⏳ spec livré, pas implémenté        |
-|  18 | TESTING-STRATEGY               |        857 | ADR-018                | ⏳ 53 Jest + 11 Playwright           |
-|  19 | BACKUP-RECOVERY                |        724 | ADR-019                | ⏳ spec livré                        |
-|  20 | DEPLOYMENT-K3S-PRODUCTION      |        925 | ADR-020                | ⏳ spec livré                        |
-|  21 | BLOC-B-INTEROPERABILITE-AES    |        570 | ADR-021                | ⏳ spec uniquement                   |
-|  22 | BLOC-C-MODULES-GOUVERNEMENTAUX |        634 | ADR-022                | ⏳ spec uniquement                   |
-|  23 | BLOC-D-SIGAC-ANTICORRUPTION    |        558 | ADR-023                | ⏳ FastAPI scaffold                  |
-|  24 | BLOC-E-BORNES-KIOSQUE-ELECTRON |        600 | ADR-024                | ⏳ spec uniquement                   |
-|  25 | BLOC-F-BIOMETRIE               |        466 | ADR-025                | ⏳ vision uniquement                 |
-|  26 | RAPPORT-FINAL-SOUTENANCE       |        510 | — (plan, pas décision) | ⏳ à rédiger                         |
+|   # | Doc                            |     Lignes | ADR(s) liée(s)            | Statut code                          |
+| --: | ------------------------------ | ---------: | ------------------------- | ------------------------------------ |
+|  00 | README INDEX                   |        495 | —                         | ✅ Index navigation                  |
+|  01 | CAHIER-DES-CHARGES             | (existant) | ADR-001                   | ✅ existant                          |
+|  02 | ARCHITECTURE-GLOBALE           | (existant) | ADR-002                   | ✅ existant                          |
+|  03 | SETUP-ENVIRONNEMENT-DEV        | (existant) | —                         | ✅ existant                          |
+|  04 | MONOREPO-STRUCTURE             | (existant) | ADR-009                   | ✅ existant                          |
+|  05 | INFRASTRUCTURE-DOCKER-COMPOSE  | (existant) | ADR-010                   | ✅ implémenté Bloc A                 |
+|  06 | DATABASE-SCHEMA-PRISMA         | (existant) | ADR-005, ADR-011, ADR-028 | ✅ 22 modèles (16 spec + additifs)   |
+|  07 | BACKEND-IDENTITY-SERVICE       | (existant) | ADR-003, ADR-012          | ⏳ scaffold                          |
+|  08 | BACKEND-AUTH-SERVICE           | (existant) | ADR-013                   | ⏳ scaffold                          |
+|  09 | BACKEND-AUDIT-SERVICE          | (existant) | ADR-007, ADR-014          | ⏳ scaffold                          |
+|  10 | BACKEND-DOCUMENT-SERVICE       | (existant) | ADR-006                   | ⏳ scaffold                          |
+|  11 | AI-SERVICE-FASTAPI             | (existant) | ADR-004, ADR-015          | ⏳ scaffold + tests                  |
+|  12 | FRONTEND-INTEGRATION-API       | (existant) | —                         | ✅ apps/citizen + admin Sessions 1-5 |
+|  13 | MOBILE-APP-EXPO                | (existant) | **❌ aucun ADR**          | ⏳ scaffold                          |
+|  14 | USSD-SERVICE-AFRICAS-TALKING   |        915 | ADR-008                   | ⏳ scaffold                          |
+|  15 | SECURITY-HARDENING             |        533 | **❌ aucun ADR dédié**    | ⏳ Vault déployé seul                |
+|  16 | CICD-GITHUB-ACTIONS            |        931 | ADR-016                   | ⏳ ci.yml historique présent         |
+|  17 | MONITORING-OBSERVABILITY       |       1091 | ADR-017                   | ⏳ spec livré, pas implémenté        |
+|  18 | TESTING-STRATEGY               |        857 | ADR-018                   | ⏳ 53 Jest + 11 Playwright           |
+|  19 | BACKUP-RECOVERY                |        724 | ADR-019                   | ⏳ spec livré                        |
+|  20 | DEPLOYMENT-K3S-PRODUCTION      |        925 | ADR-020                   | ⏳ spec livré                        |
+|  21 | BLOC-B-INTEROPERABILITE-AES    |        570 | ADR-021                   | ⏳ spec uniquement                   |
+|  22 | BLOC-C-MODULES-GOUVERNEMENTAUX |        634 | ADR-022                   | ⏳ spec uniquement                   |
+|  23 | BLOC-D-SIGAC-ANTICORRUPTION    |        558 | ADR-023                   | ⏳ FastAPI scaffold                  |
+|  24 | BLOC-E-BORNES-KIOSQUE-ELECTRON |        600 | ADR-024                   | ⏳ spec uniquement                   |
+|  25 | BLOC-F-BIOMETRIE               |        466 | ADR-025                   | ⏳ vision uniquement                 |
+|  26 | RAPPORT-FINAL-SOUTENANCE       |        510 | — (plan, pas décision)    | ⏳ à rédiger                         |
 
 ### 3.2 Docs transversaux thématiques
 
@@ -206,35 +207,38 @@ clôturé.
 
 ## 4. Tier 3 — ADRs (graphe de dépendances)
 
-### 4.1 Couverture 25/25 + 2 gaps
+### 4.1 Couverture 28 ADRs (001–028)
 
-| ADR | Sujet                              | Doc parent | "Complète" refs                                              |
-| --: | ---------------------------------- | ---------- | ------------------------------------------------------------ |
-| 001 | Cahier des charges                 | doc 01     | — (premier)                                                  |
-| 002 | Microservices                      | doc 02     | —                                                            |
-| 003 | NestJS                             | doc 07     | —                                                            |
-| 004 | FastAPI                            | doc 11     | —                                                            |
-| 005 | PostgreSQL                         | doc 06     | —                                                            |
-| 006 | JWT RS256 + QR code                | doc 10     | —                                                            |
-| 007 | Merkle audit                       | doc 09     | —                                                            |
-| 008 | USSD Africa's Talking              | doc 14     | —                                                            |
-| 009 | Monorepo Turborepo                 | doc 04     | —                                                            |
-| 010 | Infrastructure Docker Compose      | doc 05     | —                                                            |
-| 011 | Database Schema Prisma             | doc 06     | —                                                            |
-| 012 | NestJS Clean Architecture          | doc 07-10  | —                                                            |
-| 013 | Keycloak Identity Provider         | doc 08     | —                                                            |
-| 014 | Audit event-driven append-only     | doc 09     | ADR-007                                                      |
-| 015 | Stack ML détection erreurs NINA    | doc 11     | ADR-004                                                      |
-| 016 | CI/CD GitHub Actions               | doc 16     | ADR-009, ADR-010                                             |
-| 017 | Observabilité LGTM                 | doc 17     | ADR-010, ADR-014, ADR-016                                    |
-| 018 | Stratégie tests pyramide           | doc 18     | ADR-009, ADR-016, ADR-017                                    |
-| 019 | Backup & DRP                       | doc 19     | ADR-005, ADR-010, ADR-014, ADR-017                           |
-| 020 | Déploiement K3s production         | doc 20     | ADR-002, ADR-010, ADR-015 (faute), ADR-016, ADR-017, ADR-019 |
-| 021 | Protocole BCID-AES Interop         | doc 21     | ADR-002, ADR-006, ADR-014                                    |
-| 022 | Modules gouvernementaux scope      | doc 22     | ADR-002, ADR-014                                             |
-| 023 | SIGAC ML stack + lanceurs d'alerte | doc 23     | ADR-004, ADR-014, ADR-015                                    |
-| 024 | Kiosk Electron vs PWA              | doc 24     | **❌ ADR-013 mal référencé**                                 |
-| 025 | Biométrie phasée + hash            | doc 25     | ADR-014, **❌ ADR-015 mal référencée**                       |
+| ADR | Sujet                                          | Doc parent | "Complète" refs                                              |
+| --: | ---------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| 001 | Cahier des charges                             | doc 01     | — (premier)                                                  |
+| 002 | Microservices                                  | doc 02     | —                                                            |
+| 003 | NestJS                                         | doc 07     | —                                                            |
+| 004 | FastAPI                                        | doc 11     | —                                                            |
+| 005 | PostgreSQL                                     | doc 06     | —                                                            |
+| 006 | JWT RS256 + QR code                            | doc 10     | —                                                            |
+| 007 | Merkle audit                                   | doc 09     | —                                                            |
+| 008 | USSD Africa's Talking                          | doc 14     | —                                                            |
+| 009 | Monorepo Turborepo                             | doc 04     | —                                                            |
+| 010 | Infrastructure Docker Compose                  | doc 05     | —                                                            |
+| 011 | Database Schema Prisma                         | doc 06     | —                                                            |
+| 012 | NestJS Clean Architecture                      | doc 07-10  | —                                                            |
+| 013 | Keycloak Identity Provider                     | doc 08     | —                                                            |
+| 014 | Audit event-driven append-only                 | doc 09     | ADR-007                                                      |
+| 015 | Stack ML détection erreurs NINA                | doc 11     | ADR-004                                                      |
+| 016 | CI/CD GitHub Actions                           | doc 16     | ADR-009, ADR-010                                             |
+| 017 | Observabilité LGTM                             | doc 17     | ADR-010, ADR-014, ADR-016                                    |
+| 018 | Stratégie tests pyramide                       | doc 18     | ADR-009, ADR-016, ADR-017                                    |
+| 019 | Backup & DRP                                   | doc 19     | ADR-005, ADR-010, ADR-014, ADR-017                           |
+| 020 | Déploiement K3s production                     | doc 20     | ADR-002, ADR-010, ADR-015 (faute), ADR-016, ADR-017, ADR-019 |
+| 021 | Protocole BCID-AES Interop                     | doc 21     | ADR-002, ADR-006, ADR-014                                    |
+| 022 | Modules gouvernementaux scope                  | doc 22     | ADR-002, ADR-014                                             |
+| 023 | SIGAC ML stack + lanceurs d'alerte             | doc 23     | ADR-004, ADR-014, ADR-015                                    |
+| 024 | Kiosk Electron vs PWA                          | doc 24     | **❌ ADR-013 mal référencé**                                 |
+| 025 | Biométrie phasée + hash                        | doc 25     | ADR-014, **❌ ADR-015 mal référencée**                       |
+| 026 | Vault Transit — signature QR FDI               | doc 10     | ADR-006                                                      |
+| 027 | `auth-guards` type-only (DI)                   | doc 07-10  | — (fix duplication `@nestjs/core`)                           |
+| 028 | appointment-service : centres + file d'attente | PROMPT 3.6 | ADR-011, ADR-027                                             |
 
 ### 4.2 ⚠️ Refs ADR cassées (sévérité P0)
 
@@ -518,9 +522,12 @@ Cadence recommandée : revue trimestrielle + à chaque release majeure (tag Git 
 2026-05-16  Doc 20 K3s + ADR-020                                     (971bd60)
 2026-05-16  Docs 21-26 + ADRs 021-025                                (f9e8f9a)
 2026-05-16  DOCUMENTATION-MAP.md + fixes P0/P1                       (ce commit)
+2026-05-25  ADR-026 Vault Transit QR + docs/10 v2.0                  (document-service)
+2026-05-30  ADR-027 auth-guards type-only                           (auth-service boot fix)
+2026-06-04  ADR-028 appointment-service + modèle EnrollmentCenter   (PROMPT 3.6)
 ```
 
-État final : **27/27 docs canoniques + 26 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
+État final : **27/27 docs canoniques + 28 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
 (ce doc) = ~30 000 lignes de documentation cohérente.**
 
 ---

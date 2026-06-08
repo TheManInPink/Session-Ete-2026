@@ -1,62 +1,81 @@
 /**
  * @file        main.ts
- * @description Point d'entrée du microservice notification-service — Notifications SMS et emails
+ * @description Point d'entrée du microservice notification-service (port 3005).
+ *              Active Helmet, CORS, ValidationPipe global, Swagger. Le
+ *              producteur/consommateur RabbitMQ démarre via les hooks
+ *              `onModuleInit` ; l'arrêt propre via `enableShutdownHooks`.
+ *
  * @author      Étudiant UQAR
  * @date        2026
  * @module      notification-service
  */
-
+import { setDefaultResultOrder } from 'node:dns';
+import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import { AppModule } from './app.module.js';
+import type { Env } from './config/env.schema.js';
 
-/** Port d'écoute du service */
-const PORT = process.env.NOTIFICATION_SERVICE_PORT || 3005;
+// Certains postes (Windows/macOS) résolvent `localhost` en IPv6 (::1) AVANT
+// IPv4, alors que les mappings de ports Docker n'écoutent qu'en IPv4 → les
+// drivers Node (pg, amqplib, nodemailer) échouent en ECONNRESET (Postgres
+// "down", RabbitMQ injoignable). On force la résolution IPv4 d'abord : sans
+// effet en production (K3s : noms de service / ClusterIP IPv4), indispensable
+// en dev local. Doit s'exécuter AVANT toute connexion.
+setDefaultResultOrder('ipv4first');
 
-/**
- * Fonction de démarrage du microservice.
- * Configure les pipes de validation globaux et lance le serveur HTTP.
- */
 async function bootstrap(): Promise<void> {
   const logger = new Logger('notification-service');
+  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  const cfg = app.get(ConfigService<Env, true>);
 
-  const app = await NestFactory.create(AppModule);
+  app.use(helmet({ contentSecurityPolicy: false }));
 
-  // Validation automatique des DTOs entrants (class-validator)
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // Supprime les propriétés non décorées
-      forbidNonWhitelisted: true, // Rejette les propriétés inconnues
-      transform: true, // Transforme les payloads en instances de DTO
-    }),
-  );
-
-  // Préfixe global API ; /health exclu pour matcher la sonde Docker/K3s (curl /health)
-  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
-
-  // Activation de CORS pour le développement
-  app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+  // Préfixe global ; /health* et `/` (page d'accueil) exclus pour matcher la
+  // sonde Docker (curl /health) et éviter un 404 à la racine.
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health', 'health/live', 'health/ready', { path: '/', method: RequestMethod.GET }],
   });
 
-  const config = new DocumentBuilder()
-    .setTitle('NINA-AES Notification Service')
-    .setDescription('Service de notifications — email, SMS et alertes push')
-    .setVersion('1.0')
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+  );
+
+  const corsOrigins = cfg
+    .get('CORS_ORIGINS', { infer: true })
+    .split(',')
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0);
+  app.enableCors({ origin: corsOrigins, credentials: true });
+
+  // Hooks SIGTERM → onModuleDestroy / onApplicationShutdown (fermeture AMQP).
+  app.enableShutdownHooks();
+
+  const swaggerCfg = new DocumentBuilder()
+    .setTitle('NINA-AES — notification-service')
+    .setDescription(
+      "Notifications multicanal (SMS via Africa's Talking, email SMTP, push FCM). " +
+        'Consumer RabbitMQ avec ré-essai exponentiel + DLQ, idempotence, templates 8 langues.',
+    )
+    .setVersion('0.1.0')
     .addBearerAuth()
-    .addTag('email', 'Notifications email')
-    .addTag('sms', 'Notifications SMS')
-    .addTag('push', 'Notifications push')
-    .addTag('health', 'Health check')
+    .addTag('notifications', 'Envoi, broadcast, statut, templates, métriques, webhook DLR')
+    .addTag('health', 'Healthcheck (Postgres)')
     .build();
+  SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swaggerCfg));
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  await app.listen(PORT);
-  logger.log(`notification-service démarré sur le port ${PORT}`);
-  console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
+  const port = cfg.get('NOTIFICATION_SERVICE_PORT', { infer: true });
+  await app.listen(port);
+  logger.log(`notification-service prêt sur http://localhost:${port}`);
+  logger.log(`Swagger UI : http://localhost:${port}/api/docs`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  new Logger('notification-service').error(
+    'bootstrap failed',
+    err instanceof Error ? err.stack : err,
+  );
+  process.exit(1);
+});

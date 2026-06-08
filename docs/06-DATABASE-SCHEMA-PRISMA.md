@@ -9,7 +9,8 @@
 > - Image PostgreSQL : `postgis/postgis:18-3.6` (et non `postgres:18-alpine`) pour disposer
 >   nativement de PostGIS + extensions requises.
 > - Locale : ICU (`--locale-provider=icu --icu-locale=fr-FR`).
-> - 16 modèles, 10 enums, soft-delete via callback `Prisma.defineExtension`.
+> - 16 modèles (spec initiale ; schéma implémenté étendu à 22 — cf. §3.2 et CHANGELOG), 10 enums,
+>   soft-delete via callback `Prisma.defineExtension`.
 > - Singleton paresseux via Proxy.
 
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00 à 05 complétés
@@ -140,24 +141,32 @@ erDiagram
 
 ### 3.2 Tableau récapitulatif des modèles
 
-| Modèle                | Table SQL               | Service principal             | Nb de champs | Rôle                                               |
-| --------------------- | ----------------------- | ----------------------------- | ------------ | -------------------------------------------------- |
-| `Region`              | `regions`               | identity-service              | 4            | Régions du Mali (10)                               |
-| `Cercle`              | `cercles`               | identity-service              | 5            | Cercles (49)                                       |
-| `Commune`             | `communes`              | identity-service              | 5            | Communes (703)                                     |
-| `Citizen`             | `citizens`              | identity-service              | 14           | Enregistrements d'identité NINA                    |
-| `User`                | `users`                 | auth-service                  | 15           | Utilisateurs du système (agents, admins, citoyens) |
-| `NinaCorrection`      | `nina_corrections`      | identity-service + ai-service | 16           | Demandes de correction (manuelles et IA)           |
-| `AiAnalysis`          | `ai_analyses`           | ai-service                    | 12           | Résultats d'analyse IA par batch                   |
-| `AuditLog`            | `audit_logs`            | audit-service                 | 14           | Journal d'audit Merkle (chaîne de hash)            |
-| `Document`            | `documents`             | document-service              | 12           | Fiches Descriptives, récépissés, etc.              |
-| `Appointment`         | `appointments`          | appointment-service           | 11           | Rendez-vous en mairie / CTDEC                      |
-| `Notification`        | `notifications`         | notification-service          | 10           | Emails, SMS, push                                  |
-| `AesVerification`     | `aes_verifications`     | interop-service               | 11           | Vérifications inter-pays AES                       |
-| `VulnerabilityRecord` | `vulnerability_records` | vulnerability-service         | 10           | Personnes vulnérables                              |
-| `IntegrityScore`      | `integrity_scores`      | anticorruption-service        | 10           | Scores d'intégrité SIGAC                           |
-| `Alert`               | `alerts`                | anticorruption-service        | 11           | Signalements lanceurs d'alerte                     |
-| `UssdSession`         | `ussd_sessions`         | notification-service          | 8            | Historique des sessions USSD                       |
+| Modèle                | Table SQL               | Service principal             | Nb de champs | Rôle                                                                            |
+| --------------------- | ----------------------- | ----------------------------- | ------------ | ------------------------------------------------------------------------------- |
+| `Region`              | `regions`               | identity-service              | 4            | Régions du Mali (10)                                                            |
+| `Cercle`              | `cercles`               | identity-service              | 5            | Cercles (49)                                                                    |
+| `Commune`             | `communes`              | identity-service              | 5            | Communes (703)                                                                  |
+| `Citizen`             | `citizens`              | identity-service              | 14           | Enregistrements d'identité NINA                                                 |
+| `User`                | `users`                 | auth-service                  | 15           | Utilisateurs du système (agents, admins, citoyens)                              |
+| `NinaCorrection`      | `nina_corrections`      | identity-service + ai-service | 16           | Demandes de correction (manuelles et IA)                                        |
+| `AiAnalysis`          | `ai_analyses`           | ai-service                    | 12           | Résultats d'analyse IA par batch                                                |
+| `AuditLog`            | `audit_logs`            | audit-service                 | 14           | Journal d'audit Merkle (chaîne de hash)                                         |
+| `Document`            | `documents`             | document-service              | 12           | Fiches Descriptives, récépissés, etc.                                           |
+| `Appointment`         | `appointments`          | appointment-service           | 11           | Rendez-vous en mairie / CTDEC                                                   |
+| `EnrollmentCenter`    | `enrollment_centers`    | appointment-service           | 16           | Profil opérationnel d'un centre (horaires, capacité, quotas, géo) — cf. ADR-028 |
+| `Notification`        | `notifications`         | notification-service          | 10           | Emails, SMS, push                                                               |
+| `AesVerification`     | `aes_verifications`     | interop-service               | 11           | Vérifications inter-pays AES                                                    |
+| `VulnerabilityRecord` | `vulnerability_records` | vulnerability-service         | 10           | Personnes vulnérables                                                           |
+| `IntegrityScore`      | `integrity_scores`      | anticorruption-service        | 10           | Scores d'intégrité SIGAC                                                        |
+| `Alert`               | `alerts`                | anticorruption-service        | 11           | Signalements lanceurs d'alerte                                                  |
+| `UssdSession`         | `ussd_sessions`         | notification-service          | 8            | Historique des sessions USSD                                                    |
+
+> **Note de synchronisation (2026-06-04)** — Ce tableau reflète la **spec initiale** (PROMPT 1.3).
+> Le schéma **implémenté** a évolué depuis : modèles `document-service` (`Document`,
+> `DocumentRevocation`, `DocumentAccessLog`), `AuditRoot`, et `EnrollmentCenter`
+> (appointment-service, migration `20260604120000_enrollment_centers`). En cas de divergence,
+> **`packages/database/prisma/schema.prisma` fait foi** (cf. `docs/CHANGELOG.md` patches
+> 0ter/0decies/0undecies).
 
 ### 3.3 Conventions de nommage
 

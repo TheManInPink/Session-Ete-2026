@@ -48,3 +48,7 @@ overrides:
   'fast-uri@<3.1.2': '>=3.1.2'
   'multer@<2.1.1': '>=2.1.1'
   '@nestjs/microservices@<11.1.19': '>=11.1.19'
+  # axios < 1.16.0 : prototype pollution / MITM / credential theft (GHSA-pmwg-cvhr-8vh7,
+  # GHSA-pf86-5x62-jrwf, GHSA-6chq-wfr3-2hj9, GHSA-q8qp-cvcw-x6jj, GHSA-pjwm-pj3p-43mv,
+  # GHSA-3g43-6gmg-66jw, GHSA-35jp-ww65-95wh). Tiré transitivement par africastalking (auth-service).
+  'axios@<1.16.0': '>=1.16.0'

@@ -1,0 +1,18 @@
+# Configuration gitleaks — NINA-AES Platform
+#
+# Étend la configuration par défaut de gitleaks (toutes les règles standard
+# restent actives) et ajoute une allowlist de FAUX POSITIFS documentés.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Faux positifs documentés (aucun secret réel)"
+paths = [
+  # template.catalog.ts ne contient QUE des métadonnées de templates de
+  # notification : des identifiants kebab-case (champ `key`, ex.
+  # 'appointment-reminder-24h'). La règle `generic-api-key` les confond avec
+  # des clés d'API. Aucun secret réel n'y figure (les secrets transitent par
+  # l'environnement / Vault Agent, jamais en dur dans le code).
+  '''services/notification-service/src/notifications/templates/template\.catalog\.ts$''',
+]

@@ -6,7 +6,8 @@
  *                  (loi 2023, source : data/mali/regions.json)
  *                - **65 cercles confirmés** post-2023 (source : data/mali/cercles.json)
  *                - ~150 communes échantillon (pédagogiques, ~3-7 par cercle)
- *                - 5 institutions de référence (CTDEC, DNEC, MAT, mairie, gouvernorat)
+ *                - 10 institutions (CTDEC, DNEC, MAT, mairie, gouvernorat + 5 antennes RAVEC)
+ *                - 6 centres d'enrôlement (profils opérationnels EnrollmentCenter)
  *                - 6 utilisateurs système (un par rôle UserRole)
  *
  *              Les niveaux 1 et 2 sont LUS depuis les fichiers JSON sous
@@ -308,7 +309,9 @@ const COMMUNES_PEDAGOGIQUES: Record<string, string[]> = {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /**
- * 5 institutions de référence couvrant la hiérarchie administrative NINA.
+ * Institutions de référence : 5 institutions administratives (CTDEC, DNEC, MAT,
+ * mairie, gouvernorat) + 5 antennes d'enrôlement RAVEC (régions). Les antennes
+ * reçoivent un profil opérationnel `EnrollmentCenter` (cf. ENROLLMENT_CENTERS).
  */
 const INSTITUTIONS: Array<{
   code: string;
@@ -352,6 +355,116 @@ const INSTITUTIONS: Array<{
     locationCode: 'ML-01',
     address: 'Kayes',
   },
+  // ── Antennes d'enrôlement régionales (RAVEC) — appointment-service ──────
+  {
+    code: 'ANTENNE-KATI',
+    name: 'Antenne RAVEC de Kati',
+    type: 'ANTENNE_RAVEC',
+    locationCode: 'ML-02-04',
+    address: 'Kati, région de Koulikoro',
+  },
+  {
+    code: 'ANTENNE-KAYES',
+    name: 'Antenne RAVEC de Kayes',
+    type: 'ANTENNE_RAVEC',
+    locationCode: 'ML-01-01',
+    address: 'Kayes',
+  },
+  {
+    code: 'ANTENNE-SIKASSO',
+    name: 'Antenne RAVEC de Sikasso',
+    type: 'ANTENNE_RAVEC',
+    locationCode: 'ML-03-01',
+    address: 'Sikasso',
+  },
+  {
+    code: 'ANTENNE-SEGOU',
+    name: 'Antenne RAVEC de Ségou',
+    type: 'ANTENNE_RAVEC',
+    locationCode: 'ML-04-01',
+    address: 'Ségou',
+  },
+  {
+    code: 'ANTENNE-MOPTI',
+    name: 'Antenne RAVEC de Mopti',
+    type: 'ANTENNE_RAVEC',
+    locationCode: 'ML-05-01',
+    address: 'Mopti',
+  },
+];
+
+/**
+ * Profils opérationnels des centres d'enrôlement (modèle `EnrollmentCenter`,
+ * 1:1 avec `Institution`). Horaires en UTC (Mali = UTC+0). Fenêtre prioritaire
+ * 07:00–09:00 réservée aux personnes vulnérables. Quotas : standard + prioritaire
+ * = capacité/jour. Coordonnées = centroïdes officiels (data/mali).
+ */
+const ENROLLMENT_CENTERS: Array<{
+  institutionCode: string;
+  servicesOffered: string[];
+  capacityPerDay: number;
+  slotDurationMin: number;
+  parallelDesks: number;
+  standardQuota: number;
+  priorityQuota: number;
+  priorityFrom: string;
+  priorityTo: string;
+  openingHours: Record<string, [string, string] | null>;
+  latitude: number;
+  longitude: number;
+}> = [
+  {
+    institutionCode: 'CTDEC-BAMAKO',
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'DOCUMENT_PICKUP', 'RENEWAL', 'INFO'],
+    capacityPerDay: 200,
+    slotDurationMin: 15,
+    parallelDesks: 6,
+    standardQuota: 160,
+    priorityQuota: 40,
+    priorityFrom: '07:00',
+    priorityTo: '09:00',
+    openingHours: {
+      mon: ['07:30', '16:00'],
+      tue: ['07:30', '16:00'],
+      wed: ['07:30', '16:00'],
+      thu: ['07:30', '16:00'],
+      fri: ['07:30', '16:00'],
+      sat: ['08:00', '12:00'],
+      sun: null,
+    },
+    latitude: 12.6392,
+    longitude: -8.0029,
+  },
+  ...(
+    [
+      { code: 'ANTENNE-KATI', lat: 12.7444, lng: -8.0731 },
+      { code: 'ANTENNE-KAYES', lat: 14.4467, lng: -11.4444 },
+      { code: 'ANTENNE-SIKASSO', lat: 11.3176, lng: -5.6665 },
+      { code: 'ANTENNE-SEGOU', lat: 13.4318, lng: -6.2156 },
+      { code: 'ANTENNE-MOPTI', lat: 14.4843, lng: -4.1827 },
+    ] as const
+  ).map((a) => ({
+    institutionCode: a.code,
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'INFO'],
+    capacityPerDay: 80,
+    slotDurationMin: 20,
+    parallelDesks: 2,
+    standardQuota: 64,
+    priorityQuota: 16,
+    priorityFrom: '07:00',
+    priorityTo: '09:00',
+    openingHours: {
+      mon: ['08:00', '15:00'],
+      tue: ['08:00', '15:00'],
+      wed: ['08:00', '15:00'],
+      thu: ['08:00', '15:00'],
+      fri: ['08:00', '15:00'],
+      sat: null,
+      sun: null,
+    } as Record<string, [string, string] | null>,
+    latitude: a.lat,
+    longitude: a.lng,
+  })),
 ];
 
 /**
@@ -520,6 +633,39 @@ async function main(): Promise<void> {
     });
   }
   console.log(`✅ [seed] ${INSTITUTIONS.length} institutions`);
+
+  // ------- Centres d'enrôlement (profils opérationnels) --------------------
+  // 1:1 avec une Institution déjà seedée. Idempotent (upsert sur institutionId).
+  for (const c of ENROLLMENT_CENTERS) {
+    const inst = await prisma.institution.findUnique({
+      where: { code: c.institutionCode },
+      select: { id: true },
+    });
+    if (!inst) {
+      console.warn(`⚠️  [seed] institution ${c.institutionCode} introuvable — centre ignoré`);
+      continue;
+    }
+    const data = {
+      servicesOffered: c.servicesOffered,
+      capacityPerDay: c.capacityPerDay,
+      slotDurationMin: c.slotDurationMin,
+      parallelDesks: c.parallelDesks,
+      standardQuota: c.standardQuota,
+      priorityQuota: c.priorityQuota,
+      priorityFrom: c.priorityFrom,
+      priorityTo: c.priorityTo,
+      openingHours: c.openingHours,
+      latitude: c.latitude,
+      longitude: c.longitude,
+      isActive: true,
+    };
+    await prisma.enrollmentCenter.upsert({
+      where: { institutionId: inst.id },
+      create: { institutionId: inst.id, ...data },
+      update: data,
+    });
+  }
+  console.log(`✅ [seed] ${ENROLLMENT_CENTERS.length} centres d'enrôlement (profils)`);
 
   // ------- Utilisateurs ----------------------------------------------------
   for (const u of USERS) {

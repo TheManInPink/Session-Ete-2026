@@ -3,11 +3,149 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-05-30 (patch 0novies — audit-service : chaîne Merkle complète +
-> scellement Ed25519)
+> **Dernière mise à jour** : 2026-06-04 (patch 0undecies — appointment-service : prise de RDV,
+> centres d'enrôlement + modèle Prisma EnrollmentCenter)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0undecies. Patch 2026-06-04 — `appointment-service` : prise de RDV + centres (PROMPT 3.6)
+
+Passage du **squelette** (3 fichiers, 1 controller `/health`) à un service complet
+(`services/appointment-service/`, port 3008). **ADR :
+[ADR-028](./adr/ADR-028-appointment-service-centres-file-attente.md).**
+
+**Livré** :
+
+- **Centres d'enrôlement** (`GET /api/v1/centers`) : liste filtrable (`region`, `cercle`, `service`,
+  `openNow`, recherche géo `lat`+`lng`+`radius` triée par distance — Haversine applicatif), détail
+  (`:id`), **disponibilités** (`:id/availability`) avec créneaux **STANDARD vs PRIORITAIRE**
+  (fenêtre 07:00–09:00 réservée aux vulnérables), et **suggestion** du centre le plus proche libre
+  (`/centers/suggest`). Routes publiques (annuaire) + throttler.
+- **Rendez-vous** (`/api/v1/appointments`) : création, annulation, **check-in** (entrée en file +
+  numéro), **clôture** — transitions de statut **atomiques** (compare-and-set `updateMany`).
+- **File d'attente virtuelle** Redis (sorted set par centre/jour, score = arrivée − bonus de
+  priorité ⇒ vulnérables prioritaires) + estimation d'attente (heuristique, placeholder ML).
+- **No-show** : balayage cron (`@nestjs/schedule`) → **blacklist temporaire 48 h** (clé Redis TTL)
+  après 2 absences sur 90 j. **Rappels SMS** confirmation + **J-1** + **H-2** publiés sur l'exchange
+  `nina.notifications` (consommés par `notification-service`), **idempotents** via `idempotencyKey`.
+- **Anti-surbooking** : `createBookingAtomic` prend un `pg_advisory_xact_lock` au niveau **JOUR** et
+  revérifie les 3 niveaux de capacité (créneau / nature / jour) **dans la transaction** — ferme la
+  fenêtre TOCTOU du pré-contrôle en lecture.
+- **Tests** : 5 suites / 39 tests mockés (géo, grille/disponibilité, file, cœur métier RDV, filtres
+  centres). `check-types` + `build` + `lint` verts.
+
+**Schéma & seed** :
+
+- **Nouveau modèle Prisma `EnrollmentCenter`** (1:1 `Institution` via `institution_id @unique`) —
+  profil opérationnel d'un centre (services, capacité, quotas, fenêtre prioritaire, horaires
+  `openingHours` JSON, géo lat/lng, fuseau). Migration **additive**
+  `20260604120000_enrollment_centers`. Re-export du type dans `@nina-aes/database`. Les
+  `Appointment` continuent de référencer `institutions(id)` (= `centerId`).
+- **Seed** : +5 antennes RAVEC (Kati, Kayes, Sikasso, Ségou, Mopti) ⇒ 10 institutions ; +6 profils
+  `EnrollmentCenter` (CTDEC Bamako + 5 antennes). Idempotent (`upsert`).
+
+**notification-service** (additif) : 2 templates ajoutés au catalogue + locale FR —
+`appointment-reminder-2h` (H-2, vars `heure`/`location`) et `appointment-cancelled` (SMS+email, vars
+`date`/`location`). Test de catalogue mis à jour (7 → 9 templates).
+
+**Revue adverse (workflow multi-agents — 6 problèmes confirmés, tous corrigés)** :
+
+- 🔴 **Quotas journaliers non atomiques** (seul `parallelDesks` revérifié) → verrou consultatif
+  **niveau jour** + recompte des 3 niveaux en transaction.
+- 🔴 **IDOR/BOLA** : un `CITIZEN` pouvait lire/annuler/créer le RDV d'autrui et vider toute la base
+  (pas de liaison `JWT.sub ↔ Citizen.id`) → opérations **médiées** (AGENT/SUPERVISOR/ADMIN, AUDITOR
+  en lecture) ; `GET /appointments` exige un filtre de portée (`citizenId`/`centerId`) + pagination
+  (≤ 200/page). Self-service CITIZEN rouvrable quand le binding d'identité existera.
+- 🟠 **Fenêtre cron de rappel sans marge** (10 = intervalle) → défaut **15 min** (recouvrement) +
+  commentaire corrigé.
+- 🟡 Désalignement de clé de file (jour RDV vs jour courant) → documenté (`?date`).
+
+**Écarts docs (code fait foi)** :
+
+- `docs/06-DATABASE-SCHEMA-PRISMA.md` (§3.2) et `ADR-011` annoncent « 16 modèles » et n'incluent ni
+  les modèles `document-service` (Document/Revocation/AccessLog), ni `AuditRoot`, ni
+  `EnrollmentCenter` : ce sont des artefacts de spec initiale.
+  **`packages/database/prisma/schema.prisma` fait foi** (22 modèles). `EnrollmentCenter` ajouté au
+  récap §3.2 + addendum « évolutions » dans ADR-011.
+- Variables d'env propres au service (`APPOINTMENT_*`) : défauts Zod dans `src/config/env.schema.ts`
+  (non requises dans `.env.example`). `REDIS_URL`/`RABBITMQ_URL`/`APPOINTMENT_SERVICE_PORT` déjà
+  présentes.
+
+**Limite connue** : pas de self-service CITIZEN direct tant que la liaison `JWT.sub ↔ Citizen.id`
+n'est pas livrée (ressort `identity`/`auth-service`) ; les citoyens passent par un agent ou le BFF
+du portail (compte de service AGENT). Cf. README §7 + ADR-028 §5.
+
+### 0decies. Patch 2026-05-31 — `notification-service` : multicanal complet (PROMPT 3.5)
+
+Passage du **squelette** (5 fichiers, 2 controllers) à un service complet
+(`services/notification-service/`, port 3005).
+
+**Livré** :
+
+- **3 canaux** derrière une interface `ChannelProvider` + un `ChannelDispatcher` :
+  - **SMS** Africa's Talking (`src/notifications/channels/sms.provider.ts`) — client REST `fetch`
+    (pas le SDK : style `vault-client`, testable, souveraineté), sandbox détecté via
+    `AT_USERNAME=sandbox`, mapping des statuts DLR.
+  - **Email** SMTP nodemailer (Maildev en dev) — import nommé `createTransport` (pas de défaut CJS).
+  - **Push** FCM HTTP v1 (`push.provider.ts`) — OAuth2 « service account JWT bearer » signé RS256
+    avec `node:crypto` (sans `firebase-admin`), repli **dev simulé** (`FCM_ENABLED=false` par
+    défaut, app mobile non encore livrée).
+- **API REST** `/api/v1/notifications` : `POST /send` (synchrone), `POST /broadcast` (ADMIN, publie
+  sur RabbitMQ), `GET /:id/status`, `GET /templates`, `GET /metrics`, `POST /atalking/callback`
+  (webhook DLR `@Public` + secret partagé). Guards JWKS locaux (ADR-027).
+- **Consumer RabbitMQ** (`amqp-connection-manager`, workers parallèles via `prefetch`) consommant
+  `notification.sms/.email/.ussd/.push` + la file de ré-injection `notification.work`. Dispatch par
+  `body.channel` (la file n'est qu'un transport).
+- **Ré-essai exponentiel → DLQ** : files de délai TTL par palier `notification.retry.1..5` (1 min /
+  5 min / 30 min / 2 h / 12 h) ; dead-letter → `nina.notifications` clé `notification.requeue` →
+  `notification.work`. Échec définitif → `nina.dlx` → `dlx.parking`. (Une file PAR palier : évite le
+  blocage en tête de file des TTL hétérogènes ; pas de plugin delayed-message requis.)
+- **Idempotence** : colonne `notifications.dedupe_key` **UNIQUE** (nullable) — migration
+  `20260531120000_notification_dedupe_key`. Clé =
+  `SHA-256(recipient|canal|template|variables canoniques)`. La création joue le rôle de **verrou
+  atomique** (create-first) : sur P2002, l'existant est renvoyé (succès / PENDING dédupliqués) ou
+  repris pour ré-essai si `FAILED` (compare-and-set atomique).
+- **Templates 8 langues** (`src/notifications/templates/locales/*.json`, copiés en `dist` via
+  `nest-cli.json` assets). **FR complet** ; les 7 autres langues retombent sur FR (relecture
+  locuteur natif en attente — cf. gap « Fichiers i18n manquants »).
+- **Tests** : 4 suites / 25 tests mockés (templates, cœur métier dont idempotence/course/ré-essai,
+  fournisseur AT `fetch` mocké, topologie). + smoke test d'intégration manuel (cf. encadré
+  ci-dessous).
+
+**Écarts docs (code fait foi)** :
+
+- `docs/06-DATABASE-SCHEMA-PRISMA.md` montre `Notification` sans `dedupe_key` → colonne ajoutée par
+  la migration `20260531120000_notification_dedupe_key`.
+- `infrastructure/docker/rabbitmq/definitions.json` gagne 7 files (`notification.push`,
+  `notification.work`, `notification.retry.1..5`) + 2 liaisons — alignées 1:1 sur la topologie
+  assertée par le service (cf. `src/notifications/consumer/amqp.topology.ts`).
+- Nouvelles variables d'env (préfixes `AT_*`, `SMTP_*`, `FCM_*`, `RABBITMQ_*`, `NOTIFICATION_*`) :
+  schéma Zod `src/config/env.schema.ts` ; déjà présentes dans `.env`/`.env.example` pour AT et SMTP.
+
+**Choix notables** : SDK Africa's Talking **non utilisé** (client `fetch` typé, mockable) ; secrets
+attendus **injectés par Vault Agent** dans l'environnement (l'app ne lit pas Vault directement).
+
+**Revue adverse + smoke test d'intégration (correctifs appliqués)** : ACK **durable** (NACK+requeue
+si la republication retry/DLQ échoue — plus de perte silencieuse) ; **double-envoi concurrent
+neutralisé** — la CRÉATION de la ligne (contrainte `UNIQUE(dedupe_key)`) sert de **verrou atomique
+d'expédition** (« create-first » : seul le créateur expédie), et le ré-essai d'une ligne `FAILED`
+est repris par un _compare-and-set_ atomique `FAILED→PENDING` (`claimForRetry`) ; validation des
+champs du compte de service FCM ; repli `providerId` email sur `response` ; webhook DLR via en-tête
+`x-callback-token`.
+
+> Le **smoke test local** (Postgres + RabbitMQ + Maildev) a **révélé** ce double-envoi (2 e-mails
+> pour 2 publications identiques) que les tests mockés ne voyaient pas — corrigé (create-first) puis
+> re-vérifié (1 e-mail / 1 ligne). Validés aussi en exécution réelle : topologie assertée **sans
+> 406**, retry → `notification.retry.1`, DLQ → `dlx.parking`, santé Postgres. (NB poste de dev :
+> `localhost` résout en IPv6 `::1` d'abord ; les drivers Node échouent en `ECONNRESET` sur les
+> mappings Docker IPv4 — lancer avec `POSTGRES_HOST=127.0.0.1` + `RABBITMQ_URL`/`SMTP_HOST` en
+> `127.0.0.1`.)
+
+**Limite connue (résiduelle — à traiter en phase tests/charge, doc 18 / k6)** : si un worker
+**crashe en plein envoi**, la ligne reste `PENDING` ; une redélivrance la considère « en cours » et
+ne ré-expédie pas → notification non livrée jusqu'à réarmement. Fermeture = balayeur réarmant les
+`PENDING` périmés (`updated_at` ancien). Reporté (probabilité très faible, hors chemin nominal).
 
 ### 0novies. Patch 2026-05-30 — `audit-service` : implémentation Merkle complète (PROMPT 3.4)
 

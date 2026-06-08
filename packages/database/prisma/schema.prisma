@@ -1,7 +1,9 @@
 // ══════════════════════════════════════════════════════════════════════════════
 //  NINA-AES Platform — Schéma Prisma 7 (PostgreSQL 18)
-//  16 tables métier couvrant les blocs A (NINA Mali) → F (Biométrie, plan).
-//  Aligné PROMPT 1.3 (avril 2026).
+//  Socle de 16 tables (PROMPT 1.3, avril 2026), étendu de façon additive au fil
+//  des services : +Document/Revocation/AccessLog (document-service), +AuditRoot
+//  (audit-service), +EnrollmentCenter (appointment-service, section 18) ⇒ 22
+//  modèles couvrant les blocs A (NINA Mali) → F (Biométrie, plan).
 //
 //  Conventions :
 //    - Tous les modèles sont mappés en `snake_case` via @@map.
@@ -717,12 +719,15 @@ model Institution {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  parent       Institution?          @relation("InstitutionTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children     Institution[]         @relation("InstitutionTree")
-  location     Location?             @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  users        User[]
-  appointments Appointment[]
-  directives   GovernanceDirective[]
+  parent           Institution?          @relation("InstitutionTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children         Institution[]         @relation("InstitutionTree")
+  location         Location?             @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  users            User[]
+  appointments     Appointment[]
+  directives       GovernanceDirective[]
+  /// Profil opérationnel de prise de RDV (1:1) si l'institution est un centre
+  /// d'enrôlement (CTDEC / antenne RAVEC). Absent pour les autres institutions.
+  enrollmentCenter EnrollmentCenter?
 
   @@index([type])
   @@index([parentId])
@@ -795,6 +800,11 @@ model Notification {
   templateKey        String    @map("template_key") @db.VarChar(100)
   language           Language  @default(FR)
   payload            Json
+  /// Clé d'idempotence : SHA-256(recipient | channel | templateKey | payload canonique).
+  /// Nullable → les envois en masse non idempotents (broadcast) gardent NULL
+  /// (Postgres autorise plusieurs NULL sous un index UNIQUE). Un doublon
+  /// transactionnel (retry at-least-once) lève P2002 → renvoi de l'existant.
+  dedupeKey          String?   @unique @map("dedupe_key") @db.VarChar(64)
   providerId         String?   @map("provider_id") @db.VarChar(100)
   sentAt             DateTime? @map("sent_at") @db.Timestamptz(6)
   deliveredAt        DateTime? @map("delivered_at") @db.Timestamptz(6)
@@ -921,4 +931,60 @@ model DocumentAccessLog {
   @@index([occurredAt])
   @@index([action, result])
   @@map("document_access_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  18. ENROLLMENT_CENTERS — profil opérationnel des centres (appointment-service)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Profil opérationnel d'un centre d'enrôlement, rattaché 1:1 à une
+/// `Institution` (CTDEC, mairie, antenne mobile RAVEC). Sépare les paramètres
+/// d'exploitation (horaires, capacité, quotas, fenêtre prioritaire, géo) de
+/// l'identité institutionnelle partagée (table `institutions`). Les `Appointment`
+/// référencent toujours l'`Institution` (`centerId` = `institution_id`) ; ce
+/// modèle ne porte QUE la configuration de prise de rendez-vous.
+///
+/// Pourquoi un modèle dédié plutôt que des colonnes sur `Institution` : éviter
+/// de polluer une table partagée par 4 services (users, gouvernance, audit) avec
+/// des champs spécifiques aux RDV, et garder les quotas/horaires modifiables par
+/// un admin sans redéploiement (source de vérité en base — cf. ADR appointment).
+model EnrollmentCenter {
+  id              String   @id @default(uuid()) @db.Uuid
+  /// Institution hôte (1:1). Unique : une institution = au plus un profil centre.
+  institutionId   String   @unique @map("institution_id") @db.Uuid
+  /// Services offerts au guichet : ENROLLMENT, CORRECTION, DOCUMENT_PICKUP, …
+  servicesOffered String[] @map("services_offered")
+  /// Capacité totale de RDV servis par jour (toutes files confondues).
+  capacityPerDay  Int      @map("capacity_per_day")
+  /// Durée d'un créneau en minutes (pas de la grille horaire).
+  slotDurationMin Int      @map("slot_duration_min")
+  /// Nombre de guichets servant en parallèle (estimation du temps d'attente).
+  parallelDesks   Int      @default(1) @map("parallel_desks")
+  /// Quota de créneaux STANDARD par jour.
+  standardQuota   Int      @map("standard_quota_per_day")
+  /// Quota de créneaux PRIORITAIRES par jour (personnes vulnérables).
+  priorityQuota   Int      @map("priority_quota_per_day")
+  /// Début de la fenêtre prioritaire réservée aux vulnérables (HH:mm, ex "07:00").
+  priorityFrom    String   @map("priority_window_from") @db.VarChar(5)
+  /// Fin de la fenêtre prioritaire (HH:mm, ex "09:00").
+  priorityTo      String   @map("priority_window_to") @db.VarChar(5)
+  /// Horaires d'ouverture par jour de semaine :
+  /// `{ "mon": ["08:00","16:00"], "tue": [...], ..., "sat": [...], "sun": null }`.
+  /// `null`/absent ⇒ fermé ce jour-là.
+  openingHours    Json     @map("opening_hours")
+  /// Latitude WGS84 (recherche du centre le plus proche — Haversine applicatif).
+  latitude        Decimal  @db.Decimal(10, 7)
+  /// Longitude WGS84.
+  longitude       Decimal  @db.Decimal(10, 7)
+  /// Fuseau horaire IANA. Le Mali est à UTC+0 toute l'année (pas de DST).
+  timezone        String   @default("Africa/Bamako") @db.VarChar(40)
+  /// Centre ouvert aux nouvelles prises de RDV (désactivable sans suppression).
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+
+  @@index([isActive])
+  @@map("enrollment_centers")
 }
