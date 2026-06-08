@@ -77,7 +77,7 @@ jobs:
 
       # ─── Initialiser CodeQL ───────────────────────────────────────
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # Querysets sécurité étendus (en plus du default)
@@ -112,7 +112,7 @@ jobs:
       # rendu public. À retirer le jour où l'une ou l'autre condition
       # est remplie (Settings → Code security).
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         continue-on-error: true
         with:
           category: '/language:${{ matrix.language }}'
