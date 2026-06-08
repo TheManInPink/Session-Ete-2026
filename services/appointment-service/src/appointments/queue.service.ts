@@ -56,6 +56,8 @@ export class QueueService {
    * @param appointmentId UUID du RDV.
    * @param arrivalMs     Horodatage d'arrivée (ms epoch).
    * @param priority      Priorité opérationnelle (P1/P2/P3).
+   * @returns `true` si l'insertion a réussi, `false` si Redis est indisponible
+   *          (l'appelant doit alors traiter le mode dégradé — pas de numéro).
    */
   async enqueue(
     centerId: string,
@@ -63,16 +65,50 @@ export class QueueService {
     appointmentId: string,
     arrivalMs: number,
     priority: PriorityLevelT,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const key = this.queueKey(centerId, day);
     const score = arrivalMs - PRIORITY_BONUS_MS[priority];
-    await this.redis.enqueue(key, appointmentId, score);
-    await this.redis.expire(key, QUEUE_TTL_SECONDS);
+    const ok = await this.redis.enqueue(key, appointmentId, score);
+    // TTL posé uniquement si l'insertion a réussi (sinon EXPIRE sur clé absente).
+    if (ok) await this.redis.expire(key, QUEUE_TTL_SECONDS);
+    return ok;
   }
 
   /** Retire un RDV de la file (clôture / annulation après check-in). */
   async remove(centerId: string, day: Date, appointmentId: string): Promise<void> {
     await this.redis.dequeue(this.queueKey(centerId, day), appointmentId);
+  }
+
+  /**
+   * Reconstruit la file d'un (centre, jour) depuis la base UNIQUEMENT si elle est
+   * absente/vide côté Redis — récupération après un redémarrage de Redis, qui perd
+   * les sorted sets. On n'écrase JAMAIS une file déjà peuplée (un simple
+   * redémarrage du service ne doit pas clobberer une file vivante).
+   *
+   * Le score de réinsertion = le numéro de passage persisté (`order`) : il rejoue
+   * exactement l'ordre d'origine (rang ⇒ position ⇒ numéro inchangés).
+   *
+   * @param centerId centerId (= institutionId).
+   * @param day      Jour de la file.
+   * @param entries  RDV à réinsérer (déjà filtrés/ordonnés par numéro).
+   * @returns `true` si la file a été reconstruite, `false` si déjà présente ou rien à faire.
+   */
+  async rebuildIfEmpty(
+    centerId: string,
+    day: Date,
+    entries: { appointmentId: string; order: number }[],
+  ): Promise<boolean> {
+    if (entries.length === 0) return false;
+    const key = this.queueKey(centerId, day);
+    // Garde anti-clobber : si la file existe déjà, on ne touche à rien.
+    if ((await this.redis.queueSize(key)) > 0) return false;
+    let inserted = 0;
+    for (const e of entries) {
+      if (await this.redis.enqueue(key, e.appointmentId, e.order)) inserted += 1;
+    }
+    if (inserted === 0) return false; // Redis indisponible : rien réinséré.
+    await this.redis.expire(key, QUEUE_TTL_SECONDS);
+    return true;
   }
 
   /**

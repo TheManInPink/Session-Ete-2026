@@ -23,12 +23,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Env } from '../config/env.schema.js';
+import { RedisService } from '../infrastructure/redis/redis.service.js';
 import { AppointmentRepository } from './appointment.repository.js';
 import { AppointmentsService } from './appointments.service.js';
 
 const MS_PER_MIN = 60_000;
 const H24_MS = 24 * 60 * MS_PER_MIN;
 const H2_MS = 2 * 60 * MS_PER_MIN;
+
+/**
+ * TTL des verrous cron (s) : strictement < l'intervalle du cron (10 min) pour
+ * qu'un verrou orphelin (instance crashée pendant la tâche) expire avant le tick
+ * suivant. À 9 min, une seule instance traite chaque tick ; en cas de panne,
+ * le tick d'après reprend la main.
+ */
+const CRON_LOCK_TTL_S = 9 * 60;
 
 @Injectable()
 export class AppointmentsCron {
@@ -41,6 +50,7 @@ export class AppointmentsCron {
     cfg: ConfigService<Env, true>,
     private readonly repo: AppointmentRepository,
     private readonly service: AppointmentsService,
+    private readonly redis: RedisService,
   ) {
     this.enabled = cfg.get('APPOINTMENT_CRON_ENABLED', { infer: true });
     this.windowMs = cfg.get('APPOINTMENT_REMINDER_WINDOW_MIN', { infer: true }) * MS_PER_MIN;
@@ -51,6 +61,11 @@ export class AppointmentsCron {
   @Cron(CronExpression.EVERY_10_MINUTES, { name: 'appointment-reminders' })
   async scanReminders(): Promise<void> {
     if (!this.enabled) return;
+    // Élection de leader multi-instance : une seule réplique publie les rappels
+    // par tick (sinon N répliques scannent la même fenêtre). Best-effort : si
+    // Redis est indispo, tryLock échoue ouvert et la dédup notification reste le
+    // garde-fou contre les doublons.
+    if (!(await this.redis.tryLock('cron:reminders', CRON_LOCK_TTL_S))) return;
     try {
       const now = Date.now();
       await this.fireReminders(new Date(now + H24_MS), '24h');
@@ -64,6 +79,10 @@ export class AppointmentsCron {
   @Cron(CronExpression.EVERY_10_MINUTES, { name: 'appointment-no-show-sweep' })
   async sweepNoShows(): Promise<void> {
     if (!this.enabled) return;
+    // Idem rappels : une seule réplique balaye les no-show par tick. Le marquage
+    // lui-même reste protégé par un CAS (transition gardée), donc même sans
+    // verrou il n'y aurait pas de double-flag — le verrou évite le travail redondant.
+    if (!(await this.redis.tryLock('cron:no-show', CRON_LOCK_TTL_S))) return;
     try {
       const cutoff = new Date(Date.now() - this.graceMs);
       const overdue = await this.repo.findOverdueScheduled(cutoff);

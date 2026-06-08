@@ -26,6 +26,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AuthSubject } from '@nina-aes/auth-guards';
@@ -80,7 +81,7 @@ export interface AppointmentView {
 }
 
 @Injectable()
-export class AppointmentsService {
+export class AppointmentsService implements OnModuleInit {
   private readonly logger = new Logger(AppointmentsService.name);
   private readonly noShowWindowDays: number;
   private readonly noShowThreshold: number;
@@ -97,6 +98,59 @@ export class AppointmentsService {
     this.noShowWindowDays = cfg.get('APPOINTMENT_NOSHOW_WINDOW_DAYS', { infer: true });
     this.noShowThreshold = cfg.get('APPOINTMENT_NOSHOW_THRESHOLD', { infer: true });
     this.blacklistTtlSeconds = cfg.get('APPOINTMENT_BLACKLIST_TTL_HOURS', { infer: true }) * 3600;
+  }
+
+  /**
+   * Au démarrage, reconstruit les files d'attente Redis depuis la base si elles
+   * ont été perdues (redémarrage de Redis). Best-effort : une erreur ici ne doit
+   * jamais empêcher le service de démarrer (PostgreSQL reste la source de vérité).
+   */
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.recoverQueues();
+    } catch (err) {
+      this.logger.warn(`Reconstruction des files au démarrage ignorée : ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * Reconstruit les files Redis des RDV CONFIRMED récents (citoyens présents, en
+   * attente) groupés par (centre, jour). `rebuildIfEmpty` ne réinsère QUE si la
+   * file ciblée est vide ⇒ aucun clobber d'une file déjà vivante (redémarrage du
+   * seul service, Redis intact). Le score = numéro de passage persisté ⇒ l'ordre
+   * et les numéros d'origine sont préservés.
+   */
+  private async recoverQueues(): Promise<void> {
+    // Fenêtre : aujourd'hui + la veille (marge UTC), les files plus anciennes
+    // étant expirées (TTL) et sans intérêt opérationnel.
+    const since = new Date(startOfUtcDay(new Date()).getTime() - 86_400_000);
+    const rows = await this.repo.findConfirmedForRebuild(since);
+    if (rows.length === 0) return;
+
+    // Groupe par (centre, jour) ; conserve l'ordre par numéro de passage.
+    const groups = new Map<
+      string,
+      { centerId: string; day: Date; entries: { appointmentId: string; order: number }[] }
+    >();
+    for (const r of rows) {
+      if (r.queueNumber === null) continue; // garde-fou (déjà filtré côté requête)
+      const day = startOfUtcDay(r.scheduledAt);
+      const gk = `${r.centerId}:${utcDateKey(day)}`;
+      let g = groups.get(gk);
+      if (!g) {
+        g = { centerId: r.centerId, day, entries: [] };
+        groups.set(gk, g);
+      }
+      g.entries.push({ appointmentId: r.id, order: r.queueNumber });
+    }
+
+    let rebuilt = 0;
+    for (const g of groups.values()) {
+      if (await this.queue.rebuildIfEmpty(g.centerId, g.day, g.entries)) rebuilt += 1;
+    }
+    if (rebuilt > 0) {
+      this.logger.log(`Files d'attente reconstruites depuis la base : ${rebuilt}`);
+    }
   }
 
   // ── Création ──────────────────────────────────────────────────────────
@@ -286,26 +340,45 @@ export class AppointmentsService {
       throw new ConflictException(`Check-in impossible (statut actuel : ${row.status}).`);
     }
 
-    // Entrée en file (priorité prise en compte dans le score), puis numéro.
-    await this.queue.enqueue(
+    // Entrée en file (priorité prise en compte dans le score). Si Redis est
+    // indisponible, `enqueue` renvoie false : le RDV reste CONFIRMED mais sans
+    // numéro de passage (mode dégradé explicite, plutôt qu'un faux « 0 »).
+    const slotCfg = await this.centers.getCenter(row.centerId);
+    const enqueued = await this.queue.enqueue(
       row.centerId,
       row.scheduledAt,
       id,
       Date.now(),
       row.priority as PriorityLevel,
     );
-    const slotCfg = await this.centers.getCenter(row.centerId);
-    const pos = await this.queue.position(
-      row.centerId,
-      row.scheduledAt,
+    const pos: QueuePosition = enqueued
+      ? await this.queue.position(
+          row.centerId,
+          row.scheduledAt,
+          id,
+          slotCfg.slotDurationMin,
+          slotCfg.parallelDesks,
+        )
+      : { position: 0, peopleAhead: 0, queueSize: 0, estimatedWaitMin: 0 };
+
+    // Numéro de passage écrit via un compare-and-set GARDÉ sur CONFIRMED : si le
+    // RDV a été annulé/clôturé en concurrence entre-temps, on ne le « ressuscite »
+    // PAS — on défait l'entrée de file et on signale le conflit.
+    const claimed = await this.repo.transition(
       id,
-      slotCfg.slotDurationMin,
-      slotCfg.parallelDesks,
+      [AppointmentStatus.CONFIRMED],
+      AppointmentStatus.CONFIRMED,
+      { queueNumber: enqueued ? pos.position : null },
     );
-    const updated = await this.repo.updateStatus(id, {
-      status: AppointmentStatus.CONFIRMED,
-      queueNumber: pos.position,
-    });
+    if (!claimed) {
+      await this.queue.remove(row.centerId, row.scheduledAt, id);
+      const current = await this.repo.findById(id);
+      throw new ConflictException(
+        `Check-in interrompu : le rendez-vous a changé d'état (${current?.status ?? 'inconnu'}).`,
+      );
+    }
+
+    const updated = await this.requireAppointment(id);
     return { ...this.toView(updated), queue: pos };
   }
 

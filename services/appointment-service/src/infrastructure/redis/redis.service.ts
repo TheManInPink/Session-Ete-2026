@@ -148,6 +148,28 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  // ── Verrou éphémère (élection de leader cron multi-instance) ──────────
+
+  /**
+   * Verrou best-effort `SET key NX EX` : permet de n'exécuter une tâche cron que
+   * sur UNE instance par tick (les autres voient le verrou pris et passent).
+   * Échoue **ouvert** : si Redis est indisponible, renvoie `true` — on ne bloque
+   * jamais une tâche par ailleurs idempotente (no-show en CAS, rappels dédupliqués).
+   *
+   * @returns `true` si CE process a acquis le verrou (ou si Redis est indispo),
+   *          `false` si une autre instance le détient déjà.
+   */
+  async tryLock(key: string, ttlSeconds: number): Promise<boolean> {
+    if (!this.client) return true; // fail-open
+    try {
+      const res = await this.client.set(key, '1', 'EX', ttlSeconds, 'NX');
+      return res === 'OK';
+    } catch (err) {
+      this.logger.warn(`tryLock impossible (fail-open) : ${(err as Error).message}`);
+      return true; // fail-open
+    }
+  }
+
   // ── Blacklist temporaire no-show ──────────────────────────────────────
 
   /** Pose une blacklist avec TTL natif (expire seule). */

@@ -154,7 +154,7 @@ export class CentersService {
     const days: DayAvailability[] = [];
     for (let d = new Date(from); d <= to; d = new Date(d.getTime() + 86_400_000)) {
       const occ = byDay.get(utcDateKey(d)) ?? emptyOccupancy();
-      days.push(computeDayAvailability(config, new Date(d), occ));
+      days.push(computeDayAvailability(config, new Date(d), occ, now));
     }
     return { centerId, days };
   }
