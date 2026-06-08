@@ -262,6 +262,27 @@ export class AppointmentRepository {
     });
   }
 
+  /**
+   * RDV CONFIRMED (citoyen présent, en file) depuis `since` — pour reconstruire
+   * les files d'attente Redis après un redémarrage de Redis (les sorted sets,
+   * en mémoire, sont alors perdus). On ne retient que ceux ayant un numéro de
+   * passage persisté (`queueNumber`) : il rejoue l'ordre d'origine. Triés par
+   * numéro croissant pour réinsérer dans le bon ordre.
+   */
+  findConfirmedForRebuild(
+    since: Date,
+  ): Promise<{ id: string; centerId: string; scheduledAt: Date; queueNumber: number | null }[]> {
+    return prisma.appointment.findMany({
+      where: {
+        status: AppointmentStatus.CONFIRMED,
+        queueNumber: { not: null },
+        scheduledAt: { gte: since },
+      },
+      select: { id: true, centerId: true, scheduledAt: true, queueNumber: true },
+      orderBy: { queueNumber: 'asc' },
+    });
+  }
+
   /** Lit plusieurs RDV par ids (vue file d'attente agent). */
   findByIds(ids: string[]): Promise<AppointmentRow[]> {
     if (ids.length === 0) return Promise.resolve([]);

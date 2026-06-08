@@ -92,4 +92,37 @@ describe('QueueService', () => {
     const pos = await queue.position(center, day, 'b', 15, 1);
     expect(pos.position).toBe(1); // 'b' remonte en tête après retrait de 'a'
   });
+
+  describe('rebuildIfEmpty (récupération après redémarrage de Redis)', () => {
+    it('reconstruit une file vide depuis la base en préservant l’ordre (score = numéro)', async () => {
+      const { redis, queue } = make();
+      const ok = await queue.rebuildIfEmpty(center, day, [
+        { appointmentId: 'a', order: 1 },
+        { appointmentId: 'b', order: 2 },
+        { appointmentId: 'c', order: 3 },
+      ]);
+      expect(ok).toBe(true);
+      const key = queue.queueKey(center, day);
+      expect(redis.scoreOf(key, 'a')).toBe(1);
+      expect(redis.scoreOf(key, 'c')).toBe(3);
+      // L'ordre/les numéros d'origine sont rejoués.
+      expect((await queue.position(center, day, 'a', 15, 1)).position).toBe(1);
+      expect((await queue.position(center, day, 'c', 15, 1)).position).toBe(3);
+    });
+
+    it('NE clobber PAS une file déjà peuplée (no-op si Redis intact)', async () => {
+      const { redis, queue } = make();
+      await queue.enqueue(center, day, 'live', 999, PriorityLevel.P3);
+      const ok = await queue.rebuildIfEmpty(center, day, [{ appointmentId: 'stale', order: 1 }]);
+      expect(ok).toBe(false);
+      const key = queue.queueKey(center, day);
+      expect(redis.scoreOf(key, 'stale')).toBeUndefined(); // pas réinséré
+      expect(redis.scoreOf(key, 'live')).toBe(999); // file vivante intacte (P3 ⇒ bonus 0)
+    });
+
+    it('ne fait rien si aucune entrée à reconstruire', async () => {
+      const { queue } = make();
+      expect(await queue.rebuildIfEmpty(center, day, [])).toBe(false);
+    });
+  });
 });

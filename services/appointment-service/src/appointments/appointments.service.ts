@@ -26,6 +26,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AuthSubject } from '@nina-aes/auth-guards';
@@ -80,7 +81,7 @@ export interface AppointmentView {
 }
 
 @Injectable()
-export class AppointmentsService {
+export class AppointmentsService implements OnModuleInit {
   private readonly logger = new Logger(AppointmentsService.name);
   private readonly noShowWindowDays: number;
   private readonly noShowThreshold: number;
@@ -97,6 +98,59 @@ export class AppointmentsService {
     this.noShowWindowDays = cfg.get('APPOINTMENT_NOSHOW_WINDOW_DAYS', { infer: true });
     this.noShowThreshold = cfg.get('APPOINTMENT_NOSHOW_THRESHOLD', { infer: true });
     this.blacklistTtlSeconds = cfg.get('APPOINTMENT_BLACKLIST_TTL_HOURS', { infer: true }) * 3600;
+  }
+
+  /**
+   * Au démarrage, reconstruit les files d'attente Redis depuis la base si elles
+   * ont été perdues (redémarrage de Redis). Best-effort : une erreur ici ne doit
+   * jamais empêcher le service de démarrer (PostgreSQL reste la source de vérité).
+   */
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.recoverQueues();
+    } catch (err) {
+      this.logger.warn(`Reconstruction des files au démarrage ignorée : ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * Reconstruit les files Redis des RDV CONFIRMED récents (citoyens présents, en
+   * attente) groupés par (centre, jour). `rebuildIfEmpty` ne réinsère QUE si la
+   * file ciblée est vide ⇒ aucun clobber d'une file déjà vivante (redémarrage du
+   * seul service, Redis intact). Le score = numéro de passage persisté ⇒ l'ordre
+   * et les numéros d'origine sont préservés.
+   */
+  private async recoverQueues(): Promise<void> {
+    // Fenêtre : aujourd'hui + la veille (marge UTC), les files plus anciennes
+    // étant expirées (TTL) et sans intérêt opérationnel.
+    const since = new Date(startOfUtcDay(new Date()).getTime() - 86_400_000);
+    const rows = await this.repo.findConfirmedForRebuild(since);
+    if (rows.length === 0) return;
+
+    // Groupe par (centre, jour) ; conserve l'ordre par numéro de passage.
+    const groups = new Map<
+      string,
+      { centerId: string; day: Date; entries: { appointmentId: string; order: number }[] }
+    >();
+    for (const r of rows) {
+      if (r.queueNumber === null) continue; // garde-fou (déjà filtré côté requête)
+      const day = startOfUtcDay(r.scheduledAt);
+      const gk = `${r.centerId}:${utcDateKey(day)}`;
+      let g = groups.get(gk);
+      if (!g) {
+        g = { centerId: r.centerId, day, entries: [] };
+        groups.set(gk, g);
+      }
+      g.entries.push({ appointmentId: r.id, order: r.queueNumber });
+    }
+
+    let rebuilt = 0;
+    for (const g of groups.values()) {
+      if (await this.queue.rebuildIfEmpty(g.centerId, g.day, g.entries)) rebuilt += 1;
+    }
+    if (rebuilt > 0) {
+      this.logger.log(`Files d'attente reconstruites depuis la base : ${rebuilt}`);
+    }
   }
 
   // ── Création ──────────────────────────────────────────────────────────
