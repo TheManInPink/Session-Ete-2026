@@ -110,6 +110,11 @@ export const GATEWAY_ROUTES: readonly GatewayRoute[] = [
     serviceName: 'vulnerability',
   },
   {
+    publicPrefix: '/api/v1/biometric',
+    targetBaseUrl: getEnvOr('BIOMETRIC_SERVICE_URL', 'http://biometric-service:3012'),
+    serviceName: 'biometric',
+  },
+  {
     publicPrefix: '/api/v1/enrollment',
     targetBaseUrl: getEnvOr('ENROLLMENT_SERVICE_URL', 'http://enrollment-service:3013'),
     serviceName: 'enrollment',
@@ -144,4 +149,43 @@ export function matchRoute(path: string): GatewayRoute | undefined {
  */
 export function isPublicEndpoint(path: string, route: GatewayRoute): boolean {
   return route.publicEndpoints?.some((ep) => path.startsWith(ep)) ?? false;
+}
+
+/**
+ * Vue PUBLIQUE d'une route (sans l'URL interne du service — on n'expose pas la
+ * topologie réseau interne au travers de l'endpoint d'introspection).
+ */
+export interface PublicRouteInfo {
+  publicPrefix: string;
+  serviceName: string;
+  timeoutMs?: number;
+  publicEndpoints: readonly string[];
+}
+
+/** Projette la table de routage en vue publique (pour `/api/v1/api-gateway/routes`). */
+export function listRoutesPublic(): PublicRouteInfo[] {
+  return GATEWAY_ROUTES.map((r) => ({
+    publicPrefix: r.publicPrefix,
+    serviceName: r.serviceName,
+    ...(r.timeoutMs !== undefined ? { timeoutMs: r.timeoutMs } : {}),
+    publicEndpoints: r.publicEndpoints ?? [],
+  }));
+}
+
+/**
+ * Liste les services aval DISTINCTS (un même service peut être visé par
+ * plusieurs préfixes — ex. identity via /citizens, /corrections, /locations).
+ * Utilisé par l'agrégateur OpenAPI et le healthcheck readiness.
+ *
+ * @returns Paires `{ serviceName, targetBaseUrl }` uniques par service.
+ */
+export function distinctDownstreams(): { serviceName: string; targetBaseUrl: string }[] {
+  const seen = new Map<string, string>();
+  for (const r of GATEWAY_ROUTES) {
+    if (!seen.has(r.serviceName)) seen.set(r.serviceName, r.targetBaseUrl);
+  }
+  return [...seen.entries()].map(([serviceName, targetBaseUrl]) => ({
+    serviceName,
+    targetBaseUrl,
+  }));
 }

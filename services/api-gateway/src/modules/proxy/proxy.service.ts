@@ -23,6 +23,7 @@ import { InjectLogger } from '@nina-aes/logger/nestjs';
 import { getContext } from '@nina-aes/logger';
 import type { StructuredLogger } from '@nina-aes/logger';
 
+import { BreakerRegistry } from '../../infrastructure/breaker/breaker.registry.js';
 import type { GatewayRoute } from './proxy.routes.js';
 
 /**
@@ -55,6 +56,8 @@ export interface ProxyRequest {
   /** Identifiant utilisateur extrait du JWT (peut être undefined sur routes publiques). */
   userId?: string;
   userRole?: string;
+  /** JWS HS256 `X-User-Context` signé par le gateway (routes protégées). */
+  userContextJws?: string;
 }
 
 /**
@@ -77,7 +80,10 @@ export class ProxyService {
   /** Client HTTP réutilisé pour bénéficier du connection pooling. */
   private readonly httpClient: AxiosInstance;
 
-  constructor(@InjectLogger() private readonly logger: StructuredLogger) {
+  constructor(
+    @InjectLogger() private readonly logger: StructuredLogger,
+    private readonly breakerRegistry: BreakerRegistry,
+  ) {
     this.httpClient = axios.create({
       validateStatus: () => true, // on relaie le status tel quel
       maxRedirects: 0, // pas de follow auto — c'est le client final qui décide
@@ -163,6 +169,20 @@ export class ProxyService {
       this.logger.debug({ service: route.serviceName }, 'Requête rejetée (circuit ouvert)'),
     );
 
+    // Expose l'état du breaker en lecture seule via le registre global
+    // (consommé par GET /api/v1/api-gateway/breakers).
+    this.breakerRegistry.register(route.serviceName, () => ({
+      service: route.serviceName,
+      state: breaker.opened ? 'open' : breaker.halfOpen ? 'halfOpen' : 'closed',
+      stats: {
+        successes: breaker.stats.successes,
+        failures: breaker.stats.failures,
+        timeouts: breaker.stats.timeouts,
+        rejects: breaker.stats.rejects,
+        fires: breaker.stats.fires,
+      },
+    }));
+
     this.breakers.set(route.serviceName, breaker);
     return breaker;
   }
@@ -189,12 +209,21 @@ export class ProxyService {
       else if (v !== undefined) forwardedHeaders[k] = v;
     }
 
-    // Propagation du correlationId
+    // Propagation du correlationId (et, implicitement, de `traceparent`/`tracestate`
+    // W3C s'ils sont présents : ils ne figurent PAS dans la liste de filtrage
+    // ci-dessus, donc ils traversent le gateway et préservent la trace OTel
+    // distribuée de bout en bout).
     if (ctx?.correlationId) {
       forwardedHeaders['x-request-id'] = ctx.correlationId;
     }
-    // Propagation du contexte utilisateur (sera signé JWS dans une version
-    // future ; pour le MVP on envoie en clair sur le réseau interne mTLS).
+    // Propagation du contexte utilisateur :
+    //   - `X-User-Context` : JWS HS256 signé par le gateway → SOURCE DE VÉRITÉ
+    //     pour les services aval (ils en vérifient la signature).
+    //   - `X-User-Id` / `X-User-Role` : commodité de lecture (non sécuritaire).
+    // Les versions usurpées éventuelles ont déjà été purgées par GatewayAuthGuard.
+    if (req.userContextJws) {
+      forwardedHeaders['x-user-context'] = req.userContextJws;
+    }
     if (req.userId) {
       forwardedHeaders['x-user-id'] = req.userId;
       if (req.userRole) forwardedHeaders['x-user-role'] = req.userRole;
