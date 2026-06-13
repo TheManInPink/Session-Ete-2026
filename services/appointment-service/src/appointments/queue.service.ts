@@ -123,8 +123,9 @@ export class QueueService {
     parallelDesks: number,
   ): Promise<QueuePosition> {
     const key = this.queueKey(centerId, day);
-    const rank = await this.redis.rank(key, appointmentId);
-    const queueSize = await this.redis.queueSize(key);
+    // Lecture ATOMIQUE (rang + taille) : instantané cohérent même si la file
+    // change en concurrence (cf. RedisService.rankAndSize).
+    const { rank, size: queueSize } = await this.redis.rankAndSize(key, appointmentId);
     if (rank === null) {
       return { position: 0, peopleAhead: 0, queueSize, estimatedWaitMin: 0 };
     }

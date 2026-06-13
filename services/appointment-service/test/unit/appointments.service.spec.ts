@@ -295,6 +295,99 @@ describe('AppointmentsService cycle de vie', () => {
     );
     expect(queue.remove).toHaveBeenCalled();
   });
+
+  // #6 — Le message de conflit doit refléter le statut RÉEL (re-lu après l'échec
+  //       du CAS), et non le statut périmé lu en début de méthode : c'est une
+  //       transition concurrente qui a fait échouer le CAS.
+  it('cancel : le message de conflit reflète le statut RÉEL re-lu (pas le périmé)', async () => {
+    const { service } = build({
+      repo: {
+        findById: jest
+          .fn()
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.SCHEDULED })) // requireAppointment
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.CANCELLED })), // currentStatus
+        transition: jest.fn().mockResolvedValue(false),
+      },
+    });
+    await expect(service.cancel('appt-1')).rejects.toThrow(/CANCELLED/);
+  });
+
+  it('check-in : le message de conflit reflète le statut RÉEL re-lu (pas le périmé)', async () => {
+    const { service } = build({
+      repo: {
+        findById: jest
+          .fn()
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.SCHEDULED }))
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.CANCELLED })),
+        transition: jest.fn().mockResolvedValue(false), // 1re transition (SCHEDULED→CONFIRMED) échoue
+      },
+    });
+    await expect(
+      service.checkIn('appt-1', { userId: 'kc-sub', role: 'agent', mfa: false }),
+    ).rejects.toThrow(/CANCELLED/);
+  });
+
+  it('complete : le message de conflit reflète le statut RÉEL re-lu (pas le périmé)', async () => {
+    const { service } = build({
+      repo: {
+        findById: jest
+          .fn()
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.CONFIRMED }))
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.COMPLETED })),
+        transition: jest.fn().mockResolvedValue(false),
+      },
+    });
+    await expect(
+      service.complete('appt-1', { userId: 'kc-sub', role: 'agent', mfa: false }),
+    ).rejects.toThrow(/COMPLETED/);
+  });
+
+  it('conflit : si le RDV a disparu à la re-lecture (findById null), on retombe sur le statut chargé', async () => {
+    const { service } = build({
+      repo: {
+        findById: jest
+          .fn()
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.SCHEDULED })) // requireAppointment
+          .mockResolvedValueOnce(null), // currentStatus → branche fallback
+        transition: jest.fn().mockResolvedValue(false),
+      },
+    });
+    // Un seul appel (consomme les 2 findById mockés) : on vérifie type ET message.
+    const err = await service.cancel('appt-1').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ConflictException); // toujours un 409, pas d'exception null
+    expect((err as Error).message).toMatch(/SCHEDULED/); // fallback = statut chargé
+  });
+
+  it('conflit : une panne DB à la re-lecture ne transforme PAS le 409 en 500', async () => {
+    const { service } = build({
+      repo: {
+        findById: jest
+          .fn()
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.SCHEDULED })) // requireAppointment
+          .mockRejectedValueOnce(new Error('DB timeout')), // currentStatus jette
+        transition: jest.fn().mockResolvedValue(false),
+      },
+    });
+    // currentStatus avale l'erreur ⇒ le conflit reste un 409 (et non un 500).
+    await expect(service.cancel('appt-1')).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('check-in (CAS gardé) : le message utilise le statut RÉEL re-lu, pas le fallback', async () => {
+    const { service, queue } = build({
+      repo: {
+        findById: jest
+          .fn()
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.SCHEDULED })) // requireAppointment
+          .mockResolvedValueOnce(makeRow({ status: AppointmentStatus.COMPLETED })), // currentStatus (chemin gardé)
+        // 1re transition OK (SCHEDULED→CONFIRMED), 2e (CAS gardé) échoue.
+        transition: jest.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false),
+      },
+    });
+    await expect(
+      service.checkIn('appt-1', { userId: 'kc-sub', role: 'agent', mfa: false }),
+    ).rejects.toThrow(/COMPLETED/); // re-lecture, pas le littéral 'inconnu'
+    expect(queue.remove).toHaveBeenCalled();
+  });
 });
 
 describe('AppointmentsService.list', () => {

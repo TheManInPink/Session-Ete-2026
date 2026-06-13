@@ -22,10 +22,10 @@ class FakeRedis {
     this.sets.get(key)?.delete(member);
     return Promise.resolve();
   }
-  rank(key: string, member: string): Promise<number | null> {
+  rankAndSize(key: string, member: string): Promise<{ rank: number | null; size: number }> {
     const ordered = this.ordered(key);
     const idx = ordered.indexOf(member);
-    return Promise.resolve(idx === -1 ? null : idx);
+    return Promise.resolve({ rank: idx === -1 ? null : idx, size: ordered.length });
   }
   queueSize(key: string): Promise<number> {
     return Promise.resolve(this.sets.get(key)?.size ?? 0);
@@ -72,6 +72,20 @@ describe('QueueService', () => {
     const pos = await queue.position(center, day, 'ghost', 15, 2);
     expect(pos.position).toBe(0);
     expect(pos.peopleAhead).toBe(0);
+  });
+
+  it('position() fait UN SEUL aller-retour via rankAndSize (pas 2 commandes séparées)', async () => {
+    // Ce test verrouille l'absence de régression « double appel » côté QueueService.
+    // L'atomicité réelle du MULTI/EXEC (parsing du tuple, rang 0, exec null, erreur
+    // par-commande) est couverte directement dans redis.service.spec.ts.
+    const { redis, queue } = make();
+    await queue.enqueue(center, day, 'a', 1, PriorityLevel.P3);
+    await queue.enqueue(center, day, 'b', 2, PriorityLevel.P3);
+    const spy = jest.spyOn(redis, 'rankAndSize');
+    const pos = await queue.position(center, day, 'b', 15, 1);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(pos.position).toBe(2);
+    expect(pos.queueSize).toBe(2);
   });
 
   it('estime l’attente selon le nombre de guichets parallèles', () => {
