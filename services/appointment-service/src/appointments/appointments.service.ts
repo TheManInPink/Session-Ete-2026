@@ -308,7 +308,8 @@ export class AppointmentsService implements OnModuleInit {
       AppointmentStatus.CANCELLED,
     );
     if (!ok) {
-      throw new ConflictException(`Annulation impossible (statut actuel : ${row.status}).`);
+      const status = await this.currentStatus(id, row.status);
+      throw new ConflictException(`Annulation impossible (statut actuel : ${status}).`);
     }
     // Retire de la file si déjà en attente, puis notifie (best-effort).
     await this.queue.remove(row.centerId, row.scheduledAt, id);
@@ -337,7 +338,8 @@ export class AppointmentsService implements OnModuleInit {
       { agentId },
     );
     if (!ok) {
-      throw new ConflictException(`Check-in impossible (statut actuel : ${row.status}).`);
+      const status = await this.currentStatus(id, row.status);
+      throw new ConflictException(`Check-in impossible (statut actuel : ${status}).`);
     }
 
     // Entrée en file (priorité prise en compte dans le score). Si Redis est
@@ -372,9 +374,9 @@ export class AppointmentsService implements OnModuleInit {
     );
     if (!claimed) {
       await this.queue.remove(row.centerId, row.scheduledAt, id);
-      const current = await this.repo.findById(id);
+      const status = await this.currentStatus(id, 'inconnu');
       throw new ConflictException(
-        `Check-in interrompu : le rendez-vous a changé d'état (${current?.status ?? 'inconnu'}).`,
+        `Check-in interrompu : le rendez-vous a changé d'état (${status}).`,
       );
     }
 
@@ -393,7 +395,8 @@ export class AppointmentsService implements OnModuleInit {
       { completedAt: new Date(), agentId },
     );
     if (!ok) {
-      throw new ConflictException(`Clôture impossible (statut actuel : ${row.status}).`);
+      const status = await this.currentStatus(id, row.status);
+      throw new ConflictException(`Clôture impossible (statut actuel : ${status}).`);
     }
     await this.queue.remove(row.centerId, row.scheduledAt, id);
     return this.getById(id);
@@ -488,6 +491,25 @@ export class AppointmentsService implements OnModuleInit {
     const row = await this.repo.findById(id);
     if (!row) throw new NotFoundException('Rendez-vous introuvable');
     return row;
+  }
+
+  /**
+   * Statut RÉEL courant pour un message de conflit : re-lit le RDV APRÈS l'échec
+   * d'un compare-and-set, plutôt que de réutiliser le statut lu en début de
+   * méthode (potentiellement périmé sous concurrence — c'est précisément une
+   * transition concurrente qui a fait échouer le CAS). Lecture sur le chemin
+   * d'erreur uniquement (rare) ; `fallback` si le RDV a disparu entre-temps.
+   */
+  private async currentStatus(id: string, fallback: string): Promise<string> {
+    try {
+      const current = await this.repo.findById(id);
+      return current?.status ?? fallback;
+    } catch {
+      // Chemin d'erreur (rare) : une panne de cette re-lecture ne doit JAMAIS
+      // transformer le 409 de conflit en 500. On retombe sur le statut déjà
+      // chargé (périmé mais sûr) — le code HTTP attendu est préservé.
+      return fallback;
+    }
   }
 
   /** Clé Redis de blacklist d'un citoyen. */

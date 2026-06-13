@@ -93,18 +93,34 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Rang (0-based) d'un RDV dans la file ⇒ nombre de personnes devant lui.
+   * Lit ATOMIQUEMENT le rang (0-based ⇒ personnes devant) ET la taille de la file
+   * en une transaction `MULTI`/`EXEC`. Deux commandes séparées (`zrank` puis
+   * `zcard`) pourraient observer la file dans deux états différents si elle change
+   * entre les deux ⇒ position et taille incohérentes ; `MULTI` garantit qu'aucune
+   * autre commande ne s'intercale, donc un instantané cohérent.
    *
-   * @returns Le rang, ou `null` si absent / Redis indisponible.
+   * @returns `{ rank, size }` ; `rank=null` si le RDV est absent de la file. En
+   *          cas de panne Redis : `{ rank: null, size: 0 }` (dégradation douce,
+   *          jamais d'exception).
    */
-  async rank(queueKey: string, appointmentId: string): Promise<number | null> {
-    if (!this.client) return null;
+  async rankAndSize(
+    queueKey: string,
+    appointmentId: string,
+  ): Promise<{ rank: number | null; size: number }> {
+    if (!this.client) return { rank: null, size: 0 };
     try {
-      const r = await this.client.zrank(queueKey, appointmentId);
-      return r === null ? null : r;
+      const res = await this.client.multi().zrank(queueKey, appointmentId).zcard(queueKey).exec();
+      // `exec()` ⇒ [[errRank, rankVal], [errSize, sizeVal]] | null (si MULTI avorté).
+      if (!res) return { rank: null, size: 0 };
+      const rankVal = res[0]?.[1];
+      const sizeVal = res[1]?.[1];
+      return {
+        rank: typeof rankVal === 'number' ? rankVal : null, // zrank renvoie null si absent
+        size: typeof sizeVal === 'number' ? sizeVal : 0,
+      };
     } catch (err) {
-      this.logger.warn(`rank impossible (${(err as Error).message})`);
-      return null;
+      this.logger.warn(`rankAndSize impossible (${(err as Error).message})`);
+      return { rank: null, size: 0 };
     }
   }
 
