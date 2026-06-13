@@ -79,7 +79,7 @@
     "prettier": "^3.8.1",
     "prisma": "^7.8.0",
     "turbo": "^2.9.14",
-    "typescript": "6.0.2"
+    "typescript": "6.0.3"
   },
   "//lint-staged": "Config déportée dans .lintstagedrc.mjs (form fonction pour filtrer eslint.config.js)",
   "//pnpm-overrides": "Migrés vers pnpm-workspace.yaml (pnpm 11 ne lit plus le bloc 'pnpm' de package.json).",
