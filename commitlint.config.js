@@ -44,7 +44,8 @@ export default {
       2,
       'always',
       [
-        // ── Microservices Bloc A (ports 3001..3011) ───────────────
+        // ── Microservices Bloc A (ports 3000..3014) ───────────────
+        'api-gateway', // api-gateway (3000) — point d'entrée unique
         'identity', // identity-service (3001)
         'auth', // auth-service (3002)
         'ai', // ai-service (3003)

@@ -1,10 +1,18 @@
 /**
  * @file        app.module.ts
- * @description Module racine de l'api-gateway. Configure :
- *              - le LoggerModule (Pino + corrélation + masquage PII)
- *              - le ThrottlerModule (rate limiting Redis-backed)
- *              - le ProxyModule (routage vers les 14 services internes)
- *              - le HealthModule (Terminus /health)
+ * @description Module racine de l'api-gateway. Assemble, dans l'ordre :
+ *              - ConfigModule (validation Zod fail-fast via env.schema)
+ *              - LoggerModule (Pino + corrélation + masquage PII)
+ *              - ObservabilityModule (/metrics Prometheus + labels OTel)
+ *              - RedisModule / BreakerModule / AggregatorModule / AuthModule (globaux)
+ *              - HealthModule, GatewayMetaModule
+ *              - ProxyModule (EN DERNIER : son catch-all `/api/v1/*` ne doit
+ *                capturer que ce qui n'a pas déjà été routé)
+ *
+ *              GUARDS GLOBAUX (ordre important) :
+ *                1. GatewayAuthGuard   — vérifie le JWT, signe X-User-Context
+ *                2. RedisRateLimitGuard — limite par utilisateur (sinon par IP)
+ *              Le rate-limit s'exécute APRÈS l'auth pour disposer de l'userId.
  *
  * @module      api-gateway
  */
@@ -12,23 +20,46 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { CorrelationMiddleware, LoggerModule } from '@nina-aes/logger/nestjs';
+import { ObservabilityModule } from '@nina-aes/observability';
 
+import { validateEnv } from './config/env.schema.js';
+import { AuthModule } from './auth/auth.module.js';
+import { GatewayAuthGuard } from './auth/gateway-auth.guard.js';
+import { RedisModule } from './infrastructure/redis/redis.module.js';
+import { BreakerModule } from './infrastructure/breaker/breaker.module.js';
+import { AggregatorModule } from './modules/aggregator/aggregator.module.js';
+import { RedisRateLimitGuard } from './modules/rate-limit/redis-rate-limit.guard.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { GatewayMetaModule } from './modules/gateway-meta/gateway-meta.module.js';
 import { ProxyModule } from './modules/proxy/proxy.module.js';
+
+/** Mappe NODE_ENV (4 valeurs) vers l'enum env d'observability. */
+function obsEnv(): 'dev' | 'staging' | 'prod' | 'test' {
+  switch (process.env.NODE_ENV) {
+    case 'production':
+      return 'prod';
+    case 'staging':
+      return 'staging';
+    case 'test':
+      return 'test';
+    default:
+      return 'dev';
+  }
+}
 
 @Module({
   imports: [
-    // ─── Variables d'environnement (validation Zod via @nina-aes/config) ──
-    // Charge le .env racine du monorepo (cf. auth-service / identity-service).
+    // ─── Variables d'environnement (validation Zod fail-fast) ───────────
     ConfigModule.forRoot({
       isGlobal: true,
+      cache: true,
       envFilePath: ['../../.env', '.env'],
       expandVariables: true,
+      validate: (env) => validateEnv(env as Record<string, unknown>),
     }),
 
-    // ─── Logger structuré central — DOIT être importé en premier ────────
+    // ─── Logger structuré central — importé tôt ─────────────────────────
     LoggerModule.forRoot({
       service: 'api-gateway',
       environment: process.env.NODE_ENV,
@@ -37,30 +68,37 @@ import { ProxyModule } from './modules/proxy/proxy.module.js';
       lokiUrl: process.env.LOKI_URL,
     }),
 
-    // ─── Rate limiting — 100 req/min par défaut, ajustable par env ──────
-    // POURQUOI : protège l'ensemble des services aval contre les ruées
-    //           (ex. attaque d'énumération de NINA depuis Internet).
-    ThrottlerModule.forRoot([
-      {
-        ttl: Number(process.env.THROTTLE_TTL_SECONDS ?? 60) * 1000,
-        limit: Number(process.env.THROTTLE_LIMIT ?? 100),
-      },
-    ]),
+    // ─── Observabilité : /metrics Prometheus + labels uniformes ─────────
+    ObservabilityModule.forRoot({
+      serviceName: 'api-gateway',
+      serviceVersion: process.env.SERVICE_VERSION ?? '1.0.0',
+      env: obsEnv(),
+    }),
 
+    // ─── Infrastructure partagée (modules globaux, sans controller) ─────
+    RedisModule, // client Redis (rate limiting + health)
+    BreakerModule, // registre des circuit breakers (lecture par gateway-meta)
+    AggregatorModule, // spec OpenAPI agrégée + holder de la base native
+    AuthModule, // JWKS verifier + UserContextSigner + GatewayAuthGuard
+
+    // ─── Controllers locaux (AVANT le catch-all) ───────────────────────
     HealthModule,
+    GatewayMetaModule,
+
+    // ─── Proxy catch-all — DOIT rester en dernier ───────────────────────
     ProxyModule,
   ],
   providers: [
-    // Guard global appliquant le throttling à TOUTES les routes
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Ordre = ordre d'exécution : auth d'abord (peuple req.gatewayUser),
+    // puis rate limiting (qui s'en sert comme clé).
+    { provide: APP_GUARD, useClass: GatewayAuthGuard },
+    { provide: APP_GUARD, useClass: RedisRateLimitGuard },
   ],
 })
 export class AppModule implements NestModule {
   /**
-   * Configuration des middlewares.
-   *
-   * ORDRE CRITIQUE : CorrelationMiddleware en PREMIER pour que tous les logs
-   * émis pendant le traitement bénéficient de la propagation d'ID.
+   * CorrelationMiddleware en PREMIER pour que tous les logs émis pendant la
+   * requête bénéficient de la propagation d'ID (X-Request-Id).
    */
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(CorrelationMiddleware).forRoutes('*');

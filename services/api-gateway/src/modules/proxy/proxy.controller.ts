@@ -1,41 +1,39 @@
 /**
  * @file        proxy.controller.ts
- * @description Controller catch-all qui intercepte TOUTES les requêtes /api/v1/*
- *              et les délègue au ProxyService.
+ * @description Controller catch-all qui intercepte TOUTES les requêtes
+ *              `/api/v1/*` non capturées par un controller plus spécifique
+ *              (health, gateway-meta) et les délègue au {@link ProxyService}.
  *
  *              POURQUOI catch-all : éviter de déclarer une route par préfixe.
  *              La table de routage statique (proxy.routes.ts) est l'unique
  *              source de vérité.
  *
+ *              AUTHENTIFICATION : déléguée en amont à {@link GatewayAuthGuard}
+ *              (APP_GUARD global). Quand on arrive ici, la requête est soit
+ *              publique, soit déjà authentifiée — `req.gatewayUser` et
+ *              `req.userContextJws` sont renseignés le cas échéant. Le controller
+ *              ne (re)vérifie plus aucun token.
+ *
+ *              ⚠️  Ce controller DOIT être enregistré APRÈS health & gateway-meta
+ *              (garanti par l'ordre d'`imports` d'AppModule — ProxyModule en
+ *              dernier) sans quoi son `@All('*')` capterait leurs routes.
+ *
  * @module      api-gateway/proxy
  */
 
-import {
-  All,
-  Body,
-  Controller,
-  Headers,
-  HttpException,
-  HttpStatus,
-  Query,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { All, Controller, HttpException, HttpStatus, Req, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { InjectLogger } from '@nina-aes/logger/nestjs';
 import type { StructuredLogger } from '@nina-aes/logger';
 
-import { isPublicEndpoint, matchRoute } from './proxy.routes.js';
+import type { GatewayRequest } from '../../auth/gateway-request.js';
+import { matchRoute } from './proxy.routes.js';
 import { ProxyService } from './proxy.service.js';
 
 /**
- * Controller volontairement EXCLU de Swagger (le manifest est agrégé depuis
- * les services aval — voir aggregator.service.ts).
- *
- * Le @Controller() sans préfixe combiné au @All('*') capture TOUTES les
- * requêtes non matchées par d'autres controllers (notamment /health qui
- * est plus haut dans la priorité Nest).
+ * Controller volontairement EXCLU de Swagger natif : ses chemins réels sont
+ * documentés par la spec AGRÉGÉE (cf. AggregatorService / gateway-meta).
  */
 @ApiExcludeController()
 @Controller()
@@ -46,83 +44,37 @@ export class ProxyController {
   ) {}
 
   /**
-   * Route catch-all. Match toutes les méthodes HTTP sur tous les chemins.
+   * Route catch-all. Match toutes les méthodes HTTP sur tous les chemins
+   * `/api/v1/*` restants. Le préfixe global `api/v1` est appliqué par Nest, donc
+   * `@All('*')` ne capture QUE les chemins sous `/api/v1`.
    *
-   * NOTE : on n'utilise pas @Get/@Post/etc. séparés pour rester DRY.
-   * Nest n'a pas de @All pur sans path, on utilise @All('*').
+   * @throws HttpException(404, E_GW_NOT_FOUND) si aucune route ne matche.
    */
   @All('*')
-  async handle(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Headers() headers: Record<string, string | string[] | undefined>,
-    @Body() body: unknown,
-    @Query() query: Record<string, unknown>,
-  ): Promise<void> {
+  async handle(@Req() req: GatewayRequest, @Res() res: Response): Promise<void> {
     const path = req.originalUrl.split('?')[0] ?? req.path;
     const route = matchRoute(path);
 
-    // Cas 1 : pas de route → 404 normalisée
+    // Pas de route → 404 normalisée (l'auth a déjà laissé passer les inconnus).
     if (!route) {
       this.logger.warn({ method: req.method, path }, 'Aucune route gateway pour ce chemin');
       throw new HttpException(
-        {
-          code: 'E_GW_NOT_FOUND',
-          message: 'Endpoint inconnu',
-          details: { path },
-        },
+        { code: 'E_GW_NOT_FOUND', message: 'Endpoint inconnu', details: { path } },
         HttpStatus.NOT_FOUND,
       );
     }
 
-    // Cas 2 : route trouvée mais privée → vérification JWT
-    // NOTE MVP : la vérification JWT complète sera ajoutée dans une passe
-    // ultérieure (Prompt 3.3 — auth-service). Pour l'instant on extrait
-    // le user du header Authorization si présent, sans le valider.
-    const isPublic = isPublicEndpoint(path, route);
-    let userId: string | undefined;
-    let userRole: string | undefined;
-
-    if (!isPublic) {
-      const auth = headers['authorization'];
-      const authStr = Array.isArray(auth) ? auth[0] : auth;
-      if (!authStr?.startsWith('Bearer ')) {
-        throw new HttpException(
-          {
-            code: 'E_GW_004',
-            message: 'Token JWT requis',
-            details: { path },
-          },
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-      // TODO Prompt 3.3 : valider le JWT via JWKS Keycloak ici.
-      // Pour le MVP, on décode sans vérification (UNIQUEMENT pour le routing).
-      // ⚠️ Ne JAMAIS laisser cette branche en production sans vérif réelle.
-      try {
-        const payload = JSON.parse(
-          Buffer.from(authStr.split('.')[1] ?? '', 'base64url').toString('utf-8'),
-        ) as { sub?: string; role?: string };
-        userId = payload.sub;
-        userRole = payload.role;
-      } catch {
-        // JWT malformé — refus
-        throw new HttpException(
-          { code: 'E_GW_004', message: 'Token JWT malformé' },
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-    }
-
-    // Cas 3 : forward
+    // Forward — l'identité (si présente) a été établie par le guard.
     const downstream = await this.proxy.forward(route, {
       method: req.method,
       path,
-      headers,
-      body,
-      query,
-      userId,
-      userRole,
+      headers: req.headers,
+      body: req.body,
+      query: req.query as Record<string, unknown>,
+      ...(req.gatewayUser
+        ? { userId: req.gatewayUser.userId, userRole: req.gatewayUser.role }
+        : {}),
+      ...(req.userContextJws ? { userContextJws: req.userContextJws } : {}),
     });
 
     // Recopie des headers utiles (pas Content-Length, recalculé par Express).

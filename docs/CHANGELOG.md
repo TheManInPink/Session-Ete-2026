@@ -3,11 +3,51 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-04 (patch 0undecies — appointment-service : prise de RDV,
-> centres d'enrôlement + modèle Prisma EnrollmentCenter)
+> **Dernière mise à jour** : 2026-06-13 (patch 0duodecies — api-gateway : terminaison
+> d'authentification au bord, `X-User-Context` signé JWS, rate limiting Redis, Swagger agrégé —
+> PROMPT 3.7)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0duodecies. Patch 2026-06-13 — `api-gateway` : auth au bord + rate limit Redis + Swagger agrégé (PROMPT 3.7)
+
+Passage du **MVP** (routage + circuit breakers, JWT décodé sans vérification) au service complet
+couvrant les 10 responsabilités (`services/api-gateway/`, port 3000). **ADR :
+[ADR-029](./adr/ADR-029-api-gateway-auth-termination-jws.md).**
+
+**Livré** :
+
+- **Authentification au bord** : le JWT RS256 est **vérifié une seule fois** (JWKS d'`auth-service`,
+  `GatewayAuthGuard` global). Le gateway purge les en-têtes d'identité usurpés en entrée puis
+  propage un **`X-User-Context` signé JWS HS256** (TTL 60 s, `UserContextSigner`) aux services aval.
+  `Authorization` reste transmis (compat ascendante tant que les avals vérifient eux-mêmes le JWKS).
+- **Rate limiting Redis** distribué (`RedisRateLimitGuard`) : par utilisateur authentifié sinon par
+  IP, fenêtre fixe (`INCR`+`EXPIRE`), **fail-open** si Redis KO. En-têtes `X-RateLimit-*` + 429
+  `E_GW_RATELIMIT` + `Retry-After`.
+- **Routage** : table statique complétée — ajout **`biometric`** (3012) et route locale
+  **`/api/v1/api-gateway/*`** (introspection, non proxifiée). 16 préfixes publics → 14 avals
+  distincts.
+- **Swagger agrégé** : `AggregatorService` fusionne les `/api/docs-json` des avals (chemins préfixés
+  `/api/v1`, schémas namespacés + `$ref` réécrits, dégradation douce) →
+  `GET /api/v1/api-gateway/openapi.json` ; option `SWAGGER_AGGREGATE_ON_BOOT` pour `/api/docs`.
+- **Health aggregator** : `/health/ready` (critiques identity+auth + Redis, gate K8s) **distinct**
+  de `/health/downstreams` (les 14 avals, observationnel, toujours 200).
+- **Compression** gzip/brotli ; **`/metrics`** (observability) ; propagation `traceparent` explicite
+  ; SDK OTel **opt-in** (`OTEL_TRACING_ENABLED`).
+- **Introspection** : `GET /api/v1/api-gateway/{info,routes,breakers}` (état des circuit breakers
+  via `BreakerRegistry` découplé). `routes` ne divulgue jamais l'URL interne d'un service.
+- **Config** : `src/config/env.schema.ts` (Zod fail-fast, garde-fou interdisant le secret HS256 de
+  dev en production).
+- **Tests** : 4 suites / **36 tests** (table de routage, signer JWS, fusion OpenAPI, e2e routage
+  bootant le vrai `AppModule` — vérifie aussi le boot du catch-all sous Express 5). `check-types` +
+  `build` + `lint` (0 erreur) verts. Stubs Jest des packages ESM `@nina-aes/logger`/`observability`
+  (`test/mocks/`, mappés via `moduleNameMapper`).
+
+**Dépendances** : ajout `compression` + `@types/compression`, `zod`, `@nina-aes/observability` et
+`@nina-aes/auth-guards` (workspace). Retrait de `express-rate-limit` (inutilisé).
+
+**`turbo.json`** : `OTEL_TRACING_ENABLED` ajouté au `globalEnv`.
 
 ### 0undecies. Patch 2026-06-04 — `appointment-service` : prise de RDV + centres (PROMPT 3.6)
 

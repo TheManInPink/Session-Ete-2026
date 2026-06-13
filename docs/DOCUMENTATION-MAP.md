@@ -6,9 +6,9 @@
 >
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
-> **Dernière mise à jour** : 4 juin 2026 · **Status** : ✅ initialisé (27 docs + **28 ADRs** —
-> ADR-028 ajouté pour l'appointment-service : centres d'enrôlement, modèle `EnrollmentCenter`, file
-> d'attente virtuelle et autorisation médiée).
+> **Dernière mise à jour** : 13 juin 2026 · **Status** : ✅ initialisé (27 docs + **29 ADRs** —
+> ADR-029 ajouté pour l'api-gateway : terminaison d'authentification au bord, `X-User-Context` signé
+> JWS, rate limiting Redis et Swagger agrégé — PROMPT 3.7).
 
 ---
 
@@ -41,9 +41,9 @@
                               │
                               ▼ Justifie
 ┌──────────────────────────────────────────────────────────────────┐
-│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…028)   │
+│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…029)   │
 │  ─────────────────────────────────────────────────────────────   │
-│  28 ADRs (001 à 028) — décisions stratégiques avec :             │
+│  29 ADRs (001 à 029) — décisions stratégiques avec :             │
 │   • Contexte document (lien vers doc Tier 2 associée)            │
 │   • Décision + Conséquences positives / négatives                │
 │   • Note souveraineté + Alternatives rejetées                    │
@@ -207,38 +207,39 @@ clôturé.
 
 ## 4. Tier 3 — ADRs (graphe de dépendances)
 
-### 4.1 Couverture 28 ADRs (001–028)
+### 4.1 Couverture 29 ADRs (001–029)
 
-| ADR | Sujet                                          | Doc parent | "Complète" refs                                              |
-| --: | ---------------------------------------------- | ---------- | ------------------------------------------------------------ |
-| 001 | Cahier des charges                             | doc 01     | — (premier)                                                  |
-| 002 | Microservices                                  | doc 02     | —                                                            |
-| 003 | NestJS                                         | doc 07     | —                                                            |
-| 004 | FastAPI                                        | doc 11     | —                                                            |
-| 005 | PostgreSQL                                     | doc 06     | —                                                            |
-| 006 | JWT RS256 + QR code                            | doc 10     | —                                                            |
-| 007 | Merkle audit                                   | doc 09     | —                                                            |
-| 008 | USSD Africa's Talking                          | doc 14     | —                                                            |
-| 009 | Monorepo Turborepo                             | doc 04     | —                                                            |
-| 010 | Infrastructure Docker Compose                  | doc 05     | —                                                            |
-| 011 | Database Schema Prisma                         | doc 06     | —                                                            |
-| 012 | NestJS Clean Architecture                      | doc 07-10  | —                                                            |
-| 013 | Keycloak Identity Provider                     | doc 08     | —                                                            |
-| 014 | Audit event-driven append-only                 | doc 09     | ADR-007                                                      |
-| 015 | Stack ML détection erreurs NINA                | doc 11     | ADR-004                                                      |
-| 016 | CI/CD GitHub Actions                           | doc 16     | ADR-009, ADR-010                                             |
-| 017 | Observabilité LGTM                             | doc 17     | ADR-010, ADR-014, ADR-016                                    |
-| 018 | Stratégie tests pyramide                       | doc 18     | ADR-009, ADR-016, ADR-017                                    |
-| 019 | Backup & DRP                                   | doc 19     | ADR-005, ADR-010, ADR-014, ADR-017                           |
-| 020 | Déploiement K3s production                     | doc 20     | ADR-002, ADR-010, ADR-015 (faute), ADR-016, ADR-017, ADR-019 |
-| 021 | Protocole BCID-AES Interop                     | doc 21     | ADR-002, ADR-006, ADR-014                                    |
-| 022 | Modules gouvernementaux scope                  | doc 22     | ADR-002, ADR-014                                             |
-| 023 | SIGAC ML stack + lanceurs d'alerte             | doc 23     | ADR-004, ADR-014, ADR-015                                    |
-| 024 | Kiosk Electron vs PWA                          | doc 24     | **❌ ADR-013 mal référencé**                                 |
-| 025 | Biométrie phasée + hash                        | doc 25     | ADR-014, **❌ ADR-015 mal référencée**                       |
-| 026 | Vault Transit — signature QR FDI               | doc 10     | ADR-006                                                      |
-| 027 | `auth-guards` type-only (DI)                   | doc 07-10  | — (fix duplication `@nestjs/core`)                           |
-| 028 | appointment-service : centres + file d'attente | PROMPT 3.6 | ADR-011, ADR-027                                             |
+| ADR | Sujet                                             | Doc parent | "Complète" refs                                              |
+| --: | ------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| 001 | Cahier des charges                                | doc 01     | — (premier)                                                  |
+| 002 | Microservices                                     | doc 02     | —                                                            |
+| 003 | NestJS                                            | doc 07     | —                                                            |
+| 004 | FastAPI                                           | doc 11     | —                                                            |
+| 005 | PostgreSQL                                        | doc 06     | —                                                            |
+| 006 | JWT RS256 + QR code                               | doc 10     | —                                                            |
+| 007 | Merkle audit                                      | doc 09     | —                                                            |
+| 008 | USSD Africa's Talking                             | doc 14     | —                                                            |
+| 009 | Monorepo Turborepo                                | doc 04     | —                                                            |
+| 010 | Infrastructure Docker Compose                     | doc 05     | —                                                            |
+| 011 | Database Schema Prisma                            | doc 06     | —                                                            |
+| 012 | NestJS Clean Architecture                         | doc 07-10  | —                                                            |
+| 013 | Keycloak Identity Provider                        | doc 08     | —                                                            |
+| 014 | Audit event-driven append-only                    | doc 09     | ADR-007                                                      |
+| 015 | Stack ML détection erreurs NINA                   | doc 11     | ADR-004                                                      |
+| 016 | CI/CD GitHub Actions                              | doc 16     | ADR-009, ADR-010                                             |
+| 017 | Observabilité LGTM                                | doc 17     | ADR-010, ADR-014, ADR-016                                    |
+| 018 | Stratégie tests pyramide                          | doc 18     | ADR-009, ADR-016, ADR-017                                    |
+| 019 | Backup & DRP                                      | doc 19     | ADR-005, ADR-010, ADR-014, ADR-017                           |
+| 020 | Déploiement K3s production                        | doc 20     | ADR-002, ADR-010, ADR-015 (faute), ADR-016, ADR-017, ADR-019 |
+| 021 | Protocole BCID-AES Interop                        | doc 21     | ADR-002, ADR-006, ADR-014                                    |
+| 022 | Modules gouvernementaux scope                     | doc 22     | ADR-002, ADR-014                                             |
+| 023 | SIGAC ML stack + lanceurs d'alerte                | doc 23     | ADR-004, ADR-014, ADR-015                                    |
+| 024 | Kiosk Electron vs PWA                             | doc 24     | **❌ ADR-013 mal référencé**                                 |
+| 025 | Biométrie phasée + hash                           | doc 25     | ADR-014, **❌ ADR-015 mal référencée**                       |
+| 026 | Vault Transit — signature QR FDI                  | doc 10     | ADR-006                                                      |
+| 027 | `auth-guards` type-only (DI)                      | doc 07-10  | — (fix duplication `@nestjs/core`)                           |
+| 028 | appointment-service : centres + file d'attente    | PROMPT 3.6 | ADR-011, ADR-027                                             |
+| 029 | api-gateway : auth au bord + `X-User-Context` JWS | PROMPT 3.7 | ADR-006, ADR-013, ADR-027, ADR-017                           |
 
 ### 4.2 ⚠️ Refs ADR cassées (sévérité P0)
 
@@ -525,9 +526,10 @@ Cadence recommandée : revue trimestrielle + à chaque release majeure (tag Git 
 2026-05-25  ADR-026 Vault Transit QR + docs/10 v2.0                  (document-service)
 2026-05-30  ADR-027 auth-guards type-only                           (auth-service boot fix)
 2026-06-04  ADR-028 appointment-service + modèle EnrollmentCenter   (PROMPT 3.6)
+2026-06-13  ADR-029 api-gateway auth au bord + X-User-Context JWS   (PROMPT 3.7)
 ```
 
-État final : **27/27 docs canoniques + 28 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
+État final : **27/27 docs canoniques + 29 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
 (ce doc) = ~30 000 lignes de documentation cohérente.**
 
 ---
