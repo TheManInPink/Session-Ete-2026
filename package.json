@@ -24,6 +24,8 @@
     "dev:services": "turbo run start:dev --filter='./services/*'",
     "dev:ai": "cd services/ai-service && uvicorn app.main:app --reload --port 3003",
     "dev:sigac": "cd services/anticorruption-service && uvicorn app.main:app --reload --port 3009",
+    "test:ai": "cd services/ai-service && pytest tests/ --cov=app",
+    "test:sigac": "cd services/anticorruption-service && pytest tests/",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "test": "turbo run test",

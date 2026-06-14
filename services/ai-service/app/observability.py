@@ -37,17 +37,26 @@ import logging
 import os
 from typing import Any
 
-import structlog
-from opentelemetry import trace
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-from prometheus_client import Counter, Gauge, Histogram
-from prometheus_fastapi_instrumentator import Instrumentator
+import structlog  # pyright: ignore[reportMissingImports]
+from opentelemetry import trace  # pyright: ignore[reportMissingImports]
+from opentelemetry.sdk.resources import Resource  # pyright: ignore[reportMissingImports]
+from opentelemetry.sdk.trace import TracerProvider  # pyright: ignore[reportMissingImports]
+from opentelemetry.sdk.trace.export import BatchSpanProcessor  # pyright: ignore[reportMissingImports]
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter  # pyright: ignore[reportMissingImports]
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # pyright: ignore[reportMissingImports]
+from opentelemetry.instrumentation.requests import RequestsInstrumentor  # pyright: ignore[reportMissingImports]
+
+try:
+    # Optionnel : nécessite `sqlalchemy` (non installé pour ai-service, qui est
+    # stateless). Sans lui, on désactive l'auto-instrumentation SQL plutôt que
+    # de faire échouer tout le module d'observabilité.
+    from opentelemetry.instrumentation.sqlalchemy import (  # pyright: ignore[reportMissingImports]
+        SQLAlchemyInstrumentor,
+    )
+except Exception:  # noqa: BLE001 - sqlalchemy absent → instrumentation SQL désactivée
+    SQLAlchemyInstrumentor = None  # type: ignore[assignment, misc]
+from prometheus_client import Counter, Gauge, Histogram  # pyright: ignore[reportMissingImports]
+from prometheus_fastapi_instrumentator import Instrumentator  # pyright: ignore[reportMissingImports]
 from fastapi import FastAPI
 
 
@@ -84,10 +93,7 @@ def _redact_pii(_logger: Any, _method: str, event_dict: dict[str, Any]) -> dict[
 
     def _walk(obj: Any) -> Any:
         if isinstance(obj, dict):
-            return {
-                k: ("***REDACTED***" if k in _PII_FIELDS else _walk(v))
-                for k, v in obj.items()
-            }
+            return {k: ("***REDACTED***" if k in _PII_FIELDS else _walk(v)) for k, v in obj.items()}
         if isinstance(obj, list):
             return [_walk(item) for item in obj]
         return obj
@@ -106,9 +112,7 @@ def init_tracing(service_name: str, *, otlp_endpoint: str | None = None) -> None
         service_name: nom du service (ex. 'ai-service')
         otlp_endpoint: surcharge OTEL_EXPORTER_OTLP_ENDPOINT env
     """
-    endpoint = otlp_endpoint or os.environ.get(
-        "OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317"
-    )
+    endpoint = otlp_endpoint or os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317")
 
     provider = TracerProvider(
         resource=Resource.create(
@@ -130,10 +134,11 @@ def init_tracing(service_name: str, *, otlp_endpoint: str | None = None) -> None
 
     # Auto-instrumentations clés (chargées même si non utilisées)
     RequestsInstrumentor().instrument()
-    try:
-        SQLAlchemyInstrumentor().instrument()
-    except Exception:  # SQLAlchemy non utilisé partout
-        pass
+    if SQLAlchemyInstrumentor is not None:
+        try:
+            SQLAlchemyInstrumentor().instrument()
+        except Exception:  # noqa: BLE001 - SQLAlchemy non utilisé partout
+            pass
 
 
 # ─── Instrumentation Prometheus /metrics ───────────────────────────

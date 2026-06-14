@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 try:
-    import hvac
+    import hvac  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
         "Le module 'hvac' est requis pour vault.py — l'ajouter à requirements.txt"
@@ -154,9 +154,7 @@ class VaultClient:
         elif self.auth_method == "kubernetes":
             jwt_path = Path(self.auth_kwargs["jwt_path"])
             jwt = jwt_path.read_text().strip()
-            response = self._client.auth.kubernetes.login(
-                role=self.auth_kwargs["role"], jwt=jwt
-            )
+            response = self._client.auth.kubernetes.login(role=self.auth_kwargs["role"], jwt=jwt)
             ttl = int(response["auth"]["lease_duration"])
             logger.info("Auth Vault Kubernetes OK, TTL=%ds", ttl)
 
@@ -186,9 +184,7 @@ class VaultClient:
                     logger.error("Échec renouvellement token Vault : %s", err)
                     return
 
-        self._renew_thread = threading.Thread(
-            target=renew_loop, name="vault-renew", daemon=True
-        )
+        self._renew_thread = threading.Thread(target=renew_loop, name="vault-renew", daemon=True)
         self._renew_thread.start()
 
     # ─── API publique ───────────────────────────────────────────────
@@ -251,9 +247,7 @@ class VaultClient:
         Returns:
             Ciphertext format `vault:vN:<base64>`.
         """
-        response = self._client.secrets.transit.encrypt_data(
-            name=key_name, plaintext=plaintext_b64
-        )
+        response = self._client.secrets.transit.encrypt_data(name=key_name, plaintext=plaintext_b64)
         return response["data"]["ciphertext"]
 
     def transit_decrypt(self, key_name: str, ciphertext: str) -> str:
@@ -265,9 +259,7 @@ class VaultClient:
         Raises:
             hvac.exceptions.Forbidden: si la policy ne permet pas decrypt.
         """
-        response = self._client.secrets.transit.decrypt_data(
-            name=key_name, ciphertext=ciphertext
-        )
+        response = self._client.secrets.transit.decrypt_data(name=key_name, ciphertext=ciphertext)
         return response["data"]["plaintext"]
 
     def rotate_transit_key(self, key_name: str) -> int:

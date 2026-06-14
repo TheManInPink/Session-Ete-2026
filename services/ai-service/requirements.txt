@@ -1,30 +1,37 @@
-# NINA-AES AI Service — Dépendances Python
+# NINA-AES AI Service — Dépendances Python (runtime)
 # Installer avec : pip install -r requirements.txt
+# (ou, plus rapide : uv pip install -r requirements.txt)
 
+# ─── Web / API ──────────────────────────────────────────────────────
 fastapi>=0.135.0
 uvicorn[standard]>=0.44.0
 pydantic>=2.12.5
 pydantic-settings>=2.13.1
+python-multipart>=0.0.18          # parsing multipart pour POST /ocr-extract
+
+# ─── Cœur ML / NLP / fuzzy ──────────────────────────────────────────
 rapidfuzz>=3.14.5
 jellyfish>=1.2.1
 scikit-learn>=1.8.0
 xgboost>=3.2.0
 spacy>=3.8.14
+joblib>=1.4.2                     # chargement du bundle modèle XGBoost
 pandas>=3.0.2
 numpy>=2.4.4
 httpx>=0.28.1
 python-dotenv>=1.2.2
 
-# Optionnel — OCR
+# ─── Optionnel — OCR (extra `ocr`) ──────────────────────────────────
+# Nécessite aussi le binaire système Tesseract (+ pack langue fra).
 pytesseract>=0.3.13
 Pillow>=12.2.0
 
-# Sécurité — HashiCorp Vault (client officiel)
-# Utilisé par src/vault.py pour récupérer les secrets dynamiques.
+# ─── Sécurité — HashiCorp Vault (client officiel) ───────────────────
+# Utilisé par app/vault.py pour récupérer les secrets dynamiques.
 hvac>=2.4.0
 
-# Observabilité — métriques + tracing + logs structurés
-# Utilisé par src/observability.py (cf. ADR-017 + doc 17)
+# ─── Observabilité — métriques + tracing + logs structurés ──────────
+# Utilisé par app/observability.py (cf. ADR-017 + doc 17).
 prometheus-client>=0.21.0
 prometheus-fastapi-instrumentator>=7.0.2
 opentelemetry-sdk>=1.30.0

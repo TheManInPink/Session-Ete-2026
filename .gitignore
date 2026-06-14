@@ -61,6 +61,7 @@ __pycache__/
 *.egg
 *.pyc
 .venv/
+.venv313/
 venv/
 env/
 .mypy_cache/
@@ -118,6 +119,8 @@ ai-models/trained/*.json
 ai-models/trained/*.pkl
 ai-models/trained/*.joblib
 !ai-models/trained/.gitkeep
+ai-models/datasets/*.csv
+!ai-models/datasets/.gitkeep
 ai-models/models/*.pkl
 ai-models/models/*.joblib
 ai-models/models/*.h5

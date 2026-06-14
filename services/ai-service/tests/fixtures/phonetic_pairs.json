@@ -1,0 +1,15 @@
+[
+  { "a": "Mamadou", "b": "Mamadu", "same": true },
+  { "a": "Mamadou", "b": "Mahamadou", "same": true },
+  { "a": "Traoré", "b": "Traore", "same": true },
+  { "a": "Keita", "b": "Kéita", "same": true },
+  { "a": "Sékou", "b": "Seku", "same": true },
+  { "a": "Fatoumata", "b": "Fatumata", "same": true },
+  { "a": "Aïssata", "b": "Aisata", "same": true },
+  { "a": "Coulibaly", "b": "Kulibali", "same": true },
+  { "a": "N'Diaye", "b": "Ndiaye", "same": true },
+  { "a": "Keita", "b": "Ketta", "same": false },
+  { "a": "Diallo", "b": "Jallo", "same": false },
+  { "a": "Traoré", "b": "Diarra", "same": false },
+  { "a": "Mamadou", "b": "Fatoumata", "same": false }
+]

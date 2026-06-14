@@ -10,6 +10,25 @@
 > [ADR-004 — FastAPI](./adr/ADR-004-fastapi.md) ·
 > [ADR-015 — Stack ML/NLP](./adr/ADR-015-ml-stack-detection-erreurs-nina.md)
 
+> ⚠️ **Écart implémenté — le code fait foi** (voir CHANGELOG `0terdecies`, 2026-06-13, PROMPT 4.1).
+> Le service **réellement livré** diverge de la spec ci-dessous, qui reste la cible/vision détaillée
+> (pipeline, features, MLOps) :
+>
+> - **7 endpoints** sous `/api/v1/ai` : `detect-errors`, `compare-names`, `detect-duplicates`,
+>   `anomaly-score`, `ocr-extract`, `ner` — **et non** `analyze`/`batch`/`feedback` (§10.6).
+> - Sonde **`GET /health` à la racine** (probe Docker/K3s) + alias `/api/v1/ai/health`.
+> - **Layout `app/`** (`uvicorn app.main:app`) — **et non** `src/ai_service/` (§9). Sous-paquets :
+>   `app/{config,auth,main,observability,vault,telemetry}.py` +
+>   `app/{routers,services,schemas,models,phonetic}/`.
+> - **Scoring heuristique** transparent par défaut (`heuristic-v1`), bascule **XGBoost** si un
+>   modèle entraîné est présent — **dégradation gracieuse** si spaCy/xgboost/tesseract absents.
+> - **Lettre de contrôle NINA** = somme pondérée **mod 23** (parité `packages/utils/src/nina.ts`),
+>   **et non** le snippet illustratif `mod 26` du §7/§6.
+> - Auth **terminée au bord** (ADR-029, contexte `X-User-Context`), pas de vérification JWT locale.
+>
+> Référence vivante : [`services/ai-service/README.md`](../services/ai-service/README.md) + le code
+> sous `services/ai-service/app/`.
+
 ---
 
 ## Table des matières

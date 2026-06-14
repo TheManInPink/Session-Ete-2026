@@ -1,0 +1,7 @@
+{
+  "//": "Indique à Pylance/Pyright l'environnement Python à utiliser pour résoudre les imports (pytest, fastapi, rapidfuzz…). extraPaths cible directement le site-packages du venv racine (résolution garantie, indépendante de l'auto-détection). Les dépendances ML optionnelles non installées (spacy, xgboost, hvac…) restent gérées par les `# pyright: ignore[reportMissingImports]` au cas par cas.",
+  "venvPath": "../..",
+  "venv": ".venv",
+  "extraPaths": ["../../.venv/Lib/site-packages"],
+  "reportMissingModuleSource": "none"
+}

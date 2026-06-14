@@ -3,12 +3,85 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-13 (patch 0duodecies — api-gateway : terminaison
-> d'authentification au bord, `X-User-Context` signé JWS, rate limiting Redis, Swagger agrégé —
-> PROMPT 3.7)
+> **Dernière mise à jour** : 2026-06-14 (patch 0terdecies — `ai-service` : 7 endpoints `/api/v1/ai`
+>
+> - pipeline 5 étapes ; compléments du 14-06 : modèle XGBoost opt-in AUC 0.95, observabilité
+>   réparée, environnement d'entraînement Python 3.13 — PROMPT 4.1)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0terdecies. Patch 2026-06-13 — `ai-service` : pipeline IA implémenté (PROMPT 4.1)
+
+Passage du **scaffold** (`app/main.py` + health seul) au **service complet** de détection d'erreurs
+NINA (`services/ai-service/`, port 3003, FastAPI). **Docs : [11](./11-AI-SERVICE-FASTAPI.md) —
+ADR-004 (FastAPI) + ADR-015 (stack ML).**
+
+**Livré** :
+
+- **7 endpoints** sous `/api/v1/ai` : `detect-errors` (pipeline complet), `compare-names` (fuzzy +
+  phonétique), `detect-duplicates`, `anomaly-score` (Isolation Forest — SIGAC), `ocr-extract`
+  (Tesseract, multipart), `ner` (spaCy ou fallback). Plus `GET /health` à la **racine** (sonde
+  Docker/K3s — `Dockerfile.fastapi` interroge `curl /health`) **+ alias** `/api/v1/ai/health`,
+  `/metrics`, et `/api/docs-json` pour l'agrégateur Swagger du gateway.
+- **Pipeline 5 étapes** : normalisation → détection (8 règles : format/lettre de contrôle NINA, date
+  futur/<1900/lettres, cohérence sexe & année & géo encodées dans le NINA, inversion nom/prénom,
+  fautes d'orthographe par fuzzy, caractères suspects) → scoring → verdict.
+- **Lettre de contrôle NINA** en **parité stricte** avec `packages/utils/src/nina.ts` (somme
+  pondérée `Σ chiffre_i × (i+1)` mod 23, alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ` sans I/O, 1er chiffre ∈
+  {1,2}) — figée par `tests/test_nina_rules.py`.
+- **Scoring** : heuristique pondérée transparente (`heuristic-v1`) **par défaut** ; bascule sur le
+  modèle **XGBoost** si `ai-models/trained/nina_detector_v1.pkl` est présent (garde-fou : ordre des
+  features validé, sinon retour heuristique). Scripts
+  `ai-models/scripts/{generate_synthetic_dataset, train_xgboost}.py` (NINA réels + checksum
+  canonique).
+- **Dégradation gracieuse** : le service boote et sert ses endpoints **même sans** spaCy / xgboost /
+  tesseract / OpenTelemetry / structlog (NER → regex, scorer → heuristique, OCR → 503, observabilité
+  désactivée). RapidFuzz/jellyfish ont des fallbacks Python purs (Jaro-Winkler, Levenshtein,
+  Soundex).
+- **Sécurité (ADR-029)** : auth terminée au bord ; vérification du contexte `X-User-Context` signé
+  JWS HS256 — signature en temps constant (`hmac.compare_digest`), contrôle `alg`/`exp` (anti-rejeu)
+  ; en-tête **présent mais invalide → 401**, absent → permissif (confiance gateway). **Fail-closed**
+  : refus de démarrer en production sans `AI_GATEWAY_JWS_SECRET`. Upload OCR borné par lecture en
+  blocs (anti-DoS mémoire, 413) + borne anti-bombe de décompression. NINA jamais journalisé en clair
+  (masqué). Métriques alignées sur le dashboard Grafana `03-ai-service`
+  (`ai_nina_errors_detected_total`, `ai_records_processed_total`, `ai_inference_duration_seconds`,
+  `ai_confidence_score`).
+- **Tests** : 53 tests pytest (parité checksum, Soundex golden-set, comparateur, pipeline e2e par
+  endpoint, anomalie, NER, doublons, sécurité du contexte) — verts (`--cov=app`) ; `ruff` propre.
+
+**Décisions / écarts** :
+
+- **Layout `app/`** (et non `src/ai_service/` décrit dans la doc 11) : aligné sur l'outillage réel
+  du dépôt — `package.json` `dev:ai` (`uvicorn app.main:app`), CI `pytest --cov=app`, Bandit
+  `services/ai-service/app`, `infrastructure/docker/Dockerfile.fastapi` (`COPY .../app`). Le `src/`
+  résiduel (vide + Dockerfile cassé alpine/`apt-get`) a été supprimé ; `observability.py` et
+  `vault.py` ont migré dans `app/`. **Dockerfile** par-service réécrit (3.13-slim + tesseract-fra,
+  `app.main:app`, probe `/health`).
+- **Écart doc 11** : la doc décrit 5 endpoints (`analyze`/`batch`/`feedback`) + layout
+  `src/ai_service/` et un snippet de checksum simplifié (mod 26). Le code livre 7 endpoints en
+  `app/` avec le checksum canonique (mod 23). **Le code fait foi** ; doc 11 reçoit une admonition «
+  écart implémenté » (drift §6 #13 de `DOCUMENTATION-MAP.md`).
+
+**Compléments (2026-06-14) — modèle entraîné, observabilité, environnement 3.13** :
+
+- **Features partagées** : `app/services/features.py` devient la **source de vérité unique** du
+  vecteur de features (14 features) ; le scorer en ligne ET `ai-models/scripts/train_xgboost.py`
+  l'appellent, supprimant tout drift entraînement↔inférence. Ajout des signaux NINA
+  (`nina_checksum_valid`, `sex_matches_nina`, `region_matches_nina`, prénom/nom connus) → **AUC 0.95
+  / F1 0.94** (vs 0.66/0.57 avant) sur le dataset synthétique 10 000.
+- **Scoring XGBoost opt-in** (`AI_USE_MODEL`, défaut `false`) : l'heuristique **explicable** reste
+  le défaut (chaque variation de score correspond à une erreur listée). Le modèle peut être
+  pessimiste sur des dossiers propres sans fournir d'explication, il ne s'active donc que sur
+  demande.
+- **Observabilité réparée** : `observability.py` importait `SQLAlchemyInstrumentor` sans garde →
+  échec d'import (donc `/metrics` muet) dès que `sqlalchemy` est absent (cas CI/Docker, service
+  stateless). Import désormais optionnel. Tracing OTLP rendu **opt-in** (`OTEL_TRACING_ENABLED`,
+  aligné api-gateway) ; `/metrics` toujours actif.
+- **Environnement 3.13** : `xgboost`/`spaCy` n'ayant pas de wheels cp314, l'entraînement et le
+  service complet tournent sur un venv Python 3.13 (`.venv313`, géré par `uv`).
+- **Outillage** : scripts pnpm `test:ai` / `test:sigac` ; **64 tests** pytest verts (3.13 et 3.14),
+  couverture ≥ 80 % (`vault`/`observability` exclus car testés en intégration) ; `ruff` propre.
 
 ### 0duodecies. Patch 2026-06-13 — `api-gateway` : auth au bord + rate limit Redis + Swagger agrégé (PROMPT 3.7)
 

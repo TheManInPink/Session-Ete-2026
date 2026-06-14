@@ -35,37 +35,37 @@ Le parcours suit trois principes :
 > **[`CHANGELOG.md`](./CHANGELOG.md)** — c'est la source de vérité qui surclasse les
 > versions/commandes mentionnées dans les documents numérotés quand il y a contradiction.
 
-| Élément                          | État                                                                                                    |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Monorepo Turborepo 2.9.5         | ✅ Initialisé                                                                                           |
-| pnpm                             | ✅ v10.12.1                                                                                             |
-| `apps/web` + `apps/docs`         | ⚠️ Scaffolds par défaut Turborepo — à remplacer par `citizen`, `admin`, `governance`                    |
-| `apps/citizen` (port 4001)       | ✅ **Sessions 1+2 livrées** — PC-01 à PC-06 + auth Keycloak BFF (mock mode actif)                       |
-| `apps/admin` (port 4002)         | ✅ **Sessions 3+4 — foundation + AD-01/02/03** — Dashboard + DataGrid + SIGAC (mock)                    |
-| `apps/governance` (port 4003)    | ❌ Scaffold Turborepo — prévu Session 5+                                                                |
-| `packages/ui`                    | ✅ **Sessions 1+3+4** — design system + Sheet/Checkbox/DropdownMenu + 4 charts SVG                      |
-| `packages/auth`                  | ✅ **Session 5 — BFF auth partagé** — session helpers + 4 OIDC handlers factory                         |
-| Tests E2E (Playwright)           | ✅ **Session 5** — 11 tests dans `e2e/`, multi-app, mode mock NINA_AUTH_MODE                            |
-| `packages/api-client`            | ✅ **Livré (Sessions 1+2)** — identity + correction + appointment + sigac (Zod)                         |
-| `packages/i18n`                  | ✅ **Livré (Sessions 1+3, FR complet + namespace admin)** — fallback FR par-clé                         |
-| `packages/eslint-config`         | ✅ Présent                                                                                              |
-| `packages/typescript-config`     | ✅ Présent                                                                                              |
-| `packages/shared-types`          | ✅ **Livré (PROMPT 1.2)** — 11 enums, 16 interfaces, DTOs Zod                                           |
-| `packages/database` (Prisma 7.8) | ✅ **Livré (PROMPT 1.3)** — 16 modèles, schema validé, seed appliqué (371 locations)                    |
-| `packages/config` (Zod)          | ✅ **Livré (PROMPT 1.4)** — schéma exhaustif + 9 tests Jest                                             |
-| `packages/utils` (NINA helpers)  | ✅ **Livré (PROMPT 1.4)** — NINA + Merkle + crypto + sanitize, 44 tests Jest                            |
-| `packages/logger`                | ⚠️ **Stub temporaire** — implémentation Pino + Loki à livrer doc 17                                     |
-| `services/` (11 microservices)   | ⚠️ Scaffolds — corps des services aux docs 07 → 11                                                      |
-| `infrastructure/docker/`         | ✅ `docker-compose.dev.yml` opérationnel (PostgreSQL+PostGIS), corrections en cours                     |
-| `docs/diagrams/*.puml`           | ✅ **8 diagrammes UML livrés (PROMPT 1.5)** — 1 557 lignes                                              |
-| `ai-models/` (datasets, modèles) | ❌ Inexistant — à créer                                                                                 |
-| `.github/workflows/` (CI/CD)     | ✅ **Livré (mai 2026)** — 4 workflows (ci, cd-staging, release, codeql) + composite action + dependabot |
-| `scripts/` (Bash + PowerShell)   | ✅ Init-db.sql + setup.ps1 + setup.sh + `typecheck.ts` (placeholder TS)                                 |
-| Husky + hooks pre-commit         | ✅ **Livré (mai 2026)** — pre-commit + commit-msg + pre-push, commitlint 45 scopes, CONTRIBUTING.md     |
-| Docker Compose local             | ✅ Postgres+PostGIS démarrable via `pnpm docker:up`                                                     |
-| Schéma Prisma                    | ✅ 16 modèles, migration `init_v1` appliquée                                                            |
-| Tests Jest (utils + config)      | ✅ **53 tests passants** (44 utils + 9 config)                                                          |
-| Tests Vitest (database)          | ⚠️ Vitest 4.1.5 installé, suites à écrire                                                               |
+| Élément                          | État                                                                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo Turborepo 2.9.5         | ✅ Initialisé                                                                                                                                                                             |
+| pnpm                             | ✅ v10.12.1                                                                                                                                                                               |
+| `apps/web` + `apps/docs`         | ⚠️ Scaffolds par défaut Turborepo — à remplacer par `citizen`, `admin`, `governance`                                                                                                      |
+| `apps/citizen` (port 4001)       | ✅ **Sessions 1+2 livrées** — PC-01 à PC-06 + auth Keycloak BFF (mock mode actif)                                                                                                         |
+| `apps/admin` (port 4002)         | ✅ **Sessions 3+4 — foundation + AD-01/02/03** — Dashboard + DataGrid + SIGAC (mock)                                                                                                      |
+| `apps/governance` (port 4003)    | ❌ Scaffold Turborepo — prévu Session 5+                                                                                                                                                  |
+| `packages/ui`                    | ✅ **Sessions 1+3+4** — design system + Sheet/Checkbox/DropdownMenu + 4 charts SVG                                                                                                        |
+| `packages/auth`                  | ✅ **Session 5 — BFF auth partagé** — session helpers + 4 OIDC handlers factory                                                                                                           |
+| Tests E2E (Playwright)           | ✅ **Session 5** — 11 tests dans `e2e/`, multi-app, mode mock NINA_AUTH_MODE                                                                                                              |
+| `packages/api-client`            | ✅ **Livré (Sessions 1+2)** — identity + correction + appointment + sigac (Zod)                                                                                                           |
+| `packages/i18n`                  | ✅ **Livré (Sessions 1+3, FR complet + namespace admin)** — fallback FR par-clé                                                                                                           |
+| `packages/eslint-config`         | ✅ Présent                                                                                                                                                                                |
+| `packages/typescript-config`     | ✅ Présent                                                                                                                                                                                |
+| `packages/shared-types`          | ✅ **Livré (PROMPT 1.2)** — 11 enums, 16 interfaces, DTOs Zod                                                                                                                             |
+| `packages/database` (Prisma 7.8) | ✅ **Livré (PROMPT 1.3)** — 16 modèles, schema validé, seed appliqué (371 locations)                                                                                                      |
+| `packages/config` (Zod)          | ✅ **Livré (PROMPT 1.4)** — schéma exhaustif + 9 tests Jest                                                                                                                               |
+| `packages/utils` (NINA helpers)  | ✅ **Livré (PROMPT 1.4)** — NINA + Merkle + crypto + sanitize, 44 tests Jest                                                                                                              |
+| `packages/logger`                | ⚠️ **Stub temporaire** — implémentation Pino + Loki à livrer doc 17                                                                                                                       |
+| `services/` (11 microservices)   | ⚠️ Scaffolds — sauf `ai-service` (3003, ✅ pipeline 5 étapes + 7 endpoints, scorer heuristique — PROMPT 4.1), `api-gateway` (3000) et `appointment-service` (3008) livrés (cf. CHANGELOG) |
+| `infrastructure/docker/`         | ✅ `docker-compose.dev.yml` opérationnel (PostgreSQL+PostGIS), corrections en cours                                                                                                       |
+| `docs/diagrams/*.puml`           | ✅ **8 diagrammes UML livrés (PROMPT 1.5)** — 1 557 lignes                                                                                                                                |
+| `ai-models/` (datasets, modèles) | ⚠️ `scripts/` livrés (générateur dataset synthétique + entraînement XGBoost) ; `trained/` à peupler                                                                                       |
+| `.github/workflows/` (CI/CD)     | ✅ **Livré (mai 2026)** — 4 workflows (ci, cd-staging, release, codeql) + composite action + dependabot                                                                                   |
+| `scripts/` (Bash + PowerShell)   | ✅ Init-db.sql + setup.ps1 + setup.sh + `typecheck.ts` (placeholder TS)                                                                                                                   |
+| Husky + hooks pre-commit         | ✅ **Livré (mai 2026)** — pre-commit + commit-msg + pre-push, commitlint 45 scopes, CONTRIBUTING.md                                                                                       |
+| Docker Compose local             | ✅ Postgres+PostGIS démarrable via `pnpm docker:up`                                                                                                                                       |
+| Schéma Prisma                    | ✅ 16 modèles, migration `init_v1` appliquée                                                                                                                                              |
+| Tests Jest (utils + config)      | ✅ **53 tests passants** (44 utils + 9 config)                                                                                                                                            |
+| Tests Vitest (database)          | ⚠️ Vitest 4.1.5 installé, suites à écrire                                                                                                                                                 |
 
 ---
 

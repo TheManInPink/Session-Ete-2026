@@ -1,19 +1,23 @@
 [project]
 name = "nina-aes-ai-service"
-version = "0.1.0"
+version = "1.0.0"
 description = "Module IA de détection et correction des erreurs NINA — Pipeline 5 étapes"
-authors = ["Ibrahim"]
-requires-python = ">=3.14"
+authors = [{ name = "Étudiant UQAR" }]
+# Le code cible Python 3.14, mais reste compatible 3.13 (utilisé en CI/Docker
+# tant que les wheels spaCy/XGBoost cp314 ne sont pas publiées).
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.135.0",
     "uvicorn[standard]>=0.44.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
+    "python-multipart>=0.0.18",     # parsing multipart pour /ocr-extract
     "rapidfuzz>=3.14.5",
     "jellyfish>=1.2.1",
     "scikit-learn>=1.8.0",
     "xgboost>=3.2.0",
     "spacy>=3.8.14",
+    "joblib>=1.4.2",                # (dé)sérialisation du bundle modèle
     "pandas>=3.0.2",
     "numpy>=2.4.4",
     "httpx>=0.28.1",
@@ -22,20 +26,38 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=9.0.3",
-    "pytest-asyncio>=1.3.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
     "httpx>=0.28.1",
     "ruff>=0.11.0",
 ]
+# OCR (acte de naissance scanné) — nécessite aussi le binaire Tesseract système.
 ocr = [
-    "pytesseract>=0.15.9",
+    "pytesseract>=0.3.13",
     "Pillow>=12.2.0",
+]
+# Entraînement du modèle XGBoost + génération du dataset synthétique.
+train = [
+    "faker>=30.5.0",
+    "shap>=0.48.0",
 ]
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py313"
 line-length = 100
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+# Modules d'infrastructure non couverts par les tests unitaires de ce service :
+#   - vault.py        : nécessite un serveur HashiCorp Vault (testé en intégration)
+#   - observability.py : nécessite la stack OpenTelemetry/Prometheus
+omit = ["*/vault.py", "*/observability.py", "*/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = ["pragma: no cover", "raise NotImplementedError"]

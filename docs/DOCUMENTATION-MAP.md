@@ -119,35 +119,35 @@ Toutes les règles « si tu changes X, mets à jour Y » convergent vers `MAINTE
 
 ### 3.1 Catalogue séquentiel 00-26 (27 docs)
 
-|   # | Doc                            |     Lignes | ADR(s) liée(s)            | Statut code                          |
-| --: | ------------------------------ | ---------: | ------------------------- | ------------------------------------ |
-|  00 | README INDEX                   |        495 | —                         | ✅ Index navigation                  |
-|  01 | CAHIER-DES-CHARGES             | (existant) | ADR-001                   | ✅ existant                          |
-|  02 | ARCHITECTURE-GLOBALE           | (existant) | ADR-002                   | ✅ existant                          |
-|  03 | SETUP-ENVIRONNEMENT-DEV        | (existant) | —                         | ✅ existant                          |
-|  04 | MONOREPO-STRUCTURE             | (existant) | ADR-009                   | ✅ existant                          |
-|  05 | INFRASTRUCTURE-DOCKER-COMPOSE  | (existant) | ADR-010                   | ✅ implémenté Bloc A                 |
-|  06 | DATABASE-SCHEMA-PRISMA         | (existant) | ADR-005, ADR-011, ADR-028 | ✅ 22 modèles (16 spec + additifs)   |
-|  07 | BACKEND-IDENTITY-SERVICE       | (existant) | ADR-003, ADR-012          | ⏳ scaffold                          |
-|  08 | BACKEND-AUTH-SERVICE           | (existant) | ADR-013                   | ⏳ scaffold                          |
-|  09 | BACKEND-AUDIT-SERVICE          | (existant) | ADR-007, ADR-014          | ⏳ scaffold                          |
-|  10 | BACKEND-DOCUMENT-SERVICE       | (existant) | ADR-006                   | ⏳ scaffold                          |
-|  11 | AI-SERVICE-FASTAPI             | (existant) | ADR-004, ADR-015          | ⏳ scaffold + tests                  |
-|  12 | FRONTEND-INTEGRATION-API       | (existant) | —                         | ✅ apps/citizen + admin Sessions 1-5 |
-|  13 | MOBILE-APP-EXPO                | (existant) | **❌ aucun ADR**          | ⏳ scaffold                          |
-|  14 | USSD-SERVICE-AFRICAS-TALKING   |        915 | ADR-008                   | ⏳ scaffold                          |
-|  15 | SECURITY-HARDENING             |        533 | **❌ aucun ADR dédié**    | ⏳ Vault déployé seul                |
-|  16 | CICD-GITHUB-ACTIONS            |        931 | ADR-016                   | ⏳ ci.yml historique présent         |
-|  17 | MONITORING-OBSERVABILITY       |       1091 | ADR-017                   | ⏳ spec livré, pas implémenté        |
-|  18 | TESTING-STRATEGY               |        857 | ADR-018                   | ⏳ 53 Jest + 11 Playwright           |
-|  19 | BACKUP-RECOVERY                |        724 | ADR-019                   | ⏳ spec livré                        |
-|  20 | DEPLOYMENT-K3S-PRODUCTION      |        925 | ADR-020                   | ⏳ spec livré                        |
-|  21 | BLOC-B-INTEROPERABILITE-AES    |        570 | ADR-021                   | ⏳ spec uniquement                   |
-|  22 | BLOC-C-MODULES-GOUVERNEMENTAUX |        634 | ADR-022                   | ⏳ spec uniquement                   |
-|  23 | BLOC-D-SIGAC-ANTICORRUPTION    |        558 | ADR-023                   | ⏳ FastAPI scaffold                  |
-|  24 | BLOC-E-BORNES-KIOSQUE-ELECTRON |        600 | ADR-024                   | ⏳ spec uniquement                   |
-|  25 | BLOC-F-BIOMETRIE               |        466 | ADR-025                   | ⏳ vision uniquement                 |
-|  26 | RAPPORT-FINAL-SOUTENANCE       |        510 | — (plan, pas décision)    | ⏳ à rédiger                         |
+|   # | Doc                            |     Lignes | ADR(s) liée(s)            | Statut code                                                                                                                      |
+| --: | ------------------------------ | ---------: | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+|  00 | README INDEX                   |        495 | —                         | ✅ Index navigation                                                                                                              |
+|  01 | CAHIER-DES-CHARGES             | (existant) | ADR-001                   | ✅ existant                                                                                                                      |
+|  02 | ARCHITECTURE-GLOBALE           | (existant) | ADR-002                   | ✅ existant                                                                                                                      |
+|  03 | SETUP-ENVIRONNEMENT-DEV        | (existant) | —                         | ✅ existant                                                                                                                      |
+|  04 | MONOREPO-STRUCTURE             | (existant) | ADR-009                   | ✅ existant                                                                                                                      |
+|  05 | INFRASTRUCTURE-DOCKER-COMPOSE  | (existant) | ADR-010                   | ✅ implémenté Bloc A                                                                                                             |
+|  06 | DATABASE-SCHEMA-PRISMA         | (existant) | ADR-005, ADR-011, ADR-028 | ✅ 22 modèles (16 spec + additifs)                                                                                               |
+|  07 | BACKEND-IDENTITY-SERVICE       | (existant) | ADR-003, ADR-012          | ⏳ scaffold                                                                                                                      |
+|  08 | BACKEND-AUTH-SERVICE           | (existant) | ADR-013                   | ⏳ scaffold                                                                                                                      |
+|  09 | BACKEND-AUDIT-SERVICE          | (existant) | ADR-007, ADR-014          | ⏳ scaffold                                                                                                                      |
+|  10 | BACKEND-DOCUMENT-SERVICE       | (existant) | ADR-006                   | ⏳ scaffold                                                                                                                      |
+|  11 | AI-SERVICE-FASTAPI             | (existant) | ADR-004, ADR-015          | ✅ implémenté — 7 endpoints `/api/v1/ai` + `/health` (`app/`), scorer heuristique ; doc décrit 5 endpoints/`src/` → drift §6 #13 |
+|  12 | FRONTEND-INTEGRATION-API       | (existant) | —                         | ✅ apps/citizen + admin Sessions 1-5                                                                                             |
+|  13 | MOBILE-APP-EXPO                | (existant) | **❌ aucun ADR**          | ⏳ scaffold                                                                                                                      |
+|  14 | USSD-SERVICE-AFRICAS-TALKING   |        915 | ADR-008                   | ⏳ scaffold                                                                                                                      |
+|  15 | SECURITY-HARDENING             |        533 | **❌ aucun ADR dédié**    | ⏳ Vault déployé seul                                                                                                            |
+|  16 | CICD-GITHUB-ACTIONS            |        931 | ADR-016                   | ⏳ ci.yml historique présent                                                                                                     |
+|  17 | MONITORING-OBSERVABILITY       |       1091 | ADR-017                   | ⏳ spec livré, pas implémenté                                                                                                    |
+|  18 | TESTING-STRATEGY               |        857 | ADR-018                   | ⏳ 53 Jest + 11 Playwright                                                                                                       |
+|  19 | BACKUP-RECOVERY                |        724 | ADR-019                   | ⏳ spec livré                                                                                                                    |
+|  20 | DEPLOYMENT-K3S-PRODUCTION      |        925 | ADR-020                   | ⏳ spec livré                                                                                                                    |
+|  21 | BLOC-B-INTEROPERABILITE-AES    |        570 | ADR-021                   | ⏳ spec uniquement                                                                                                               |
+|  22 | BLOC-C-MODULES-GOUVERNEMENTAUX |        634 | ADR-022                   | ⏳ spec uniquement                                                                                                               |
+|  23 | BLOC-D-SIGAC-ANTICORRUPTION    |        558 | ADR-023                   | ⏳ FastAPI scaffold                                                                                                              |
+|  24 | BLOC-E-BORNES-KIOSQUE-ELECTRON |        600 | ADR-024                   | ⏳ spec uniquement                                                                                                               |
+|  25 | BLOC-F-BIOMETRIE               |        466 | ADR-025                   | ⏳ vision uniquement                                                                                                             |
+|  26 | RAPPORT-FINAL-SOUTENANCE       |        510 | — (plan, pas décision)    | ⏳ à rédiger                                                                                                                     |
 
 ### 3.2 Docs transversaux thématiques
 
@@ -354,20 +354,21 @@ automatiquement → risque de drift silencieuse.
 
 ## 6. Synthèse des dérives (à jour 16 mai 2026)
 
-|   # | Drift                                                                                                                                | Sévérité | Fichier(s)                                                                                         | Action                             |
-| --: | ------------------------------------------------------------------------------------------------------------------------------------ | :------: | -------------------------------------------------------------------------------------------------- | ---------------------------------- |
-|   1 | ADR-024 réf cassée vers ADR-013 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-024-*.md` ligne 5                                                                    | Fix immédiat                       |
-|   2 | ADR-025 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-025-*.md` ligne 6                                                                    | Fix immédiat                       |
-|   3 | ADR-020 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-020-*.md` ligne 5-6                                                                  | Fix immédiat                       |
-|   4 | 2 docs orphelins (01-fondations + 02-infrastructure)                                                                                 |  🔴 P0   | `docs/01-fondations-monorepo-outillage-dx.md`, `docs/02-infrastructure-docker-services-donnees.md` | Archiver                           |
-|   5 | ~~graphify-out snapshot 5 mai = stale 11 jours~~ ✅ Résolu 17 mai 2026 (`graphify update` → 613 nodes / 598 edges / 183 communautés) |    ✅    | `graphify-out/`                                                                                    | —                                  |
-|   6 | AGENTS.md ne mentionne pas `verify:repo`                                                                                             |  🟡 P1   | `AGENTS.md`                                                                                        | Aligner sur copilot                |
-|   7 | README.md ne référence pas MAINTENANCE.md                                                                                            |  🟡 P1   | `README.md`                                                                                        | Enrichir                           |
-|   8 | ADR-013 (Mobile Expo) manquant                                                                                                       |  🟡 P1   | (à créer)                                                                                          | Reporté V2                         |
-|   9 | ADR-015 réelle (Security Hardening) manquante                                                                                        |  🟡 P1   | (à créer)                                                                                          | Reporté V2                         |
-|  10 | ADRs 001-013 sans header "Complète"                                                                                                  |  🟢 P2   | 13 ADRs                                                                                            | Backfill possible                  |
-|  11 | `docs/api/`, `docs/security/`, `docs/observability/` vides                                                                           |  🟢 P2   | dossiers                                                                                           | Remplir au fil des implémentations |
-|  12 | `docs-sync-check.mjs` enforce seulement 10 refs                                                                                      |  🟢 P2   | `scripts/docs-sync-check.mjs`                                                                      | Étendre progressivement            |
+|   # | Drift                                                                                                                                                                                                                                                    | Sévérité | Fichier(s)                                                                                         | Action                                                                                       |
+| --: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+|   1 | ADR-024 réf cassée vers ADR-013 (mauvais titre)                                                                                                                                                                                                          |  🔴 P0   | `docs/adr/ADR-024-*.md` ligne 5                                                                    | Fix immédiat                                                                                 |
+|   2 | ADR-025 réf cassée vers ADR-015 (mauvais titre)                                                                                                                                                                                                          |  🔴 P0   | `docs/adr/ADR-025-*.md` ligne 6                                                                    | Fix immédiat                                                                                 |
+|   3 | ADR-020 réf cassée vers ADR-015 (mauvais titre)                                                                                                                                                                                                          |  🔴 P0   | `docs/adr/ADR-020-*.md` ligne 5-6                                                                  | Fix immédiat                                                                                 |
+|   4 | 2 docs orphelins (01-fondations + 02-infrastructure)                                                                                                                                                                                                     |  🔴 P0   | `docs/01-fondations-monorepo-outillage-dx.md`, `docs/02-infrastructure-docker-services-donnees.md` | Archiver                                                                                     |
+|   5 | ~~graphify-out snapshot 5 mai = stale 11 jours~~ ✅ Résolu 17 mai 2026 (`graphify update` → 613 nodes / 598 edges / 183 communautés)                                                                                                                     |    ✅    | `graphify-out/`                                                                                    | —                                                                                            |
+|   6 | AGENTS.md ne mentionne pas `verify:repo`                                                                                                                                                                                                                 |  🟡 P1   | `AGENTS.md`                                                                                        | Aligner sur copilot                                                                          |
+|   7 | README.md ne référence pas MAINTENANCE.md                                                                                                                                                                                                                |  🟡 P1   | `README.md`                                                                                        | Enrichir                                                                                     |
+|   8 | ADR-013 (Mobile Expo) manquant                                                                                                                                                                                                                           |  🟡 P1   | (à créer)                                                                                          | Reporté V2                                                                                   |
+|   9 | ADR-015 réelle (Security Hardening) manquante                                                                                                                                                                                                            |  🟡 P1   | (à créer)                                                                                          | Reporté V2                                                                                   |
+|  10 | ADRs 001-013 sans header "Complète"                                                                                                                                                                                                                      |  🟢 P2   | 13 ADRs                                                                                            | Backfill possible                                                                            |
+|  11 | `docs/api/`, `docs/security/`, `docs/observability/` vides                                                                                                                                                                                               |  🟢 P2   | dossiers                                                                                           | Remplir au fil des implémentations                                                           |
+|  12 | `docs-sync-check.mjs` enforce seulement 10 refs                                                                                                                                                                                                          |  🟢 P2   | `scripts/docs-sync-check.mjs`                                                                      | Étendre progressivement                                                                      |
+|  13 | Doc 11 décrit `analyze`/`batch`/`feedback` + layout `src/ai_service/` + checksum mod 26 ; le code livre 7 endpoints (`detect-errors`/`compare-names`/`detect-duplicates`/`anomaly-score`/`ocr-extract`/`ner`) + `/health` en `app/` avec checksum mod 23 |  🟡 P1   | `docs/11-AI-SERVICE-FASTAPI.md` §9/§10                                                             | Réconcilié 2026-06-13 (admonition « écart implémenté » en tête de doc 11 ; le code fait foi) |
 
 ---
 
@@ -527,6 +528,7 @@ Cadence recommandée : revue trimestrielle + à chaque release majeure (tag Git 
 2026-05-30  ADR-027 auth-guards type-only                           (auth-service boot fix)
 2026-06-04  ADR-028 appointment-service + modèle EnrollmentCenter   (PROMPT 3.6)
 2026-06-13  ADR-029 api-gateway auth au bord + X-User-Context JWS   (PROMPT 3.7)
+2026-06-13  ai-service implémenté — 7 endpoints + pipeline 5 étapes (scorer heuristique)  (PROMPT 4.1, patch 0terdecies)
 ```
 
 État final : **27/27 docs canoniques + 29 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
