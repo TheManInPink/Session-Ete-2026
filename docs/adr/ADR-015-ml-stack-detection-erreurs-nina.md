@@ -168,7 +168,7 @@ Metaphone ne les reconnaît comme équivalentes.
 
 Algorithme Soundex ajusté aux phonèmes français-africains (garde les voyelles initiales, traite
 `ou/u/w` comme équivalents, `é/è/ai` comme équivalents, etc.). Implémenté en ~150 lignes Python dans
-`ai-service/src/phonetic/african_soundex.py`.
+`services/ai-service/app/phonetic/african_soundex.py`.
 
 - ➕ **Contrôlé** à 100 % par l'équipe — règles ajustables après feedback terrain
 - ➕ Documentation pédagogique (chaque règle est commentée)
@@ -268,8 +268,10 @@ Le pipeline est **5 étapes** :
 
 ## Implémentation
 
-- Pipeline : `services/ai-service/src/pipeline/` (5 stages)
-- Modèles entraînés : `ai-models/nina_detector_v1.pkl` + `ai-models/nina_detector_v1.onnx`
+- Pipeline : `services/ai-service/app/services/` (5 stages : normalizer, detector, scorer, …) +
+  extracteur de features partagé `app/services/features.py`
+- Modèle entraîné : `ai-models/trained/nina_detector_v1.pkl` (opt-in `AI_USE_MODEL=true` ; AUC ≈
+  0.95 ; export ONNX optionnel — cf. doc 11 §18)
 - Dataset synthétique : `ai-models/datasets/synthetic_nina_v1.csv` (10 000 lignes, non commité —
   regénérable via `scripts/generate_synthetic_dataset.py`)
 - Notebooks d'exploration : `ai-models/notebooks/01_eda.ipynb`, `02_feature_engineering.ipynb`,

@@ -451,11 +451,12 @@ function ZoomBasedLayer() {
 
 ## 5. Couche IA — fuzzy matching
 
-Le `ai-service` (FastAPI) charge les noms de régions/cercles au démarrage et expose un endpoint de
-suggestion :
+Le `ai-service` (FastAPI) charge les noms de régions/cercles via son référentiel
+(`app/services/reference.py`) et applique un fuzzy matching RapidFuzz (`app/services/comparator.py`)
+pour ses vérifications de cohérence géographique. Exemple de principe :
 
 ```python
-# services/ai-service/app/locations/fuzzy.py
+# Illustration — la logique réelle vit dans app/services/{reference,comparator}.py
 from rapidfuzz import process, fuzz
 import json
 from pathlib import Path

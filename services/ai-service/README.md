@@ -77,29 +77,40 @@ Chargées par `pydantic-settings` avec le préfixe **`AI_`** (cf. `app/config.py
 ## 4. Démarrer en local
 
 ```powershell
+# 1) Dépendances (depuis services/ai-service, venv activé)
 cd services/ai-service
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt          # cœur ML/NLP
-pip install -e ".[ocr,train,dev]"        # extras optionnels (OCR, entraînement, tests)
-python -m spacy download fr_core_news_md # modèle NER (optionnel)
+pip install -e ".[ocr,dev]"              # extras optionnels (OCR, tests)
+python -m spacy download fr_core_news_md # modèle NER (optionnel → fallback regex sinon)
 
-pnpm dev:ai
-python -m uvicorn app.main:app --port 3003 --reload --app-dir services/ai-service
+# 2) Démarrer — au choix
+python -m uvicorn app.main:app --port 3003 --reload   # depuis services/ai-service
+#   ou, depuis la racine du monorepo : pnpm dev:ai
 
-# Sonde de santé (chemin de la probe Docker)
-curl http://localhost:3003/health
+# 3) Vérifier
+curl http://localhost:3003/health        # sonde Docker (racine)
 # Swagger UI : http://localhost:3003/api/v1/ai/docs
+
+# 4) Tests
+pytest tests/ -v --cov=app               # ou, depuis la racine : pnpm test:ai
 ```
 
-```powershell
-# Tests
-pytest tests/ -v --cov=app
-
-# (Optionnel) Générer le dataset synthétique + entraîner le modèle XGBoost
-python ../../ai-models/scripts/generate_synthetic_dataset.py --n 10000
-python ../../ai-models/scripts/train_xgboost.py
-```
+> **Entraîner le modèle XGBoost** (optionnel, requis seulement si `AI_USE_MODEL=true`) — `xgboost`
+> et `spaCy` n'ont pas encore de wheels pour Python 3.14 ; l'entraînement se fait donc sur **Python
+> 3.13**. Avec [`uv`](https://docs.astral.sh/uv/) (rapide, gère aussi l'installation de Python) :
+>
+> ```powershell
+> uv python install 3.13
+> uv venv .venv313 --python 3.13
+> uv pip install --python .venv313 pandas numpy scikit-learn xgboost joblib
+> .venv313\Scripts\python.exe ai-models/scripts/generate_synthetic_dataset.py --n 10000
+> .venv313\Scripts\python.exe ai-models/scripts/train_xgboost.py     # AUC ≈ 0.95 / F1 ≈ 0.94
+> ```
+>
+> Le dataset (`.csv`) et le modèle (`.pkl`) sont **git-ignorés** (régénérables). Le scoring modèle
+> s'active ensuite via `AI_USE_MODEL=true` ; sinon l'**heuristique explicable** reste le défaut.
 
 ---
 

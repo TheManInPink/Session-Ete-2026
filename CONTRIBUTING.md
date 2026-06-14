@@ -150,7 +150,8 @@ feat(identity): un sujet bien plus long que 100 caractères qui va dépasser la 
 > cd services/ai-service
 > python -m venv .venv
 > .\.venv\Scripts\Activate.ps1
-> pip install -r requirements.txt   # ruff y est listé
+> pip install -r requirements.txt
+> pip install -e ".[dev]"   # ruff + pytest (extra dev)
 > ```
 
 ---
