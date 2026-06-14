@@ -66,11 +66,15 @@ def _model_features(record: NormalizedRecord) -> list[float]:
     Délègue à l'extracteur partagé (source de vérité unique) pour garantir la
     parité avec l'entraînement.
     """
+    # On passe la date BRUTE (chaîne) — et non l'objet `date` parsé — afin que
+    # `date_format_invalid` se calcule à l'identique de l'entraînement (qui lit
+    # la colonne CSV brute). `birth_year` reste extrait via regex (parité).
     feats = extract_features(
         nina=record.nina,
         first_name=record.first_name,
         last_name=record.last_name,
-        birth_date=record.birth_date or record.birth_date_raw,
+        birth_date=record.birth_date_raw
+        or (record.birth_date.isoformat() if record.birth_date else ""),
         sex=record.sex,
         birth_region=record.birth_region,
         father_name=record.father,

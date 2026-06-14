@@ -1,0 +1,60 @@
+# error-patterns.yml — Catalogue des types d'erreurs RAVEC reproduits.
+#
+# Ces patterns reproduisent les CARACTÉRISTIQUES STATISTIQUES des erreurs de
+# saisie documentées dans le système d'état civil malien (RAVEC), SANS aucune
+# donnée réelle. Les fréquences sont CONDITIONNELLES à `has_error = True` et
+# somment à 100 (%). À l'échelle du dataset, la proportion réelle d'une erreur
+# vaut donc `error_rate × frequency / 100`.
+#
+# Champ `fields` : liste des colonnes que l'erreur peut altérer (le générateur
+# en choisit une au hasard pour les fautes de frappe).
+# Champ `severity` : criticité métier indicative (low / medium / high).
+
+error_types:
+  - name: typo_substitution
+    frequency: 35
+    fields: [first_name, last_name]
+    severity: low
+    description: 'Faute de frappe : un caractère remplacé par une touche voisine (clavier AZERTY).'
+
+  - name: typo_omission
+    frequency: 15
+    fields: [first_name, last_name]
+    severity: low
+    description: "Caractère oublié (omission d'une lettre interne)."
+
+  - name: typo_insertion
+    frequency: 10
+    fields: [first_name, last_name]
+    severity: low
+    description: 'Caractère en trop : lettre doublée ou touche voisine insérée.'
+
+  - name: phonetic_spelling
+    frequency: 20
+    fields: [first_name, last_name]
+    severity: medium
+    description: 'Variante phonétique : Mohamed/Mohammed/Mahamadou, ou→u, c↔k, accents perdus.'
+
+  - name: field_inversion
+    frequency: 8
+    fields: [first_name, last_name]
+    severity: medium
+    description: 'Nom et prénom intervertis lors de la saisie.'
+
+  - name: geographic_mismatch
+    frequency: 7
+    fields: [birth_region]
+    severity: high
+    description: 'Région de naissance déclarée incohérente avec le code région encodé dans le NINA.'
+
+  - name: date_format_error
+    frequency: 3
+    fields: [birth_date]
+    severity: medium
+    description: 'Date stockée dans un mauvais format (MM/JJ au lieu de JJ/MM).'
+
+  - name: invalid_checksum
+    frequency: 2
+    fields: [nina]
+    severity: high
+    description: 'Lettre de contrôle erronée (NINA structurellement valide mais checksum faux).'

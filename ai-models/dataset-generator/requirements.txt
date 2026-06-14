@@ -1,0 +1,14 @@
+# Dépendances du générateur de dataset synthétique NINA.
+# Installation : pip install -r requirements.txt
+# (ou, recommandé, installation éditable du package : pip install -e .)
+#
+# Souveraineté numérique : bibliothèques open-source neutres uniquement.
+
+faker>=30.0          # données fictives localisées fr_FR (dates de naissance, etc.)
+unidecode>=1.3.8     # repli ASCII pour les variantes phonétiques
+rapidfuzz>=3.10      # similarité de chaînes (validation, garde anti-doublon)
+pandas>=2.2          # construction et export du CSV étiqueté
+pyyaml>=6.0.2        # lecture des catalogues YAML (noms, patterns d'erreurs)
+
+# Outils de développement (optionnels) :
+pytest>=8.3          # tests unitaires (tests/)

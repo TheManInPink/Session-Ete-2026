@@ -1,0 +1,7 @@
+{
+  "//": "Indique à Pylance/Pyright l'environnement Python (venv racine) pour résoudre les imports tiers (faker, unidecode, rapidfuzz, pandas, yaml). extraPaths ajoute `src` (package `dataset_generator`) et le site-packages du venv racine.",
+  "venvPath": "../..",
+  "venv": ".venv",
+  "extraPaths": ["src", "../../.venv/Lib/site-packages"],
+  "reportMissingModuleSource": "none"
+}

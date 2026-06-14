@@ -3,13 +3,55 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-14 (patch 0terdecies — `ai-service` : 7 endpoints `/api/v1/ai`
->
-> - pipeline 5 étapes ; compléments du 14-06 : modèle XGBoost opt-in AUC 0.95, observabilité
->   réparée, environnement d'entraînement Python 3.13 — PROMPT 4.1)
+> **Dernière mise à jour** : 2026-06-14 (patch 0quaterdecies — dataset synthétique
+> `ai-models/dataset-generator/` + alignement IA : features 14→20, `data/mali/names.json`, AUC
+> 0.58→0.98 — PROMPT 4.2 ; précédent 0terdecies — `ai-service` pipeline 5 étapes + modèle XGBoost
+> opt-in, PROMPT 4.1)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quaterdecies. Patch 2026-06-14 — dataset synthétique NINA + alignement features IA (PROMPT 4.2)
+
+Génération du **dataset d'entraînement synthétique** et **alignement** du module IA pour réellement
+l'exploiter. **Docs : [11](./11-AI-SERVICE-FASTAPI.md) §6/§7 (admonition) +
+[`ai-models/README.md`](../ai-models/README.md). Drift §6 #14 de `DOCUMENTATION-MAP.md`.**
+
+**Livré — générateur de dataset** (`ai-models/dataset-generator/`, package Python autonome) :
+
+- **Catalogues YAML** : `config/names.yml` (200 prénoms M + 200 F + 150 patronymes + 50 villages —
+  **100 % fictifs/anonymisés**, RGPD + Loi malienne 2022-013) et `config/error-patterns.yml` (**8
+  types d'erreurs pondérés** sommant à 100 % : `typo_substitution` 35, `phonetic_spelling` 20,
+  `typo_omission` 15, `typo_insertion` 10, `field_inversion` 8, `geographic_mismatch` 7,
+  `date_format_error` 3, `invalid_checksum` 2).
+- **Pipeline** : `generate.py` (`generate_clean_record`/`inject_error`/`generate_dataset`),
+  `validate.py` (invariants NINA + distribution + anti-doublon), `mutators.py`, `nina.py` (checksum
+  **mod 23**, parité `nina.ts`/`nina_rules.py`, vecteur figé `18310444280090→H`). CLI
+  `python -m dataset_generator.generate`. **13 tests pytest** verts. Échantillon 1000 lignes
+  versionné (`samples/`). CSV de sortie **sur-ensemble compatible** avec
+  `ai-models/scripts/train_xgboost.py`.
+
+**Livré — alignement IA ↔ dataset** :
+
+- **Problème mesuré** : la nouvelle taxonomie (≈ 80 % d'erreurs sur les noms) faisait chuter l'AUC à
+  **≈ 0.58**, car `reference.py` ne connaissait que ~20 noms → features `*_is_common` non
+  discriminantes.
+- **`reference.py`** charge désormais `data/mali/names.json` (exporté de `names.yml` via
+  `python -m dataset_generator.export_reference`) **en plus** des listes embarquées (chargement
+  défensif, repli gracieux).
+- **`features.py` 14 → 20 features** : `first/last_name_best_sim` (RapidFuzz), `*_phonetic_match`
+  (Soundex africain), `name_order_suspect` (inversion), `date_format_invalid` (parsabilité). Le
+  **scorer** passe la date **brute** (parité train↔inférence).
+- **Ré-entraînement** (`train_xgboost.py`) sur **Python 3.14** (`.venv`, xgboost 3.2.0 — wheels
+  cp314 désormais disponibles) → **AUC 0.98 / F1 0.98**. Importances dominées par
+  `first_name_best_sim`, `last_name_phonetic_match`, `last_name_best_sim` ; bruit `birth_year`
+  retombé à ≈ 0.
+- **Tests** : **64** pytest (`ai-service`) + **13** (`dataset-generator`) verts. Inférence vérifiée
+  bout-en-bout : propre 99 · typo/nom inconnu ≈ 0 · date format US (MM/JJ) ≈ 2 · date `JJ/MM`
+  légitime 99 (aucun faux positif).
+
+**À re-synchroniser** (cf. `MAINTENANCE.md §3`) : après toute édition de `names.yml`, relancer
+`export_reference` puis `train_xgboost.py`.
 
 ### 0terdecies. Patch 2026-06-13 — `ai-service` : pipeline IA implémenté (PROMPT 4.1)
 

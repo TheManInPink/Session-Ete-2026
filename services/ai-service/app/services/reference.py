@@ -72,7 +72,7 @@ REGION_LANGUAGES: dict[str, set[str]] = {
 # Sert au fuzzy matching « le prénom saisi ressemble-t-il à un prénom connu ? ».
 # Liste volontairement compacte ; en production, charger depuis un fichier
 # enrichi (recensement RAVEC anonymisé).
-COMMON_FIRST_NAMES_M: frozenset[str] = frozenset(
+_EMBEDDED_FIRST_NAMES_M: frozenset[str] = frozenset(
     {
         "mamadou",
         "aliou",
@@ -96,7 +96,7 @@ COMMON_FIRST_NAMES_M: frozenset[str] = frozenset(
         "oumar",
     }
 )
-COMMON_FIRST_NAMES_F: frozenset[str] = frozenset(
+_EMBEDDED_FIRST_NAMES_F: frozenset[str] = frozenset(
     {
         "fatoumata",
         "aissata",
@@ -118,7 +118,7 @@ COMMON_FIRST_NAMES_F: frozenset[str] = frozenset(
         "kadidia",
     }
 )
-COMMON_LAST_NAMES: frozenset[str] = frozenset(
+_EMBEDDED_LAST_NAMES: frozenset[str] = frozenset(
     {
         "traore",
         "diarra",
@@ -218,25 +218,54 @@ def language_plausible(language: str | None, region: str | None) -> bool:
     return lang in allowed
 
 
+@lru_cache(maxsize=1)
+def _name_reference() -> dict[str, frozenset[str]]:
+    """Catalogue de noms (plié) = listes embarquées **∪** `data/mali/names.json`.
+
+    Le fichier `names.json` est généré depuis le catalogue du dataset synthétique
+    (`ai-models/dataset-generator/config/names.yml`) via
+    `python -m dataset_generator.export_reference`. Le rendre disponible ici fait
+    de la feature `*_is_common` (et de la similarité de noms du scorer) un signal
+    réellement discriminant — sinon ~20 noms seulement seraient reconnus.
+
+    Chargement **défensif** : si le fichier ou la config sont absents, on se
+    rabat sur les listes embarquées (le service démarre toujours).
+    """
+    male = set(_EMBEDDED_FIRST_NAMES_M)
+    female = set(_EMBEDDED_FIRST_NAMES_F)
+    last = set(_EMBEDDED_LAST_NAMES)
+    try:
+        path = _mali_data_dir() / "names.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        male |= {fold(x) for x in data.get("first_names_male", [])}
+        female |= {fold(x) for x in data.get("first_names_female", [])}
+        last |= {fold(x) for x in data.get("last_names", [])}
+    except Exception:  # noqa: BLE001 - config/fichier absent → listes embarquées seules
+        pass
+    return {"male": frozenset(male), "female": frozenset(female), "last": frozenset(last)}
+
+
 def is_common_first_name(name: str | None) -> bool:
-    """Indique si le prénom figure dans la liste de référence (M ou F)."""
+    """Indique si le prénom figure dans le référentiel (M ou F)."""
     folded = fold(name)
-    return folded in COMMON_FIRST_NAMES_M or folded in COMMON_FIRST_NAMES_F
+    ref = _name_reference()
+    return folded in ref["male"] or folded in ref["female"]
 
 
 def is_common_last_name(name: str | None) -> bool:
-    """Indique si le nom de famille figure dans la liste de référence."""
-    return fold(name) in COMMON_LAST_NAMES
+    """Indique si le nom de famille figure dans le référentiel."""
+    return fold(name) in _name_reference()["last"]
 
 
 def all_common_first_names() -> list[str]:
     """Retourne la liste pliée de tous les prénoms de référence (M + F)."""
-    return sorted(COMMON_FIRST_NAMES_M | COMMON_FIRST_NAMES_F)
+    ref = _name_reference()
+    return sorted(ref["male"] | ref["female"])
 
 
 def all_common_last_names() -> list[str]:
     """Retourne la liste pliée de tous les noms de référence."""
-    return sorted(COMMON_LAST_NAMES)
+    return sorted(_name_reference()["last"])
 
 
 @lru_cache(maxsize=1)
@@ -273,8 +302,11 @@ def reference_status() -> dict[str, int | bool]:
     """Résumé de l'état des référentiels (pour l'endpoint /health)."""
     regions = load_regions()
     cercles = load_cercles()
+    names = _name_reference()
     return {
         "regions_loaded": len(regions),
         "cercles_loaded": len(cercles),
         "geo_referential_available": bool(regions),
+        "first_names_loaded": len(names["male"] | names["female"]),
+        "last_names_loaded": len(names["last"]),
     }

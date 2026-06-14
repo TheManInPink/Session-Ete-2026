@@ -102,7 +102,7 @@ def main(csv: str, out: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Entraîne le détecteur XGBoost NINA")
-    parser.add_argument("--csv", default="ai-models/datasets/synthetic_nina_v1.csv")
+    parser.add_argument("--csv", default="ai-models/datasets/nina_synthetic_v1.csv")
     parser.add_argument("--out", default="ai-models/trained/nina_detector_v1.pkl")
     args = parser.parse_args()
     main(args.csv, args.out)

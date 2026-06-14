@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nina-dataset-generator"
+version = "1.0.0"
+description = "Générateur de dataset synthétique NINA (Mali) — 100% fictif, conforme RGPD / Loi malienne 2022-013."
+readme = "../README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Étudiant UQAR — projet NINA-AES Platform" }]
+license = { text = "Proprietary - UQAR" }
+keywords = ["nina", "mali", "synthetic-data", "rgpd", "machine-learning"]
+
+# Dépendances d'exécution. Toutes sont des bibliothèques open-source neutres
+# (souveraineté numérique : aucune dépendance étrangère sensible).
+dependencies = [
+  "faker>=30.0",      # données fictives localisées (fr_FR) : dates, professions
+  "unidecode>=1.3.8", # repli ASCII pour les variantes phonétiques
+  "rapidfuzz>=3.10",  # similarité de chaînes (validation + garde anti-doublon)
+  "pandas>=2.2",      # construction et export CSV
+  "pyyaml>=6.0.2",    # lecture des catalogues YAML (noms, erreurs)
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "ruff>=0.8"]
+
+# Point d'entrée CLI installé : `nina-dataset-gen --help`.
+# (Équivaut à `python -m dataset_generator.generate`.)
+[project.scripts]
+nina-dataset-gen = "dataset_generator.generate:main"
+nina-dataset-validate = "dataset_generator.validate:main"
+nina-dataset-export-reference = "dataset_generator.export_reference:main"
+
+# Layout « src » : le package importable est `dataset_generator`, sous src/.
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

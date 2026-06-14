@@ -25,9 +25,23 @@
 > - **Lettre de contrôle NINA** = somme pondérée **mod 23** (parité `packages/utils/src/nina.ts`),
 >   **et non** le snippet illustratif `mod 26` du §7/§6.
 > - Auth **terminée au bord** (ADR-029, contexte `X-User-Context`), pas de vérification JWT locale.
+> - **Dataset (PROMPT 4.2, 2026-06-14)** : le générateur canonique est désormais le package
+>   `ai-models/dataset-generator/` (catalogues YAML — 350+ noms fictifs + 8 types d'erreurs pondérés
+>   : `typo_substitution/omission/insertion`, `phonetic_spelling`, `field_inversion`,
+>   `geographic_mismatch`, `date_format_error`, `invalid_checksum` — `generate.py`, `validate.py`).
+>   Sortie `nina_synthetic_v1.csv`. Le script léger du §6 reste une variante d'amorçage.
+> - **Features = 20** (et non 40) dans `app/services/features.py` (source de vérité unique
+>   train↔inférence). PROMPT 4.2 a ajouté 6 features ciblant cette taxonomie :
+>   `first/last_name_best_sim` (RapidFuzz), `first/last_name_phonetic_match` (Soundex africain),
+>   `name_order_suspect`, `date_format_invalid`.
+> - **Référentiel de noms** : `reference.py` charge `data/mali/names.json` (exporté depuis
+>   `names.yml` via `python -m dataset_generator.export_reference`) **en plus** des listes
+>   embarquées → les features `*_is_common` redeviennent discriminantes.
+> - **AUC mesuré ≈ 0.98 · F1 ≈ 0.98** (XGBoost, dataset v1 + 20 features) — et non le « 0.94+ »
+>   illustratif du §8.2. Avant l'alignement noms↔features : AUC ≈ 0.58.
 >
-> Référence vivante : [`services/ai-service/README.md`](../services/ai-service/README.md) + le code
-> sous `services/ai-service/app/`.
+> Référence vivante : [`services/ai-service/README.md`](../services/ai-service/README.md) +
+> [`ai-models/README.md`](../ai-models/README.md) + le code sous `services/ai-service/app/`.
 
 ---
 
@@ -306,6 +320,12 @@ On génère donc **10 000 enregistrements réalistes** avec des erreurs **contr�
 
 Fichier : `ai-models/scripts/generate_synthetic_dataset.py`
 
+> 🆕 **Générateur canonique (PROMPT 4.2)** : le package `ai-models/dataset-generator/` (catalogues
+> YAML `names.yml`/`error-patterns.yml`, 8 types d'erreurs pondérés, CLI
+> `python -m dataset_generator.generate`, validateur `…validate`). Cf.
+> [`ai-models/README.md`](../ai-models/README.md). Le snippet ci-dessous reste la variante légère
+> d'amorçage.
+
 ```python
 """
 Génère un dataset synthétique de 10 000 enregistrements NINA.
@@ -462,6 +482,11 @@ python ai-models/scripts/generate_synthetic_dataset.py
 ### 7.1 Catalogue des 40 features
 
 Fichier : `services/ai-service/src/features/extractor.py`
+
+> ⚠️ **Code réel** : `services/ai-service/app/services/features.py` — **20 features** effectives,
+> ordre figé dans `FEATURE_NAMES` (partagé avec `ai-models/scripts/train_xgboost.py`). La liste de
+> 40 ci-dessous reste la vision cible. Ajouts PROMPT 4.2 : `first/last_name_best_sim`,
+> `first/last_name_phonetic_match`, `name_order_suspect`, `date_format_invalid`.
 
 | #   | Feature                           | Type    | Description                                           |
 | --- | --------------------------------- | ------- | ----------------------------------------------------- |

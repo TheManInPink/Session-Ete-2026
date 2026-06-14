@@ -1,0 +1,1001 @@
+nina,last_name,first_name,birth_date,sex,region_code,birth_region,cercle,commune,village,father_name,mother_name,language,has_error,error_type,error_field
+11706148141251S,Fall,Boubacar,2017-06-23,M,1,Kayes,Bafoulabe,Diakon,Sambela,Karamoko Kanoute,Khadidiatou Issoufou,fr,False,,
+14508106112239D,Ouattara,Yousoufc,1945-08-08,M,1,Kayes,Bafoulabe,Diakon,Sambela,Seydou Salaha,Téné Issoufou,ff,True,typo_insertion,first_name
+23311418080221N,Pamateck,Massitan,1933-11-08,F,4,Ségou,Macina,Kolongo,Tioribabougou,Cheick Almoustapha,Fadima Yaranangore,bm,False,,
+16711930275128W,Ascofare,Lassine,1967-11-18,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Bandé Tessougue,Roukiatou Bengaly,fr,False,,
+16310815149082L,Fayz,Daouda,1963-10-12,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Hama Kassogue,Maïdjara Bicaba,fr,True,typo_substitution,last_name
+16010647126168W,Boubku,Hama,1960-10-29,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Sinali Yehia,Diénéba Tapily,fr,True,typo_substitution,last_name
+14906359291898Q,Napl,Bouréma,1949-06-10,M,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Abdoulkader Fane,Sirantou Hamady,fr,True,typo_substitution,last_name
+24405415071522Q,Gassama,Niaba,1944-05-26,F,4,Ségou,Bla,Yangasso,Wolofobougou,Fodie Dembele,Sokona Haidara,fr,False,,
+20409705198391N,Samassekou,Niamato,2004-09-03,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Niamba Abdramane,Mariam Soumare,tmq,False,,
+24204342175115F,Tessougue,Fatoumé,1942-04-13,F,3,Sikasso,Bougouni,Sido,Misseniba,Mamary Saidou,Aminata Kamissoko,ff,False,,
+11010820260624C,Balde,Tiécoura,2010-10-25,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Hamadou Konare,Niamana Ibrahima,fr,False,,
+28711108186900P,Dolo,Bassiratou,1987-11-15,F,1,Kayes,Bafoulabe,Diakon,Sambela,Alou Mbaye,Goundokè Berthe,fr,False,,
+13410235065132Q,Yalcouye,Ichaka,1934-10-10,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Kalifa Kamissoko,Niamato Bocoum,fr,False,,
+13407920205688A,Walet,Sido,1934-07-04,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Ahmoud Cheickna,Mahawa Dieng,fr,True,typo_substitution,first_name
+14303146031235P,Diallo,Souleymane,1943-03-15,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Tenema Sidibe,Sirakè Sarr,bm,False,,
+16003609293591J,Yalcouye,Zana,1960-03-16,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Alaye Konfourou,Niama Diabate,fr,False,,
+26202527240885X,Diakite,Fatma,1962-02-11,F,5,Mopti,Djenne,Femaye,Sofarana,Abdoulkader Fomba,Salimata Kanté,bm,False,,
+19903313098550Y,Bocar,Boubacar,1999-03-25,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Bokar Sow,Zeïnabou Boubou,fr,False,,
+11205552282101J,Dembele,Abdourahmane,2012-05-20,M,5,Mopti,Koro,Dioungani,Bankassou,Issa Coulibaly,Niaba Sarr,ff,False,,
+23401356206925A,Saanogo,Hapsatou,1934-01-23,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Hama Traore,Bafou Kamissoko,bm,True,phonetic_spelling,last_name
+10611414030594K,Boureima,Ibrahima,2006-11-01,M,4,Ségou,Segou,Sebougou,Sonfara,Manga Napo,Maimouna Dembele,bm,False,,
+15707133042872E,Barry,Moussa,1957-07-06,M,1,Ségou,Macina,Kolongo,Tioribabougou,Yssouf Diallo,Fatma Sarr,ff,True,geographic_mismatch,birth_region
+11811706215674Q,Tabouré,Oumarou,2018-11-24,M,7,Gao,Gao,Gounzoureye,Wabarianke,Mohamed Napo,Djènè Dia,tmq,False,,
+10408326068688T,Saye,Galo,2004-08-13,M,3,Sikasso,Yorosso,Mahou,Fakoroba,Fodéba Sidibe,Mariam Hamady,ff,False,,
+18707135110519P,Fousseyni,Kamissoko,1987-07-19,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Sékouba Diallo,Maïram Bamba,bm,True,field_inversion,"first_name,last_name"
+26006752271009T,Abdramane,Astan,1960-06-14,F,7,Gao,Gao,Gounzoureye,Wabarianke,Abdoulwahab Kanoute,Kaira Kamissoko,fr,False,,
+19108319108735N,Dackouo,Yoro,1991-08-03,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Hassane Kamissoko,Dadou Sylla,bm,False,,
+11008141217850G,Macalu,Oumar,2010-08-25,M,1,Kayes,Diema,Lakamane,Mansakoro,Bakary Sagara,Korké Cheick,bm,True,typo_omission,last_name
+16804205077559B,Toure,Hamdoun,1968-04-23,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Moustapha Abdramane,Founé Wane,fr,True,typo_omission,first_name
+13105816053363K,Salaha,Dembo,1931-05-03,M,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Seyba Haidara,Nènè Konare,fr,False,,
+15203248171802F,Toiray,Dembele,1952-03-06,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Karamoko Dieng,Sadia Kaba,fr,True,typo_substitution,last_name
+28712420117229U,Doumbia,Fadimata,1987-12-20,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Famagan Wélé,Dénou Kassogue,fr,False,,
+27610442261410D,Bakaryh,Dénou,1976-10-03,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Adama Soumare,Djènè Yattara,bm,True,typo_insertion,last_name
+16804558296195H,Tambohra,Oumar,1968-04-08,M,5,Mopti,Mopti,Konna,Tongorongo,Tidjane Ag,Aminata Konfe,ff,True,typo_substitution,last_name
+15108958154520F,Ongoibaa,Demberel,1951-08-11,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Dembo Tapily,Djahara Tessougue,fr,True,phonetic_spelling,last_name
+15910737155416G,Souleymane,Bakary,1959-10-03,M,7,Gao,Gao,Gounzoureye,Wabarianke,Sory Goita,Niamoye Wane,tmq,False,,
+27604529227692V,Thiam,Maïmé,1976-04-05,F,5,Mopti,Douentza,Hombori,Yalakoura,Alaye Sako,Fadimata Samake,bm,False,,
+24405153121689T,Ongoiba,Naba,1944-05-11,F,1,Kayes,Diema,Lakamane,Mansakoro,Fadiala Fadiga,Oumou Cisse,snk,False,,
+14301527295200M,Maouloud,Cheickne,1943-01-27,M,5,Mopti,Douentza,Hombori,Yalakoura,Boukari Seck,Founé Diarra,fr,False,,
+18202252266476D,Dembele,Mahmoud,1982-02-27,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Klétigui Wague,Maïdjara Dansoko,bm,False,,
+24308258227628N,Ouattars,Goundoba,1943-08-12,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Ichaka Bocar,Coumba Yalcouye,bm,True,typo_substitution,last_name
+27904816141451J,Tangara,Salimatou,1979-04-22,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Tijani Sarr,Yacine Sagara,tmq,False,,
+17704210119393W,Haidara,Bilal,1977-04-06,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Bouréma Maiga,Souadou Konfourou,bm,False,,
+21208114216399J,Tabouré,Nafissa,2012-08-13,F,1,Kayes,Yelimane,Kremis,Tougandama,Sékou Soumountéra,Fanké Soumbounou,fr,False,,
+26606225215552V,Issoufou,Hawaou,1966-06-14,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Sambou Kebe,Diénéba Daou,bm,False,,
+23605443208742G,Nire,Niénétou,1936-05-12,F,4,Ségou,Macina,Kolongo,Tioribabougou,Fousseni Oumarou,Oumou Hamidou,fr,True,typo_omission,last_name
+19212325168217N,Saidou,Ténin,1992-12-23,M,3,Sikasso,Yorosso,Mahou,Fakoroba,Madiou Almoustapha,Zeïnabou Ly,bm,False,,
+20306148277054M,Dembaga,Naba,2003-06-07,F,1,Kayes,Bafoulabe,Diakon,Sambela,Abdourahmane Diallo,Tabita Fofana,fr,False,,
+14706140079245U,Bathily,Alaye,1947-06-10,M,1,Kayes,Bafoulabe,Diakon,Sambela,Dembele Soumare,Soukeynatou Gueye,ff,False,,
+28112239059797P,Konare,Karija,1981-12-20,F,2,Koulikoro,Nara,Dilly,Niamala,Salia Konandji,Oumou Ongoiba,bm,True,phonetic_spelling,first_name
+14103245155871J,Tounkara,Umarou,1941-03-05,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Ousmane Sanou,Djénétou Kane,bm,True,phonetic_spelling,first_name
+20508607222984T,Bengaly,Roukaya,2005-08-01,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Galo Haidara,Fatoumé Yattara,dje,False,,
+27005528138331W,Sck,Tenin,1970-05-08,F,5,Mopti,Douentza,Hombori,Yalakoura,Niamoye Cheickna,Maïram Boubou,dje,True,typo_omission,last_name
+21601323133349B,Kassogue,Aïsseta,2016-01-03,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Hamadi Macalou,Hawakè Keita,ff,False,,
+11408347209501D,Yehia,Boureima,2014-08-18,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Zié Yalcouye,Safiatou Sylla,bm,False,,
+17909415208709Q,Seck,Soriba,1979-09-01,M,4,Ségou,Segou,Sebougou,Sonfara,Abdoulwahab Konandji,Hadya Yalcouye,bm,False,,
+20901445233278W,Dolo,Niiénè,2009-01-10,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Diakalia Tounkara,Asma Ba,bm,True,typo_insertion,first_name
+25608347269612C,Guindo,Adiaratu,1956-08-14,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Famagan Tessougue,Aïchata Bengaly,fr,True,phonetic_spelling,first_name
+23912104284300N,Bathily,Zeynabou,1939-12-01,F,1,Kayes,Kita,Sebekoro,Kountouba,Founeke Sylla,Massitan Coulibaly,bm,False,,
+23609412027259S,Niélé,Soumbounou,1936-09-07,F,4,Ségou,Macina,Kolongo,Tioribabougou,Ibrahim Wélé,Founékou Sidibe,fr,True,field_inversion,"first_name,last_name"
+22006116061572C,Dicko,Hawawou,2020-06-12,F,1,Kayes,Diema,Lakamane,Mansakoro,Yssouf Fall,Mariétoulaye Konfe,ff,False,,
+26106456220313H,Diaby,Halumatou,1961-06-19,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Ibrahima Fomba,Houley Ka,fr,True,typo_substitution,first_name
+16911127231706H,Maiguizp,Tiéfing,1969-11-01,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Souleymane Faye,Niagalé Guindo,ff,True,typo_substitution,last_name
+24104235116664G,Gakou,Sadia,1941-04-23,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Boubakar Sidibe,Salimata Niare,bm,False,,
+26202508240706F,Dougnon,Hassanatou,1962-02-18,F,5,Mopti,Koro,Dioungani,Bankassou,Demba Daou,Niékè Boureima,dje,False,,
+14403548166619X,Cisseko,Seydou,1944-03-12,M,5,Mopti,Djenne,Femaye,Sofarana,Cheick Lo,Fatma Soumountéra,fr,False,,
+28203703090482H,Coulou,Safietou,1982-03-09,F,7,Gao,Bourem,Bamba,Bouremaya,Sidiki Kassogue,Adama Tabouré,dje,False,,
+26804131179419X,Sagara,Founékè,1968-04-13,F,1,Kayes,Diema,Lakamane,Mansakoro,Dembele Kanoute,Dado Yanogo,ff,False,,
+29202826282038D,Saidou,Tenin,1992-02-28,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Fodéba Cisseko,Founékè Soumare,tmq,False,,
+11612856278474J,Touray,Aliou,2016-12-19,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Famakan Coulou,Niamako Fane,tmq,False,,
+18002336068950X,Goita,Sidi,1980-02-07,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Hamza Kebe,Goundo Sangare,ff,False,,
+15208911160565N,Coulibaly,Bandé,1952-08-02,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Dembo Dabo,Naba Soumare,bm,False,,
+18010660150522V,Daou,Tidjani,1980-10-30,M,6,Gao,Ansongo,Tessit,Ansongala,Hammadi Maiguizo,Maïram Saidou,tmq,True,geographic_mismatch,birth_region
+17810118213349E,Ouattara,Sinaly,1978-10-20,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Bakary Guindo,Asmaou Saye,ff,False,,
+25812631177341F,Abdramane,Houley,1958-12-18,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Issiaka Ascofare,Maïdjara Ouologuem,tmq,False,,
+16610725120877J,Touray,Oumar,1966-10-14,M,7,Gao,Bourem,Bamba,Bouremaya,Lamine Yalcouye,Housseynatou Almoustapha,dje,False,,
+11808603065515T,Yanogo,Daouda,2018-08-25,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Sidi Fomba,Soumeyatou Saidou,fr,False,,
+24003810039481H,Kamissoko,Hadiata,1940-03-02,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Abdoulaye Mahamoud,Safietou Berthe,tmq,False,,
+21305441250894X,Boureima,Djeneba,2013-05-09,F,4,Ségou,San,Kava,Damansela,Seyba Diallo,Nènè Goita,fr,False,,
+21611249052455H,Niare,Haiba,2016-11-13,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Solo Sangare,Sira Tapily,fr,True,typo_omission,first_name
+25309744093175E,Tall,Kankou,1953-09-28,F,7,Gao,Bourem,Bamba,Bouremaya,Mamoudou Almoustapha,Halimatou Mbaye,dje,False,,
+10302330131471K,Tamboura,Demberel,2003-02-23,M,3,Kidal,Tin-Essako,Intadeyni,Intadeyni,Mamadou Samassekou,Niagalé Issoufou,fr,True,geographic_mismatch,birth_region
+26310828129468P,Dougnon,Téné,1963-10-08,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Ali Mariko,Djelika Sarr,tmq,False,,
+25209819012850R,Mahamoud,Habibatou,1952-09-08,F,8,Kidal,Kidal,Anefif,Adjelhocan,Mamadou Mallé,Khadija Dembele,tmq,False,,
+29305352118622M,Theera,Diénéba,1993-05-13,F,3,Sikasso,Bougouni,Sido,Misseniba,Abdou Bah,Halimatou Cisseko,ff,False,,
+18202807021317S,Ould,Souleymane,1982-02-03,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Souleyman Bicaba,Aïdara Cheick,fr,False,,
+26703127090206C,Niamana,Cheick,1967-03-11,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Diadié Ibrahima,Niékè Daou,snk,True,field_inversion,"first_name,last_name"
+21707448174824T,Soumare,Niénétou,2017-07-21,F,4,Ségou,Segou,Sebougou,Sonfara,Lassana Drame,Hamsatou Fall,bm,False,,
+20604151203015S,Kamissoko,Kadia,2006-04-02,F,1,Kayes,Diema,Lakamane,Mansakoro,Nfaly Saidou,Hadya Kamissoko,ff,False,,
+26005244120483N,Doumbia,Halimatou,1960-05-04,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Brahima Tapily,Adijatou Ndiaye,fr,False,,
+27408820210120N,Diawwara,Sira,1974-08-02,F,8,Kidal,Kidal,Anefif,Adjelhocan,Yacouba Dougnon,Sadiatou Soumare,fr,True,typo_insertion,last_name
+23801748080907W,Dick,Safya,1938-01-23,F,7,Gao,Ansongo,Tessit,Ansongala,Daouda Sylla,Mariama Konfourou,dje,True,typo_omission,last_name
+16108407189558K,Yaranangore,Ihrahima,1961-08-16,M,4,Ségou,Bla,Yangasso,Wolofobougou,Boukary Macalou,Niama Wague,bm,True,typo_substitution,first_name
+13410251290211H,Diallo,Birzma,1934-10-26,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Bandé Ka,Sadiokè Gueye,fr,True,typo_substitution,first_name
+17305617090113G,Doumbua,Fousseyni,1973-05-20,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Mahamadou Yaranangore,Nènè Ouologuem,fr,True,typo_substitution,last_name
+18501629186526B,Magassa,Soumaïla,1985-01-18,M,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Aboubacrine Ndiaye,Mariama Cisse,dje,False,,
+16611131206437Y,Magassa,Bilali,1966-11-21,M,1,Kayes,Yelimane,Kremis,Tougandama,Cherif Hamadou,Ramatoulaye Berthe,bm,False,,
+13906218300562U,Tapily,Hamaa,1939-06-17,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Yssouf Ibrahima,Sokhna Saidou,bm,True,phonetic_spelling,first_name
+25903327174848V,Saidou,Maïssa,1959-03-02,F,3,Sikasso,Koutiala,Zangasso,Diomandougou,Tidjani Diabate,Wassila Kane,bm,False,,
+20708244243069S,Dabo,Sanaba,2007-08-23,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Cheick Wane,Fadima Walet,fr,False,,
+27304808211363H,Bocoum,Asmaa,1973-04-11,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Aliou Goita,Aïchatou Ongoiba,tmq,True,typo_insertion,first_name
+15905455285377M,Soumare,Birama,1959-05-22,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Niamoye Sogodogo,Naba Kane,fr,False,,
+21908112140720G,Ongoiba,Haadiata,2019-08-28,F,1,Kayes,Bafoulabe,Diakon,Sambela,Sékouba Diarra,Adama Drame,ff,True,phonetic_spelling,first_name
+19805527233350F,Kaba,Hamadoun,1998-05-24,M,5,Mopti,Mopti,Konna,Tongorongo,Fodé Tapily,Mariétoulaye Diaby,fr,False,,
+18404249026691P,Berthe,Sinaali,1984-04-17,M,2,Koulikoro,Nara,Dilly,Niamala,Sidiki Bocoum,Niamtou Hamadou,bm,True,phonetic_spelling,first_name
+21712219250540M,Dolo,Sira,2017-12-10,F,2,Sikasso,Koutiala,Zangasso,Diomandougou,Sambou Mahamoud,Aïchatou Kone,fr,True,geographic_mismatch,birth_region
+29211421062008Y,Fane,Kankoun,1992-11-24,F,4,Ségou,Segou,Sebougou,Sonfara,Pâté Tall,Saran Almoustapha,fr,False,,
+24911126022447K,Konate,Sounkali,1949-11-23,F,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Lassana Napo,Awakè Kane,ff,False,,
+26607408208022S,Tapily,Saoudatou,1966-07-02,F,4,Ségou,Segou,Sebougou,Sonfara,Seyba Hamady,Hadidiatou Bengaly,fr,False,,
+14906328206537G,Berthe,Bukary,1949-06-15,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Fodé Pamateck,Diénéba Sagara,fr,True,phonetic_spelling,first_name
+26401953076242S,Kanute,Founé,1964-01-06,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Nampé Balde,Mariétou Haidara,fr,True,phonetic_spelling,last_name
+20611237297460R,Mallé,Zeïnab,2006-11-07,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Abdou Ouologuem,Roukiatou Napo,fr,False,,
+20310541156816J,Macalou,Ténémba,2003-10-21,F,5,Mopti,Koro,Dioungani,Bankassou,Alou Theera,Dadou Sidibe,bm,False,,
+16603124147079E,Dabo,Seyni,1966-03-17,M,1,Kayes,Yelimane,Kremis,Tougandama,Yssouf Ouattara,Soukoura Boubou,fr,False,,
+11001439244514M,Gaku,Ibrahima,2010-01-04,M,4,Ségou,San,Kava,Damansela,Soumaïla Kanoute,Houleymatou Samake,fr,True,phonetic_spelling,last_name
+18810424145397L,Konfoourou,Zacharia,1988-10-04,M,4,Ségou,Bla,Yangasso,Wolofobougou,Madiou Diakite,Roukietou Sagara,fr,True,typo_insertion,last_name
+10911406299680K,Drame,Sékouba,2009-11-13,M,4,Ségou,Macina,Kolongo,Tioribabougou,Fodé Hamidou,Saran Samake,bm,False,,
+28410243270096V,Bocoum,Maïmé,1984-10-22,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Fadima Konate,Niamako Ongoiba,fr,False,,
+27909332099232K,Diawara,Penda,1979-09-19,F,3,Sikasso,Bougouni,Sido,Misseniba,Lassana Tessougue,Adiaratou Ouattara,ff,False,,
+16004822068612E,Ascofare,Tiécura,1960-04-19,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Mamarou Sow,Habiba Niare,tmq,True,typo_omission,first_name
+24904248230240K,Oumarou,Bassiratou,1949-04-11,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Fodé Maiguizo,Sadio Bamba,bm,False,,
+29910325258541Q,Ly,Dado,1999-10-18,F,3,Sikasso,Bougouni,Sido,Misseniba,Fakourou Diawara,Niénè Diakite,ff,False,,
+29708760053729B,Coulou,Goundo,1997-08-13,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Tahirou Samake,Houley Konare,dje,False,,
+14210506114837N,Cheickna,Sékouba,1942-10-28,M,5,Mopti,Djenne,Femaye,Sofarana,Seydou Dicko,Bintou Mahamoud,bm,True,invalid_checksum,nina
+13611121051860X,Sagara,Tiéman,1936-11-11,M,1,Kayes,Bafoulabe,Diakon,Sambela,Boubacar Toure,Niagalé Maiguizo,snk,False,,
+24505540003928V,Bzrthe,Aissata,1945-05-16,F,5,Mopti,Koro,Dioungani,Bankassou,Nampé Gueye,Tata Souleymane,dje,True,typo_substitution,last_name
+15104541235065G,Niang,Maïga,1951-04-02,M,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Yssouf Bakary,Aissata Dakouo,ff,False,,
+21511501181247U,Sogodogo,Souadou,2015-11-05,F,5,Mopti,Djenne,Femaye,Sofarana,Bréhima Samake,Soumeyatou Bengaly,fr,False,,
+15203556241045Q,Boncana,Hamadu,1952-03-22,M,5,Mopti,Mopti,Konna,Tongorongo,Niamba Konate,Toko Diallo,bm,True,phonetic_spelling,first_name
+28711203181560A,Pamateck,Zeïnab,1987-11-27,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Yaya Boubou,Nafissa Soumbounou,fr,False,,
+11108950235038X,Tessougue,Fakourou,2011-08-15,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Oumar Sall,Nana Napo,bm,False,,
+23902303098293M,Yaranangore,Tabita,1939-02-04,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Omar Yanogo,Yacine Wague,bm,False,,
+28210129198348B,Barry,Korotou,1982-10-25,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Housseini Fane,Hadya Coulou,bm,False,,
+28205128093559B,Tessougue,Founékè,1982-05-22,F,1,Kayes,Diema,Lakamane,Mansakoro,Salif Berthe,Kourou Tessougue,bm,False,,
+21107245228360T,Bocar,Nana,2011-07-20,F,2,Koulikoro,Nara,Dilly,Niamala,Yacoub Theera,Mariama Ag,bm,False,,
+19402143208373G,Dakluo,Manga,1994-02-24,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Djibrilla Kaba,Hawa Drame,ff,True,typo_substitution,last_name
+10206710231972E,Balba,Hamadou,2002-06-18,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Sidiki Tangara,Massikè Diawara,tmq,True,typo_substitution,last_name
+16408112256531V,Booncana,Brahima,1964-08-31,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Nouhoum Kamissoko,Mariétoulaye Coumare,ff,True,phonetic_spelling,last_name
+10509255038463W,Tall,Cherif,2005-09-29,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Sidiki Bagayoko,Khadidja Karembe,bm,False,,
+23201455081729J,Tal,Niamako,1932-01-05,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Almahady Fall,Goundo Sall,fr,True,typo_omission,last_name
+24601552283133S,Bagayoko,Korotoumou,1946-01-15,F,5,Mopti,Douentza,Hombori,Yalakoura,Fodé Mahamoud,Salima Soumbounou,dje,False,,
+10307221038461R,Samassekou,Gibril,2003-07-13,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Ahmoud Sanou,Wassa Abdramane,fr,False,,
+16610533029852E,Wague,Ahmoud,1966-10-06,M,5,Mopti,Djenne,Femaye,Sofarana,Tiécoura Dougnon,Hapsatou Konare,bm,False,,
+11709434146867E,Berthe,Niamba,2017-09-07,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Fadiala Abdramane,Habibatou Bathily,bm,False,,
+17609642087607C,Konandji,Tiécoura,1976-09-30,M,6,Kidal,Tessalit,Timetrine,Aguelhokan,Khalifa Pamateck,Soukeynatou Fofana,fr,True,geographic_mismatch,birth_region
+24508814293427F,Korotou,Sangare,1945-08-19,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Abdoulay Issoufou,Doussou Dougnon,tmq,True,field_inversion,"first_name,last_name"
+27005430038706E,Sanlgo,Coumba,1970-05-24,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Sidi Dicko,Diénékè Boubou,fr,True,typo_substitution,last_name
+18908224264576S,Magaxsa,Lamine,1989-08-15,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Zié Samassekou,Goundo Doukoure,bm,True,typo_substitution,last_name
+25112356082834K,Tapily,Awakè,1951-12-23,F,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Idrissa Napo,Niama Kaba,bm,False,,
+29203657158510W,Sissoko,Niaba,1992-03-14,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Yéro Ouattara,Sounkali Mbaye,tmq,False,,
+13011119254612E,Maiguizo,Tijani,1930-11-22,M,1,Kayes,Yelimane,Kremis,Tougandama,Mahaman Keita,Djelika Wane,snk,False,,
+26604226188047S,WWélé,Bintou,1966-04-19,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Aly Salaha,Sadio Bengaly,bm,True,typo_insertion,last_name
+19807524174572V,Bicaba,Fodie,1998-07-31,M,5,Mopti,Bandiagara,Sangha,Sevarela,Boubakar Balde,Hawaou Sogoba,dje,False,,
+15410109171824F,Yalcouye,Ahmud,1954-10-06,M,1,Kayes,Kita,Sebekoro,Kountouba,Soumana Gakou,Hawawou Dakouo,snk,True,phonetic_spelling,first_name
+29907748154608W,Pamateck,Dadou,1999-07-18,F,7,Gao,Gao,Gounzoureye,Wabarianke,Almahady Oumarou,Founékou Mallé,dje,False,,
+14412422057427W,Tabouré,Soriba,1944-12-06,M,4,Ségou,Bla,Yangasso,Wolofobougou,Idriss Doumbia,Aïsseta Yalcouye,bm,False,,
+11507904299492L,Sako,Mohammed,2015-07-21,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Abdoul Almoustapha,Founé Seck,fr,False,,
+17101302226322X,Ly,Tiémoko,1971-01-25,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Tidiane Dia,Niani Sacko,ff,False,,
+11705909266213H,Salaha,Ténin,2017-05-30,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Abdoulwahab Soumbounou,Soumeyatou Ascofare,bm,False,,
+29907622280363M,Kamissoko,Adijatou,07/18/1999,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Hammadi Ba,Oulématou Kassogue,dje,True,date_format_error,birth_date
+21305319107707N,Silla,Néma,2013-05-01,F,3,Sikasso,Bougouni,Sido,Misseniba,Hamidou Dembaga,Niéléba Macalou,bm,True,phonetic_spelling,last_name
+25707450075298Y,Fofana,Niagalé,1957-07-09,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Cherif Berthe,Niélékè Hamadou,bm,False,,
+15104353276278K,Salaha,Hamza,1951-04-02,M,3,Ségou,San,Kava,Damansela,Sinali Diawara,Djelika Mbaye,fr,True,geographic_mismatch,birth_region
+18105107212339P,Maiguizo,Daouda,1981-05-04,M,1,Kayes,Yelimane,Kremis,Tougandama,Gibril Diawara,Fatoumata Souleymane,snk,False,,
+25206642103775B,Goita,Founékè,1952-06-08,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Tijani Sanogo,Korka Bagayoko,tmq,False,,
+10311227091957P,Toure,Bouukary,2003-11-10,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Cheickne Barry,Kankoun Tembely,fr,True,typo_insertion,first_name
+20208255259480T,Daou,Sadio,2002-08-19,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Madou Yanogo,Dado Hamady,bm,False,,
+13007122152582G,Ba,Iaya,1930-07-12,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Mamoudou Kanté,Goundoba Dakouo,bm,True,phonetic_spelling,first_name
+11112621128007T,Coumare,Alii,2011-12-19,M,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Zoumana Bocar,Hamsétou Doukoure,dje,True,phonetic_spelling,first_name
+27407816032684P,Tounkara,Niénétou,1974-07-26,F,8,Kidal,Kidal,Anefif,Adjelhocan,Soriba Kaba,Djahara Sacko,tmq,False,,
+29612440114225M,Dansoko,Mahawatou,1996-12-12,F,4,Ségou,Bla,Yangasso,Wolofobougou,Tiécoura Saidou,Kankoun Walet,bm,False,,
+23302235112781X,Dieng,Khadoidja,1933-02-06,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Fodie Berthe,Soumeyatou Bocar,bm,True,typo_insertion,first_name
+14509455267453U,Soumare,Gibril,1945-09-03,M,4,Ségou,San,Kava,Damansela,Yoro Tabouré,Founékou Dabo,bm,False,,
+27911233213468T,Maimouna,Mallé,1979-11-07,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Brahima Boubou,Fatma Dolo,fr,True,field_inversion,"first_name,last_name"
+17204705024434J,Sanou,Hamai,1972-04-20,M,7,Gao,Ansongo,Tessit,Ansongala,Ibrahim Boureima,Salimata Diallo,dje,True,typo_omission,first_name
+26301529194385Q,Berthe,Khaduidja,1963-01-15,F,5,Mopti,Mopti,Konna,Tongorongo,Abdoulwahab Boureima,Kaira Dembaga,fr,True,typo_insertion,first_name
+23805544279435J,Oumarou,Fanké,1938-05-02,F,5,Koulikoro,Kati,Sanankoroba,Sirakoroba,Diakaridia Dieng,Sounkali Sanou,ff,True,geographic_mismatch,birth_region
+16303827009247Q,Dia,Moussa,1963-03-26,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Daouda Camara,Niélékou Dembele,fr,False,,
+20709515277223M,Kone,Naminata,2007-09-01,F,5,Mopti,Koro,Dioungani,Bankassou,Aboubacrine Tembely,Fatimata Soumountéra,bm,False,,
+24103320074677X,Konfe,Diénéba,1941-03-03,F,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Tidiane Saye,Habibatou Sanogo,ff,False,,
+14202844219570W,Gassama,Omar,1942-02-08,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Bakoroba Almoustapha,Soumeyatou Karembe,tmq,False,,
+29608512276485B,Mbaye,Naba,1996-08-04,F,5,Mopti,Mopti,Konna,Tongorongo,Solo Drame,Kaïrou Kone,dje,False,,
+13911516131209G,Yanogo,Abramani,1939-11-14,M,5,Mopti,Mopti,Konna,Tongorongo,Lassine Cheickna,Hadya Dabo,ff,True,typo_omission,first_name
+10212238287223T,Soumbounou,Yorodian,2002-12-13,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Madani Dougnon,Kadiatou Thiam,fr,False,,
+14707149246937M,Seck,Hamza,1947-07-26,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Yousouf Dia,Sirantou Mbaye,bm,False,,
+24712535184316M,Coumare,Niamako,1947-12-04,F,5,Mopti,Douentza,Hombori,Yalakoura,Inahaman Fane,Niénétou Fomba,dje,False,,
+22003324161424V,Cisse,Soukeynatou,2020-03-29,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Sambou Fadiga,Aissata Coumare,ff,False,,
+29502410101338H,Fanké,Lo,1995-02-19,F,4,Ségou,Segou,Sebougou,Sonfara,Aly Seck,Korotou Souleymane,bm,True,field_inversion,"first_name,last_name"
+20504511181174V,Diawara,Asma,2005-04-11,F,5,Mopti,Douentza,Hombori,Yalakoura,Issiaka Sylla,Awa Boureima,fr,False,,
+15212804004423U,Diawara,Abdou,1952-12-03,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Diakalia Diallo,Oumoulkher Gakou,fr,True,typo_omission,first_name
+26607832009007E,Oumarou,Maïrama,1966-07-11,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Tidiane Coulibaly,Aissata Ibrahima,tmq,False,,
+20204133221826N,Yattara,Djelika,2002-04-07,F,1,Kayes,Bafoulabe,Diakon,Sambela,Cheickna Mahamadou,Tata Mbaye,snk,False,,
+21301418204081T,Walet,Djahara,2013-01-02,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Galo Mallé,Maïram Fall,bm,False,,
+18801855017096W,Kanté,Hama,1988-01-15,M,8,Kidal,Tessalit,Timetrine,Aguelhokan,Amadou Abdramane,Wassakè Kone,fr,False,,
+15904655223661P,Yanogo,Oumarou,1959-04-11,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Cheickna Ibrahima,Nana Lo,tmq,False,,
+20311303039701P,Kassogue,Sirantan,2003-11-06,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Oumarou Camara,Hadiaratou Napo,fr,False,,
+15710253204952C,Tangara,Solo,1957-10-29,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Mamarou Mallé,Bassiratou Diaby,bm,False,,
+27211549072810T,Berrhe,Niékè,1972-11-15,F,5,Mopti,Mopti,Konna,Tongorongo,Mande Sanou,Bintou Fomba,dje,True,typo_substitution,last_name
+28410532117365P,Abdramane,Niélétu,1984-10-02,F,5,Mopti,Koro,Dioungani,Bankassou,Pâté Barry,Khadidja Tabouré,dje,True,phonetic_spelling,first_name
+11811118079390X,Haisara,Lassina,2018-11-24,M,1,Kayes,Diema,Lakamane,Mansakoro,Aliyou Karembe,Niamako Magassa,fr,True,typo_substitution,last_name
+18104112221460Q,Yehiz,Mahmoud,1981-04-09,M,1,Kayes,Diema,Lakamane,Mansakoro,Inahaman Konfourou,Massitan Doumbia,fr,True,typo_substitution,last_name
+29001525044743D,Sakaha,Maïram,1990-01-28,F,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Aboubacar Konfe,Saoudatou Almoustapha,ff,True,typo_substitution,last_name
+10011518216307T,Mariko,Lassana,2000-11-21,M,5,Mopti,Djenne,Femaye,Sofarana,Fadima Cisseko,Oulématou Gassama,ff,False,,
+19111401203341K,Almoustapha,Tenema,1991-11-24,M,4,Sikasso,Sikasso,Kaboila,Kefanazana,Sidi Sagara,Massira Dansoko,bm,True,geographic_mismatch,birth_region
+24612412204992P,Doussou,Karembe,1946-12-02,F,4,Ségou,San,Kava,Damansela,Karamoko Sylla,Awakè Seck,bm,True,field_inversion,"first_name,last_name"
+26403408289205G,Issoufou,Adama,1964-03-10,F,4,Ségou,Bla,Yangasso,Wolofobougou,Gibril Souleymane,Oumou Boubou,fr,False,,
+26101805210690F,Fane,Naminata,1961-01-11,F,8,Kidal,Kidal,Anefif,Adjelhocan,Abdou Dougnon,Bassiratou Cisseko,fr,False,,
+23903129246597N,Wélé,Djénétou,1939-03-01,F,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Almahdy Ly,Sirantan Toure,bm,False,,
+17606250128674K,Theera,Kalifa,1976-06-18,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Abdramani Cisse,Soukeynatou Wélé,bm,False,,
+23304201051265Q,Ndiaye,Maïmé,1933-04-24,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Manga Coulou,Hawakè Konandji,fr,False,,
+21007550257155F,Sanou,Oumou,2010-07-08,F,5,Koulikoro,Banamba,Toubacoro,Wolontomo,Hammadi Kanoute,Sokhna Dicko,fr,True,geographic_mismatch,birth_region
+20511422234804C,Dia,Hadjaratou,2005-11-02,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Hammadi Dembaga,Wassakè Diabate,bm,False,,
+26110405154046C,Soumare,Rokiatou,1961-10-08,F,4,Ségou,San,Kava,Damansela,Mounkoro Magassa,Khadidiatou Niare,fr,False,,
+11007436219982R,Boubou,Diakaliia,2010-07-15,M,4,Ségou,Macina,Kolongo,Tioribabougou,Demba Barry,Awa Wane,bm,True,phonetic_spelling,first_name
+26006501110211Q,Kassogue,Hamdétou,1960-06-03,F,5,Mopti,Mopti,Konna,Tongorongo,Bilal Maiga,Awakè Kanoute,ff,True,typo_substitution,first_name
+23106725201602P,Soumare,Djoumé,1931-06-06,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Sékoba Hamady,Halimatou Tall,tmq,False,,
+24002738044689E,Danspko,Wassila,1940-02-11,F,7,Gao,Gao,Gounzoureye,Wabarianke,Nouhoum Mbaye,Diénébou Soumare,fr,True,typo_substitution,last_name
+21605512250651W,Bakart,Habiba,2016-05-05,F,5,Mopti,Djenne,Femaye,Sofarana,Abdramani Tall,Hawakè Niare,dje,True,typo_substitution,last_name
+23806132070200R,Maouloud,Niéléba,1938-06-18,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Almahdy Gassama,Kandé Sylla,ff,False,,
+26108611043579X,Sangare,Houleye,1961-08-10,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Sambou Tembely,Assitan Macalou,tmq,False,,
+13908330290761G,Gassama,Ichaka,1939-08-16,M,3,Sikasso,Bougouni,Sido,Misseniba,Almahady Niang,Massikè Soumare,bm,False,,
+23409653022779W,Ould,Sirantan,1934-09-22,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Mamoutou Bocoum,Massitan Dieng,dje,False,,
+17506517179883X,Bagayoko,Sudi,1975-06-03,M,5,Mopti,Koro,Dioungani,Bankassou,Nouhoum Sarr,Niamoye Dembaga,dje,True,typo_substitution,first_name
+24002618276173N,Uologuem,Housseynatou,1940-02-04,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Tiéfing Tembely,Massikè Doukoure,fr,True,phonetic_spelling,last_name
+10006356065719L,Cheik,Klétigui,2000-06-04,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Tiéman Ouologuem,Oulématou Hamidou,bm,True,phonetic_spelling,last_name
+26211505048413J,Dakouo,Kankoun,1962-11-04,F,5,Mopti,Koro,Dioungani,Bankassou,Niamoye Bamba,Maïdjara Kebe,bm,False,,
+16805930184871M,Mahamane,Maiga,1968-05-08,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Boukary Gueye,Goundoba Thiam,bm,True,field_inversion,"first_name,last_name"
+29607737067580L,Kebe,Houleymatou,1996-07-07,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Gibril Dembele,Sira Fomba,tmq,False,,
+25908108081452P,Saidou,Aminata,1959-08-10,F,1,Ségou,Bla,Yangasso,Wolofobougou,Samberou Sall,Hadidiatou Cheick,bm,True,geographic_mismatch,birth_region
+10311824129085B,Walet,Demberel,2003-11-03,M,8,Kidal,Tessalit,Timetrine,Aguelhokan,Abdourahmane Niare,Bintou Mahamoud,tmq,False,,
+14806542047721L,Diabate,Bakary,1948-06-16,M,5,Mopti,Djenne,Femaye,Sofarana,Bouréma Soumbounou,Diariatou Cheick,ff,False,,
+20803101176837V,Tounkara,Teninke,2008-03-02,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Housseini Cheick,Mahawatou Sidibe,snk,True,phonetic_spelling,first_name
+10811424154141K,Almoustapha,Zacharia,2008-11-14,M,4,Ségou,San,Kava,Damansela,Founeke Dansoko,Zeïnab Drame,fr,False,,
+19410742085451R,Dembaga,Idrisda,1994-10-12,M,7,Gao,Gao,Gounzoureye,Wabarianke,Bouréma Gakou,Niani Hamadou,fr,True,typo_substitution,first_name
+26307521072254C,Macalou,Safiatou,1963-07-10,F,5,Mopti,Djenne,Femaye,Sofarana,Kassim Dieng,Maïrama Guindo,fr,False,,
+29410334261194P,Hamidou,Sokhn,1994-10-27,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Abdramani Diakite,Bassiratou Gassama,bm,True,typo_omission,first_name
+18511460163136Y,Boncana,Aly,1985-11-07,M,4,Ségou,Bla,Yangasso,Wolofobougou,Bocar Bicaba,Sirantan Tall,bm,False,,
+15605138035015Q,Kamissoko,Mamoutou,1956-05-13,M,1,Kayes,Bafoulabe,Diakon,Sambela,Ousmane Sanogo,Sirantou Ouattara,bm,False,,
+24304545206085E,Bakary,Kadia,1943-04-15,F,5,Koulikoro,Banamba,Toubacoro,Wolontomo,Seyni Haidara,Zeïnabou Samake,bm,True,geographic_mismatch,birth_region
+24308538034318U,Ag,Aminatu,1943-08-23,F,5,Mopti,Bandiagara,Sangha,Sevarela,Zié Kone,Maïram Bagayoko,dje,True,phonetic_spelling,first_name
+22002848090123E,Coulibaly,Oumoulkher,2020-02-20,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Boubacar Keita,Dado Fane,tmq,False,,
+28902224065768V,Doukoure,Aïdara,1989-02-11,F,2,Koulikoro,Nara,Dilly,Niamala,Nouhoum Sangare,Nassira Kane,bm,False,,
+27809937040509F,Saidou,Mzïmé,1978-09-02,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Fadima Kone,Korotou Diaby,fr,True,typo_substitution,first_name
+18802155007251P,Cisse,Allaye,1988-02-06,M,1,Kayes,Kita,Sebekoro,Kountouba,Diadié Maouloud,Tata Yattara,fr,False,,
+28605321128427Y,Karembe,Yacine,1986-05-27,F,3,Sikasso,Koutiala,Zangasso,Diomandougou,Lassana Sogodogo,Maïrame Tounkara,ff,False,,
+19401215265048B,Wlé,Moussa,1994-01-04,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Gaossou Guindo,Mariétoulaye Ongoiba,bm,True,typo_omission,last_name
+23710751156758X,Seck,Kaïrou,1937-10-27,F,7,Gao,Bourem,Bamba,Bouremaya,Hamadoun Gassama,Korké Balde,tmq,False,,
+11905201210025R,Faye,Issa,2019-05-21,M,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Bakoroba Keita,Nassira Traore,bm,False,,
+21805214272244B,Lh,Founékou,2018-05-24,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Ibrahima Drame,Salimatou Kassogue,fr,True,typo_substitution,last_name
+14311707259137E,Hamidou,Lassana,1943-11-05,M,7,Gao,Ansongo,Tessit,Ansongala,Issaka Diaby,Salimata Ag,tmq,False,,
+13809417162949M,Hamidou,Hamadi,1938-09-13,M,4,Koulikoro,Dioila,Massigui,Fadiabougou,Karamoko Tapily,Néma Cheickna,bm,True,geographic_mismatch,birth_region
+18503207085461Y,Samassekou,Fodéba,1985-03-31,M,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Dembo Tounkara,Kadia Yaranangore,fr,False,,
+27608355062093T,Kava,Khadija,1976-08-17,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Sory Fofana,Soukeyna Tapily,fr,True,typo_substitution,last_name
+24504353090032D,Kanté,Saalamata,1945-04-27,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Mahmoud Souleymane,Oulématou Diabate,bm,True,phonetic_spelling,first_name
+16404315067203Q,Wclé,Hamadou,1964-04-16,M,3,Sikasso,Bougouni,Sido,Misseniba,Hassane Samake,Niémaba Coumare,fr,True,typo_substitution,last_name
+25607203237052W,Sako,Massikè,1956-07-10,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Pâté Mahamoud,Korotou Sangare,bm,False,,
+15605414096282R,Kassogue,Sidiya,1956-05-03,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Tiémoko Camara,Mariama Seck,bm,False,,
+20306106144393R,Diawara,Hamssatou,2003-06-09,F,1,Kayes,Yelimane,Kremis,Tougandama,Fakourou Mahamadou,Oulématou Issoufou,fr,False,,
+29107635249353U,Mqllé,Niékè,1991-07-04,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Néné Boncana,Yacine Sow,fr,True,typo_substitution,last_name
+24907338120998H,Kaba,Adiaratou,1949-07-12,F,3,Sikasso,Bougouni,Sido,Misseniba,Klétigui Mbaye,Sadia Oumarou,ff,True,invalid_checksum,nina
+28711460089181K,Sarr,Ténémba,1987-11-13,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Lamine Yaranangore,Ténémba Sangare,bm,False,,
+15506713253556C,Ongoiba,Yaya,1955-06-04,M,7,Gao,Bourem,Bamba,Bouremaya,Bilali Toure,Niaba Kone,fr,False,,
+16805631001340V,Sall,Fousseini,1968-05-11,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Mounkoro Yattara,Founékè Sanogo,fr,True,phonetic_spelling,first_name
+19305446203601Q,Fomba,Madiou,1993-05-31,M,4,Ségou,Bla,Yangasso,Wolofobougou,Sory Ouologuem,Kaira Kaba,bm,False,,
+26406821090725F,Salaha,Haabiba,1964-06-12,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Seyni Yaranangore,Naba Tall,tmq,True,phonetic_spelling,first_name
+14009837201872K,Diaby,Souleymane,1940-09-16,M,8,Kidal,Kidal,Anefif,Adjelhocan,Bandiougou Karembe,Adijatou Ndiaye,fr,False,,
+19010448040244N,Sanou,Lamjne,1990-10-05,M,4,Ségou,Macina,Kolongo,Tioribabougou,Kalifa Bagayoko,Oumoulkher Sagara,bm,True,typo_substitution,first_name
+10505901025396B,Oul,Salifou,2005-05-07,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Bocar Niare,Niani Gassama,bm,True,typo_omission,last_name
+14310229038819P,Camara,Solomane,1943-10-11,M,2,Sikasso,Yorosso,Mahou,Fakoroba,Sékou Karembe,Djènè Kanoute,fr,True,geographic_mismatch,birth_region
+13705758048347C,Mariko,Bilal,1937-05-02,M,7,Gao,Gao,Soni Ali Ber,Gargandobo,Adama Wane,Safya Niare,tmq,False,,
+11903107170211H,Bah,Dembo,2019-03-17,M,1,Kayes,Yelimane,Kremis,Tougandama,Hamza Abdramane,Asma Boureima,bm,False,,
+20401307026403S,Sogodogo,Fatoukè,2004-01-09,F,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Bilali Haidara,Bintou Bengaly,fr,False,,
+23206841246205B,Diabate,Oumou,1932-06-16,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Yoro Sako,Zeynabou Tembely,fr,False,,
+14302451204483G,Sylla,Abdoulwahab,1943-02-22,M,4,Mopti,Douentza,Hombori,Yalakoura,Fasseri Dabo,Zeïnab Issoufou,bm,True,geographic_mismatch,birth_region
+16208503135451N,Samassekou,Fasseri,1962-08-15,M,5,Mopti,Koro,Dioungani,Bankassou,Samba Doukoure,Soukeynatou Sanogo,ff,False,,
+15301143177828P,Boureima,Tidiane,1953-01-31,M,1,Kayes,Diema,Lakamane,Mansakoro,Fodie Lo,Maïrama Sanogo,ff,False,,
+28510644244587Q,Sarr,Wasakè,1985-10-05,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Solo Berthe,Sirantou Camara,tmq,True,phonetic_spelling,first_name
+19607352099130P,Fofana,Bokar,1996-07-18,M,3,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Lassine Ag,Djénébou Fadiga,ff,True,geographic_mismatch,birth_region
+19512536204566T,Tapily,Nuankoro,1995-12-18,M,5,Mopti,Mopti,Konna,Tongorongo,Mohamed Hamady,Kadiatou Konfe,dje,True,typo_substitution,first_name
+25907657177899G,Turay,Soutoura,1959-07-17,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Ali Kebe,Massikè Yalcouye,fr,True,typo_omission,last_name
+28501445122051H,Yalcouye,Saia,1985-01-11,F,4,Ségou,Macina,Kolongo,Tioribabougou,Hamadou Sissoko,Hadiata Dougnon,bm,True,typo_omission,first_name
+13806448227793G,Ouologuem,Sinaly,1938-06-06,M,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Yacoub Dicko,Hawaou Bagayoko,fr,False,,
+25211132265889A,Maimouna,Walet,1952-11-09,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Inahaman Kaba,Korotoumou Ongoiba,ff,True,field_inversion,"first_name,last_name"
+18201213103858U,Klétigui,Kone,1982-01-10,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Souleymane Saidou,Fanta Bengaly,fr,True,field_inversion,"first_name,last_name"
+23009860064698V,Sangare,Bassiratou,1930-09-29,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Hamadou Sylla,Aïsseta Bocar,fr,False,,
+28308736180353V,Djènè,Konare,1983-08-02,F,7,Gao,Ansongo,Tessit,Ansongala,Manga Dabo,Kani Sangare,dje,True,field_inversion,"first_name,last_name"
+16607342116694X,Dia,Sinaly,1966-07-18,M,3,Kayes,Kayes,Sadiola,Kondiarafara,Abdourahmane Konfourou,Sirakè Sissoko,ff,True,geographic_mismatch,birth_region
+19205752005230J,Cisseko,Cheik,1992-05-17,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Soriba Macalou,Téninkè Ascofare,dje,False,,
+16904520267845T,Mahamoud,Moustalha,1969-04-09,M,5,Mopti,Douentza,Hombori,Yalakoura,Salif Diarra,Maïmé Walet,bm,True,typo_substitution,first_name
+28801317153193A,Gakou,Niélimq,1988-01-08,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Birama Mbaye,Maimouna Kanté,ff,True,typo_substitution,first_name
+20602359215415B,Boncanaa,Bintatou,2006-02-02,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Yacouba Tabouré,Oumoulkher Sogodogo,fr,True,phonetic_spelling,last_name
+22007620088861L,Yehia,Adama,2020-07-12,F,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Solomane Diabate,Soudata Bathily,dje,False,,
+19609858172671B,Bagayoko,Sambou,1996-09-07,M,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Sékoba Fall,Kadidia Dolo,tmq,False,,
+25107417300302X,Boubou,Mahawa,1951-07-08,F,4,Ségou,Bla,Yangasso,Wolofobougou,Allaye Diakite,Roukaya Tabouré,fr,False,,
+15604608196543J,Saye,Tidiane,1956-04-17,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Aliou Gakou,Naminata Sall,dje,False,,
+27010221093798H,Berthe,Niamtou,1970-10-31,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Madani Yattara,Wassila Kone,fr,False,,
+16001250087591Y,Kaba,Bilali,1960-01-29,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Birama Bagayoko,Saran Ag,bm,False,,
+23805501020547D,Sall,Aïxara,1938-05-30,F,5,Mopti,Mopti,Konna,Tongorongo,Hamadou Coulibaly,Founékè Ibrahima,ff,True,typo_substitution,first_name
+20904409053393K,Sacko,Sadiokè,2009-04-11,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Soriba Niare,Korotoumou Cisse,bm,False,,
+20403934269346C,Ag,Khadija,2004-03-29,F,9,Mopti,Bandiagara,Sangha,Sevarela,Bourama Dackouo,Founékou Yaranangore,fr,True,geographic_mismatch,birth_region
+13809315068217L,Sissoko,Mustapha,1938-09-30,M,3,Sikasso,Koutiala,Zangasso,Diomandougou,Almahdy Sako,Goundo Bicaba,ff,False,,
+17302557131790R,Oumaeou,Abdoulaye,1973-02-17,M,5,Mopti,Mopti,Konna,Tongorongo,Omar Dembele,Fadimatou Magassa,fr,True,typo_substitution,last_name
+23803645079211D,Keita,Maïmounatou,1938-03-25,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Bocar Fomba,Fadimatou Konfe,dje,False,,
+13704554054524P,Tounkara,Tahirou,1937-04-10,M,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Mady Magassa,Korotou Balde,ff,False,,
+10912446210303U,Konare,Ojsmane,2009-12-15,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Ichaka Fane,Niamoye Mariko,bm,True,typo_substitution,first_name
+19505150262077X,Fomba,Nampé,1995-05-05,M,1,Kayes,Diema,Lakamane,Mansakoro,Abderahmane Faye,Maïdjara Tessougue,bm,False,,
+19811256021873S,Tembely,Fadima,1998-11-20,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Djibrilla Napo,Goundoba Soumare,fr,False,,
+10209155071680Y,Sako,Tenepa,2002-09-26,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Fassara Ould,Halima Doukoure,fr,True,typo_substitution,first_name
+25111354198707U,Soumbounou,Hamssatou,1951-11-17,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Abdourahmane Niare,Sokona Cheick,ff,False,,
+13803227248822L,Diaby,Djibrilla,1938-03-11,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Sidi Sow,Adijatou Almoustapha,bm,False,,
+19907659250116L,Touray,Sidi,1999-07-26,M,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Oumar Maiga,Djènè Napo,fr,False,,
+14105856174532E,Koonfe,Housseyni,1941-05-09,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Hamadi Diabate,Massira Dieng,tmq,True,phonetic_spelling,last_name
+15509142081518G,Maiguizo,Cheickne,09/28/1955,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Kalifa Tangara,Hamsétou Sylla,bm,True,date_format_error,birth_date
+13910615282659X,Acofare,Demba,1939-10-11,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Zoumana Berthe,Sounkali Hamadou,ff,True,typo_omission,last_name
+21106142010106K,Kanté,Niani,2011-06-08,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Yacouba Yehia,Fatoukè Traore,fr,False,,
+23909636106671A,Saidou,Houleymatou,1939-09-13,F,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Diadié Diakite,Naba Saidou,dje,False,,
+26206943187734U,Cheickna,Niélé,1962-06-18,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Cheickna Ndiaye,Aminata Dackouo,bm,False,,
+28505734192719Q,Magassa,Sita,1985-05-27,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Kalifa Gassama,Naminata Konfourou,fr,True,typo_substitution,first_name
+24610346174111N,Dicko,Sira,1946-10-07,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Abdou Wague,Korké Cheickna,bm,False,,
+10712601272754E,Dembele,Bandé,2007-12-25,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Pâté Tabouré,Diénékè Sogoba,tmq,False,,
+16312953066107T,Boncana,Abdoulkarim,1963-12-17,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Youssouf Ouologuem,Dadou Maouloud,bm,False,,
+10903326176994W,Tessougue,Soumaïla,2009-03-29,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Bourama Diawara,Niani Dakouo,bm,False,,
+21105948284648E,Gueye,Djénébou,2011-05-13,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Yorodian Tembely,Khadija Sanou,fr,False,,
+13511635166728C,Soumare,Boureima,1935-11-10,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Sékoba Salaha,Mahawatou Tabouré,ff,False,,
+21409552007536M,Magasa,Oumou,2014-09-30,F,5,Mopti,Djenne,Femaye,Sofarana,Hama Fadiga,Bintou Kone,ff,True,phonetic_spelling,last_name
+24108254032708N,Fatim,Tessougue,1941-08-10,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Founeke Boureima,Assitan Yaranangore,bm,True,field_inversion,"first_name,last_name"
+18707142288399P,Sarr,Almahady,07/04/1987,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Hamza Goita,Habiba Dembele,ff,True,date_format_error,birth_date
+21912704007762U,Cisseko,Djénébou,2019-12-02,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Seyba Hamadou,Naba Bamba,tmq,False,,
+10911347100302F,Bocar,Yayi,2009-11-20,M,3,Sikasso,Bougouni,Sido,Misseniba,Gibril Tangara,Awa Tall,ff,False,,
+20705128143570W,Kamissoko,Saran,2007-05-18,F,1,Kayes,Kita,Sebekoro,Kountouba,Mamarou Tabouré,Mahoua Diarra,bm,False,,
+10108110166612G,Diakite,Zachaaria,2001-08-07,M,1,Kayes,Kita,Sebekoro,Kountouba,Abdoulay Dougnon,Founékou Sogodogo,bm,True,phonetic_spelling,first_name
+17307611213557D,Bakart,Demba,1973-07-04,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Cheick Dembaga,Diénéba Thiam,dje,True,typo_substitution,last_name
+16512823229247C,Seck,Usmane,1965-12-09,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Gibril Ouologuem,Fanké Soumare,tmq,True,phonetic_spelling,first_name
+25804652261457G,Kebe,Sira,1958-04-01,F,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Solomane Ba,Founékè Dakouo,fr,False,,
+17303335274008T,Yorodian,Maiga,1973-03-18,M,3,Sikasso,Bougouni,Sido,Misseniba,Dembele Thiam,Khadija Bocoum,fr,True,field_inversion,"first_name,last_name"
+26212853037765W,Haidara,Umou,1962-12-08,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Galo Yanogo,Djeneba Bagayoko,fr,True,phonetic_spelling,first_name
+16608327199462F,Kanté,Pate,1966-08-07,M,3,Sikasso,Yorosso,Mahou,Fakoroba,Fodéba Konate,Bafou Tounkara,ff,True,phonetic_spelling,first_name
+18404855038367V,Sacko,Salia,1984-04-25,M,8,Kidal,Kidal,Anefif,Adjelhocan,Tiéfing Dougnon,Hawawou Bagayoko,tmq,False,,
+24804526016486X,Kaba,Djénétou,1948-04-05,F,5,Mopti,Mopti,Konna,Tongorongo,Sambou Dansoko,Kankoun Hamidou,bm,False,,
+11804444192981U,Keita,Bandé,2018-04-21,M,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Mahmoud Drame,Goundo Fofana,fr,False,,
+27104636044313W,Kz,Kankoun,1971-04-12,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Lassina Sanou,Kadidiatou Touray,tmq,True,typo_substitution,last_name
+19209852291873M,Diakite,Fojneke,1992-09-04,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Ichaka Boubou,Safiatou Souleymane,fr,True,typo_substitution,first_name
+27306409121103R,Guindo,Halimatu,1973-06-25,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Moussa Ba,Néma Kebe,bm,True,phonetic_spelling,first_name
+24004428087005Q,Napo,Oulématou,1940-04-28,F,4,Ségou,San,Kava,Damansela,Sambou Ag,Habibatou Bengaly,fr,False,,
+23109630229368S,Dolo,Niamtou,1931-09-20,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Bandé Magassa,Mariétou Berthe,dje,False,,
+19210613135752Y,Tangara,Yacoub,1992-10-27,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Lassana Konate,Dadou Sangare,ff,False,,
+11412136134557V,Boureima,Allaye,2014-12-27,M,1,Kayes,Kita,Sebekoro,Kountouba,Abdoulkader Gakou,Kankan Hamidou,snk,False,,
+20701230257523N,Dabo,Sirantou,2007-01-27,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Diadié Sacko,Mariam Mbaye,fr,False,,
+14401511092580C,Mallé,Abdoulkarim,1944-01-22,M,5,Mopti,Koro,Dioungani,Bankassou,Tiéman Mariko,Toko Fofana,ff,False,,
+14006117190240H,Fofana,Dembele,1940-06-02,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Yoro Coulou,Niamako Boncana,ff,False,,
+10308142166106K,Konfe,Abdu,2003-08-15,M,1,Kayes,Kita,Sebekoro,Kountouba,Niankoro Kamissoko,Bintoutou Issoufou,snk,True,typo_omission,first_name
+25906334208362W,Sabou,Niamtou,1959-06-17,F,3,Sikasso,Koutiala,Zangasso,Diomandougou,Hammadi Diarra,Niékè Diawara,bm,True,typo_substitution,last_name
+19904224061677V,Lp,Tidjani,1999-04-20,M,2,Koulikoro,Nara,Dilly,Niamala,Tenema Soumare,Diénékè Soumbounou,bm,True,typo_substitution,last_name
+16607237083138T,Dakouo,Ousmane,1966-07-18,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Aboubacar Fadiga,Maimouna Niare,bm,False,,
+24806737010900C,Sanaba,Guindo,1948-06-23,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Mamoutou Bocar,Hawawou Maiguizo,dje,True,field_inversion,"first_name,last_name"
+17712753094639S,Sogoba,Faxseri,1977-12-13,M,7,Gao,Ansongo,Tessit,Ansongala,Kalifa Dackouo,Maïdjara Diallo,fr,True,typo_substitution,first_name
+23910239050182S,Yalcouye,Mariamaa,1939-10-24,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Youssouf Toure,Djénétou Sacko,fr,True,phonetic_spelling,first_name
+26309456023715E,Ibrahima,Goundoba,1963-09-12,F,4,Ségou,Bla,Yangasso,Wolofobougou,Diakaridia Mariko,Korka Almoustapha,bm,False,,
+18009509131489K,Faye,Kasim,1980-09-28,M,5,Mopti,Djenne,Femaye,Sofarana,Tahirou Issoufou,Kandé Tamboura,ff,True,phonetic_spelling,first_name
+16903601193671T,Dia,Housseyni,1969-03-27,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Fodéba Konfourou,Niamako Magassa,tmq,False,,
+25112355275434T,Mallé,Kankan,1951-12-02,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Mamoudou Macalou,Khadidja Mahamoud,fr,False,,
+29002224287569X,Mariko,Niénè,1990-02-01,F,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Soriba Soumountéra,Niélékè Mahamoud,fr,False,,
+10405115229802H,Konare,Daouda,05/19/2004,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Bouréma Sogoba,Maïssa Pamateck,fr,True,date_format_error,birth_date
+17108153075483F,Ag,Karim,1971-08-16,M,1,Kayes,Diema,Lakamane,Mansakoro,Ibrahim Kamissoko,Diénéba Bamba,fr,False,,
+21309540267294J,Kone,Mariétoulaye,2013-09-12,F,5,Mopti,Bandiagara,Sangha,Sevarela,Yaya Gassama,Bintoukè Keita,ff,False,,
+21906303262529B,Fage,Mariama,2019-06-16,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Khalifa Toure,Niamako Mbaye,ff,True,typo_substitution,last_name
+20206538103531K,Coulibaly,Bintatou,2002-06-09,F,5,Mopti,Bandiagara,Sangha,Sevarela,Bilal Diallo,Niaba Souleymane,bm,False,,
+23107453142232R,Ba,Maïdjara,1931-07-07,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Demba Soumountéra,Fatoumata Coumare,fr,False,,
+12105705258302P,Dackouo,Mady,2021-05-06,M,7,Gao,Gao,Soni Ali Ber,Gargandobo,Inahaman Tamboura,Kadia Soumountéra,dje,False,,
+20512731125776J,Pamateck,Mariétoulayr,2005-12-06,F,7,Gao,Bourem,Bamba,Bouremaya,Galo Hamady,Sadiokè Sangare,dje,True,typo_substitution,first_name
+27103523265549P,Keita,Hassanatou,1971-03-13,F,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Fasseri Dieng,Niagalé Dabo,dje,False,,
+22009136092488V,Napo,Sanou,2020-09-26,F,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Mamoutou Sogodogo,Sadia Sow,snk,False,,
+14407348124894C,Kamissoko,Yoro,1944-07-19,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Diakaridia Sall,Oulématou Yaranangore,fr,False,,
+14809144253629K,Diarra,Birama,1948-09-22,M,1,Kayes,Diema,Lakamane,Mansakoro,Issa Fofana,Diénékè Walet,bm,False,,
+26606612262287L,Mahamoud,Diénéba,1966-06-11,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Founeke Soumountéra,Wassa Diakite,ff,False,,
+14602623202882M,Tall,Gapo,1946-02-27,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Nouhoum Coulou,Sounkali Napo,fr,True,typo_substitution,first_name
+24501236135243B,Doukoure,Soudata,1945-01-06,F,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Mamoudou Dackouo,Kankan Barry,bm,False,,
+20509849191374W,Wélé,Zeïnabou,2005-09-28,F,8,Kidal,Kidal,Anefif,Adjelhocan,Soumaïla Sow,Massikè Cheick,fr,False,,
+25108336222877E,Almoustapha,Téné,1951-08-10,F,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Tiéman Gakou,Wassakè Keita,fr,False,,
+16707834274738J,Napo,Bilali,1967-07-08,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Solo Cisseko,Niéléba Diaby,fr,True,phonetic_spelling,first_name
+16810331050461C,Sagar,Fasséni,1968-10-18,M,3,Sikasso,Yorosso,Mahou,Fakoroba,Fadima Bengaly,Niéléba Yehia,bm,True,typo_omission,last_name
+11210737276179K,Guindo,Séooba,2012-10-07,M,7,Gao,Bourem,Bamba,Bouremaya,Ténin Sogoba,Niamtou Bocar,fr,True,typo_substitution,first_name
+25902840293415G,Sidibe,Kankou,1959-02-12,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Mamarou Dackouo,Aïchata Napo,tmq,False,,
+27702742203278W,Hamadou,Tabuta,1977-02-11,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Fadima Konfe,Salamata Touray,fr,True,typo_substitution,first_name
+15802226053098T,Maiga,Alaie,1958-02-27,M,2,Koulikoro,Nara,Dilly,Niamala,Ichaka Diakite,Oumou Mahamoud,fr,True,phonetic_spelling,first_name
+21610415127756Y,Guiindo,Dembou,2016-10-08,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Abdoulay Bathily,Saran Mahamadou,fr,True,phonetic_spelling,last_name
+26605660140562F,Hamadou,Kaira,1966-05-18,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Hamza Boureima,Hadiaratou Saidou,ff,False,,
+29903431277233T,Bagayoko,Demhou,1999-03-28,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Soriba Bicaba,Niani Coumare,fr,True,typo_substitution,first_name
+29612601252970T,Soumbounou,Astan,1996-12-09,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Mamadou Wane,Doussou Faye,fr,False,,
+16408557288448K,Mahamud,Klétigui,1964-08-17,M,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Mamarou Boncana,Niélétou Ndiaye,bm,True,phonetic_spelling,last_name
+23705848273829M,Dououre,Niani,1937-05-13,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Famakan Diallo,Adama Dansoko,tmq,True,typo_omission,last_name
+24301321010156F,Dembele,Djnétou,1943-01-05,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Sékou Barry,Massitan Guindo,bm,True,typo_omission,first_name
+11610201253223J,Bocar,Dackouo,2016-10-10,M,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Fodé Fane,Maïrame Boubou,fr,True,field_inversion,"first_name,last_name"
+18802118201074F,Issoufou,Allaie,1988-02-06,M,1,Kayes,Yelimane,Kremis,Tougandama,Bandiougou Ba,Niénè Almoustapha,fr,True,phonetic_spelling,first_name
+26802329127756J,Camara,Téné,02/08/1968,F,3,Sikasso,Bougouni,Sido,Misseniba,Galo Diabate,Hadjaratou Ka,bm,True,date_format_error,birth_date
+23606241022763F,Souleymane,Haejaratou,1936-06-13,F,2,Koulikoro,Nara,Dilly,Niamala,Nfaly Cisseko,Diénékè Saye,fr,True,typo_substitution,first_name
+23012401086814W,Macalou,Niémaba,1930-12-07,F,4,Ségou,San,Kava,Damansela,Nouhoum Mahamoud,Maïram Keita,fr,False,,
+27511839080381B,Bagayoko,Ulématou,1975-11-06,F,8,Kidal,Kidal,Anefif,Adjelhocan,Mamary Fane,Niaba Pamateck,fr,True,phonetic_spelling,first_name
+14804615163572D,Sanou,Sidi,1948-04-03,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Salifou Ba,Rokiatou Ascofare,dje,False,,
+21702132225573V,Tessougue,Niamana,2017-02-28,F,1,Kayes,Kita,Sebekoro,Kountouba,Hamza Sylla,Niama Diaby,snk,False,,
+26602930141889W,Abdramane,Dado,1966-02-06,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Moussa Ibrahima,Penda Cheickna,bm,False,,
+25206501260389S,Barry,Aissata,1952-06-10,F,5,Mopti,Douentza,Hombori,Yalakoura,Seyba Bicaba,Mariétoulaye Mbaye,bm,False,,
+29008334255785G,Abdramane,Prnda,1990-08-01,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Mamoudou Guindo,Founékè Konfourou,ff,True,typo_substitution,first_name
+10507113055498L,Ba,Daouda,2005-07-14,M,1,Kayes,Kita,Sebekoro,Kountouba,Souleymane Sogodogo,Zeïnab Boncana,ff,False,,
+28808124114621L,Sidiibe,Kadiatou,1988-08-28,F,1,Kayes,Yelimane,Kremis,Tougandama,Yorodian Sylla,Kankou Samassekou,fr,True,phonetic_spelling,last_name
+10610718271042S,Sidibe,Sory,2006-10-15,M,7,Gao,Gao,Gounzoureye,Wabarianke,Lassana Gueye,Niélima Diabate,fr,False,,
+23110313270673N,Dieng,Goundokè,1931-10-07,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Abdoulay Yattara,Hawakè Yehia,bm,False,,
+24509830219905H,Kanoute,Hapsatou,1945-09-04,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Bandiougou Souleymane,Maïssa Ouattara,tmq,False,,
+24009458162564D,Tapily,Maïrame,1940-09-09,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Tidiane Wane,Asmaou Ouologuem,fr,False,,
+15009550282949X,Tamboura,Fadima,1950-09-26,M,5,Mopti,Mopti,Konna,Tongorongo,Soumaïla Bocar,Sirantou Traore,fr,False,,
+10409609155007L,Saye,Sabou,2004-09-14,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Bouréma Napo,Rokiatou Macalou,tmq,True,typo_omission,first_name
+23505457299256Q,Faye,Mahoua,1935-05-09,F,4,Ségou,Bla,Yangasso,Wolofobougou,Solo Dabo,Massikè Wélé,fr,False,,
+28009612250846J,Soumouhtéra,Fadima,1980-09-12,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Yssouf Saye,Djeneba Soumountéra,ff,True,typo_substitution,last_name
+20909256117766F,Keitaz,Roukaya,2009-09-23,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Yaye Almoustapha,Bintou Dolo,fr,True,typo_insertion,last_name
+10508847202995T,Bocar,Founeke,2005-08-25,M,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Yssouf Soumountéra,Dadou Dabo,fr,False,,
+25008209173085J,Yalcouye,Massikèè,1950-08-09,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Mande Dembele,Fatoukè Wélé,bm,True,typo_insertion,first_name
+18812626293201L,Salaha,Syni,1988-12-10,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Karamoko Mahamadou,Oulématou Seck,fr,True,typo_omission,first_name
+24710524179196V,Ouologuem,Niélékè,1947-10-18,F,5,Mopti,Djenne,Femaye,Sofarana,Yssouf Doumbia,Korké Dolo,ff,False,,
+23602710226046D,Faye,Djénébou,1936-02-22,F,7,Gao,Gao,Gounzoureye,Wabarianke,Hassane Walet,Penda Samake,fr,False,,
+17205760076890V,Goita,Mahapadou,1972-05-27,M,7,Gao,Gao,Gounzoureye,Wabarianke,Mounkoro Niang,Diénébou Cheickna,dje,True,typo_substitution,first_name
+28001747073712K,Klnate,Niélétou,1980-01-29,F,7,Gao,Gao,Gounzoureye,Wabarianke,Moustapha Mahamadou,Sira Tamboura,fr,True,typo_substitution,last_name
+13511125139679N,Bengaly,Salia,1935-11-18,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Modibo Tembely,Safietou Maouloud,snk,False,,
+17902432273091W,Barrry,Fadiala,1979-02-23,M,4,Ségou,San,Kava,Damansela,Aboubacrine Hamady,Niéléba Sissoko,fr,True,typo_insertion,last_name
+15901123181364N,Dougnon,Zoumana,1959-01-15,M,1,Kayes,Bafoulabe,Diakon,Sambela,Aboubacrine Macalou,Salimata Tamboura,ff,False,,
+16405718116156U,Dackouo,Yéro,1964-05-30,M,7,Gao,Gao,Soni Ali Ber,Gargandobo,Abdoulkarim Diawara,Tenin Almoustapha,tmq,False,,
+12103516294157X,Kane,Fkdé,2021-03-21,M,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Yousouf Yanogo,Niélékou Boureima,ff,True,typo_substitution,first_name
+14406559075672X,Mamary,Mallé,1944-06-09,M,5,Mopti,Djenne,Femaye,Sofarana,Lamine Diallo,Hawakè Oumarou,fr,True,field_inversion,"first_name,last_name"
+17808902164902H,Touray,Tidiane,1978-08-02,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Sory Hamadou,Kadidia Macalou,fr,False,,
+10608212014781F,Doukoure,Cheik,2006-08-25,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Aly Faye,Aïsseta Faye,fr,False,,
+28510145245138V,Sacko,Hawaou,1985-10-04,F,1,Kayes,Diema,Lakamane,Mansakoro,Allaye Walet,Awa Boncana,ff,False,,
+11412315017419A,Coulibaly,Sinali,2014-12-03,M,3,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Tidiane Ndiaye,Kadidia Sall,fr,True,geographic_mismatch,birth_region
+25106821235909R,Dieng,Goundoba,1951-06-26,F,8,Gao,Bourem,Bamba,Bouremaya,Demba Fofana,Hawawou Almoustapha,tmq,True,geographic_mismatch,birth_region
+16209607232468E,Fofana,Zana,1962-09-02,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Ahmoud Bakary,Sirantou Fofana,ff,False,,
+15207319226408Y,Dougnon,Zacharia,1952-07-26,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Tijani Boubou,Hapsatou Bocoum,bm,False,,
+15407834073475M,Cheickna,Chdick,1954-07-19,M,8,Kidal,Kidal,Anefif,Adjelhocan,Idrissa Sacko,Sokona Sow,fr,True,typo_substitution,first_name
+18607506129332M,Konare,Cherifou,1986-07-25,M,5,Mopti,Douentza,Hombori,Yalakoura,Salifou Wague,Niaba Soumare,dje,False,,
+13310646197745J,Sogoba,Mamoudou,1933-10-28,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Mamary Ascofare,Fatoukè Almoustapha,fr,False,,
+25411756077167L,Fadiga,Hadiaratou,1954-11-11,F,7,Gao,Bourem,Bamba,Bouremaya,Tahir Diakite,Hamssatou Dolo,dje,False,,
+27508441093121H,Cheick,Djénébou,1975-08-30,F,4,Ségou,Segou,Sebougou,Sonfara,Bakary Cisseko,Kadiatou Hamady,bm,False,,
+18606757253244T,Gueye,Mustafa,1986-06-26,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Abdoulkarim Yalcouye,Maïdjara Konfourou,dje,True,phonetic_spelling,first_name
+26403741286840T,Kz,Fanta,1964-03-23,F,7,Gao,Gao,Gounzoureye,Wabarianke,Bréhima Fadiga,Maimouna Dembaga,fr,True,typo_substitution,last_name
+16610227092166N,Guindo,Mamoudou,1966-10-05,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Abdoulwahab Sogodogo,Niéléba Yattara,bm,False,,
+25202106154331X,Bamba,Fanké,1952-02-12,F,1,Kayes,Kita,Sebekoro,Kountouba,Moussa Kane,Fatoukè Maiga,bm,False,,
+14502856141338X,Mahamadou,Tidianee,1945-02-28,M,8,Kidal,Kidal,Anefif,Adjelhocan,Mohammed Ka,Nafissa Ka,fr,True,phonetic_spelling,first_name
+28207539163266L,Mahamadou,Awakè,1982-07-07,F,5,Mopti,Djenne,Femaye,Sofarana,Abdoulaye Theera,Saran Mallé,dje,False,,
+23509652093905V,Faye,Oumoulkher,1935-09-21,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Tiéfing Ba,Aminata Tounkara,fr,False,,
+19407155107819J,Dicjo,Tidiane,1994-07-06,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Oumar Sagara,Djoumé Salaha,snk,True,typo_substitution,last_name
+26009433282332G,Diarra,Niélé,1960-09-21,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Hassane Sagara,Houleymatou Mahamoud,fr,False,,
+15708454174945L,Soumbounou,Alaye,1957-08-11,M,4,Ségou,Macina,Kolongo,Tioribabougou,Yacouba Dansoko,Diénékè Haidara,bm,False,,
+29302551212951E,Koone,Hadjaratou,1993-02-04,F,5,Mopti,Douentza,Hombori,Yalakoura,Solo Mallé,Asmaou Napo,fr,True,phonetic_spelling,last_name
+17801354016348Q,Ascofare,Abdoulay,1978-01-14,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Mahamane Niare,Massikè Boncana,fr,False,,
+27112955162727B,Camara,Yacine,1971-12-27,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Tidiane Bagayoko,Korotou Sarr,bm,False,,
+26106334155180D,Niang,Marame,1961-06-04,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Yacouba Sall,Niaba Hamadou,ff,True,typo_omission,first_name
+26010647269318S,Tapily,Djita,1960-10-15,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Tahir Fomba,Niélima Cheick,tmq,False,,
+23309546268119C,Diiarra,Karidja,1933-09-02,F,5,Mopti,Mopti,Konna,Tongorongo,Oumar Bagayoko,Nassira Samassekou,fr,True,phonetic_spelling,last_name
+22004858108329X,Sall,Sadio,2020-04-12,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Tijani Macalou,Djénétou Karembe,tmq,False,,
+25609211141118A,Coulibaly,Halima,1956-09-25,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Brahima Dakouo,Massitan Dia,bm,False,,
+28409246146588C,Seck,Saludatou,1984-09-05,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Drissa Ongoiba,Adijatou Pamateck,bm,True,typo_substitution,first_name
+17502128201184D,Bocar,Seyni,1975-02-15,M,1,Kayes,Diema,Lakamane,Mansakoro,Fassara Ongoiba,Nassira Balde,fr,False,,
+26805709048833Y,Samassdkou,Fadima,1968-05-14,F,7,Gao,Bourem,Bamba,Bouremaya,Soumana Ongoiba,Khadija Samassekou,dje,True,typo_substitution,last_name
+13911859170808C,Tapily,Souana,1939-11-24,M,8,Kidal,Kidal,Anefif,Adjelhocan,Bilaly Sangare,Korotoumou Yalcouye,fr,True,typo_omission,first_name
+26806737066521Y,Kanojte,Djahara,1968-06-09,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Cherif Magassa,Kourou Yehia,tmq,True,typo_substitution,last_name
+17803716281163B,Mariko,Ali,1978-03-29,M,7,Gao,Gao,Gounzoureye,Wabarianke,Ibrahim Dackouo,Niamoye Wane,dje,False,,
+21710645121178W,Tahgara,Binta,2017-10-03,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Cherif Sogodogo,Niamtou Soumare,ff,True,typo_substitution,last_name
+29910139056702L,Almoustapha,Kourou,1999-10-12,F,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Cheickne Sanogo,Niaba Gueye,snk,False,,
+18411210077464U,Oumarou,Tiéfing,1984-11-05,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Aliyou Soumountéra,Niélékou Balde,fr,False,,
+20306437156941E,Ag,Salima,2003-06-06,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Bakoroba Bagayoko,Niémaba Keita,bm,False,,
+27507124282992J,Diakite,Aminata,1975-07-09,F,1,Kayes,Yelimane,Kremis,Tougandama,Bilal Salaha,Toko Niang,bm,False,,
+13403545202641M,Karembe,Cherif,1934-03-17,M,5,Mopti,Djenne,Femaye,Sofarana,Hama Kanté,Fanké Ag,ff,False,,
+24602213285394G,Bengaly,Suadou,1946-02-23,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Tiécoura Goita,Fatimatou Bathily,fr,True,phonetic_spelling,first_name
+26601828070087X,Diawara,Zeïnab,1966-01-01,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Tidjani Saidou,Nafissa Bocoum,fr,False,,
+25410753231394G,Theera,Naba,1954-10-02,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Bréhima Bocoum,Hawaou Diarra,tmq,False,,
+10906933138421E,Issoufou,Aboubakar,2009-06-20,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Diadié Camara,Djeneba Diaby,bm,False,,
+16607731041146Q,Mahamadou,Founeke,1966-07-31,M,7,Gao,Ansongo,Tessit,Ansongala,Yaye Kassogue,Niénétou Coulou,fr,False,,
+13508331040701T,Boureima,Souleyman,1935-08-28,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Fodé Diakite,Houleymatou Oumarou,fr,False,,
+24503747170432R,Theera,Sokhna,1945-03-15,F,7,Gao,Bourem,Bamba,Bouremaya,Tiéfing Niare,Djeneba Dougnon,tmq,False,,
+21108141243593J,Sako,Massikè,2011-08-23,F,1,Kayes,Yelimane,Kremis,Tougandama,Aliou Tembely,Bintatou Doumbia,bm,False,,
+18908605143259W,Cheick,Seyni,1989-08-05,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Niamoye Macalou,Mahoua Coulibaly,fr,False,,
+17707829190828K,Tall,Fassébi,1977-07-01,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Hamadi Sarr,Niamtou Sow,fr,True,typo_substitution,first_name
+27302227197244M,Ould,Azmaou,1973-02-20,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Abdramane Niare,Niamoye Soumountéra,bm,True,typo_substitution,first_name
+28911531155488J,Oumarou,Fatimata,1989-11-04,F,5,Mopti,Bandiagara,Sangha,Sevarela,Hama Boncana,Wassakè Kamissoko,ff,False,,
+21212119230392S,Napo,Niamato,2012-12-14,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Gibril Fofana,Fadima Oumarou,bm,False,,
+20001759140344E,Daou,Sadia,2000-01-20,F,7,Gao,Gao,Gounzoureye,Wabarianke,Daouda Tamboura,Safya Tabouré,dje,False,,
+14603944100533H,Pamateck,Djibrilla,1946-03-10,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Housseyni Sow,Wassila Souleymane,fr,False,,
+18211127051538N,Kanoute,Hsssane,1982-11-16,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Sidiya Dembaga,Diénéba Guindo,bm,True,typo_substitution,first_name
+10812741063726P,Tounkara,Karim,2008-12-03,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Yousouf Cheick,Niélétou Mallé,fr,False,,
+15604319240677F,Tangara,Abdramane,1956-04-26,M,3,Sikasso,Yorosso,Mahou,Fakoroba,Soumana Macalou,Korka Kane,ff,False,,
+26502311038284G,Sanogo,Fankf,1965-02-12,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Aliyou Sagara,Salimata Coumare,bm,True,typo_substitution,first_name
+23606210277788M,Wabe,Soukeyna,1936-06-28,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Seyni Magassa,Dembou Coumare,fr,True,typo_substitution,last_name
+28910242001956F,Toure,Fati,1989-10-18,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Aliyou Doukoure,Tata Yanogo,bm,False,,
+23009628207865A,Diallo,Niamana,1930-09-06,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Samba Traore,Soukoura Mariko,fr,False,,
+20103444156411F,Kon,Roukietou,2001-03-18,F,4,Ségou,Macina,Kolongo,Tioribabougou,Abdramani Dabo,Kankan Oumarou,bm,True,typo_omission,last_name
+10309236021991R,Maouloud,Abdoulwahab,2003-09-25,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Famakan Saye,Nafissa Boncana,fr,False,,
+25704606225753H,Baah,Naminata,1957-04-07,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Yacouba Ba,Oumou Mbaye,ff,True,phonetic_spelling,last_name
+28001103174058J,Pamateck,Asma,1980-01-08,F,1,Kayes,Bafoulabe,Diakon,Sambela,Ousmane Kanté,Mahawa Thiam,ff,False,,
+18902138120948K,Sidibe,Yacouba,1989-02-23,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Karamoko Drame,Founékou Konate,ff,False,,
+13912345067015K,Tall,AAbdoul,1939-12-22,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Omar Dolo,Fadima Saidou,ff,True,typo_insertion,first_name
+12011152104437L,Pamateck,Karamoko,11/07/2020,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Djibrilla Wélé,Kourou Tounkara,snk,True,date_format_error,birth_date
+17505203089344A,Maiga,Nouhoum,1975-05-23,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Niankoro Drame,Hamsatou Dicko,fr,False,,
+11504516298042J,Dansoko,Daouda,2015-04-06,M,5,Mopti,Koro,Dioungani,Bankassou,Abdoul Ascofare,Tabita Kaba,fr,False,,
+17303101092949Q,Bagaioko,Bilal,1973-03-04,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Abdourahmane Guindo,Souadou Yalcouye,snk,True,phonetic_spelling,last_name
+22009312020611E,Sow,Salima,2020-09-26,F,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Maïga Bagayoko,Roukiatou Dougnon,bm,False,,
+14705308272098S,Bengaly,Boureima,1947-05-31,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Issa Ouattara,Diénéba Boubou,ff,False,,
+27104113058816S,Gakou,Khadja,1971-04-29,F,1,Kayes,Yelimane,Kremis,Tougandama,Alaye Fane,Hadiaratou Kaba,fr,True,typo_omission,first_name
+29906440233045L,Kanoute,Binta,1999-06-21,F,4,Ségou,Macina,Kolongo,Tioribabougou,Aliou Bakary,Hadiaratou Kaba,fr,False,,
+17207158121739P,Hamadou,Izsaka,1972-07-17,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Souleyman Tapily,Hamssatou Balde,bm,True,typo_substitution,first_name
+22103325113076B,Maiguizo,Niémaba,2021-03-19,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Bilaly Diakite,Fatoumé Fadiga,fr,False,,
+28601225192140S,Hamady,Asmaa,1986-01-12,F,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Famagan Yaranangore,Yacine Sall,bm,True,phonetic_spelling,first_name
+17411255239470U,Ly,Khalifa,1974-11-04,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Boureima Dackouo,Diénéba Tessougue,fr,False,,
+18503736118089N,Touray,Mahamadou,1985-03-20,M,7,Gao,Bourem,Bamba,Bouremaya,Bilali Gueye,Ténémba Yalcouye,dje,True,phonetic_spelling,first_name
+27009538114914C,Gakou,Massikè,1970-09-09,F,5,Mopti,Djenne,Femaye,Sofarana,Bakari Dicko,Sira Fofana,dje,False,,
+10511534202491F,Fomba,Soumaïla,2005-11-26,M,5,Mopti,Djenne,Femaye,Sofarana,Cheickne Mbaye,Sanaba Yehia,fr,False,,
+24710309184303Q,Mbaye,Safiatou,1947-10-10,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Cheick Konate,Mahawatou Dolo,fr,False,,
+15607530071896L,Kanté,Brehima,1956-07-23,M,5,Mopti,Douentza,Hombori,Yalakoura,Hamadoun Boubou,Housseynatou Traore,fr,True,phonetic_spelling,first_name
+28709549139715P,Boureima,Awakè,1987-09-03,F,5,Mopti,Djenne,Femaye,Sofarana,Yorodian Berthe,Halimatou Sagara,fr,False,,
+22012108197375D,Samassekou,Halimatou,2020-12-11,F,1,Kayes,Yelimane,Kremis,Tougandama,Ousmane Bicaba,Kankan Tall,fr,False,,
+18201222123553A,Soumare,Abdourahmane,1982-01-19,M,2,Gao,Menaka,Anderamboukane,Talataye-Kori,Hamidou Konandji,Hassanatou Ka,fr,True,geographic_mismatch,birth_region
+25402304033382S,Sanou,Salamata,1954-02-18,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Bilaly Sacko,Soumeyatou Wague,bm,False,,
+21403540189820J,Maiga,Niama,03/22/2014,F,5,Mopti,Koro,Dioungani,Bankassou,Galo Bagayoko,Kankou Hamidou,ff,True,date_format_error,birth_date
+10711218058714Q,Fadiga,Maïga,2007-11-27,M,2,Koulikoro,Nara,Dilly,Niamala,Tiémoko Dia,Hadjaratou Sissoko,bm,False,,
+17105623216455D,Sissoko,Tiéfing,1971-05-30,M,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Famakan Maiga,Rokiatou Faye,dje,False,,
+28509842168498G,Ibrahima,Fatoukè,1985-09-19,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Sidiki Hamady,Maïmounatou Diaby,fr,False,,
+20501251134233N,Mariko,Maïrame,2005-01-09,F,2,Koulikoro,Nara,Dilly,Niamala,Tijani Dembele,Founé Theera,bm,False,,
+13007760083729R,Bakaru,Tijani,1930-07-04,M,7,Gao,Gao,Gounzoureye,Wabarianke,Bandiougou Tall,Oumoulkher Haidara,fr,True,typo_substitution,last_name
+27110324095211H,Salaha,Oumoulkher,1971-10-22,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Souleymane Karembe,Niélékè Fadiga,bm,False,,
+16907620063943G,Dumbia,Demba,1969-07-01,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Maïga Fadiga,Sounkali Karembe,tmq,True,phonetic_spelling,last_name
+25901658149993V,Sogodogo,Fati,1959-01-21,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Tiéman Mallé,Aminatou Hamadou,dje,False,,
+28812109283120E,Dolo,Umou,1988-12-15,F,1,Kayes,Kita,Sebekoro,Kountouba,Boukari Ndiaye,Niélékou Yaranangore,fr,True,phonetic_spelling,first_name
+10905318101024Q,Samake,Mahaman,2009-05-21,M,3,Sikasso,Bougouni,Sido,Misseniba,Sidiya Bagayoko,Sirakè Hamidou,fr,False,,
+11301824204152C,Kane,Hamadoun,01/06/2013,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Ali Walet,Kadiatou Guindo,tmq,True,date_format_error,birth_date
+11907347228760U,Dicko,Sidiki,2019-07-22,M,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Tijani Konare,Aminatou Bocoum,ff,False,,
+17404739045148S,Ka,Sory,1974-04-23,M,7,Gao,Ansongo,Tessit,Ansongala,Alaye Mahamadou,Nassira Maiga,tmq,False,,
+19309127140425W,Tll,Mahmoud,1993-09-25,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Gaoussou Diaby,Hamsatou Diawara,snk,True,typo_omission,last_name
+29007720253573Q,Boubou,Naba,1990-07-30,F,7,Gao,Ansongo,Tessit,Ansongala,Seydou Traore,Penda Kamissoko,dje,False,,
+29008242148428C,Yattara,Founékou,1990-08-17,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Housseyni Seck,Hawa Tounkara,bm,False,,
+15907748186596C,Mariko,Oumarou,1959-07-15,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Sadio Coumare,Roukiatou Yalcouye,tmq,False,,
+20001647295018B,Coumare,Dado,2000-01-08,F,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Souleyman Kone,Founé Karembe,ff,False,,
+19411411028280S,Bengaly,Bocar,1994-11-07,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Abdou Yaranangore,Fanta Tembely,bm,False,,
+15307613094784T,Diabate,Youssouf,1953-07-18,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Founeke Niare,Sirantan Ouologuem,dje,False,,
+22002344186099K,Umarou,Bintoutou,2020-02-13,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Sékoba Drame,Kadiatou Diawara,ff,True,phonetic_spelling,last_name
+24112207112159T,Sacko,Diénéba,1941-12-28,F,2,Koulikoro,Nara,Dilly,Niamala,Famakan Salaha,Mariama Mahamadou,fr,False,,
+16901253068946C,Konate,Hamidou,1969-01-27,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Sékouba Ongoiba,Hadidiatou Bengaly,fr,False,,
+20008246156030U,Tounkara,Diénwba,2000-08-08,F,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Fousseni Drame,Hadidiatou Lo,bm,True,typo_substitution,first_name
+12010102248776Y,Wane,Ousmane,2020-10-19,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Fadiala Magassa,Assitan Dakouo,fr,False,,
+21608105155684T,Keita,Hasatou,2016-08-04,F,1,Kayes,Kita,Sebekoro,Kountouba,Cheickna Wague,Hawaou Dia,snk,True,typo_omission,first_name
+21409723181165L,Sacko,Tabitta,2014-09-24,F,7,Gao,Ansongo,Tessit,Ansongala,Yacoub Mbaye,Dadou Diaby,fr,True,typo_insertion,first_name
+17601411276005C,Fomba,Bouréma,1976-01-26,M,4,Ségou,Segou,Sebougou,Sonfara,Almahdy Yalcouye,Kankan Barry,bm,False,,
+14302254182389B,Bocoum,Bouryma,1943-02-28,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Inahaman Lo,Kandé Niang,bm,True,typo_substitution,first_name
+26206919286740A,Fofana,Sanaba,1962-06-01,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Ténin Gassama,Niélé Maouloud,bm,False,,
+27209854228232J,Abdramane,Kandé,1972-09-12,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Tiéfing Kane,Niama Diallo,tmq,False,,
+26101201252689W,Kanoute,Sirantu,1961-01-08,F,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Sidi Konfe,Fadimata Samake,fr,True,typo_omission,first_name
+15707124102347Q,Saall,Yssouf,1957-07-20,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Demba Wague,Fatimata Bocoum,ff,True,phonetic_spelling,last_name
+25007643208497X,Sogoba,Zeïnabou,1950-07-04,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Tiéman Saidou,Djelika Wague,dje,False,,
+13310809016102D,Diakite,Moussah,1933-10-10,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Maïga Doumbia,Hadiaratou Almoustapha,tmq,True,phonetic_spelling,first_name
+23609513151678T,Fane,Founékou,1936-09-27,F,5,Mopti,Douentza,Hombori,Yalakoura,Almahdy Coumare,Niamana Dackouo,fr,False,,
+16310557061393Y,Cheikna,Fodéba,1963-10-10,M,5,Mopti,Djenne,Femaye,Sofarana,Amadou Hamadou,Sounkali Toure,fr,True,phonetic_spelling,last_name
+19502628069320M,Boncana,Bilaly,1995-02-12,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Birama Niang,Goundokè Sylla,ff,False,,
+11308604201270M,Gassama,Isssaka,2013-08-23,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Amadou Theera,Korka Guindo,dje,True,typo_insertion,first_name
+14005258175390U,Diabate,Samberou,1940-05-12,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Bakoroba Yaranangore,Niani Dembaga,fr,False,,
+19206342160607M,Samale,Housseyni,1992-06-06,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Ibrahim Dolo,Niélé Pamateck,fr,True,typo_substitution,last_name
+28611145241603D,Sissoko,Néma,1986-11-08,F,1,Kayes,Bafoulabe,Diakon,Sambela,Amadou Sogodogo,Bafou Ouologuem,fr,False,,
+11602844106345E,Fane,Aboubacrine,2016-02-28,M,8,Kidal,Kidal,Anefif,Adjelhocan,Birama Pamateck,Hapsatou Saye,tmq,False,,
+10810641039861E,Bakary,Bouréma,2008-10-18,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Tijani Kamissoko,Fanta Saye,ff,False,,
+15611955297098G,Pamatek,Sinali,1956-11-29,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Moussa Diaby,Niamato Yalcouye,bm,True,phonetic_spelling,last_name
+28209543277321B,Sall,Souadou,1982-09-16,F,5,Mopti,Djenne,Femaye,Sofarana,Boukari Cisseko,Halima Dakouo,dje,False,,
+19709141265884L,Barry,Aboubakar,1997-09-25,M,1,Kayes,Bafoulabe,Diakon,Sambela,Maïga Thiam,Fadimatou Samassekou,bm,False,,
+28411747031535H,Sall,Kankan,1984-11-03,F,7,Gao,Bourem,Bamba,Bouremaya,Gaoussou Fadiga,Bassiratou Gakou,tmq,False,,
+26308527164881H,Maaiga,Roukaya,1963-08-28,F,5,Mopti,Djenne,Femaye,Sofarana,Yoro Touray,Sadia Goita,ff,True,phonetic_spelling,last_name
+15007213015252U,Ongoiba,Gaohssou,1950-07-14,M,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Bilaly Salaha,Fatoumé Bocoum,fr,True,typo_substitution,first_name
+11909855022987X,Kebe,Sékou,2019-09-27,M,8,Kidal,Tessalit,Timetrine,Aguelhokan,Alou Samake,Wassila Saye,fr,False,,
+23103443047407W,Diawara,Nènè,1931-03-16,F,4,Ségou,Bla,Yangasso,Wolofobougou,Madou Sogodogo,Bintatou Sacko,fr,False,,
+24412657047244X,Wague,Korké,1944-12-15,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Fodéba Yanogo,Niémaba Boncana,tmq,False,,
+18804207090220S,Macalou,Sidi,1988-04-24,M,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Dembo Tamboura,Sadiokè Kone,bm,False,,
+16003435217487J,Dieng,Niamoye,03/26/1960,M,4,Ségou,San,Kava,Damansela,Tiéman Bengaly,Wassakè Bamba,bm,True,date_format_error,birth_date
+15405143028708V,Mbaye,Niamba,1954-05-22,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Bandé Maouloud,Karidja Bengaly,fr,False,,
+10012525005932H,Hamidou,Nampé,2000-12-10,M,5,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Sory Dabo,Hamsatou Sarr,bm,True,geographic_mismatch,birth_region
+29309342209809R,Camara,Habibatou,1993-09-03,F,3,Sikasso,Bougouni,Sido,Misseniba,Lassine Sylla,Soudata Touray,bm,False,,
+13704245134519V,Maiga,Sékoba,1937-04-14,M,2,Koulikoro,Nara,Dilly,Niamala,Bocar Souleymane,Bintatou Tapily,bm,False,,
+10604842095646B,Hamadou,Abdetahmane,2006-04-24,M,8,Kidal,Tessalit,Timetrine,Aguelhokan,Bourama Traore,Maïssa Sall,tmq,True,typo_substitution,first_name
+26405429245895F,Dansoko,Djènè,1964-05-13,F,4,Ségou,San,Kava,Damansela,Yaya Tapily,Kani Balde,fr,False,,
+14612557194968F,Sogodogo,Samba,1946-12-19,M,5,Mopti,Bandiagara,Sangha,Sevarela,Sékou Sissoko,Hawakè Lo,fr,False,,
+19207345087051Q,Wélé,Seybaa,1992-07-28,M,3,Sikasso,Yorosso,Mahou,Fakoroba,Samberou Coumare,Tata Bagayoko,bm,True,typo_insertion,first_name
+24808832061230T,Niama,Dia,1948-08-06,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Sinaly Goita,Kankoun Gassama,tmq,True,field_inversion,"first_name,last_name"
+19309447097429V,Sow,Dembo,1993-09-08,M,4,Ségou,Segou,Sebougou,Sonfara,Tiéman Sangare,Doussou Kamissoko,fr,False,,
+12104438235088V,Keita,Allaye,2021-04-22,M,4,Ségou,Bla,Yangasso,Wolofobougou,Bourama Ouologuem,Habiba Mahamoud,fr,False,,
+20209139132075G,Diabate,Hawakè,2002-09-26,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Ibrahima Diakite,Nassira Sarr,ff,False,,
+10607117259635M,Almoustapha,Sory,2006-07-09,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Boukary Bamba,Saran Salaha,fr,False,,
+21106233253953V,Pamateck,Nipnétou,2011-06-29,F,2,Koulikoro,Nara,Dilly,Niamala,Fousseyni Bagayoko,Néma Ibrahima,bm,True,typo_substitution,first_name
+27308124221290J,Kamissoko,Adijatou,1973-08-19,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Boureima Kamissoko,Niélima Napo,ff,False,,
+29009132078570D,Oukd,Bintou,1990-09-07,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Famakan Gakou,Bintou Lo,snk,True,typo_substitution,last_name
+21310129183727C,Saoaha,Niamtou,2013-10-31,F,1,Kayes,Kita,Sebekoro,Kountouba,Galo Gassama,Sokona Fadiga,fr,True,typo_substitution,last_name
+29902758300218G,Tabouré,Fatoumta,1999-02-24,F,7,Gao,Bourem,Bamba,Bouremaya,Mohammed Sogodogo,Adama Dicko,fr,True,typo_omission,first_name
+18807444063404N,Walet,Issaka,1988-07-12,M,4,Ségou,Segou,Sebougou,Sonfara,Salia Ouologuem,Penda Sangare,fr,False,,
+20501541138609Y,Diaera,Dénou,2005-01-05,F,5,Mopti,Douentza,Hombori,Yalakoura,Oumar Cheickna,Kourou Diaby,ff,True,typo_substitution,last_name
+19102739196095P,Wépé,Nampé,1991-02-20,M,7,Gao,Gao,Soni Ali Ber,Gargandobo,Yayi Mbaye,Korké Wélé,fr,True,typo_substitution,last_name
+15202220252821D,Wane,Karamoko,1952-02-10,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Fodé Cheick,Toko Diabate,bm,False,,
+29501557199488C,Doukoure,Soukeynatou,1995-01-20,F,5,Mopti,Koro,Dioungani,Bankassou,Youssouf Bocoum,Niaba Bocoum,bm,False,,
+29109828048042M,Dakouo,Houleymatou,1991-09-15,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Gaoussou Fall,Safiatou Haidara,tmq,False,,
+16509430224082L,Soumbounou,Solo,1965-09-22,M,4,Ségou,Segou,Sebougou,Sonfara,Tiémoko Bathily,Khadija Saye,fr,False,,
+26402704283079X,Cisse,Sirakè,1964-02-06,F,7,Gao,Bourem,Bamba,Bouremaya,Salia Sogoba,Téninkè Touray,fr,False,,
+21703417300084R,Saco,Aissata,2017-03-27,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Mady Boubou,Hadiaratou Sow,bm,True,typo_omission,last_name
+26803243231639Y,Kamissoko,Houleymatou,1968-03-11,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Bréhima Thiam,Awa Berthe,bm,False,,
+10105535010006H,Mahamoud,Mady,2001-05-25,M,5,Mopti,Djenne,Femaye,Sofarana,Mahamadou Sako,Safya Soumbounou,dje,False,,
+29605440185708U,Mahamoud,Mzïmounatou,1996-05-27,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Karim Bathily,Kaira Coulibaly,fr,True,typo_substitution,first_name
+21510810124447E,Bakary,Niama,2015-10-01,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Karim Dougnon,Korké Boubou,fr,False,,
+16301211079757L,HHamadou,Bilaly,1963-01-04,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Allaye Sissoko,Salamata Tabouré,fr,True,typo_insertion,last_name
+16710855222426M,Gaxssama,Karamoko,1967-10-28,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Souleyman Abdramane,Doussou Toure,tmq,True,typo_insertion,last_name
+19004537162567P,Maiga,Sinaly,1990-04-26,M,5,Mopti,Djenne,Femaye,Sofarana,Abdramani Dicko,Wassakè Soumare,dje,False,,
+24012545224022F,Konard,Niagalé,1940-12-29,F,5,Mopti,Koro,Dioungani,Bankassou,Idriss Ba,Soudata Sanou,dje,True,typo_substitution,last_name
+16905447200983J,Diko,Djibril,1969-05-03,M,4,Ségou,Segou,Sebougou,Sonfara,Abdoulkader Bengaly,Soudata Konare,fr,True,phonetic_spelling,last_name
+16205213081621Q,Sylla,Daouda,1962-05-13,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Tidjani Gassama,Maïmounatou Sarr,fr,False,,
+16706457134366A,Kaba,Yaga,1967-06-07,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Aboubacrine Camara,Korotoumou Pamateck,bm,True,typo_substitution,first_name
+27602450024789X,Yehia,Sadia,1976-02-28,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Tiémoko Dakouo,Hawaou Kanoute,fr,False,,
+27312554057999S,Magassa,Adiuatou,1973-12-17,F,5,Mopti,Douentza,Hombori,Yalakoura,Mamoudou Kanoute,Niéléba Fofana,fr,True,typo_substitution,first_name
+20312929260511J,Fomba,Penda,2003-12-19,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Abdramani Bicaba,Nassira Diawara,fr,False,,
+24106550004252S,Ialcouye,Houleymatou,1941-06-01,F,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Tijani Ouattara,Saoudatou Samake,bm,True,phonetic_spelling,last_name
+14904249272432C,Lo,Boubacar,1949-04-13,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Samberou Touray,Kandé Hamady,bm,False,,
+25012250006735L,Coulou,Nafissatou,1950-12-23,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Kassim Pamateck,Wassila Wélé,fr,False,,
+26112203078925R,Soumountéra,Maimouna,1961-12-04,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Abdoul Konfe,Sokhna Ly,bm,False,,
+28207948161932A,Sanou,Mariam,1982-07-31,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Niamoye Ibrahima,Adijatou Fadiga,bm,False,,
+15103640227715H,Sanou,Abdourahmane,1951-03-31,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Demba Balde,Maïmounatou Samake,fr,False,,
+25907947065533J,Boureima,Kani,1959-07-27,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Bouréma Dabo,Maïmé Abdramane,bm,False,,
+13903102277607R,Coumare,Zié,1939-03-11,M,1,Kayes,Bafoulabe,Diakon,Sambela,Zacharia Dougnon,Asmaou Bocoum,fr,False,,
+28611341260363M,Wague,Fanta,1986-11-30,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Fodie Wague,Niélékou Saye,ff,False,,
+28512416298580D,Oumarou,Aïsseta,1985-12-03,F,4,Ségou,Macina,Kolongo,Tioribabougou,Diakalia Dembaga,Astan Guindo,fr,False,,
+17506221265597V,Ba,Yaye,1975-06-26,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Fadima Saidou,Adiaratou Fadiga,bm,False,,
+10404104218910K,Cheick,Alaye,2004-04-19,M,1,Kayes,Diema,Lakamane,Mansakoro,Bouréma Bocar,Diariatou Bamba,ff,False,,
+29311338256652D,Boxoum,Bintoukè,1993-11-11,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Housseyni Sylla,Aïdara Dicko,fr,True,typo_substitution,last_name
+18701531017765H,Kaba,Brahiima,1987-01-14,M,5,Mopti,Douentza,Hombori,Yalakoura,Hamadoun Tounkara,Hawaou Konfourou,fr,True,typo_insertion,first_name
+23812424156302G,Kebe,Hawa,1938-12-04,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Boubakar Drame,Sadiokè Ly,fr,False,,
+25808414094839F,Sylla,Aminata,1958-08-07,F,4,Ségou,Segou,Sebougou,Sonfara,Nfaly Souleymane,Djoumé Diallo,fr,False,,
+28708729173801R,Ascofare,Wassakè,1987-08-19,F,7,Gao,Bourem,Bamba,Bouremaya,Idrissa Cheick,Houley Diawara,tmq,False,,
+28306829077888G,Tapuly,Tenin,1983-06-16,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Abdoulaye Konfourou,Bafou Faye,tmq,True,typo_substitution,last_name
+10912902293646B,Ongoiba,Brahimaa,2009-12-10,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Abdramani Wague,Zeïnab Salaha,fr,True,phonetic_spelling,first_name
+13302231258919L,Konate,Nouhoum,1933-02-08,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Abdoulkarim Oumarou,Adama Konate,bm,False,,
+10810954297455N,Samake,Mahamane,2008-10-19,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Cheik Ouologuem,Maïssa Cisse,bm,False,,
+18203428093425S,Doumbia,Mahamoud,1982-03-21,M,4,Ségou,Macina,Kolongo,Tioribabougou,Lamine Almoustapha,Mahoua Dabo,fr,False,,
+19505410094262K,Bagayoko,Tiécoura,1995-05-14,M,4,Ségou,Segou,Sebougou,Sonfara,Soriba Konfourou,Khadidiatou Sako,fr,False,,
+23104202030306C,Adiaratou,Boncana,1931-04-03,F,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Lamine Drame,Niani Ouologuem,bm,True,field_inversion,"first_name,last_name"
+17804113123771C,Srr,Cheickne,1978-04-29,M,1,Kayes,Yelimane,Kremis,Tougandama,Almahady Ouattara,Soukoura Soumare,bm,True,typo_omission,last_name
+27102127120936W,Konate,Saia,1971-02-03,F,1,Kayes,Bafoulabe,Diakon,Sambela,Bandé Fomba,Oulématou Yehia,snk,True,typo_omission,first_name
+18307435087801Y,Seck,Mahaman,1983-07-12,M,4,Ségou,Bla,Yangasso,Wolofobougou,Bokar Yehia,Salamata Fofana,fr,False,,
+28706811001062V,Mariko,Yacine,1987-06-24,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Youssouf Cisseko,Khadidja Almoustapha,tmq,False,,
+10309754262289N,Cisse,Mamaru,2003-09-14,M,7,Gao,Ansongo,Tessit,Ansongala,Lassina Oumarou,Soukeynatou Diallo,dje,True,phonetic_spelling,first_name
+20410514259981L,Karembe,Khadidja,2004-10-11,F,5,Mopti,Djenne,Femaye,Sofarana,Mounkoro Coumare,Hamsétou Cheickna,bm,True,invalid_checksum,nina
+11207539169017K,Dansoko,Abdramani,2012-07-20,M,5,Mopti,Douentza,Hombori,Yalakoura,Bakary Yalcouye,Fatoumata Keita,ff,False,,
+26006226276084U,Tangara,Kadia,1960-06-19,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Adama Hamadou,Fatma Wague,bm,False,,
+29611723199182K,Keiya,Goundo,1996-11-24,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Gaoussou Bamba,Sadio Hamadou,fr,True,typo_substitution,last_name
+16004741156828L,Ndiaye,Diakalia,1960-04-24,M,7,Gao,Gao,Gounzoureye,Wabarianke,Cheickne Bengaly,Djeneba Kassogue,dje,False,,
+16708113203114P,Kassogue,Aly,1967-08-06,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Aboubacrine Gassama,Saoudatou Abdramane,snk,False,,
+18910138066764A,Maigaa,Fousseni,1989-10-07,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Fasséni Diaby,Aïchata Konfe,bm,True,phonetic_spelling,last_name
+29607128027875F,Ouologuem,Massira,1996-07-18,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Dembo Macalou,Goundo Coulou,ff,False,,
+13405915025285E,Ly,Mahamane,1934-05-26,M,9,Kayes,Bafoulabe,Diakon,Sambela,Sidiya Napo,Fatoumata Hamidou,fr,True,geographic_mismatch,birth_region
+18305828039940G,Dieng,Fadiaa,1983-05-17,M,8,Kidal,Kidal,Anefif,Adjelhocan,Kalifa Yanogo,Karidja Maiga,fr,True,typo_omission,first_name
+27603316056485A,Mbaye,Houleymatou,1976-03-13,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Aliou Sagara,Hadjaratou Sarr,fr,False,,
+28506207229593E,Wague,Sanaba,1985-06-23,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Ibrahima Camara,Niélétou Napo,fr,False,,
+15211504155626S,Wane,Ibrahim,1952-11-29,M,5,Mopti,Koro,Dioungani,Bankassou,Salif Kone,Niéléba Diakite,bm,False,,
+29401240211239G,Keita,Maïdjara,1994-01-23,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Ali Boubou,Goundoba Fomba,bm,False,,
+14710534169602T,Ba,Salia,1947-10-27,M,5,Mopti,Douentza,Hombori,Yalakoura,Salif Coulibaly,Aïsseta Diallo,ff,False,,
+11502833132364H,Ly,Hammadi,2015-02-20,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Idriss Hamadou,Awa Seck,fr,False,,
+10302220300447U,Dakkuo,Abdourahmane,2003-02-22,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Fodie Yaranangore,Karidja Tabouré,fr,True,typo_substitution,last_name
+13402638075059G,Sarr,Almahdy,1934-02-13,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Brahima Diakite,Téninkè Sanou,tmq,False,,
+18401122097684K,Yalcouye,Housseini,1984-01-28,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Housseini Samassekou,Aïchatou Yanogo,bm,False,,
+21101411054466L,Fofana,Sadiatou,2011-01-03,F,4,Ségou,Macina,Kolongo,Tioribabougou,Sambou Traore,Zeynabou Fall,fr,False,,
+10704331170827W,Ascofare,Ykro,2007-04-07,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Boukari Barry,Fatoumata Bengaly,fr,True,typo_substitution,first_name
+22009341300935E,Bengaly,Sita,2020-09-06,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Adama Balde,Téné Guindo,fr,True,typo_substitution,first_name
+13402302091864D,Kamissoko,Daouda,1934-02-20,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Sékou Diawara,Fanké Niang,bm,False,,
+24111516190829T,Walet,Fadimatou,1941-11-16,F,5,Koulikoro,Dioila,Massigui,Fadiabougou,Khalifa Mahamadou,Halima Ag,fr,True,geographic_mismatch,birth_region
+11712335194712T,Walet,Lamine,2017-12-05,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Youssouf Kane,Roukaya Seck,fr,False,,
+18810619077336G,Doeng,Aliou,1988-10-13,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Abdoul Kassogue,Wassa Sogoba,ff,True,typo_substitution,last_name
+24812257261384Y,Fane,Niélima,1948-12-01,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Gaoussou Yattara,Founékè Walet,bm,False,,
+29304618298411P,Tabouré,Safietou,1993-04-15,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Yacouba Ka,Diénéba Sall,ff,False,,
+25503320218911D,Ascofqre,Massikè,1955-03-08,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Mamary Walet,Mahoua Souleymane,fr,True,typo_substitution,last_name
+13704703239525D,Pamateck,Samberou,1937-04-17,M,7,Gao,Ansongo,Tessit,Ansongala,Soumaïla Samassekou,Massira Konfourou,dje,False,,
+26511325013184D,Hamadou,Fatimata,1965-11-09,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Fasseri Tangara,Toko Samake,bm,False,,
+18201360117101D,Tounkada,Drissa,1982-01-17,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Fadima Toure,Sirantan Sall,bm,True,typo_substitution,last_name
+17501939071876F,Issoufou,Fasséni,1975-01-01,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Mamadou Saye,Kani Sanou,bm,False,,
+15904642263780A,Gakoou,Boukary,1959-04-04,M,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Diakaridia Lo,Asmaou Ka,ff,True,typo_insertion,last_name
+19205455097440C,Yorodian,Dicko,1992-05-02,M,4,Ségou,San,Kava,Damansela,Sidi Cheickna,Hawakè Sangare,bm,True,field_inversion,"first_name,last_name"
+27412101256830D,Theera,Haeiata,1974-12-07,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Samba Ly,Téninkè Kanté,bm,True,typo_substitution,first_name
+27605741294888D,Hamidoh,Fanké,1976-05-20,F,7,Gao,Bourem,Bamba,Bouremaya,Yoro Hamidou,Korotoumou Oumarou,dje,True,typo_substitution,last_name
+18201207284182Q,Camara,Housseyni,01/18/1982,M,2,Koulikoro,Nara,Dilly,Niamala,Yousouf Sylla,Oumou Barry,fr,True,date_format_error,birth_date
+26804315150676R,Nafissatou,Mahamadou,1968-04-27,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Soumana Kone,Hadya Coulou,fr,True,field_inversion,"first_name,last_name"
+28710511057133K,Bakary,Hamssatou,1987-10-29,F,5,Mopti,Bandiagara,Sangha,Sevarela,Hamidou Diallo,Bafou Dia,ff,False,,
+26410553244163R,Soumountéra,Karidja,1964-10-13,F,5,Mopti,Djenne,Femaye,Sofarana,Mustapha Sall,Niékè Hamady,bm,True,invalid_checksum,nina
+14108539127539A,Yanogo,Aly,1941-08-06,M,5,Mopti,Bandiagara,Sangha,Sevarela,Bilali Hamady,Kaïrou Soumountéra,fr,False,,
+29406857234356U,Saye,Niamoï,1994-06-17,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Mamoudou Tall,Souadou Dieng,fr,False,,
+23302525094716N,Diaby,Fadima,1933-02-01,F,5,Mopti,Douentza,Hombori,Yalakoura,Yéro Cisse,Bassiratou Kaba,bm,False,,
+20311859035715P,Gueye,Sadiatou,2003-11-12,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Tidiane Abdramane,Goundo Bamba,fr,False,,
+23707529085259B,Ka,Dadu,1937-07-16,F,5,Mopti,Tenenkou,Diondiori,Diafarabe-Kola,Oumar Boubou,Oumou Sidibe,dje,True,phonetic_spelling,first_name
+27801101129118C,Daansoko,Kourou,1978-01-29,F,1,Kayes,Kita,Sebekoro,Kountouba,Dembele Boubou,Niamtou Boubou,fr,True,phonetic_spelling,last_name
+26012354083175J,Konate,Hawawou,1960-12-19,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Daouda Yattara,Sokhna Wague,ff,False,,
+11812143006694V,Daou,Tiécoura,2018-12-07,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Sidi Yaranangore,Hadiaratou Gueye,fr,False,,
+13910545025857L,Kobfe,Abderahmane,1939-10-16,M,5,Mopti,Koro,Dioungani,Bankassou,Abdoulwahab Kanoute,Bafou Dolo,dje,True,typo_substitution,last_name
+21902313047017V,Ly,Hawa,2019-02-25,F,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Mahamadou Pamateck,Sadio Maiga,fr,False,,
+13512811086046P,Dicko,Inahaman,1935-12-06,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Salia Tapily,Founékè Salaha,fr,False,,
+23409508119219D,Magassa,Tkko,1934-09-03,F,5,Mopti,Djenne,Femaye,Sofarana,Néné Tall,Kadiatou Wélé,bm,True,typo_substitution,first_name
+26402105112421E,Dougnoj,Korka,1964-02-08,F,1,Kayes,Kita,Sebekoro,Kountouba,Youssouf Fane,Massitan Bakary,snk,True,typo_substitution,last_name
+25708860069341L,Taall,Roukaya,1957-08-01,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Boureima Karembe,Fati Mariko,fr,True,phonetic_spelling,last_name
+13303638007239E,Sissoko,Seyni,1933-03-23,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Boureima Wague,Karidja Sarr,ff,False,,
+11501109192511L,Tessougue,Fakourou,2015-01-05,M,1,Kayes,Yelimane,Kremis,Tougandama,Tiémoko Ascofare,Fatim Toure,snk,False,,
+25103157169138X,Kassogue,Néma,1951-03-10,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Abderahmane Fofana,Hadjaratou Dicko,bm,False,,
+16212922176249E,Dia,Issa,1962-12-01,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Aliou Dieng,Khadija Ndiaye,bm,False,,
+14708541004067M,Sylla,Moyssa,1947-08-18,M,5,Mopti,Koro,Dioungani,Bankassou,Famagan Diakite,Roukaya Drame,ff,True,typo_substitution,first_name
+29411930160169L,Balde,Maïam,1994-11-25,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Bokar Yattara,Hawawou Dieng,bm,True,typo_omission,first_name
+24601124204387T,Niare,Soudata,1946-01-07,F,1,Kayes,Diema,Lakamane,Mansakoro,Sidi Bocoum,Dadou Wane,snk,False,,
+20703149196438C,Samke,Houleye,2007-03-17,F,1,Kayes,Bafoulabe,Diakon,Sambela,Solo Bakary,Penda Abdramane,snk,True,typo_omission,last_name
+26002739247074E,Kaira,Sagara,1960-02-12,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Cherifou Maiguizo,Téné Haidara,fr,True,field_inversion,"first_name,last_name"
+29309626213963B,Mahamoud,Kadidia,1993-09-27,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Hamadou Maouloud,Founékou Dolo,fr,False,,
+16504225290167V,Ba,Birama,1965-04-28,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Sadio Tamboura,Korké Dembaga,bm,False,,
+28008804198949P,Bocoum,Bintatou,1980-08-27,F,8,Kidal,Kidal,Anefif,Adjelhocan,Klétigui Seck,Mahawatou Camara,tmq,False,,
+15304843076268H,Saidu,Gibril,1953-04-14,M,8,Kidal,Kidal,Anefif,Adjelhocan,Tiéman Tamboura,Oulématou Konandji,fr,True,phonetic_spelling,last_name
+21211938042531M,Bah,Téninkè,2012-11-29,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Kalifa Kane,Niénè Dougnon,bm,False,,
+21302257046112K,Sogodogo,Mariétoulaye,2013-02-04,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Bakoroba Drame,Sadia Ka,bm,False,,
+14601253252002Q,Diabate,Moussa,1946-01-14,M,2,Koulikoro,Nara,Dilly,Niamala,Zacharia Dicko,Soumeyatou Dicko,bm,False,,
+15209224096721K,Dansoko,Fadiala,1952-09-26,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Bilaly Sow,Niékè Niang,bm,False,,
+17210213031768R,Sow,Boureima,1972-10-12,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Famagan Coumare,Kandé Ould,fr,False,,
+14502119044387E,Wague,Niankoro,1945-02-28,M,1,Kayes,Diema,Lakamane,Mansakoro,Ibrahim Dackouo,Hawa Tabouré,snk,False,,
+10903104137770E,Diarrra,Demberel,2009-03-17,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Moustapha Fofana,Fadima Thiam,fr,True,typo_insertion,last_name
+23312728173380N,Dackouo,Wassila,1933-12-11,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Zié Bengaly,Fati Wélé,dje,False,,
+27211452052004E,Saidou,Nafissa,1972-11-27,F,4,Ségou,Macina,Kolongo,Tioribabougou,Boukari Diawara,Oumou Wague,bm,False,,
+10810429244528C,Touray,Abdoulwahab,2008-10-25,M,4,Ségou,Bla,Yangasso,Wolofobougou,Famakan Traore,Zeynabou Ouologuem,fr,False,,
+18107121228240K,Kebe,Boukari,1981-07-12,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Lassina Berthe,Djoumé Kane,ff,False,,
+18406925151622U,Baa,Cherif,1984-06-07,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Boubakar Konfe,Massikè Ouattara,fr,True,phonetic_spelling,last_name
+15706508247679F,Boureima,Zié,1957-06-11,M,5,Mopti,Koro,Dioungani,Bankassou,Zana Thiam,Saoudatou Bagayoko,fr,False,,
+14010260168925Q,Maouloud,Tahir,1940-10-16,M,2,Koulikoro,Nara,Dilly,Niamala,Niamoye Ndiaye,Asma Tamboura,bm,False,,
+11101809274649H,Sylla,Cheick,2011-01-13,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Housseini Sagara,Naba Soumountéra,fr,False,,
+21510948196670Q,Salaha,Fatoumd,2015-10-26,F,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Diakalia Fall,Djènè Soumare,bm,True,typo_substitution,first_name
+26307255161977S,Almoustapha,Awakè,1963-07-03,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Karamoko Traore,Karidja Sanogo,fr,False,,
+24404450187817Q,Bathily,Hadjaratou,1944-04-26,F,4,Ségou,San,Kava,Damansela,Abdoulwahab Ndiaye,Djelika Mahamoud,fr,False,,
+27106410152858W,Ndiaye,Korotou,1971-06-30,F,4,Ségou,San,Kava,Damansela,Gibril Saidou,Founé Guindo,fr,False,,
+11203721159515X,Wague,Niankoro,03/01/2012,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Bilal Sogodogo,Mahawatou Gueye,dje,True,date_format_error,birth_date
+14612410108869K,Fall,Hamadi,1946-12-04,M,4,Ségou,Macina,Kolongo,Tioribabougou,Karamoko Diakite,Mariétoulaye Yattara,bm,False,,
+20706859082023L,Souleymane,Niamoï,2007-06-22,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Madiou Bocoum,Khadidiatou Yalcouye,tmq,False,,
+23601134145290P,Ba,Hassanatou,1936-01-15,F,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Ichaka Hamidou,Fadima Cheick,bm,False,,
+17709920235671R,Konare,Aboubakar,1977-09-14,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Boubacar Hamadou,Nafissa Mariko,bm,False,,
+10212352101753C,Keita,Fadima,2002-12-15,M,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Idriss Soumountéra,Massitan Fadiga,bm,False,,
+28810854087949G,Kone,Fadima,1988-10-01,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Fassara Yalcouye,Hadiaratou Diakite,fr,False,,
+22006728077643K,Kanté,Maïraml,2020-06-25,F,7,Gao,Ansongo,Tessit,Ansongala,Souleymane Tounkara,Bassiratou Mahamoud,dje,True,typo_insertion,first_name
+28011825141648M,Hamadou,Hadya,1980-11-19,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Mamadou Tounkara,Niélé Samake,fr,False,,
+13911138294587V,Soumbounou,Niankoro,1939-11-01,M,1,Kayes,Bafoulabe,Diakon,Sambela,Housseini Diabate,Ténémba Sow,ff,False,,
+29904437065102B,Korotoumou,Tapily,1999-04-24,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Cherif Bakary,Awa Kanté,fr,True,field_inversion,"first_name,last_name"
+21807134300552D,Wague,Hamsétou,2018-07-31,F,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Founeke Ka,Fadimata Tounkara,snk,False,,
+17611136229820J,Napo,Ndaly,1976-11-21,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Ousmane Bathily,Awakè Dia,snk,True,typo_substitution,first_name
+23203435088434M,Traor,Oulématou,1932-03-03,F,4,Ségou,Bla,Yangasso,Wolofobougou,Solo Cisse,Niélima Tessougue,bm,True,typo_omission,last_name
+28708735262215X,Fadimatou,Fomba,1987-08-15,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Oumar Sarr,Djeneba Bah,fr,True,field_inversion,"first_name,last_name"
+19703736111606H,Yaranangore,Niamoie,1997-03-02,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Fousseni Bocoum,Diariatou Souleymane,dje,True,phonetic_spelling,first_name
+24410506131693T,Bocoum,Habiba,1944-10-24,F,5,Mopti,Douentza,Hombori,Yalakoura,Boubakar Bakary,Fatim Sidibe,bm,False,,
+18906924289674R,Sogoba,Yousouf,06/14/1989,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Mamarou Ly,Penda Napo,bm,True,date_format_error,birth_date
+17909118064545P,Nizng,Hassane,1979-09-29,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Ichaka Konfourou,Korotoumou Yanogo,fr,True,typo_substitution,last_name
+21612107194993C,Ndiaye,Niélétou,2016-12-14,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Salif Wague,Mariétou Mahamadou,bm,False,,
+29301234179718D,Sogodogo,Kani,1993-01-07,F,2,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Bandé Daou,Hawawou Fomba,fr,True,geographic_mismatch,birth_region
+15104452273565B,Kanté,Hamidou,1951-04-10,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Issaka Bathily,Djènè Keita,fr,False,,
+18909537137055R,Bamba,Tidjane,1989-09-20,M,5,Mopti,Mopti,Konna,Tongorongo,Yaye Dieng,Khadidiatou Ly,dje,True,invalid_checksum,nina
+25406328267965K,Lo,Diénébou,1954-06-03,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Abdou Bagayoko,Diénébou Konfourou,bm,False,,
+10106147123968B,Dabo,Kalifa,2001-06-17,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Aboubakar Kone,Sanaba Goita,ff,False,,
+11812544261955D,Dansoko,Hamidou,2018-12-23,M,5,Mopti,Djenne,Femaye,Sofarana,Maïga Dakouo,Khadija Oumarou,fr,False,,
+16703101218720P,Oumarou,Manga,1967-03-17,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Bakoroba Seck,Binta Ibrahima,fr,False,,
+11404860269926Q,Fall,Yaya,2014-04-11,M,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Lassana Bicaba,Kaira Dakouo,tmq,False,,
+20309625088383P,Niang,Hsdiata,2003-09-11,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Djibrilla Dieng,Niamana Tounkara,dje,True,typo_substitution,first_name
+29604360157952U,Dakouo,Djeneba,1996-04-02,F,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Gaoussou Kebe,Maimouna Yaranangore,fr,False,,
+29309423055006D,Dembaga,Asma,1993-09-20,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Bréhima Wélé,Sanou Keita,fr,False,,
+18909134264921E,Haiara,Tidiane,1989-09-24,M,1,Kayes,Diema,Lakamane,Mansakoro,Nfaly Kebe,Fatoumata Haidara,bm,True,typo_omission,last_name
+21102235138112T,Ould,Fadimata,2011-02-01,F,2,Ségou,Segou,Sebougou,Sonfara,Sidi Konare,Naminata Theera,bm,True,geographic_mismatch,birth_region
+16612319021137A,Mhamoud,Bocar,1966-12-24,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Mande Yanogo,Assitan Konare,ff,True,typo_omission,last_name
+27404636254820V,Bathily,Koirou,1974-04-25,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Founeke Wélé,Niékè Boncana,tmq,True,typo_substitution,first_name
+26311601122054U,Dadkouo,Goundoba,1963-11-11,F,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Yssouf Keita,Fatoumé Soumbounou,dje,True,typo_substitution,last_name
+14203318059885K,Kamissoko,Hamadi,1942-03-31,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Klétigui Kane,Téné Yalcouye,ff,False,,
+16805847258626D,Sow,Famakan,1968-05-30,M,8,Kidal,Kidal,Anefif,Adjelhocan,Issaka Gakou,Aïchata Tounkara,fr,False,,
+29110360075437G,Konate,Mariama,1991-10-21,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Fakourou Dabo,Bintou Almoustapha,bm,False,,
+16308322219491C,Sanogo,Almahady,1963-08-22,M,3,Tombouctou,Dire,Tienkour,Arawana-Kel,Samberou Diakite,Maïmounatou Niang,bm,True,geographic_mismatch,birth_region
+19309458025187C,Foofana,Bakary,1993-09-11,M,4,Ségou,San,Kava,Damansela,Aliou Ouologuem,Kadidiatou Goita,bm,True,phonetic_spelling,last_name
+20801624172312R,Niaang,Fadima,2008-01-03,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Dembele Coulibaly,Khadidja Abdramane,tmq,True,phonetic_spelling,last_name
+11307818108599Q,Maouloud,Karim,2013-07-07,M,8,Kidal,Tessalit,Timetrine,Aguelhokan,Salia Cheick,Roukietou Tounkara,fr,False,,
+12105346229948H,Fomba,Lassana,2021-05-22,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Issiaka Dackouo,Maïmounatou Yalcouye,fr,False,,
+18201109099429N,Souleymane,Cherif,1982-01-11,M,1,Kayes,Kita,Sebekoro,Kountouba,Niamba Salaha,Niélékè Bicaba,ff,False,,
+17603505248430G,Mahamadou,Aboubacrine,03/26/1976,M,5,Mopti,Djenne,Femaye,Sofarana,Sékou Niare,Aïchatou Macalou,ff,True,date_format_error,birth_date
+13405813204507X,Oumarou,Inahaman,1934-05-10,M,8,Kidal,Kidal,Anefif,Adjelhocan,Lassana Niare,Bintoukè Sogoba,tmq,False,,
+29709539140212B,Barry,Aminata,1997-09-22,F,5,Mopti,Bandiagara,Sangha,Sevarela,Mamary Sogodogo,Soukeyna Keita,dje,False,,
+27409455113304T,Dukoure,Maïrama,1974-09-07,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Nouhoum Sako,Naba Cisse,fr,True,phonetic_spelling,last_name
+15503356027658F,Dieng,Yorodian,1955-03-14,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Mahamane Soumare,Aminata Sanou,ff,False,,
+29610406282271U,Dansoko,Kandé,1996-10-21,F,4,Ségou,San,Kava,Damansela,Mamoudou Tessougue,Kourou Kone,fr,False,,
+15904918091263Q,Konate,Mahaman,1959-04-27,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Abdoulkarim Tabouré,Djelika Almoustapha,bm,False,,
+17809515167276A,Dia,Souleyman,1978-09-28,M,5,Mopti,Koro,Dioungani,Bankassou,Abdoul Mahamoud,Penda Bocar,ff,False,,
+26508410246096M,Gassama,Adama,1965-08-11,F,4,Ségou,Bla,Yangasso,Wolofobougou,Galo Barry,Hadiaratou Bah,bm,False,,
+17610819011318B,Konare,Yayi,1976-10-08,M,8,Kidal,Tessalit,Timetrine,Aguelhokan,Yéro Bah,Nafissatou Drame,fr,False,,
+26807826052742F,Mahamadou,Naminats,1968-07-05,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Yacoub Coulibaly,Hawaou Fomba,tmq,True,typo_substitution,first_name
+11108216043275D,Drame,Abdoulay,2011-08-03,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Youssouf Coulibaly,Mariam Magassa,bm,False,,
+16801309246778Q,Malléé,Sidiki,1968-01-19,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Mamarou Dolo,Dénou Soumbounou,fr,True,typo_insertion,last_name
+10602235152106D,Sogoba,Tidjani,2006-02-03,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Boubakar Traore,Naba Doumbia,fr,False,,
+13110442147232A,Maouloud,Hassane,10/31/1931,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Cherifou Niang,Founékou Sako,fr,True,date_format_error,birth_date
+20010405171122V,Bengaly,Sanaba,2000-10-05,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Oumar Gakou,Hadiaratou Kane,bm,False,,
+25606258155640U,Goita,Djoumé,1956-06-14,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Salif Daou,Korotou Bamba,bm,False,,
+14202156077797J,Faiga,Lamine,1942-02-06,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Tiéman Boncana,Niélékou Soumbounou,fr,True,typo_omission,last_name
+16304409094786R,Maouloud,Sékoba,1963-04-19,M,4,Ségou,San,Kava,Damansela,Lamine Gassama,Téninkè Mariko,bm,False,,
+28510252126393Y,LUy,Fatoukè,1985-10-06,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Maïga Bakary,Djénétou Gassama,fr,True,typo_insertion,last_name
+29612114009372G,Yehia,Wassakè,1996-12-11,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Bourama Niang,Salimata Dembaga,bm,False,,
+10601430074856Q,Abdramane,Bocaar,2006-01-03,M,4,Ségou,Segou,Sebougou,Sonfara,Zana Ka,Naba Kone,fr,True,phonetic_spelling,first_name
+16302828191056D,Magassa,Absoulwahab,1963-02-27,M,8,Kidal,Kidal,Anefif,Adjelhocan,Souleyman Sidibe,Mahawatou Kaba,fr,True,typo_substitution,first_name
+29503249094482S,Diawara,Kankoun,1995-03-31,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Mahamoud Saye,Soudata Touray,bm,False,,
+11805408080062E,Camar,Yousouf,2018-05-11,M,4,Ségou,Segou,Sebougou,Sonfara,Founeke Tall,Niékè Konare,fr,True,typo_omission,last_name
+29704733157727K,Lo,Téninkè,1997-04-01,F,7,Gao,Bourem,Bamba,Bouremaya,Mamary Daou,Niaba Konfe,dje,False,,
+19106114206634D,Kone,Sambou,1991-06-12,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Yéro Barry,Kadidia Salaha,fr,False,,
+23210621208848F,Almoustaphq,Hapsatou,1932-10-18,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Aliou Walet,Safiatou Bocoum,tmq,True,typo_substitution,last_name
+14302319084555H,Magassa,Ibrahim,1943-02-11,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Bouréma Keita,Hamsatou Ongoiba,fr,False,,
+17006318044584B,Malmé,Oumar,1970-06-30,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Oumarou Mariko,Sira Dembele,bm,True,typo_substitution,last_name
+16008449201744H,Yaranangore,Fousseyni,1960-08-10,M,4,Ségou,San,Kava,Damansela,Hamadi Diabate,Dénou Konfourou,fr,False,,
+18506138196489X,Toure,Tiéfing,1985-06-27,M,1,Kayes,Bafoulabe,Diakon,Sambela,Mamarou Gakou,Khadidja Boubou,fr,False,,
+16307915111827T,Drame,Tahir,1963-07-25,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Cherifou Konare,Niékè Coulou,bm,False,,
+17202419185639K,Wane,Ousmane,1972-02-15,M,4,Ségou,Macina,Kolongo,Tioribabougou,Cherif Boncana,Bassiratou Ka,fr,False,,
+22010252008147B,Ongoiba,Fatkukè,2020-10-24,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Karim Fane,Fadima Saidou,bm,True,typo_substitution,first_name
+20908105092728N,Hamady,Djènè,2009-08-07,F,1,Kayes,Diema,Lakamane,Mansakoro,Alaye Tamboura,Houley Hamadou,snk,False,,
+28009124147411T,Konfurou,Halimatou,1980-09-03,F,1,Kayes,Kita,Sebekoro,Kountouba,Gibril Cheick,Bintoukè Bicaba,bm,True,phonetic_spelling,last_name
+29411803030759E,Seck,Hasssanatou,1994-11-10,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Brahima Keita,Penda Kanoute,tmq,True,typo_insertion,first_name
+20510806179478T,Samassekou,Zeïnab,2005-10-11,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Mahamane Samassekou,Djelika Samake,fr,False,,
+20209328103412E,Yanogo,Korotoumou,2002-09-16,F,3,Sikasso,Bougouni,Sido,Misseniba,Lamine Dackouo,Hawaou Kebe,fr,False,,
+27703218233040R,Issoufou,Penda,1977-03-27,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Allaye Fadiga,Zeynabou Thiam,bm,False,,
+28805160186809K,Wane,Wasakè,1988-05-11,F,1,Kayes,Yelimane,Kremis,Tougandama,Bouréma Diakite,Kadidiatou Sissoko,ff,True,phonetic_spelling,first_name
+10505118208084S,Sage,Cherif,2005-05-10,M,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Soumaïla Ly,Soumeyatou Thiam,bm,True,typo_substitution,last_name
+17506323215494G,Yalcouye,Mahaman,1975-06-21,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Housseyni Konare,Nafissa Ag,bm,False,,
+27805136102080Y,Konandji,Marima,1978-05-01,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Tiéman Ouologuem,Fati Karembe,fr,True,typo_omission,first_name
+29203251209270G,Konfe,Asmaa,1992-03-15,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Bakary Cheickna,Wassa Cheickna,fr,True,phonetic_spelling,first_name
+16704725111357M,Ka,Famakan,1967-04-28,M,7,Tombouctou,Dire,Tienkour,Arawana-Kel,Djibrilla Soumountéra,Kadiatou Bamba,dje,True,geographic_mismatch,birth_region
+17203832234424X,Toutay,Sékoba,1972-03-07,M,8,Kidal,Kidal,Anefif,Adjelhocan,Sékoba Boureima,Goundoba Konfe,tmq,True,typo_substitution,last_name
+16408628196292H,Ag,Abdou,1964-08-31,M,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Tahirou Fomba,Tenin Kanoute,fr,False,,
+26110232279103N,Hamadu,Niékè,1961-10-29,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Souleyman Camara,Fati Tembely,bm,True,phonetic_spelling,last_name
+14611355241974S,Wague,Sékouba,1946-11-14,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Gaoussou Touray,Safiatou Mahamoud,fr,False,,
+15608619138901V,Kamisskko,Soriba,1956-08-29,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Tidjani Mbaye,Fatoumata Dicko,fr,True,typo_substitution,last_name
+17305728124570C,Hamidou,Famaagan,1973-05-24,M,7,Gao,Bourem,Bamba,Bouremaya,Seyni Hamidou,Bintou Soumountéra,dje,True,phonetic_spelling,first_name
+24609611224237Y,Fomba,Oumoulkher,1946-09-21,F,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Fousseni Ouattara,Mahawa Soumountéra,ff,False,,
+20305711166209L,Dabo,Niaba,2003-05-19,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Seydou Ag,Mariam Haidara,fr,False,,
+15508725013761P,Cheick,Soumana,1955-08-25,M,7,Gao,Bourem,Bamba,Bouremaya,Abdou Yaranangore,Awa Mbaye,tmq,False,,
+25607335126744T,Ascofare,Korké,1956-07-08,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Fasséni Diakite,Habibatou Samake,fr,False,,
+15911230063110Q,Drame,Tahirou,1959-11-25,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Fasseri Sow,Niaba Tangara,bm,False,,
+19605507252815D,Sissoko,Tidiane,1996-05-07,M,5,Mopti,Bandiagara,Sangha,Sevarela,Drissa Kebe,Roukiatou Tangara,ff,False,,
+26801441231828F,Konaee,Adama,1968-01-30,F,4,Ségou,San,Kava,Damansela,Solo Keita,Hadiaratou Diaby,fr,True,typo_substitution,last_name
+11009648131949G,Wague,Fmagan,2010-09-10,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Cheik Sangare,Kadia Sissoko,tmq,True,typo_omission,first_name
+20111215043746X,Bathily,Sadia,2001-11-07,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Niankoro Mariko,Djénébou Dabo,bm,False,,
+21109548254447B,Dakouo,Maïssa,2011-09-03,F,5,Mopti,Douentza,Hombori,Yalakoura,Famagan Cisseko,Mariétou Balde,bm,False,,
+16812751160170K,Dia,Idrissa,1968-12-18,M,7,Gao,Ansongo,Tessit,Ansongala,Bilaly Wane,Niélékou Bocoum,tmq,False,,
+24402707197440R,Salm,Goundokè,1944-02-18,F,7,Gao,Gao,Gounzoureye,Wabarianke,Sékoba Walet,Roukietou Maiga,dje,True,typo_substitution,last_name
+25611753272361L,Mahzmoud,Hawa,1956-11-13,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Mady Sow,Founékè Kane,fr,True,typo_substitution,last_name
+27010201164705J,Keita,Salima,1970-10-08,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Tenema Thiam,Niénétou Diaby,bm,False,,
+16105519109540C,Gueye,Salif,1961-05-30,M,5,Mopti,Mopti,Konna,Tongorongo,Brahima Kassogue,Salima Tangara,dje,False,,
+27907453164203U,Bald,Fanta,1979-07-26,F,4,Ségou,San,Kava,Damansela,Cheickne Fane,Sira Macalou,bm,True,typo_omission,last_name
+15411702146019Y,Soumountéra,Bakari,1954-11-15,M,7,Gao,Bourem,Bamba,Bouremaya,Gaoussou Guindo,Saran Kanté,fr,False,,
+17108442009072Y,Maiguizo,Cheickna,1971-08-03,M,4,Ségou,Macina,Kolongo,Tioribabougou,Tidjani Dougnon,Habibatou Karembe,bm,False,,
+23205640025403R,Saye,Nafissa,1932-05-17,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Soumana Gassama,Zeïnab Wague,dje,False,,
+10302115025846N,Kzita,Boubacar,2003-02-22,M,1,Kayes,Bafoulabe,Diakon,Sambela,Salif Ouologuem,Hadidiatou Ag,snk,True,typo_substitution,last_name
+24709108025970G,Dougnon,Diariatou,1947-09-05,F,1,Kayes,Kita,Sebekoro,Kountouba,Fasseri Yanogo,Hadidiatou Almoustapha,bm,False,,
+16710730062130E,Karembbe,Tiéman,1967-10-14,M,7,Gao,Ansongo,Tessit,Ansongala,Founeke Tabouré,Niani Bocar,tmq,True,typo_insertion,last_name
+23608450248232T,Dabo,Soutoura,1936-08-23,F,4,Ségou,San,Kava,Damansela,Tahir Tessougue,Salimatou Samake,bm,False,,
+13711842106712H,Tangara,Lassana,1937-11-14,M,8,Kidal,Abeibara,Boghassa,Boghassaren,Cheickne Sanogo,Kadidiatou Coulibaly,fr,False,,
+20510332054349S,Ka,Ténémba,2005-10-05,F,3,Sikasso,Sikasso,Kaboila,Kefanazana,Boureima Ibrahima,Sirakè Napo,bm,False,,
+17003607067225M,Bicab,Ali,1970-03-18,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Soumaïla Dakouo,Djénébou Wélé,tmq,True,typo_omission,last_name
+14708230055763X,Niang,Zié,1947-08-21,M,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Modibo Hamady,Awa Doukoure,fr,False,,
+21704417061950J,Souleymane,Sanaba,2017-04-06,F,4,Ségou,Baroueli,Tamani,Fienso-Were,Sékoba Wane,Kadidiatou Gakou,bm,False,,
+29704129140379U,Fomb,Fanta,1997-04-04,F,1,Kayes,Yelimane,Kremis,Tougandama,Abdourahmane Almoustapha,Aïdara Bocoum,snk,True,typo_omission,last_name
+24405244026662R,Dideng,Sokona,1944-05-30,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Sambou Soumare,Bintou Toure,bm,True,typo_insertion,last_name
+23202507113752T,Doukoure,Sadiatou,1932-02-13,F,5,Mopti,Bandiagara,Sangha,Sevarela,Yoro Sako,Fatim Sanou,bm,False,,
+20807901049190A,Sacko,Hasanatou,2008-07-30,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Abdoulaye Soumbounou,Binta Dolo,fr,True,phonetic_spelling,first_name
+26902510007683R,Yalcouye,Gundoba,1969-02-23,F,5,Mopti,Douentza,Hombori,Yalakoura,Madani Sissoko,Hadiaratou Kamissoko,fr,True,phonetic_spelling,first_name
+29405638001501L,Dieng,Soudata,1994-05-02,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Madou Cisse,Aissata Diaby,dje,False,,
+19508210049103L,Dougnon,Karamoko,1995-08-09,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Madani Cheickna,Founékou Dembaga,bm,False,,
+29005430007848P,Theera,Maïlmounatou,1990-05-25,F,4,Ségou,Bla,Yangasso,Wolofobougou,Tidjane Sagara,Niélima Mariko,fr,True,typo_insertion,first_name
+17610432016251B,Soumountéra,Lassina,10/26/1976,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Hamza Wane,Niamako Dia,fr,True,date_format_error,birth_date
+15507357279921Y,Checkna,Mohammed,1955-07-17,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Yaya Kamissoko,Khadidiatou Dembaga,bm,True,typo_omission,last_name
+13706138267719X,Dackouo,Mamoudou,06/10/1937,M,1,Kayes,Kita,Sebekoro,Kountouba,Nfaly Wane,Maïdjara Diaby,bm,True,date_format_error,birth_date
+26410810239698E,Gakou,Hadjaratou,1964-10-23,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Tiéfing Yehia,Fati Konare,tmq,False,,
+19506401233042E,Gueye,Thirou,1995-06-21,M,4,Ségou,Segou,Sebougou,Sonfara,Issaka Wague,Bintou Sylla,bm,True,typo_omission,first_name
+24512223146805C,Sako,Fati,1945-12-23,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Tahir Salaha,Penda Bagayoko,bm,True,phonetic_spelling,last_name
+13905415017485C,Theera,Klétigui,1939-05-06,M,4,Ségou,Segou,Sebougou,Sonfara,Djibrilla Maouloud,Téninkè Wélé,fr,False,,
+28412720089578P,Agg,Khadidiatou,1984-12-26,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Néné Konandji,Naminata Sall,dje,True,typo_insertion,last_name
+29705612193802P,Ag,Fadima,1997-05-17,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Boubacar Mahamadou,Dembou Napo,dje,False,,
+24007527211473W,Sangare,Niéléba,1940-07-13,F,5,Mopti,Douentza,Hombori,Yalakoura,Seydou Ly,Tenin Diawara,bm,False,,
+20812240279922R,Mallé,Sokhna,2008-12-24,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Aliou Hamidou,Wassa Kanté,fr,False,,
+21602106029277E,Magassa,Nassira,2016-02-12,F,1,Kayes,Yelimane,Kremis,Tougandama,Yssouf Diabate,Doussou Mallé,ff,False,,
+13709248300691S,Sogoba,Lassina,1937-09-29,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Cherifou Diakite,Hassanatou Dia,fr,False,,
+25102215080309E,Ongoiba,Asmz,1951-02-06,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Bakari Kebe,Halima Sall,fr,True,typo_substitution,first_name
+15010307243026Q,Ouattara,Sidiki,1950-10-03,M,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Yéro Kone,Goundo Saye,bm,False,,
+10701354280267V,Ould,Abdpulkarim,2007-01-19,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Seyni Wague,Massira Fadiga,ff,True,typo_substitution,first_name
+27110619149684N,Fombaa,Sadiokè,1971-10-20,F,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Cheickne Bamba,Fati Macalou,ff,True,phonetic_spelling,last_name
+24201202146469C,Tounkara,Soukeynatou,1942-01-16,F,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Aliyou Keita,Bintoutou Dougnon,fr,False,,
+26403159182986K,Niénétou,Diawara,1964-03-24,F,1,Kayes,Kita,Sebekoro,Kountouba,Idriss Hamady,Habibatou Keita,snk,True,field_inversion,"first_name,last_name"
+14607458269400V,Dakouo,Ibrahim,1946-07-28,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Yaya Gakou,Sanou Mallé,bm,False,,
+10605351156946Q,Hamidou,Moussa,2006-05-27,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Abdramani Mariko,Niélétou Maiguizo,ff,False,,
+28702245166603L,Konandji,Djoumé,1987-02-03,F,2,Koulikoro,Dioila,Massigui,Fadiabougou,Moustapha Kanté,Nafissatou Cisse,fr,False,,
+11212307055512E,Yalcouye,Néné,2012-12-20,M,3,Sikasso,Koutiala,Zangasso,Diomandougou,Boureima Faye,Korké Sarr,fr,False,,
+11108958197774J,Ly,Ibrahim,2011-08-01,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Ibrahima Cisseko,Niélé Toure,fr,False,,
+21408741016946T,Tall,Founékè,2014-08-13,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Salia Cheickna,Niélétou Dansoko,tmq,False,,
+16103317252449Q,Goita,Salba,1961-03-01,M,3,Sikasso,Sikasso,Kaboila,Kefanazana,Fakourou Konare,Fatoumé Ibrahima,fr,True,typo_substitution,first_name
+10107124209582K,Issoutou,Drissa,2001-07-28,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Mounkoro Barry,Khadidja Ibrahima,ff,True,typo_substitution,last_name
+28203758287874A,Diawara,Nafissatou,1982-03-21,F,7,Gao,Gao,Gounzoureye,Wabarianke,Sidi Kane,Roukiatou Ascofare,fr,False,,
+19110620052121S,Fane,Diakalia,1991-10-07,M,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Aliou Boureima,Dénou Sissoko,tmq,False,,
+29009325184070S,Kaba,Niagalé,1990-09-14,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Lassana Oumarou,Awakè Mbaye,ff,False,,
+27012540030560D,Noang,Niémaba,1970-12-02,F,5,Mopti,Bandiagara,Sangha,Sevarela,Allaye Kamissoko,Safya Sangare,fr,True,typo_substitution,last_name
+11007753169947P,Sanogo,Zoumana,2010-07-19,M,7,Gao,Gao,Soni Ali Ber,Gargandobo,Cheickne Sidibe,Soukeynatou Toure,dje,False,,
+28810748042909S,Abdramaane,Mahawatou,1988-10-24,F,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Fousseyni Daou,Asmaou Fofana,fr,True,typo_insertion,last_name
+17201160029027U,Balde,Mahamanee,1972-01-05,M,1,Kayes,Bafoulabe,Diakon,Sambela,Cheik Almoustapha,Khadidja Konate,ff,True,phonetic_spelling,first_name
+20711709060449U,Tounkara,Mariama,2007-11-03,F,7,Gao,Gao,Soni Ali Ber,Gargandobo,Hamadoun Theera,Sadio Dackouo,dje,False,,
+11412306006233P,Touray,Manga,2014-12-21,M,3,Sikasso,Koutiala,Zangasso,Diomandougou,Founeke Bakary,Goundokè Cisse,fr,False,,
+13808105030130Q,Ould,Bandiougou,1938-08-25,M,1,Kayes,Yelimane,Kremis,Tougandama,Tahirou Cisse,Wassila Dembaga,snk,False,,
+11306726246674G,Wague,Abdoulkarim,2013-06-02,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Lassana Tangara,Niénè Issoufou,fr,False,,
+24312329155965B,Bicaba,Tabita,1943-12-15,F,3,Sikasso,Koutiala,Zangasso,Diomandougou,Bandé Tembely,Safya Seck,ff,False,,
+25809835258107V,Diakite,Niélékè,1958-09-24,F,8,Kidal,Kidal,Anefif,Adjelhocan,Tidiane Kebe,Zeïnabou Berthe,fr,False,,
+11508448284216A,Wague,Hamadou,2015-08-01,M,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Idriss Drame,Djeneba Sarr,bm,False,,
+25903202256857R,Caamara,Yacine,1959-03-04,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Niamoye Maouloud,Astan Samake,fr,True,phonetic_spelling,last_name
+26606529023230U,Dia,Fanke,1966-06-20,F,5,Mopti,Mopti,Konna,Tongorongo,Bréhima Wane,Djénétou Diakite,bm,True,phonetic_spelling,first_name
+22005352111776X,Sangare,Houleymatou,2020-05-02,F,3,Sikasso,Yorosso,Mahou,Fakoroba,Idriss Ag,Goundoba Kone,fr,False,,
+24107630218587A,Diaby,Korka,1941-07-01,F,6,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Ahmoud Coumare,Dado Almoustapha,ff,False,,
+15110259008288F,Macaloh,Kassim,1951-10-29,M,2,Koulikoro,Dioila,Massigui,Fadiabougou,Klétigui Boureima,Sokhna Pamateck,bm,True,typo_substitution,last_name
+16302220292677N,Ouologuel,Fasseri,1963-02-04,M,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Yayi Hamadou,Kaïrou Konate,bm,True,typo_substitution,last_name
+25402138041284R,Abdramane,Wassil,1954-02-08,F,1,Kayes,Yelimane,Kremis,Tougandama,Ibrahim Ould,Adama Coumare,bm,True,typo_omission,first_name
+10507256026239H,Soumare,Abdoulkader,2005-07-29,M,2,Koulikoro,Banamba,Toubacoro,Wolontomo,Yacouba Barry,Khadija Ouattara,bm,False,,
+14008746117063R,Ciumare,Nampé,1940-08-31,M,7,Gao,Gao,Soni Ali Ber,Gargandobo,Modibo Theera,Niamana Cisse,tmq,True,typo_substitution,last_name
+15110321293381J,Diko,Drissa,1951-10-03,M,3,Sikasso,Bougouni,Faragouaran,Bougoudji,Abderahmane Kane,Kani Drame,fr,True,phonetic_spelling,last_name
+23010824241966J,Tessougue,Halima,1930-10-25,F,8,Kidal,Tessalit,Timetrine,Aguelhokan,Adama Konare,Hadya Cisse,tmq,False,,
+18601239109828E,Napo,Almahadty,1986-01-18,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Cherifou Sogoba,Bintoutou Sanou,fr,True,typo_insertion,first_name
+19110337258589R,Souleymane,Salifou,1991-10-06,M,3,Sikasso,Koutiala,Zangasso,Diomandougou,Bocar Bakary,Aïdara Wague,ff,False,,
+21104834267452L,Kaarembe,Sadia,2011-04-08,F,8,Kidal,Abeibara,Boghassa,Boghassaren,Famagan Soumountéra,Sokhna Seck,tmq,True,phonetic_spelling,last_name
+29405448060710J,Mbaye,Dembou,1994-05-28,F,4,Ségou,San,Kava,Damansela,Salifou Konfourou,Niamako Berthe,bm,False,,
+17002442248620R,Lo,Sidiya,1970-02-02,M,4,Ségou,Bla,Yangasso,Wolofobougou,Bocar Lo,Goundokè Bathily,fr,False,,
+23411838071621L,Coumare,Niagalé,1934-11-22,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Mounkoro Napo,Mahawa Berthe,tmq,False,,
+16112732102922D,Sow,Soumana,1961-12-14,M,7,Gao,Bourem,Bamba,Bouremaya,Mahamadou Niare,Mahawa Ly,dje,False,,
+26908107065891C,Camara,Massira,1969-08-29,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Seydou Niare,Ramatoulaye Cheick,ff,False,,
+26812226286248U,Tessougue,Mahawa,1968-12-05,F,2,Tombouctou,Gourma-Rharous,Banikane,Tessalimane,Madiou Pamateck,Ténémba Magassa,fr,True,geographic_mismatch,birth_region
+29203829224297P,Soumbounlu,Hassanatou,1992-03-30,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Bourama Sow,Asmaou Sogoba,fr,True,typo_substitution,last_name
+24002512261740Y,Kassoogue,Korké,1940-02-20,F,5,Mopti,Koro,Dioungani,Bankassou,Cheickna Faye,Astan Gassama,bm,True,typo_insertion,last_name
+26203212074043C,Kq,Massira,1962-03-21,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Ahmoud Kassogue,Awakè Napo,fr,True,typo_substitution,last_name
+26606357087296B,Coumare,HZawawou,1966-06-16,F,3,Sikasso,Koutiala,Zangasso,Diomandougou,Founeke Magassa,Fatimata Kassogue,fr,True,typo_insertion,first_name
+11507132014379N,Dia,Tahirou,2015-07-09,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Aboubacar Kane,Aïdara Hamadou,snk,False,,
+21009246062456C,Wane,Sadiatou,2010-09-20,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Fasseri Bagayoko,Naminata Kassogue,fr,False,,
+12006151114745J,Tangara,Ténin,2020-06-08,M,1,Kayes,Kayes,Sadiola,Kondiarafara,Mamary Ouattara,Nassira Macalou,ff,False,,
+15705945162914L,Toure,Pâté,1957-05-16,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Daouda Konfe,Néma Bah,fr,False,,
+18804309193894A,Ndiaye,Djibril,1988-04-23,M,3,Sikasso,Kadiolo,Loulouni,Sanfolola,Fadiala Kamissoko,Soudata Gakou,bm,False,,
+24601409102651N,Bagayoko,Niélima,1946-01-26,F,4,Ségou,Segou,Sebougou,Sonfara,Idriss Thiam,Aminata Ag,fr,False,,
+10407912020429A,Kamissoko,Seyni,2004-07-25,M,9,Bamako,District de Bamako,Commune IV,Bakaribougou,Hama Tabouré,Nènè Dembaga,bm,False,,
+16101454119897N,Tembely,Dembele,1961-01-17,M,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Bilaly Sylla,Roukietou Hamidou,bm,False,,
+21808215058987A,Goita,Hamssatou,08/05/2018,F,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Sidiya Tapily,Oulématou Bocoum,fr,True,date_format_error,birth_date
+15009445204722D,Bathily,Zachariq,1950-09-23,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Hammadi Sylla,Aïchatou Touray,fr,True,typo_substitution,first_name
+16608750166268Q,Karembe,Tidiane,1966-08-08,M,7,Gao,Gao,Soni Ali Ber,Gargandobo,Yéro Hamadou,Téninkè Wélé,dje,False,,
+24910647113348Y,Cisse,Diénébou,1949-10-22,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Sidiya Konfourou,Diénéba Sogodogo,tmq,False,,
+14003740169133L,Boureima,Skou,1940-03-02,M,7,Gao,Gao,Gounzoureye,Wabarianke,Idrissa Sissoko,Fanké Dabo,tmq,True,typo_omission,first_name
+13807435102161L,Bakary,Biukary,1938-07-26,M,4,Ségou,Bla,Yangasso,Wolofobougou,Cherifou Lo,Doussou Konare,bm,True,typo_substitution,first_name
+15301234053514D,Mahamoud,Bilali,1953-01-12,M,2,Koulikoro,Kati,Bossofala,Banzanbougou,Ousmane Kaba,Kani Dougnon,fr,True,phonetic_spelling,first_name
+17204348064833U,AAscofare,Abdoulkader,1972-04-25,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Boukari Cheick,Binta Daou,fr,True,typo_insertion,last_name
+11106248201199L,Ongoibs,Néné,2011-06-08,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Bokar Dakouo,Kadidia Sissoko,bm,True,typo_substitution,last_name
+20712519220096N,Ndiaye,Kandé,2007-12-02,F,5,Mopti,Mopti,Konna,Tongorongo,Brahima Kassogue,Diénékè Guindo,ff,True,invalid_checksum,nina
+26909235056464W,Falll,Awakè,1969-09-23,F,2,Koulikoro,Kati,Bossofala,Banzanbougou,Seydou Mahamoud,Korké Faye,bm,True,typo_insertion,last_name
+19003236087213G,Sylla,Issaka,1990-03-21,M,2,Koulikoro,Koulikoro,Tienfala,Kolibantan,Klétigui Samake,Djita Kanté,bm,False,,
+14705150253259X,Touray,Fodé,1947-05-17,M,1,Kayes,Yelimane,Kremis,Tougandama,Lassina Pamateck,Tata Toure,bm,False,,
+29403118108774R,Salaha,Founékou,1994-03-29,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Issiaka Fane,Wassila Sarr,bm,False,,
+27111636042944W,Kanoute,Teninke,1971-11-02,F,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Hamadi Tangara,Niélétou Bathily,fr,True,phonetic_spelling,first_name
+18503556059040S,Bockum,Cheickne,1985-03-25,M,5,Mopti,Koro,Dioungani,Bankassou,Khalifa Mahamadou,Niamtou Diawara,dje,True,typo_substitution,last_name
+26707757191578B,Niare,Djita,1967-07-03,F,7,Gao,Gao,Gounzoureye,Wabarianke,Tiéfing Konfe,Khadija Dia,tmq,False,,
+29807639129484R,Boubou,Niamye,1998-07-25,F,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Tenema Dansoko,Hapsatou Mahamadou,ff,True,typo_omission,first_name
+10312120097205G,Diabate,Mahaman,2003-12-10,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Galo Yanogo,Fadima Sanogo,ff,False,,
+19708441287905L,Fall,Bakoroba,1997-08-27,M,4,Ségou,Baroueli,Tamani,Fienso-Were,Abdoulay Coulibaly,Sadio Macalou,bm,False,,
+29001747157377G,Kanté,Mahoua,1990-01-11,F,7,Gao,Ansongo,Tessit,Ansongala,Brahima Boureima,Zeïnab Sall,fr,False,,
+14105914144183P,Kamissoko,Oumarou,1941-05-25,M,9,Bamako,District de Bamako,Commune VI,Niamakorola,Salif Bathily,Hadjaratou Maouloud,bm,False,,
+21111156243215E,Aminata,Sako,2011-11-04,F,1,Kayes,Kayes,Sadiola,Kondiarafara,Diakalia Gueye,Niaba Fadiga,snk,True,field_inversion,"first_name,last_name"
+23511158027141P,Sogoa,Bintoukè,1935-11-16,F,1,Kayes,Nioro du Sahel,Diabigue,Ndiaganfoula,Bokar Maiguizo,Kourou Dougnon,fr,True,typo_omission,last_name
+28904454268325T,Ibrahima,Kankou,1989-04-01,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Yousouf Thiam,Hapsatou Kassogue,fr,False,,
+27404645129702B,Tounkara,Hawakè,1974-04-26,F,6,Tombouctou,Goundam,Tonka,Goundamasa,Sadio Dembaga,Hadiaratou Doumbia,dje,False,,
+21208928110632U,Salaha,Niama,2012-08-12,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Hama Walet,Hadiaratou Keita,fr,False,,
+16407138159337Y,Diabate,Hamadoun,1964-07-10,M,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Niamba Sacko,Kadiatou Daou,fr,False,,
+23312503130281P,Kone,Masikè,1933-12-20,F,5,Mopti,Bandiagara,Sangha,Sevarela,Adama Maiguizo,Hawawou Saidou,dje,True,phonetic_spelling,first_name
+14211402079723T,Yattara,Fousseyni,1942-11-17,M,4,Ségou,Bla,Yangasso,Wolofobougou,Kassim Ly,Mahawa Kone,bm,False,,
+16108407279285R,Ba,Abdoulkader,1961-08-09,M,4,Ségou,San,Kava,Damansela,Seyni Konate,Nassira Karembe,fr,False,,
+20809601207427Q,Sanogo,Korotoumoj,2008-09-25,F,6,Tombouctou,Niafunke,Soumpi,Niafounaba,Famagan Sacko,Founé Doukoure,fr,True,typo_substitution,first_name
+11005848002319W,Macalou,Brahima,2010-05-11,M,8,Kidal,Kidal,Essouk,Tinzaoukar,Sékouba Tounkara,Houleymatou Samassekou,fr,False,,
+23304108047187B,Bagayoko,Aa,1933-04-10,F,1,Kayes,Diema,Lakamane,Mansakoro,Lamine Sissoko,Korka Sako,fr,True,typo_omission,first_name
+26702842098766K,Chseick,Karidja,1967-02-17,F,8,Kidal,Tin-Essako,Intadeyni,Intadeyni,Aliou Almoustapha,Housseynatou Goita,fr,True,typo_insertion,last_name
+10811219133715V,Uld,Fasseri,2008-11-16,M,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Cheick Sylla,Sanou Konandji,bm,True,phonetic_spelling,last_name
+13512154300395Q,Haidara,Mahaman,1935-12-04,M,1,Kayes,Kita,Sebekoro,Kountouba,Aly Ka,Hassanatou Ag,bm,False,,
+25404322258565V,Doukoure,Niaba,1954-04-17,F,3,Gao,Gao,Gounzoureye,Wabarianke,Inahaman Ka,Djènè Gueye,bm,True,geographic_mismatch,birth_region
+19406609240601Q,Ouologuem,Hamadou,1994-06-26,M,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Oumarou Ascofare,Fadimata Camara,dje,False,,
+20101111216487H,Sagara,Hadiqata,2001-01-29,F,1,Kayes,Kayes,Hawa Dembaya,Diakanfara,Abdramani Fomba,Awa Yaranangore,bm,True,typo_insertion,first_name
+21902926243855V,Seck,Niénè,2019-02-13,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Idriss Walet,Aïchatou Pamateck,bm,False,,
+29008160120782J,Ouattara,Djelika,1990-08-21,F,1,Kayes,Kita,Sebekoro,Kountouba,Bocar Kane,Mariétoulaye Doukoure,ff,False,,
+16804611154908T,Mahamadou,Fadiala,1968-04-22,M,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Aly Diawara,Saran Sagara,fr,False,,
+25502310178470A,Mahamoud,Hapsatou,1955-02-24,F,3,Sikasso,Bougouni,Sido,Misseniba,Galo Traore,Fadimata Fadiga,fr,False,,
+21002406095242P,Dia,Fatojmé,2010-02-10,F,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Cheick Seck,Penda Yehia,bm,True,typo_substitution,first_name
+18910643193852W,Boubou,Bilal,1989-10-09,M,6,Tombouctou,Tombouctou,Bourem-Inaly,Tindjambar,Zana Diabate,Bafou Bathily,dje,False,,
+11611550168920U,Guindo,Jibril,2016-11-04,M,5,Mopti,Bandiagara,Sangha,Sevarela,Yacoub Bocoum,Aïsseta Hamidou,fr,True,phonetic_spelling,first_name
+19705712121378U,Bengaly,Mounkoro,1997-05-16,M,7,Gao,Menaka,Anderamboukane,Talataye-Kori,Aboubacrine Traore,Adijatou Mahamoud,fr,False,,
+14211613023217D,Dkugnon,Sadio,1942-11-13,M,6,Tombouctou,Goundam,Tonka,Goundamasa,Cheick Pamateck,Soukoura Sow,ff,True,typo_substitution,last_name
+29406211204699G,Coulou,Djelika,1994-06-02,F,2,Koulikoro,Kangaba,Minidian,Tonkanibougou,Gaossou Samake,Niélékè Fomba,bm,False,,
+17710221066589H,Ouattara,Ali,1977-10-22,M,2,Koulikoro,Nara,Dilly,Niamala,Hassane Saidou,Mariam Kebe,bm,False,,
+18601428133760J,Soumare,Yousouf,1986-01-10,M,4,Ségou,Niono,Sirifila Boundy,Kalabougou-Niare,Soumaïla Sacko,Maïrame Yalcouye,bm,False,,
+27510251092435Q,Oumarou,Houleye,1975-10-24,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Ali Berthe,Tata Diarra,bm,False,,
+27402333233446X,Dembele,Kaïrou,1974-02-22,F,3,Mopti,Douentza,Hombori,Yalakoura,Tahirou Fofana,Goundo Sylla,bm,True,geographic_mismatch,birth_region
+24409522152786W,Doumbia,Niamaba,1944-09-07,F,5,Mopti,Djenne,Femaye,Sofarana,Sinaly Yattara,Sokhna Yaranangore,dje,True,typo_substitution,first_name
+25205903273757G,Mahamoud,Oulématou,1952-05-03,F,9,Bamako,District de Bamako,Commune VI,Niamakorola,Yaya Samake,Djénétou Diabate,fr,False,,
+27505558141354M,Hamady,Hadudiatou,1975-05-03,F,5,Mopti,Djenne,Femaye,Sofarana,Seyba Seck,Aïdara Mahamadou,dje,True,typo_substitution,first_name
+28606647041346U,Dougnon,Téninkè,1986-06-22,F,6,Tombouctou,Dire,Tienkour,Arawana-Kel,Boukari Sissoko,Awa Tamboura,fr,False,,
+29711251099585Y,Couare,Maïmounatou,1997-11-18,F,2,Koulikoro,Kati,Sanankoroba,Sirakoroba,Seyni Dakouo,Niamana Seck,fr,True,typo_omission,last_name
+16909333024620M,Wélé,Bandiugou,1969-09-04,M,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Djibrilla Guindo,Yacine Diarra,bm,True,phonetic_spelling,first_name
+22008330163100R,Ndiaie,Naba,2020-08-17,F,3,Sikasso,Kolondieba,Fakola,Tengrebougou,Modibo Tapily,Diénéba Maiga,ff,True,phonetic_spelling,last_name
+28412839169555V,Boncan,Wassakè,1984-12-13,F,8,Kidal,Kidal,Essouk,Tinzaoukar,Mahmoud Coulibaly,Houleymatou Dackouo,tmq,True,typo_omission,last_name

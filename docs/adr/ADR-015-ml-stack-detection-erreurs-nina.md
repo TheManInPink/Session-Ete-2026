@@ -269,11 +269,13 @@ Le pipeline est **5 étapes** :
 ## Implémentation
 
 - Pipeline : `services/ai-service/app/services/` (5 stages : normalizer, detector, scorer, …) +
-  extracteur de features partagé `app/services/features.py`
-- Modèle entraîné : `ai-models/trained/nina_detector_v1.pkl` (opt-in `AI_USE_MODEL=true` ; AUC ≈
-  0.95 ; export ONNX optionnel — cf. doc 11 §18)
-- Dataset synthétique : `ai-models/datasets/synthetic_nina_v1.csv` (10 000 lignes, non commité —
-  regénérable via `scripts/generate_synthetic_dataset.py`)
+  extracteur de features partagé `app/services/features.py` (**20 features** depuis PROMPT 4.2 ;
+  charge le référentiel de noms `data/mali/names.json`)
+- Modèle entraîné : `ai-models/trained/nina_detector_v1.pkl` (opt-in `AI_USE_MODEL=true` ; **AUC ≈
+  0.98 / F1 ≈ 0.98** sur dataset PROMPT 4.2 ; export ONNX optionnel — cf. doc 11 §18)
+- Dataset synthétique : `ai-models/datasets/nina_synthetic_v1.csv` (10 000 lignes, non commité —
+  généré via le package `ai-models/dataset-generator/` ; noms communs synchronisés vers
+  `data/mali/names.json` par `python -m dataset_generator.export_reference`)
 - Notebooks d'exploration : `ai-models/notebooks/01_eda.ipynb`, `02_feature_engineering.ipynb`,
   `03_training.ipynb`
 - Tests : `services/ai-service/tests/test_pipeline.py` + golden-set
