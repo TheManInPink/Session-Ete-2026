@@ -3,26 +3,47 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "description": "Portail gouvernance SGOGT NINA-AES — messagerie officielle signée, suivi des directives, performance institutionnelle. Next.js 16, App Router, RSC. Port 4003.",
   "scripts": {
     "dev": "next dev --port 4003",
     "build": "next build",
     "start": "next start --port 4003",
-    "lint": "echo '(lint config will be added in doc 17)'",
+    "lint": "eslint .",
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@nina-aes/api-client": "workspace:*",
+    "@nina-aes/auth": "workspace:*",
+    "@nina-aes/i18n": "workspace:*",
+    "@nina-aes/shared-types": "workspace:*",
     "@nina-aes/ui": "workspace:*",
+    "@nina-aes/utils": "workspace:*",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@tanstack/react-query": "^5.60.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jose": "^6.2.3",
+    "lucide-react": "^0.460.0",
     "next": "16.2.6",
+    "next-intl": "^4.11.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "tailwind-merge": "^2.5.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^25.5.2",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "autoprefixer": "^10.4.20",
     "eslint": "^10.2.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.2.1",
     "typescript": "6.0.2"
   }
 }

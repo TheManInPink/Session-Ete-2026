@@ -254,18 +254,66 @@ importers:
 
   apps/governance:
     dependencies:
+      '@dnd-kit/core':
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@dnd-kit/utilities':
+        specifier: ^3.2.2
+        version: 3.2.2(react@19.2.6)
+      '@nina-aes/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@nina-aes/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@nina-aes/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@nina-aes/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@nina-aes/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@nina-aes/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      '@radix-ui/react-slot':
+        specifier: ^1.1.0
+        version: 1.2.4(@types/react@19.2.14)(react@19.2.6)
+      '@tanstack/react-query':
+        specifier: ^5.60.0
+        version: 5.100.13(react@19.2.6)
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
+      lucide-react:
+        specifier: ^0.460.0
+        version: 0.460.0(react@19.2.6)
       next:
         specifier: 16.2.6
         version: 16.2.6(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      next-intl:
+        specifier: ^4.11.0
+        version: 4.12.0(next@16.2.6(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)(typescript@6.0.2)
       react:
         specifier: ^19.2.5
         version: 19.2.6
       react-dom:
         specifier: ^19.2.5
         version: 19.2.6(react@19.2.6)
+      tailwind-merge:
+        specifier: ^2.5.0
+        version: 2.6.1
+      zod:
+        specifier: ^4.3.6
+        version: 4.4.3
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -273,6 +321,9 @@ importers:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@tailwindcss/postcss':
+        specifier: ^4.2.1
+        version: 4.3.0
       '@types/node':
         specifier: ^25.5.2
         version: 25.9.1
@@ -282,9 +333,18 @@ importers:
       '@types/react-dom':
         specifier: 19.2.3
         version: 19.2.3(@types/react@19.2.14)
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.5.0(postcss@8.5.15)
       eslint:
         specifier: ^10.2.0
         version: 10.4.0(jiti@2.7.0)
+      postcss:
+        specifier: ^8.5.3
+        version: 8.5.15
+      tailwindcss:
+        specifier: ^4.2.1
+        version: 4.3.0
       typescript:
         specifier: 6.0.2
         version: 6.0.2
@@ -2378,6 +2438,22 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@dnd-kit/accessibility@3.1.1':
+    resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
+    peerDependencies:
+      react: '>=16.8.0'
+
+  '@dnd-kit/core@6.3.1':
+    resolution: {integrity: sha512-xkGBRQQab4RLwgXxoqETICr6S5JlogafbhNsidmrkVv2YRs5MLwpjoF2qpiGjQt8S9AoxtIV603s0GIUpY5eYQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@dnd-kit/utilities@3.2.2':
+    resolution: {integrity: sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg==}
+    peerDependencies:
+      react: '>=16.8.0'
 
   '@electric-sql/pglite-socket@0.1.1':
     resolution: {integrity: sha512-p2hoXw3Z3LQHwTeikdZNsFBOvXGqKY2hk51BBw+8NKND8eoH+8LFOtW9Z8CQKmTJ2qqGYu82ipqiyFZOTTXNfw==}
@@ -9662,6 +9738,24 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
+
+  '@dnd-kit/accessibility@3.1.1(react@19.2.6)':
+    dependencies:
+      react: 19.2.6
+      tslib: 2.8.1
+
+  '@dnd-kit/core@6.3.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
+    dependencies:
+      '@dnd-kit/accessibility': 3.1.1(react@19.2.6)
+      '@dnd-kit/utilities': 3.2.2(react@19.2.6)
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+      tslib: 2.8.1
+
+  '@dnd-kit/utilities@3.2.2(react@19.2.6)':
+    dependencies:
+      react: 19.2.6
+      tslib: 2.8.1
 
   '@electric-sql/pglite-socket@0.1.1(@electric-sql/pglite@0.4.1)':
     dependencies:
