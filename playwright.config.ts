@@ -28,6 +28,11 @@ const GOVERNANCE_URL = process.env.E2E_GOVERNANCE_URL ?? 'http://localhost:4003'
 
 export default defineConfig({
   testDir: './e2e',
+  // Les specs de capture (`*.capture.spec.ts`) ne servent qu'à générer les
+  // screenshots du dossier de soutenance sous `CAPTURE=1`. On les exclut du run
+  // d'assertions par défaut, sinon elles apparaissent comme « skipped ».
+  // eslint-disable-next-line turbo/no-undeclared-env-vars -- var de test Playwright (runtime), hors globalEnv turbo
+  testIgnore: process.env.CAPTURE ? [] : ['**/capture.spec.ts'],
   fullyParallel: false, // séquentiel inter-projets (sinon les 2 webServers se marchent dessus)
   forbidOnly: !!process.env.CI,
   // Démarrage à froid des serveurs Next (dev) : la 1re compilation App Router
