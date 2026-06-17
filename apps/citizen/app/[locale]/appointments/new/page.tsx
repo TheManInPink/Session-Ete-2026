@@ -20,6 +20,7 @@ import {
 } from '@nina-aes/ui/components/card';
 import { Badge } from '@nina-aes/ui/components/badge';
 import { Skeleton } from '@nina-aes/ui/components/skeleton';
+import { ShieldCheck } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -43,7 +44,8 @@ export default async function NewAppointmentPage({ params }: PageProps) {
         <h1 className="text-3xl font-bold tracking-tight">{t('new.title')}</h1>
         <p className="mt-2 text-fg-muted">{t('new.subtitle')}</p>
         {isVulnerable && (
-          <Badge className="mt-3 bg-success-50 text-success-700 hover:bg-success-50">
+          <Badge variant="success" size="md" className="mt-3 gap-1.5">
+            <ShieldCheck className="size-3.5" aria-hidden="true" />
             {t('new.priorityBadge')}
           </Badge>
         )}

@@ -17,7 +17,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
-import { Send, Loader2, AlertCircle, Copy } from 'lucide-react';
+import { Send, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
 import type { AlertCategory } from '@nina-aes/api-client';
 
@@ -49,7 +49,14 @@ export function WhistleblowerForm() {
   });
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ token: string; alertId: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const handleCopy = (token: string) => {
+    void navigator.clipboard?.writeText(token);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const canSubmit =
     state.category !== '' && state.description.trim().length >= 50 && state.consentGiven;
@@ -79,20 +86,27 @@ export function WhistleblowerForm() {
           <AlertTitle>{t('receipt.title')}</AlertTitle>
           <AlertDescription>{t('receipt.body')}</AlertDescription>
         </Alert>
-        <div className="rounded-base border border-dashed border-border bg-bg-muted p-4">
+        <div className="rounded-base border border-border bg-bg-muted p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-fg-muted">
             {t('receipt.tokenLabel')}
           </p>
-          <p className="mt-2 break-all font-mono text-sm">{receipt.token}</p>
+          <p className="mt-2 select-all break-all rounded-base border border-border bg-bg px-3 py-2 font-mono text-sm text-fg">
+            {receipt.token}
+          </p>
           <Button
             type="button"
-            variant="ghost"
+            variant={copied ? 'outline' : 'ghost'}
             size="sm"
-            className="mt-2"
-            onClick={() => navigator.clipboard?.writeText(receipt.token)}
+            className={cn('mt-2', copied && 'text-success-700')}
+            onClick={() => handleCopy(receipt.token)}
+            aria-live="polite"
           >
-            <Copy className="size-4" aria-hidden="true" />
-            {t('receipt.copy')}
+            {copied ? (
+              <Check className="size-4" aria-hidden="true" />
+            ) : (
+              <Copy className="size-4" aria-hidden="true" />
+            )}
+            {copied ? t('receipt.copied') : t('receipt.copy')}
           </Button>
         </div>
         <Alert variant="danger">

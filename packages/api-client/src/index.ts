@@ -49,6 +49,8 @@ export type { ApiErrorBody } from './core/errors';
 
 // ── Réexports identity ──────────────────────────────────────────────────────
 export type { Citizen, CitizenSearchResult } from './identity/identity.client';
+export { generateDemoCitizen } from './identity/demo-citizen';
+export type { DemoCitizen, DemoParent } from './identity/demo-citizen';
 
 // ── Réexports correction ────────────────────────────────────────────────────
 export {
