@@ -1,8 +1,10 @@
 # `@nina-aes/ai-service`
 
-> **Port** : 3003 **Stack** : Python 3.14 · FastAPI · Pydantic · scikit-learn · XGBoost **Statut** :
-> Scaffold FastAPI (`app/main.py` initialisé, pipeline non-implémenté) **Référence** : doc dédiée à
-> venir
+> **Port** : 3003 **Stack** : Python 3.13 (runtime Docker/CI — spaCy) · FastAPI · Pydantic ·
+> scikit-learn · XGBoost **Statut** : étape 4 « Scoring » opérationnelle — chargement du bundle +
+> `/score` + `/reload-models` ; pipeline 5 étapes complet à venir (doc 11) **Référence** :
+> [doc 11](../../docs/11-AI-SERVICE-FASTAPI.md) ·
+> [ADR-030](../../docs/adr/ADR-030-ai-training-pipeline-bundle-dataset-generator.md)
 
 ---
 
