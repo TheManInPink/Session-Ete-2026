@@ -1314,7 +1314,7 @@ Message exemple :
 
 ```
 ┌──────────────────────────────────────┐
-│  De: Ibrahim MAÏGA                   │
+│  De: Général Issa Ousmane Coulibaly                   │
 │  Ministère de l'Intérieur — Mali     │
 │  29 mars 2026 à 14:32               │
 │                                      │
@@ -1330,7 +1330,7 @@ Message exemple :
 │  ┌────────────────────────────────┐  │
 │  │ 🔒 Signature numérique Ed25519│  │
 │  │ ✅ Vérifiée · Hash: a7b3c9... │  │
-│  │ Signataire: Ibrahim MAÏGA     │  │
+│  │ Signataire: Général Issa Ousmane Coulibaly     │  │
 │  │ Horodatage: 29/03/2026 14:32  │  │
 │  └────────────────────────────────┘  │
 │                                      │
