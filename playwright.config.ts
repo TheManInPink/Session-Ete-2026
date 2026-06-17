@@ -23,6 +23,8 @@ import { defineConfig, devices } from '@playwright/test';
 /** Permet de lancer les tests contre un serveur déjà actif (utile en CI). */
 const CITIZEN_URL = process.env.E2E_CITIZEN_URL ?? 'http://localhost:4001';
 const ADMIN_URL = process.env.E2E_ADMIN_URL ?? 'http://localhost:4002';
+// eslint-disable-next-line turbo/no-undeclared-env-vars -- var de test Playwright (runtime), hors globalEnv turbo
+const GOVERNANCE_URL = process.env.E2E_GOVERNANCE_URL ?? 'http://localhost:4003';
 
 export default defineConfig({
   testDir: './e2e',
@@ -55,6 +57,14 @@ export default defineConfig({
         baseURL: ADMIN_URL,
       },
     },
+    {
+      name: 'governance',
+      testMatch: /governance\/.*\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: GOVERNANCE_URL,
+      },
+    },
   ],
 
   // 2 web servers démarrés par Playwright (ou réutilisés si déjà actifs)
@@ -69,6 +79,13 @@ export default defineConfig({
     {
       command: 'pnpm --filter @nina-aes/admin dev',
       url: ADMIN_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: { NINA_AUTH_MODE: 'mock' },
+    },
+    {
+      command: 'pnpm --filter @nina-aes/governance dev',
+      url: GOVERNANCE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: { NINA_AUTH_MODE: 'mock' },
