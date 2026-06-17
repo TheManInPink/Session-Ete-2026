@@ -30,8 +30,16 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false, // séquentiel inter-projets (sinon les 2 webServers se marchent dessus)
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : 2,
+  // Démarrage à froid des serveurs Next (dev) : la 1re compilation App Router
+  // d'une route peut dépasser 30 s, et deux compilations concurrentes saturent
+  // la machine (d'où des ERR_CONNECTION_REFUSED observés à froid). On élargit
+  // donc les délais, on sérialise sur 1 worker (= vraiment « séquentiel
+  // inter-projets ») et on tolère 1 retry en local pour absorber les flakes
+  // d'hydratation (ex. LanguageSwitcher qui navigue avant la fin de l'hydratation).
+  timeout: 90_000,
+  expect: { timeout: 10_000 },
+  retries: process.env.CI ? 2 : 1,
+  workers: 1,
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
 
   use: {

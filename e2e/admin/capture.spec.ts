@@ -19,8 +19,8 @@ import { test } from '@playwright/test';
 // eslint-disable-next-line turbo/no-undeclared-env-vars -- var de test Playwright (runtime), hors globalEnv turbo
 test.skip(!process.env.CAPTURE, 'Spec de capture — lancer avec CAPTURE=1');
 
-/** Viewport « desktop soutenance » + animations réduites pour des captures nettes. */
-test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce', deviceScaleFactor: 2 });
+/** Viewport « desktop soutenance » (HD ×2) pour des captures nettes. */
+test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 
 const SHOTS: Array<{ name: string; route: string }> = [
   { name: 'ad-login-fr', route: '/fr/login' },
