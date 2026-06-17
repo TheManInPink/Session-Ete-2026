@@ -3,12 +3,56 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-13 (patch 0duodecies — api-gateway : terminaison
-> d'authentification au bord, `X-User-Context` signé JWS, rate limiting Redis, Swagger agrégé —
-> PROMPT 3.7)
+> **Dernière mise à jour** : 2026-06-17 (patch 0terdecies — Module IA : pipeline d'entraînement
+> reproductible `ai-models/training`, générateur de dataset restauré, intégration `ai-service`
+> (chargement + reload + scoring) — PROMPT 4.3)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0terdecies. Patch 2026-06-17 — Module IA : pipeline d'entraînement + générateur restauré + intégration `ai-service` (PROMPT 4.3)
+
+Passage de l'IA d'un **scaffold sans modèle** à un pipeline d'entraînement reproductible avec
+artefact exporté, évaluation, et `ai-service` qui **charge et score** réellement. **ADR :
+[ADR-030](./adr/ADR-030-ai-training-pipeline-bundle-dataset-generator.md).**
+
+**Livré** :
+
+- **`ai-models/training/`** (paquet `training`, Python 3.14, src-layout) : `nina.py` (décodage NINA,
+  parité vérifiée avec `packages/utils/nina.ts`), `data.py` (chargement + découpe stratifiée
+  60/20/20 reproductible, taxonomie canonique tolérante aux 2 schémas CSV), `features.py`
+  (`FeatureBuilder` fit/transform, **38 variables**, référentiels appris sur **train seul** =
+  anti-fuite), `train_xgboost.py` (GridSearchCV 5-fold, **bundle joblib auto-suffisant** +
+  `metadata.json`, MLflow optionnel → repli JSON, **porte qualité** `--min-f1/--min-auc`),
+  `train_anomaly.py` (Isolation Forest SIGAC, amorce Bloc D), `evaluate.py` (rapport HTML **SVG sans
+  dépendance**). **44 tests pytest** (33 training + 7 générateur + 4 ai-service réutilisés). Perfs
+  de référence (synthétique) : **TEST f1 ≈ 0.87, AUC binaire ≈ 0.99**.
+- **`ai-models/dataset-generator/`** : **RESTAURÉ** (source perdue par troncature ENOSPC — cf. §
+  incidents). Ré-écrit fidèlement (paquet `dataset_generator`), référentiel embarqué `catalog.json`
+  (régions NINA héritées 1-9) amorcé depuis le 1ᵉʳ dataset. Entrypoint réel
+  `python -m dataset_generator.generate --rows --output` ; `validate` + `export_reference` CLIs.
+- **Intégration `ai-service`** (`app/inference.py` + `app/main.py` + `app/config.py`) : chargement
+  du bundle au démarrage **non bloquant**, `GET /api/v1/ai/model-info`,
+  `POST /api/v1/ai/reload-models` (**gardé `X-Admin-Token`** si `AI_ADMIN_TOKEN`),
+  `POST /api/v1/ai/score` (503 si modèle absent). CORS piloté par config (jamais `*`+credentials).
+  `ModelRegistry` thread-safe + validation de forme.
+- **CI** : `.github/workflows/train-models.yml` (génération → tests → entraînement avec porte
+  qualité → Isolation Forest → rapport → publication d'artefacts). Python 3.14 (pas de spaCy ⇒
+  wheels cp314 OK).
+- **`.gitignore`** : `ai-models/exported/*.joblib` + `*.run.json` ignorés (régénérables) ;
+  `metadata.json` suivi ; `ai-models/datasets/*.csv` et rapports HTML ignorés ; `mlruns/`.
+
+**Revue** : double passe adversariale (2 workflows, 8 relecteurs) — 24 findings 1ʳᵉ passe + 5 de
+régression, tous traités ou explicitement hors-périmètre (Dockerfile, RBAC Keycloak, signature
+modèle — cf. ADR-030 § limites).
+
+**Incident** : la troncature à 0 octet du `dataset-generator` (et du
+`services/ai-service/src/main.py` mort) est cohérente avec la saturation disque `.turbo` (ENOSPC) —
+l'app vivante reste `app/main.py`.
+
+**Limites connues** : séparabilité synthétique élevée (perfs réelles RAVEC inférieures) ;
+`services/ai-service/Dockerfile` toujours cassé (lance `src.main:app` vide, base invalide) → à
+corriger doc 20 ; signature/checksum du bundle → doc 15.
 
 ### 0duodecies. Patch 2026-06-13 — `api-gateway` : auth au bord + rate limit Redis + Swagger agrégé (PROMPT 3.7)
 

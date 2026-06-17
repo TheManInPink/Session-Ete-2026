@@ -6,9 +6,10 @@
 >
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
-> **Dernière mise à jour** : 13 juin 2026 · **Status** : ✅ initialisé (27 docs + **29 ADRs** —
-> ADR-029 ajouté pour l'api-gateway : terminaison d'authentification au bord, `X-User-Context` signé
-> JWS, rate limiting Redis et Swagger agrégé — PROMPT 3.7).
+> **Dernière mise à jour** : 17 juin 2026 · **Status** : ✅ initialisé (27 docs + **30 ADRs** —
+> ADR-030 ajouté pour le module IA : pipeline d'entraînement `ai-models/training`, bundle joblib
+> auto-suffisant anti-fuite, générateur de dataset restauré et intégration `ai-service` — PROMPT
+> 4.3).
 
 ---
 

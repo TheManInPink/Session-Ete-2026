@@ -23,23 +23,32 @@ Service stateless — pas de BDD propre. Les corrections sont persistées via `i
 
 ## 2. Endpoints
 
-| Méthode | Chemin                    | Description                                         | Auth  |
-| ------- | ------------------------- | --------------------------------------------------- | ----- |
-| `POST`  | `/api/v1/ai/analyze`      | Analyse un lot de citoyens, propose des corrections | AGENT |
-| `GET`   | `/api/v1/ai/health`       | Liveness                                            | —     |
-| `GET`   | `/api/v1/ai/docs`         | OpenAPI / Swagger UI                                | —     |
-| `GET`   | `/api/v1/ai/openapi.json` | Schema OpenAPI                                      | —     |
+| Méthode | Chemin                     | Description                                             | Auth   |
+| ------- | -------------------------- | ------------------------------------------------------- | ------ |
+| `POST`  | `/api/v1/ai/score`         | Score un lot (étape 4 — XGBoost ; modèle chargé)        | AGENT  |
+| `GET`   | `/api/v1/ai/model-info`    | Métadonnées du modèle chargé (classes, métriques)       | —      |
+| `POST`  | `/api/v1/ai/reload-models` | Rechargement à chaud du modèle                          | ADMIN¹ |
+| `POST`  | `/api/v1/ai/analyze`       | Analyse complète (pipeline 5 étapes) — _à venir doc 11_ | AGENT  |
+| `GET`   | `/api/v1/ai/health`        | Liveness (+ `model_loaded`)                             | —      |
+| `GET`   | `/api/v1/ai/docs`          | OpenAPI / Swagger UI                                    | —      |
+| `GET`   | `/api/v1/ai/openapi.json`  | Schema OpenAPI                                          | —      |
+
+> ¹ `reload-models` exige l'en-tête `X-Admin-Token` **si** `AI_ADMIN_TOKEN` est défini (ouvert en
+> dev). À compléter par le rôle ADMIN Keycloak (doc 08). Modèle entraîné par
+> [`ai-models/training`](../../ai-models/training/README.md).
 
 ---
 
 ## 3. Variables d'environnement
 
-| Variable           | Défaut                  | Rôle                                  |
-| ------------------ | ----------------------- | ------------------------------------- |
-| `AI_SERVICE_PORT`  | `3003`                  | Port d'écoute HTTP                    |
-| `NODE_ENV` / `ENV` | `development`           | Active CORS permissif                 |
-| `API_GATEWAY_URL`  | `http://localhost:3000` | Endpoint pour rappel identity-service |
-| `VAULT_ADDR`       | (cf. `.env`)            | Récupération secrets (clés modèles)   |
+| Variable                 | Défaut                                 | Rôle                                        |
+| ------------------------ | -------------------------------------- | ------------------------------------------- |
+| `AI_SERVICE_PORT`        | `3003`                                 | Port d'écoute HTTP                          |
+| `AI_XGBOOST_BUNDLE_PATH` | `ai-models/exported/xgboost_v1.joblib` | Bundle modèle chargé au démarrage           |
+| `AI_ADMIN_TOKEN`         | _(vide)_                               | Si défini, exige `X-Admin-Token` sur reload |
+| `AI_CORS_ORIGINS`        | `["*"]`                                | Origines CORS (jamais `*` + credentials)    |
+| `API_GATEWAY_URL`        | `http://localhost:3000`                | Endpoint pour rappel identity-service       |
+| `VAULT_ADDR`             | (cf. `.env`)                           | Récupération secrets (clés modèles)         |
 
 ---
 

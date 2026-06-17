@@ -1,0 +1,141 @@
+# ═══════════════════════════════════════════════════════════════════
+# NINA-AES Platform — Pipeline d'entraînement des modèles IA
+# ═══════════════════════════════════════════════════════════════════
+# Déclenché par tout changement du générateur de dataset ou du pipeline
+# d'entraînement (+ déclenchement manuel). Chaîne :
+#   génération/localisation dataset → tests → entraînement (porte qualité)
+#   → évaluation → publication des artefacts.
+#
+# Conventions (cf. ci.yml + ADR-016) :
+#   - Python 3.14 : le pipeline training N'UTILISE PAS spaCy (fuzziness via
+#     rapidfuzz + jellyfish, wheels cp314 disponibles), donc pas besoin du
+#     repli 3.13 imposé aux services FastAPI.
+#   - Artefacts modèles publiés via upload-artifact (NON commités — cf.
+#     .gitignore : ai-models/exported/*.joblib).
+#
+# Cf. ai-models/training/README.md.
+# ═══════════════════════════════════════════════════════════════════
+
+name: train-models
+
+on:
+  push:
+    paths:
+      - 'ai-models/dataset-generator/**'
+      - 'ai-models/training/**'
+      - '.github/workflows/train-models.yml'
+  pull_request:
+    paths:
+      - 'ai-models/dataset-generator/**'
+      - 'ai-models/training/**'
+      - '.github/workflows/train-models.yml'
+  # Déclenchement manuel (onglet Actions → Run workflow).
+  workflow_dispatch:
+
+concurrency:
+  group: train-models-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    name: Génération · Entraînement · Évaluation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          # Clé de cache sur pyproject.toml : c'est le manifeste réellement résolu
+          # par `pip install -e .[dev]` (et non requirements.txt).
+          cache-dependency-path: ai-models/training/pyproject.toml
+
+      # ── Dépendances + installation editable du paquet `training` ──────────
+      - name: Install training package
+        working-directory: ai-models/training
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      # ── Tests unitaires (NINA decode + FeatureBuilder) ────────────────────
+      - name: Pytest (training)
+        working-directory: ai-models/training
+        run: pytest tests/ -v --tb=short
+
+      # ── 1. Génération ou localisation du dataset ──────────────────────────
+      # ai-models/dataset-generator est la SOURCE DE VÉRITÉ des données ; il est
+      # restauré et vérifié (entrypoint réel `python -m dataset_generator.generate
+      # --rows --output`, 7 tests pytest). Les CSV étant gitignorés, sur un runner
+      # propre ce step régénère le dataset. Le repli sur un CSV existant + le
+      # garde-fou « dataset absent » restent en place par robustesse.
+      - name: Génération / localisation du dataset
+        run: |
+          set -e
+          DATASET="ai-models/datasets/nina_synthetic_v1.csv"
+          if [ -f ai-models/dataset-generator/pyproject.toml ]; then
+            echo "Générateur détecté — installation + génération…"
+            pip install -e ai-models/dataset-generator \
+              || echo "::warning::Install du générateur échouée — repli sur CSV existant."
+            python -m dataset_generator.generate --rows 10000 --output "$DATASET" \
+              || echo "::warning::Exécution du générateur échouée — repli sur CSV existant."
+          fi
+          if [ ! -f "$DATASET" ]; then
+            echo "::error::Aucun dataset disponible. Committez une fixture sous \
+              ai-models/datasets/ ou restaurez ai-models/dataset-generator (source absente)."
+            exit 1
+          fi
+          LINES=$(wc -l < "$DATASET")
+          if [ "$LINES" -lt 100 ]; then
+            echo "::error::Dataset trop court ($LINES lignes) — génération probablement corrompue."
+            exit 1
+          fi
+          echo "Dataset : $DATASET ($LINES lignes)"
+
+      # ── 2. Entraînement XGBoost AVEC porte qualité (« tests qualité ») ─────
+      # Seuils calés sous les performances observées (TEST f1≈0.86, AUC≈0.99) :
+      # un effondrement de qualité fait échouer le job.
+      - name: Entraînement XGBoost + porte qualité
+        working-directory: ai-models/training
+        run: |
+          python -m training.train_xgboost \
+            --grid full --no-mlflow \
+            --min-f1 0.80 --min-auc 0.95
+
+      # ── 3. Entraînement Isolation Forest (SIGAC) ──────────────────────────
+      - name: Entraînement Isolation Forest (SIGAC)
+        working-directory: ai-models/training
+        run: python -m training.train_anomaly --n-agents 800 --contamination 0.05
+
+      # ── 4. Rapport d'évaluation HTML ──────────────────────────────────────
+      - name: Évaluation (rapport HTML)
+        working-directory: ai-models/training
+        run: python -m training.evaluate
+
+      # ── 5. Publication des artefacts ──────────────────────────────────────
+      - name: Upload des modèles exportés
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nina-models
+          path: |
+            ai-models/exported/*.joblib
+            ai-models/exported/*.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload du rapport d'évaluation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-report
+          path: ai-models/evaluation/*.html
+          retention-days: 30
+          if-no-files-found: warn

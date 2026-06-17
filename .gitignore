@@ -124,6 +124,29 @@ ai-models/models/*.h5
 ai-models/models/*.pt
 *.onnx
 
+# Modèles exportés par ai-models/training (régénérables — cf. train-models.yml).
+# Les binaires sont ignorés ; metadata.json reste suivi (petite « model card »).
+ai-models/exported/*.joblib
+ai-models/exported/*.run.json
+!ai-models/exported/.gitkeep
+!ai-models/exported/*.metadata.json
+!ai-models/exported/metadata.json
+
+# Rapports d'évaluation HTML (régénérables via training.evaluate).
+ai-models/evaluation/*.html
+!ai-models/evaluation/.gitkeep
+
+# Datasets synthétiques (générés par dataset-generator / train_anomaly).
+ai-models/datasets/*.csv
+!ai-models/datasets/.gitkeep
+
+# MLflow (store local de tracking).
+mlruns/
+ai-models/training/mlruns/
+
+# Packaging editable Python.
+*.egg-info/
+
 # ── Données ──
 *.sql.bak
 *.dump

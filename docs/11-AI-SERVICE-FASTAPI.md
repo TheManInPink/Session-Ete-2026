@@ -8,7 +8,18 @@
 > [06 — Schema Prisma](./06-DATABASE-SCHEMA-PRISMA.md) ·
 > [07 — Identity](./07-BACKEND-IDENTITY-SERVICE.md) **ADR** :
 > [ADR-004 — FastAPI](./adr/ADR-004-fastapi.md) ·
-> [ADR-015 — Stack ML/NLP](./adr/ADR-015-ml-stack-detection-erreurs-nina.md)
+> [ADR-015 — Stack ML/NLP](./adr/ADR-015-ml-stack-detection-erreurs-nina.md) ·
+> [ADR-030 — Pipeline d'entraînement + bundle](./adr/ADR-030-ai-training-pipeline-bundle-dataset-generator.md)
+
+> ✅ **Mise à jour PROMPT 4.3 (2026-06-17)** — Le pipeline d'entraînement est **livré** hors de ce
+> document, dans [`ai-models/training/`](../ai-models/training/README.md) (XGBoost multi-classes,
+> `FeatureBuilder` anti-fuite, bundle joblib auto-suffisant, éval HTML SVG) et son générateur de
+> données [`ai-models/dataset-generator/`](../ai-models/dataset-generator/README.md). Le
+> `ai-service` **charge le bundle au démarrage** et expose `GET /api/v1/ai/model-info`,
+> `POST /api/v1/ai/reload-models` (gardé `X-Admin-Token`) et `POST /api/v1/ai/score`. Les sections
+> ci-dessous (pipeline 5 étapes, dataset, `/analyze`) restent la **cible pédagogique complète** ;
+> l'implémentation effective et ses décisions sont tracées dans **ADR-030** et le CHANGELOG (patch
+> 0terdecies). En cas de divergence, **le code et l'ADR font foi**.
 
 ---
 

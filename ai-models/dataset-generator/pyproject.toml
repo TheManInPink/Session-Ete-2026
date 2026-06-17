@@ -1,0 +1,38 @@
+[project]
+name = "nina-aes-dataset-generator"
+version = "1.0.0"
+description = "Générateur de dataset synthétique NINA (reconstruction) — alimente ai-models/training"
+authors = [{ name = "Étudiant UQAR" }]
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.3.5",
+    "pandas>=2.3.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.0.3", "ruff>=0.11.0"]
+
+[project.scripts]
+nina-generate = "dataset_generator.generate:main"
+nina-validate = "dataset_generator.validate:main"
+nina-export-reference = "dataset_generator.export_reference:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# Le référentiel embarqué doit voyager avec le paquet.
+dataset_generator = ["catalog.json"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
