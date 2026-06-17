@@ -13,8 +13,10 @@ import { Badge } from '@nina-aes/ui/components/badge';
 import { Button } from '@nina-aes/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
+import { Separator } from '@nina-aes/ui/components/separator';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { UserRound } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
@@ -49,53 +51,86 @@ export default async function CitizenPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <nav className="mb-6 text-sm text-fg-muted">
+      {/* Fil d'Ariane */}
+      <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-2 text-sm text-fg-muted">
         <Link href={`/${locale}`} className="hover:text-fg">
-          ←&nbsp;{tCommon('back')}
+          {t('breadcrumbHome')}
         </Link>
+        <span aria-hidden="true">/</span>
+        <span className="text-fg">{t('breadcrumbCurrent')}</span>
       </nav>
 
       <Alert variant="warning" className="mb-6">
-        <AlertTitle>Mode démonstration</AlertTitle>
-        <AlertDescription>
-          Le backend identity-service n&apos;est pas encore connecté (cf. doc 07). Les données
-          affichées ci-dessous sont dérivées du NINA lui-même (structure interne).
-        </AlertDescription>
+        <AlertTitle>{t('demoTitle')}</AlertTitle>
+        <AlertDescription>{t('demoBody')}</AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="text-2xl">Citoyen ML-{demoData.region}</CardTitle>
-              <p className="mt-1 font-mono text-sm text-fg-muted">{demoData.formatted}</p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-center gap-4">
+              {/* Emplacement photo (mode démo — pas de cliché disponible) */}
+              <div
+                className="flex h-24 w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-border bg-primary-50 text-fg-muted"
+                role="img"
+                aria-label={t('photoCaption')}
+              >
+                <UserRound className="size-9" aria-hidden="true" />
+                <span className="px-1 text-center text-[10px] leading-tight">{t('noPhoto')}</span>
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Citoyen ML-{demoData.region}</CardTitle>
+                <p className="mt-1 font-mono text-sm text-fg-muted">{demoData.formatted}</p>
+                <Badge variant="success" size="md" className="mt-2">
+                  <span aria-hidden="true">✓</span> {t('ninaValid')}
+                </Badge>
+              </div>
             </div>
-            <Badge variant="success" size="md">
-              <span aria-hidden="true">✓</span> NINA valide
-            </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-            <Field label={t('sex')}>{demoData.sex === 'M' ? 'Masculin' : 'Féminin'}</Field>
-            <Field label={t('birthDate')}>
-              {demoData.moisNaissance}/19{demoData.anneeNaissance} (estimation depuis NINA)
-            </Field>
-            <Field label="Code région">ML-{demoData.region}</Field>
-            <Field label="Code cercle">{demoData.cercle}</Field>
-            <Field label="Code commune">{demoData.commune}</Field>
-            <Field label="Lettre de contrôle">
-              <code className="font-mono">{parsed.lettreControle}</code>
-            </Field>
-          </dl>
+        <CardContent className="space-y-6">
+          <section>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-fg-muted">
+              {t('sectionIdentity')}
+            </h2>
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+              <Field label={t('sex')}>{demoData.sex === 'M' ? t('sexM') : t('sexF')}</Field>
+              <Field label={t('birthDate')}>
+                {demoData.moisNaissance}/19{demoData.anneeNaissance}{' '}
+                <span className="text-xs text-fg-muted">({t('estimated')})</span>
+              </Field>
+            </dl>
+          </section>
+
+          <Separator />
+
+          <section>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-fg-muted">
+              {t('sectionLocation')}
+            </h2>
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+              <Field label={t('regionCode')}>ML-{demoData.region}</Field>
+              <Field label={t('cercleCode')}>{demoData.cercle}</Field>
+              <Field label={t('communeCode')}>{demoData.commune}</Field>
+              <Field label={t('checksum')}>
+                <code className="font-mono">{parsed.lettreControle}</code>
+              </Field>
+            </dl>
+          </section>
         </CardContent>
       </Card>
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Button asChild>
-          <Link href={`/${locale}/corrections/new?nina=${nina}`}>{t('requestCorrection')}</Link>
+          <Link href={`/${locale}/nina/${nina}/correction`}>{t('requestCorrection')}</Link>
         </Button>
         <Button asChild variant="outline">
+          <Link href={`/${locale}/appointments/new?nina=${nina}`}>{t('bookAppointment')}</Link>
+        </Button>
+        <Button variant="outline" disabled title={t('downloadPdfHint')}>
+          {t('downloadPdf')}
+        </Button>
+        <Button asChild variant="ghost">
           <Link href={`/${locale}`}>{tCommon('back')}</Link>
         </Button>
       </div>

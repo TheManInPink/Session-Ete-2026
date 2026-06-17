@@ -19,6 +19,8 @@ const withNextIntl = createNextIntlPlugin('../../packages/i18n/src/request.ts');
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Masque l'indicateur de dev Next.js (pour des captures de soutenance propres).
+  devIndicators: false,
   // Transpilation des packages workspace (TypeScript source non précompilé)
   transpilePackages: [
     '@nina-aes/ui',

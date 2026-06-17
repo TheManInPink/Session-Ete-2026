@@ -8,12 +8,14 @@
  *
  *              **Mode démo** : si aucune API n'est joignable, on simule un succès
  *              et on redirige vers `/dashboard` avec un message toast simulé.
+ *              L'étape 3 (justificatif) valide le fichier localement mais ne
+ *              l'envoie pas (document-service non connecté, cf. doc 10).
  * @module      @nina-aes/citizen
  */
 
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, useRef, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@nina-aes/ui/components/button';
@@ -21,7 +23,17 @@ import { Input } from '@nina-aes/ui/components/input';
 import { Label } from '@nina-aes/ui/components/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
-import { Check, ChevronLeft, ChevronRight, Send, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Loader2,
+  AlertCircle,
+  UploadCloud,
+  FileText,
+  X,
+} from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
 import type { CorrectionField } from '@nina-aes/api-client';
 
@@ -42,6 +54,10 @@ const CORRECTABLE_FIELDS: CorrectionField[] = [
   'motherName',
   'profession',
 ];
+
+/** Types MIME acceptés pour un justificatif + taille maximale (5 Mo). */
+const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const MAX_SIZE = 5 * 1024 * 1024;
 
 interface WizardState {
   step: 1 | 2 | 3 | 4;
@@ -66,11 +82,48 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, startTransition] = useTransition();
 
+  // ── Justificatif (étape 3) — upload mock : validé localement, jamais envoyé ─
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const setField = (field: CorrectionField) => setState((s) => ({ ...s, field }));
   const next = () =>
     setState((s) => ({ ...s, step: Math.min(4, s.step + 1) as WizardState['step'] }));
   const prev = () =>
     setState((s) => ({ ...s, step: Math.max(1, s.step - 1) as WizardState['step'] }));
+
+  /** Valide puis « accepte » localement un fichier (aucun appel réseau). */
+  const handleFiles = (list: FileList | null) => {
+    setUploadError(null);
+    const f = list?.[0];
+    if (!f) return;
+    if (!ACCEPTED_TYPES.includes(f.type)) {
+      setUploadError(t('steps.3.errorFormat'));
+      return;
+    }
+    if (f.size > MAX_SIZE) {
+      setUploadError(t('steps.3.errorSize'));
+      return;
+    }
+    setFile(f);
+    setState((s) => ({ ...s, justificationDocUrl: `mock://${f.name}` }));
+  };
+
+  /** Retire le justificatif sélectionné. */
+  const clearFile = () => {
+    setFile(null);
+    setUploadError(null);
+    setState((s) => ({ ...s, justificationDocUrl: null }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  /** Formate une taille d'octets en Ko/Mo lisible. */
+  const formatSize = (bytes: number) =>
+    bytes >= 1024 * 1024
+      ? `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+      : `${Math.max(1, Math.round(bytes / 1024))} Ko`;
 
   const canContinue =
     (state.step === 1 && state.field !== null) ||
@@ -192,19 +245,71 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
           </>
         )}
 
-        {/* ── Étape 3 — Justificatif (optionnel pour MVP) ─────────────────── */}
+        {/* ── Étape 3 — Justificatif (upload mock, fichier non envoyé) ─────── */}
         {state.step === 3 && (
           <>
             <CardHeader>
               <CardTitle>{t('steps.3.title')}</CardTitle>
               <p className="text-sm text-fg-muted">{t('steps.3.subtitle')}</p>
             </CardHeader>
-            <CardContent>
-              <Alert>
-                <AlertCircle className="size-4" aria-hidden="true" />
-                <AlertTitle>{t('steps.3.placeholderTitle')}</AlertTitle>
-                <AlertDescription>{t('steps.3.placeholderBody')}</AlertDescription>
-              </Alert>
+            <CardContent className="space-y-3">
+              {/* Input fichier réel, masqué — déclenché par la zone ci-dessous. */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                className="sr-only"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+
+              {!file ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    handleFiles(e.dataTransfer.files);
+                  }}
+                  className={cn(
+                    'flex w-full flex-col items-center justify-center gap-2 rounded-base border-2 border-dashed p-8 text-center transition-colors',
+                    'hover:border-primary hover:bg-primary-50/30',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    isDragging ? 'border-primary bg-primary-50/50' : 'border-border',
+                  )}
+                >
+                  <UploadCloud className="size-8 text-fg-muted" aria-hidden="true" />
+                  <span className="font-medium">{t('steps.3.dropPrompt')}</span>
+                  <span className="text-xs text-fg-muted">{t('steps.3.formats')}</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-3 rounded-base border border-border bg-primary-50/30 p-4">
+                  <FileText className="size-8 shrink-0 text-primary" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-fg-muted">{t('steps.3.selectedLabel')}</p>
+                    <p className="truncate font-medium">{file.name}</p>
+                    <p className="text-xs text-fg-muted">{formatSize(file.size)}</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" onClick={clearFile}>
+                    <X className="size-4" aria-hidden="true" />
+                    {t('steps.3.remove')}
+                  </Button>
+                </div>
+              )}
+
+              {uploadError && (
+                <Alert variant="danger">
+                  <AlertCircle className="size-4" aria-hidden="true" />
+                  <AlertDescription>{uploadError}</AlertDescription>
+                </Alert>
+              )}
+
+              <p className="text-xs text-fg-muted">{t('steps.3.demoNote')}</p>
             </CardContent>
           </>
         )}
@@ -225,6 +330,8 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
                 <dd className="font-medium">{state.proposedValue}</dd>
                 <dt className="text-fg-muted">{t('summary.reason')}</dt>
                 <dd className="whitespace-pre-wrap">{state.reason}</dd>
+                <dt className="text-fg-muted">{t('summary.justification')}</dt>
+                <dd className="font-medium">{file ? file.name : t('summary.justificationNone')}</dd>
               </dl>
               <Alert>
                 <AlertTitle>{t('summary.processingTitle')}</AlertTitle>

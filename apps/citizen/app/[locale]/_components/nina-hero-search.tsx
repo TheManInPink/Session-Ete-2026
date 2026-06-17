@@ -33,14 +33,20 @@ export function NinaHeroSearch() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3 sm:flex sm:gap-3 sm:space-y-0" noValidate>
       <div className="flex-1">
-        <NinaInput value={nina} onChange={setNina} autoFocus />
+        <NinaInput
+          value={nina}
+          onChange={setNina}
+          autoFocus
+          label={t('ninaLabel')}
+          helper={t('help')}
+        />
       </div>
       <Button
         type="submit"
         size="lg"
         disabled={!isValid}
         loading={submitting}
-        className="w-full sm:w-auto"
+        className="w-full sm:w-auto sm:min-w-32"
       >
         {t('submit')}
       </Button>
