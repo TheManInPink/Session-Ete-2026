@@ -21,7 +21,7 @@ export function KpiCard({ snapshot, locale }: { snapshot: KpiSnapshot; locale: s
   const isGood = positiveIsGood ? isUp : !isUp;
 
   const inner = (
-    <Card className="h-full transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring">
+    <Card className="h-full transition-shadow hover:shadow-md">
       <CardContent className="p-4">
         <p className="text-xs font-medium uppercase tracking-wide text-fg-muted">
           {t(snapshot.key)}
@@ -57,7 +57,7 @@ export function KpiCard({ snapshot, locale }: { snapshot: KpiSnapshot; locale: s
     return (
       <Link
         href={`/${locale}/${snapshot.drillTo}`}
-        className="block focus:outline-none"
+        className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label={`${t(snapshot.key)} — drill down`}
       >
         {inner}

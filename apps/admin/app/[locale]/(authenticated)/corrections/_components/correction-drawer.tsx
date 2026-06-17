@@ -74,6 +74,8 @@ export function CorrectionDrawer({ correction, open, onOpenChange, onDecision }:
   };
 
   const decided = correction.status === 'APPROVED' || correction.status === 'REJECTED';
+  // Le motif est invalide seulement après saisie (évite une erreur au champ vide initial).
+  const reasonTooShort = rejectReason.length > 0 && rejectReason.trim().length < 5;
 
   return (
     <Sheet open={open} onOpenChange={closeWithReset}>
@@ -164,7 +166,11 @@ export function CorrectionDrawer({ correction, open, onOpenChange, onDecision }:
             className={cn('sticky bottom-0 bg-bg-card', rejectMode && 'flex-col items-stretch')}
           >
             {rejectMode ? (
-              <form onSubmit={handleRejectSubmit} className="w-full space-y-3">
+              <form
+                onSubmit={handleRejectSubmit}
+                className="w-full space-y-3"
+                aria-busy={isPending}
+              >
                 <div>
                   <Label htmlFor="reject-reason">{t('drawer.rejectReason')}</Label>
                   <textarea
@@ -175,8 +181,23 @@ export function CorrectionDrawer({ correction, open, onOpenChange, onDecision }:
                     rows={3}
                     minLength={5}
                     required
-                    className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    disabled={isPending}
+                    aria-invalid={reasonTooShort}
+                    aria-describedby={reasonTooShort ? 'reject-reason-error' : undefined}
+                    className={cn(
+                      'mt-1 flex w-full rounded-base border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60',
+                      reasonTooShort ? 'border-danger' : 'border-border',
+                    )}
                   />
+                  {reasonTooShort && (
+                    <p
+                      id="reject-reason-error"
+                      role="alert"
+                      className="mt-1 text-xs text-danger-700"
+                    >
+                      {t('drawer.rejectReasonError')}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2 sm:justify-end">
                   <Button

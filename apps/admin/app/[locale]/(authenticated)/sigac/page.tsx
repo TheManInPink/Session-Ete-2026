@@ -23,6 +23,8 @@ import {
 import { MaliHeatmap } from '@nina-aes/ui/components/charts/mali-heatmap';
 import { IntegrityGauge } from '@nina-aes/ui/components/charts/integrity-gauge';
 import { Button } from '@nina-aes/ui/components/button';
+import { cn } from '@nina-aes/ui/lib/utils';
+import { AlertTriangle } from 'lucide-react';
 import maliPolygons from '../../../../../../data/mali/mali-regions-polygons.json';
 import { requireRole } from '../../../../lib/auth/session';
 import { ALERTS_BY_REGION, TOP_AGENTS, INITIAL_ALERTS } from '../../../../lib/mock-dashboard';
@@ -73,23 +75,40 @@ export default async function SigacPage({ params }: PageProps) {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {TOP_AGENTS.map((agent) => (
-                <li key={agent.id} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <IntegrityGauge name={agent.name} score={agent.score} />
-                    <p className="ml-[156px] mt-0.5 text-xs text-fg-muted">
-                      {agent.centerCode} · {agent.matricule}
-                    </p>
-                  </div>
-                  {agent.score < 70 && (
-                    <Button asChild variant="outline" size="sm">
-                      <a href={`/${locale}/sigac/agent/${agent.id}`}>
-                        {t('topAgents.investigate')}
-                      </a>
-                    </Button>
-                  )}
-                </li>
-              ))}
+              {TOP_AGENTS.map((agent) => {
+                const atRisk = agent.score < 70;
+                return (
+                  <li
+                    key={agent.id}
+                    className={cn(
+                      'flex items-center gap-3 rounded-base',
+                      atRisk && 'border-l-2 border-danger bg-danger-50/50 py-1.5 pl-2 pr-1',
+                    )}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {atRisk && (
+                          <AlertTriangle
+                            className="size-4 shrink-0 text-danger"
+                            aria-label={t('topAgents.atRisk')}
+                          />
+                        )}
+                        <IntegrityGauge name={agent.name} score={agent.score} />
+                      </div>
+                      <p className="ml-[156px] mt-0.5 text-xs text-fg-muted">
+                        {agent.centerCode} · {agent.matricule}
+                      </p>
+                    </div>
+                    {atRisk && (
+                      <Button asChild variant="outline" size="sm">
+                        <a href={`/${locale}/sigac/agent/${agent.id}`}>
+                          {t('topAgents.investigate')}
+                        </a>
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </CardContent>
         </Card>

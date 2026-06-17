@@ -49,6 +49,7 @@ import {
   ChevronRight,
   MoreHorizontal,
   Search,
+  SearchX,
   X,
 } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
@@ -228,6 +229,10 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
   );
 
   // ── Table TanStack
+  // TanStack Table renvoie des fonctions non-mémoïsables : le React Compiler
+  // saute volontairement la mémoïsation de ce composant (comportement attendu,
+  // sans impact UI ici car l'état est piloté par useState/useTransition).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
@@ -448,11 +453,28 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
             <tbody>
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={columns.length}
-                    className="px-3 py-10 text-center text-sm text-fg-muted"
-                  >
-                    {t('empty')}
+                  <td colSpan={columns.length} className="px-3 py-12">
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <span className="flex size-12 items-center justify-center rounded-full bg-bg-muted text-fg-muted">
+                        <SearchX className="size-6" aria-hidden="true" />
+                      </span>
+                      <p className="text-sm font-medium text-fg">{t('emptyTitle')}</p>
+                      <p className="max-w-sm text-sm text-fg-muted">{t('emptyHint')}</p>
+                      {activeFilterCount > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1"
+                          onClick={() => {
+                            setColumnFilters([]);
+                            setGlobalFilter('');
+                          }}
+                        >
+                          <X className="size-4" aria-hidden="true" />
+                          {t('filters.reset')}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
