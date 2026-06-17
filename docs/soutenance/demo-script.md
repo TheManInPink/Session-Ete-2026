@@ -18,7 +18,7 @@ UQAR).
 
 | Phase                              | Durée cible | Ce qu'on montre                                                               |
 | ---------------------------------- | ----------- | ----------------------------------------------------------------------------- |
-| Préparation (T-10 min)             | 10 min      | `.env.local`, `pnpm install`, lancement des 2 apps                            |
+| Préparation (T-10 min)             | 10 min      | `.env.local`, `pnpm install`, lancement des 3 apps                            |
 | Parcours CITOYEN                   | ~7 min      | PC-01 → PC-02 → PC-03 → PC-04 → PC-05 → PC-06                                 |
 | Parcours ADMIN                     | ~4 min      | Dashboard → Corrections → SIGAC                                               |
 | Gouvernance                        | ~2 min      | GOV-01 messagerie signée (Ed25519) + GOV-02 directives (Kanban drag-and-drop) |
@@ -93,8 +93,13 @@ pnpm run dev:citizen
 pnpm run dev:admin
 ```
 
+```
+pnpm run dev:governance
+```
+
 - **citizen** → http://localhost:4001
 - **admin** → http://localhost:4002
+- **governance** → http://localhost:4003
 
 Attendre que les deux serveurs Next.js affichent « Ready » avant d'ouvrir le navigateur. Pré-charger
 les deux onglets et faire un premier passage complet à blanc (la première compilation App Router est
@@ -136,28 +141,35 @@ chiffres + 1 lettre de contrôle). Toutes les routes sont préfixées `/fr`.
 ### Étape C3 — PC-02 Fiche NINA (≈1 min 30)
 
 - **Route :** `/fr/nina/18903102015042V`
-- **Ce qu'on montre :** la fiche d'identité numérique du citoyen, les attributs d'état civil, et
-  surtout le **QR code sécurisé**.
-- **Ce qu'on dit :** « Le QR ne contient plus le NINA en clair — c'est un **JWT signé RS256**. On
-  corrige une faille classique : un QR scannable ne divulgue aucune donnée personnelle, il prouve
-  seulement une signature. »
-- **Interaction :** ouvrir le **drawer / modal de détail du QR** pour montrer qu'il s'agit d'un
-  jeton signé (et non du numéro en clair).
-- **Note honnête :** PC-02 est à ~45 % ; rester sur les éléments finis (en-tête fiche, QR). Ne pas
-  ouvrir d'onglet inachevé.
+- **Ce qu'on montre :** la fiche d'identité reconstruite **déterministe** depuis le NINA (couture
+  `@nina-aes/api-client`) : fil d'Ariane, emplacement photo (initiales), sections **Identité**,
+  **Filiation** et **Localisation (codes NINA décodés)**, bannière « mode démo » assumée en tête.
+- **Ce qu'on dit :** « La fiche affiche une identité structurée et lisible. Le même NINA produit
+  toujours la même fiche — la démo est rejouable. Le profil complet avec photo et le **QR sécurisé
+  (JWT RS256, jamais le NINA en clair)** seront émis par identity-service / document-service : la
+  conception est tranchée, le branchement ne touche pas l'écran. »
+- **Interaction :** dérouler les sections (Identité → Filiation → Localisation) ; pointer les
+  boutons d'action (« Demander une correction », « Prendre un rendez-vous ») et le bouton **PDF
+  désactivé** avec son infobulle (honnêteté : document-service non connecté).
+- **Note honnête :** PC-02 a été enrichie en S2 — c'est une **fiche finie en lecture seule**. Aucun
+  QR n'est affiché à l'écran (annoncé comme à venir) : **ne pas en chercher un**.
 
-### Étape C4 — PC-03 Wizard de correction avec score IA (≈1 min 30)
+### Étape C4 — PC-03 Wizard de correction (≈1 min 30)
 
 - **Route :** `/fr/nina/18903102015042V/correction`
-- **Ce qu'on montre :** l'assistant pas-à-pas de correction d'une erreur d'état civil, avec un
-  **score IA live (mock déterministe)** qui évalue la cohérence du champ saisi.
-- **Ce qu'on dit :** « Quand le citoyen corrige une donnée, un modèle de détection d'incohérences
-  calcule en direct un score de confiance. Ici, c'est un score mock déterministe : il met en scène
-  la fonctionnalité IA (objectif O2) sans dépendre du service IA. »
-- **Interaction :** modifier un champ dans le wizard pour **déclencher le recalcul du score** ;
-  avancer d'une étape pour montrer la progression du wizard.
-- **Note honnête :** PC-03 est à ~45 % ; dérouler 1 à 2 étapes max, ne pas aller jusqu'à une
-  soumission qui n'existe pas.
+- **Ce qu'on montre :** l'assistant **4 étapes** (stepper visuel) de correction d'une donnée d'état
+  civil : (1) choix du champ parmi 9, (2) nouvelle valeur + motif, (3) **dépôt du justificatif en
+  glisser-déposer** (validation format/taille PDF·JPG·PNG 5 Mo), (4) récapitulatif avant envoi.
+- **Ce qu'on dit :** « La correction est un parcours guidé pour des usagers peu familiers du
+  numérique (objectif O2). Le justificatif est validé localement ; en production il partira vers
+  document-service. L'analyse d'incohérence par l'IA s'insère côté agent, sur la couture existante.
+  »
+- **Interaction :** choisir « Nom de famille » → étape 2 (saisir une valeur + un motif ≥ 10
+  caractères pour débloquer « Suivant ») → étape 3 (**déposer un fichier** dans la zone d'upload) →
+  étape 4 récapitulatif. La soumission **mock** redirige vers le tableau de bord (`?submitted=1`).
+- **Note honnête :** le wizard est **complet de bout en bout en mock** (4 étapes + soumission
+  simulée). Il n'y a **pas** de score IA dans cet écran — ne pas l'annoncer : l'IA est un chantier
+  agent/backend.
 
 ### Étape C5 — PC-04 Prise de rendez-vous (≈1 min)
 
@@ -165,11 +177,12 @@ chiffres + 1 lettre de contrôle). Toutes les routes sont préfixées `/fr`.
 - **Ce qu'on montre :** la sélection d'un centre, d'une date et d'un créneau horaire.
 - **Ce qu'on dit :** « Le citoyen peut planifier un passage physique au CTDEC. Les créneaux sont
   générés par la couche mock — en production, c'est le service rendez-vous (port 3008). »
-- **Interaction :** sélectionner une date pour faire apparaître les créneaux ; sélectionner un
-  créneau et montrer le récapitulatif.
-- **Note honnête :** PC-04 est à ~50 %. Les créneaux mock (`generateMockSlots`) sont encore en dur
-  dans le composant — chantier de rapatriement derrière la couture `@nina-aes/api-client` (S1-S2), à
-  mentionner si le jury technique creuse.
+- **Interaction :** choisir un centre, sélectionner un créneau (**groupés par jour**), saisir un
+  motif, puis **« Confirmer le rendez-vous »** → une **modale de confirmation** s'ouvre avec le
+  récapitulatif (centre, date, n° de file, référence) et un **QR de rendez-vous** (aperçu démo).
+- **Note honnête :** PC-04 est fonctionnel en mock (créneaux groupés par jour + modale de
+  confirmation avec QR de démo, S3/S8). Les créneaux restent générés en dur dans le composant —
+  rapatriement derrière la couture `@nina-aes/api-client` à mentionner si le jury technique creuse.
 
 ### Étape C6 — PC-05 Dashboard / Suivi (≈1 min)
 
@@ -214,8 +227,9 @@ ouvre une session « agent CTDEC fictif ».
 - **Ce qu'on dit :** « Voici le poste de travail de l'agent CTDEC : volumétrie des corrections,
   priorités, état du service. »
 - **Interaction :** parcourir les cartes d'indicateurs.
-- **Note honnête :** AD-01 est à ~95 % — écran vitrine, à montrer avec assurance. Éviter les liens «
-  Rendez-vous » et « Paramètres » (encore morts, à stubber S4).
+- **Note honnête :** AD-01 est un écran vitrine, à montrer avec assurance. Les liens « Rendez-vous »
+  et « Paramètres » mènent désormais à des **stubs honnêtes** « module en préparation » (S4) — plus
+  aucun lien mort ; on peut les ouvrir brièvement pour prouver la cohérence de navigation.
 
 ### Étape A2 — AD-02 Gestion des corrections : approuver une ligne (≈1 min 30)
 
@@ -353,9 +367,10 @@ Nommage réel des captures gelées (S9 — 23 fichiers ; inventaire complet dans
 - [ ] `apps/admin/.env.local` présent avec les mêmes trois variables de démo.
 - [ ] `pnpm run dev:citizen` (4001) et `pnpm run dev:admin` (4002) lancés ; **passage complet à
       blanc** du script citoyen + admin (purge les cold starts).
-- [ ] Toutes les **captures de secours** à jour dans `docs/soutenance/screenshots/` (cf. 7.1) — y
-      compris la variante `-bm` de PC-02.
-- [ ] Route IA PC-03 vérifiée : le **score mock** se recalcule bien à la modification d'un champ.
+- [ ] Les **23 captures de secours** à jour dans `docs/soutenance/screenshots/` (cf. 7.1),
+      indicateur dev masqué.
+- [ ] Wizard PC-03 vérifié : les **4 étapes** s'enchaînent et le **dépôt de justificatif** (glisser-
+      déposer) accepte un PDF/JPG/PNG.
 - [ ] **Governance** lancée et chaude (`pnpm run dev:governance`, port 4003) : `/fr/messagerie` et
       `/fr/directives` pré-ouvertes.
 - [ ] Navigateur réglé : fenêtre 1440 px, zoom 100 %, mode clair, langue FR, favoris masqués.
