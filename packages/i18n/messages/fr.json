@@ -55,6 +55,13 @@
       "mother": "Mère",
       "profession": "Profession",
       "maritalStatus": "Situation matrimoniale",
+      "maritalSINGLE": "Célibataire",
+      "maritalMARRIED": "Marié(e)",
+      "maritalDIVORCED": "Divorcé(e)",
+      "maritalWIDOWED": "Veuf / Veuve",
+      "sectionFamily": "Filiation",
+      "syntheticBadge": "Données synthétiques",
+      "region": "Région",
       "regionCode": "Code région",
       "cercleCode": "Code cercle",
       "communeCode": "Code commune",
@@ -159,7 +166,7 @@
     "new": {
       "title": "Prendre un rendez-vous",
       "subtitle": "Choisissez un centre CTDEC ou une antenne mobile RAVEC.",
-      "priorityBadge": "🟢 File prioritaire activée (vulnérabilité)",
+      "priorityBadge": "File prioritaire activée (vulnérabilité)",
       "formTitle": "Détails du rendez-vous",
       "formHelp": "Sélectionnez un centre, un créneau et précisez le motif."
     },
@@ -273,6 +280,7 @@
       "body": "Votre signalement a bien été reçu. L'auditeur SIGAC en charge de l'instruction sera notifié.",
       "tokenLabel": "Token de suivi anonyme",
       "copy": "Copier le token",
+      "copied": "Copié !",
       "warningTitle": "⚠ Conservez ce token précieusement",
       "warningBody": "Il vous permet de suivre l'instruction sans révéler votre identité. Si vous le perdez, vous ne pourrez plus consulter le statut de votre signalement."
     },
@@ -353,6 +361,7 @@
       "alertsFeedTitle": "Alertes récentes",
       "alertsFeedLive": "Flux temps réel",
       "alertsFeedEmpty": "Aucune alerte active.",
+      "alertsFeedNew": "Nouvelle alerte",
       "quickActionsTitle": "Accès rapides",
       "quickActions": {
         "corrections": {
@@ -404,7 +413,8 @@
         "title": "Top 10 agents — score d'intégrité",
         "subtitle": "Score IA basé sur 30 derniers jours d'activité",
         "centerLabel": "Centre",
-        "investigate": "Investiguer"
+        "investigate": "Investiguer",
+        "atRisk": "Agent à risque — score sous le seuil de vigilance"
       },
       "feed": {
         "title": "Flux d'alertes",
@@ -497,7 +507,8 @@
         "approve": "Approuver",
         "reject": "Rejeter",
         "rejectReason": "Motif de rejet (visible par le citoyen)",
-        "rejectReasonPlaceholder": "Expliquez brièvement la raison du rejet — le citoyen verra ce texte."
+        "rejectReasonPlaceholder": "Expliquez brièvement la raison du rejet — le citoyen verra ce texte.",
+        "rejectReasonError": "Minimum 5 caractères requis."
       },
       "timeline": {
         "label": "Historique de la demande",
@@ -510,6 +521,8 @@
         "rejected": "Rejetée"
       },
       "empty": "Aucune demande ne correspond à vos filtres.",
+      "emptyTitle": "Aucune correction ne correspond",
+      "emptyHint": "Ajustez ou réinitialisez les filtres pour élargir la recherche.",
       "pagination": {
         "showing": "Affichage de {from}–{to} sur {total}",
         "prev": "Précédent",
