@@ -217,17 +217,18 @@ citoyen.]
 
 - **Français : 100 %** — la langue de la démo, soignée de bout en bout.
 - **Bambara : langue vitrine** — démontre que l'architecture i18n fonctionne réellement en langue
-  locale (finalisation en cours).
+  locale (accueil PC-01 livré ; extension aux autres écrans post-remise).
 - **6 autres langues** : structure i18n en place + **repli automatique vers le français** — le
   squelette est prêt, le contenu se complète ensuite.
 - Message au jury : _« FR livré, BM vitrine, 6 autres = architecture prête + fallback FR »_ — on
   montre la mécanique, on assume le reste à faire.
 
-[Visuel: même fiche citoyen en FR puis en BM (capture vitrine), avec une étiquette « fallback FR »
-sur les autres langues.]
+[Visuel: page d'accueil PC-01 en FR puis en BM (`pc-01-accueil-fr.png` / `pc-01-accueil-bm.png`),
+avec une étiquette « fallback FR » sur les autres langues.]
 
-🔲 **À COMPLÉTER (S8)** : capture de la version bambara vitrine (`*-bm.png`) une fois la traduction
-de la fiche finalisée.
+✅ **Fait (S8-S9)** : vitrine bambara livrée et capturée sur PC-01 (`pc-01-accueil-bm.png`). La
+traduction de la fiche PC-02 reste une amélioration post-remise (voir « Note bambara » de
+`captions.md`).
 
 ---
 

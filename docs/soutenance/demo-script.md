@@ -304,25 +304,25 @@ Le portail gouvernance (SGOGT, objectif O6) est **bâti et démontrable** : shel
 
 Dossier : `docs/soutenance/screenshots/{citizen,admin,governance,infra}/`.
 
-Nommage attendu (exemples) :
+Nommage réel des captures gelées (S9 — 23 fichiers ; inventaire complet dans `captions.md`) :
 
 - `docs/soutenance/screenshots/citizen/pc-01-accueil-fr.png`
 - `docs/soutenance/screenshots/citizen/pc-02-fiche-citoyen-fr.png`
-- `docs/soutenance/screenshots/citizen/pc-03-correction-score-ia-fr.png`
-- `docs/soutenance/screenshots/citizen/pc-04-rendez-vous-fr.png`
-- `docs/soutenance/screenshots/citizen/pc-05-dashboard-fr.png`
-- `docs/soutenance/screenshots/citizen/pc-06-signalement-token-fr.png`
+- `docs/soutenance/screenshots/citizen/pc-03-correction-fr.png` + `pc-03-correction-upload-fr.png`
+- `docs/soutenance/screenshots/citizen/pc-04-rendez-vous-fr.png` + `pc-04-confirmation-fr.png`
+- `docs/soutenance/screenshots/citizen/pc-05-suivi-fr.png`
+- `docs/soutenance/screenshots/citizen/pc-06-signalement-fr.png`
 - `docs/soutenance/screenshots/admin/ad-01-dashboard-fr.png`
 - `docs/soutenance/screenshots/admin/ad-02-corrections-fr.png`
-- `docs/soutenance/screenshots/admin/ad-03-sigac-heatmap-fr.png`
+- `docs/soutenance/screenshots/admin/ad-03-sigac-fr.png`
 - `docs/soutenance/screenshots/governance/gov-01-messagerie-fr.png` + `gov-02-directives-fr.png`
-- `docs/soutenance/screenshots/infra/swagger-gateway.png` (option S9)
+- `docs/soutenance/screenshots/infra/swagger-gateway.png` (option, non gelée)
 
-> Suffixe `-bm` pour les variantes vitrine bambara (ex. `pc-02-fiche-citoyen-bm.png`).
+> Variantes : suffixe `-bm` pour la vitrine bambara (`pc-01-accueil-bm.png`), `-mobile` pour le
+> responsive (`pc-01-accueil-mobile-fr.png`, `pc-05-suivi-mobile-fr.png`).
 
-> 🔲 **À COMPLÉTER (S9) :** capturer les écrans réels en 1440 px / mode clair / FR (et la variante
-> `-bm` de la fiche PC-02) et les déposer aux chemins ci-dessus. Tant que ces fichiers n'existent
-> pas, le PLAN B n'est pas opérationnel — priorité absolue avant la soutenance.
+> ✅ **Fait (S9) :** les 23 captures réelles ont été produites en 1440 px / HD ×2 / mode clair / FR
+> (indicateur dev masqué) et déposées aux chemins ci-dessus — le PLAN B est **opérationnel**.
 
 ### 7.2 Que faire si un écran plante
 
