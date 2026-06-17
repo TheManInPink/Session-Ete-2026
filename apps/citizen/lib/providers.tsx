@@ -7,9 +7,12 @@
 
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { ApiError } from '@nina-aes/api-client';
+import { ApiClientProvider } from '@nina-aes/api-client/react';
+import { createBrowserApi } from './api/browser';
+import { resolveApiMode } from './api/config';
 
 /**
  * Tente un refresh des tokens en appelant POST /api/auth/refresh.
@@ -30,9 +33,28 @@ async function attemptRefresh(): Promise<boolean> {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
+  // Client API (mock|live) construit une seule fois — la bascule se décide ici.
+  const [apiClient] = useState(() => createBrowserApi());
+  const [apiMode] = useState(() => resolveApiMode());
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        // Le handler 401 vit dans le MutationCache (et non dans
+        // defaultOptions.mutations.onError) pour avoir accès à `mutation.meta` :
+        // les mutations marquées `anonymous` (signalement SIGAC) ne doivent
+        // JAMAIS rediriger vers /login — cela trahirait le lanceur d'alerte.
+        mutationCache: new MutationCache({
+          onError: async (error, _variables, _context, mutation) => {
+            if (mutation.meta?.anonymous) return;
+            if (error instanceof ApiError && error.status === 401) {
+              const refreshed = await attemptRefresh();
+              if (!refreshed && typeof window !== 'undefined') {
+                window.location.href =
+                  '/fr/login?next=' + encodeURIComponent(window.location.pathname);
+              }
+            }
+          },
+        }),
         defaultOptions: {
           queries: {
             staleTime: 30_000,
@@ -46,20 +68,16 @@ export function Providers({ children }: { children: ReactNode }) {
           },
           mutations: {
             retry: 0,
-            // Sur 401, tenter un refresh silencieux puis rediriger si KO
-            onError: async (error) => {
-              if (error instanceof ApiError && error.status === 401) {
-                const refreshed = await attemptRefresh();
-                if (!refreshed && typeof window !== 'undefined') {
-                  window.location.href =
-                    '/fr/login?next=' + encodeURIComponent(window.location.pathname);
-                }
-              }
-            },
           },
         },
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ApiClientProvider client={apiClient} mode={apiMode}>
+        {children}
+      </ApiClientProvider>
+    </QueryClientProvider>
+  );
 }

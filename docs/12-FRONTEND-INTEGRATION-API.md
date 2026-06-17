@@ -741,6 +741,25 @@ export default {
 
 ## 7. Client HTTP typé `@nina-aes/api-client`
 
+> **État d'implémentation — tranche 1 (PROMPT 5.1), le code fait foi.** Cette section reste utile
+> comme intention pédagogique, mais l'implémentation réelle a précisé l'architecture. Voir
+> **[ADR-031](./adr/ADR-031-frontend-data-layer-mock-live-bff.md)** et le CHANGELOG (§
+> 0quaterdecies).
+>
+> - Les **hooks React Query** sont exportés par le **sous-chemin `@nina-aes/api-client/react`**
+>   (`ApiClientProvider`, `useCitizenByNina`, `useSubmitCorrection`, `useAvailableSlots`,
+>   `useSubmitAlert`, …), pas redéfinis par app. `react`/`@tanstack/react-query` = peerDeps
+>   optionnelles.
+> - **Bascule mock↔live** : `resolveApiMode()` + `createMockApiClient()` (fixtures validées Zod) ;
+>   **kill-switch prod** `assertApiModeSafe()` (interdit `mock` et les URLs `localhost` en
+>   production).
+> - **Sécurité tokens** : les appels authentifiés navigateur passent par le **BFF**
+>   `apps/citizen/app/api/v1/[...path]` qui injecte le Bearer **côté serveur** depuis le cookie
+>   httpOnly (jamais en JS). Le **signalement anonyme SIGAC** utilise un transport séparé vers le
+>   gateway public avec `credentials:'omit'` (aucun cookie).
+> - La factory (§ 7.4) expose pour l'instant **4 sous-clients** réels (identity, correction,
+>   appointment, sigac) ; les autres seront ajoutés au fil des tranches.
+
 ### 7.1 Pourquoi un package séparé et pas Axios directement ?
 
 - **Type safety bout en bout** : chaque endpoint retourne un type Zod-inféré, pas un `any`.

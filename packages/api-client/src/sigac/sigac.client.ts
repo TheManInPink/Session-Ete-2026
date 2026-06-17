@@ -7,6 +7,7 @@
  */
 
 import type { HttpClient } from '../core/http-client';
+import type { SigacApi } from '../core/client.types';
 import {
   AnonymousAlertReceiptSchema,
   AnonymousAlertStatusSchema,
@@ -15,7 +16,7 @@ import {
   type AnonymousAlertStatus,
 } from './sigac.schema';
 
-export class SigacClient {
+export class SigacClient implements SigacApi {
   constructor(private readonly http: HttpClient) {}
 
   /**

@@ -10,12 +10,15 @@
 import { citizenDtoSchema, ninaSchema, paginationQuerySchema } from '@nina-aes/shared-types';
 import { z } from 'zod';
 import type { HttpClient } from '../core/http-client';
+import type { IdentityApi } from '../core/client.types';
 
 /**
  * Variante "complète" du Citoyen renvoyé par l'API
  * (inclut id, createdAt, updatedAt — pas dans le DTO d'entrée).
+ *
+ * Exportée pour que le client *mock* valide ses fixtures avec le même schéma.
  */
-const CitizenResponseSchema = citizenDtoSchema.extend({
+export const CitizenResponseSchema = citizenDtoSchema.extend({
   id: z.uuid(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -23,7 +26,7 @@ const CitizenResponseSchema = citizenDtoSchema.extend({
 
 export type Citizen = z.infer<typeof CitizenResponseSchema>;
 
-const CitizenSearchResultSchema = z.object({
+export const CitizenSearchResultSchema = z.object({
   data: z.array(CitizenResponseSchema),
   pagination: z.object({
     page: z.number().int().positive(),
@@ -36,7 +39,7 @@ const CitizenSearchResultSchema = z.object({
 export type CitizenSearchResult = z.infer<typeof CitizenSearchResultSchema>;
 
 /** Client typé pour les endpoints identity-service. */
-export class IdentityClient {
+export class IdentityClient implements IdentityApi {
   constructor(private readonly http: HttpClient) {}
 
   /**

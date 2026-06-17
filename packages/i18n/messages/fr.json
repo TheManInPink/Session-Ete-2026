@@ -176,7 +176,9 @@
       "reason": "Motif de la visite",
       "reasonPlaceholder": "Ex. : récupération de ma FDI signée, rectification d'erreur, …",
       "submit": "Confirmer le rendez-vous",
-      "error": "La création du rendez-vous a échoué"
+      "error": "La création du rendez-vous a échoué",
+      "loadingSlots": "Chargement des créneaux disponibles…",
+      "noSlots": "Aucun créneau disponible pour le moment. Réessayez plus tard."
     },
     "confirm": {
       "title": "Rendez-vous confirmé",

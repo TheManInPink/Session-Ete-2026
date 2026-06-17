@@ -15,6 +15,7 @@ import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '../../../lib/auth/session';
+import { fetchMyCorrections, fetchMyAppointments } from '../../../lib/api/server';
 import { Card, CardContent } from '@nina-aes/ui/components/card';
 import { Badge } from '@nina-aes/ui/components/badge';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
@@ -77,34 +78,11 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
       COMPLETED: t('status.COMPLETED'),
     })[s] ?? s;
 
-  // ── Données mockées (à remplacer par api.correction.list + api.appointment.listMine)
-  const corrections = [
-    {
-      id: 'corr-1',
-      field: 'birthPlace',
-      proposed: 'Sikasso',
-      status: 'UNDER_REVIEW',
-      createdAt: '2026-05-10',
-      aiScore: 87,
-    },
-    {
-      id: 'corr-2',
-      field: 'profession',
-      proposed: 'Couturière',
-      status: 'APPROVED',
-      createdAt: '2026-04-22',
-      aiScore: 95,
-    },
-  ];
-  const appointments = [
-    {
-      id: 'appt-1',
-      centerName: 'CTDEC Bamako',
-      scheduledAt: '2026-05-20T09:00:00Z',
-      priority: 'P3',
-      status: 'SCHEDULED',
-    },
-  ];
+  // Couture données (mock ↔ live) : corrections + RDV du citoyen connecté.
+  const [corrections, appointments] = await Promise.all([
+    fetchMyCorrections(session.user.nina ?? undefined),
+    fetchMyAppointments(),
+  ]);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
@@ -161,10 +139,10 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
                       <div>
                         <p className="text-sm text-fg-muted">{t(`fields.${c.field}` as never)}</p>
                         <p className="font-medium">
-                          → <span className="font-mono">{c.proposed}</span>
+                          → <span className="font-mono">{c.proposedValue}</span>
                         </p>
                         <p className="mt-1 text-xs text-fg-muted">
-                          {t('corrections.submittedAt', { date: c.createdAt })}
+                          {t('corrections.submittedAt', { date: c.createdAt.slice(0, 10) })}
                         </p>
                       </div>
                       <StatusBadge status={c.status} label={statusLabel(c.status)} />

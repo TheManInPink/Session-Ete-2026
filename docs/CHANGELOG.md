@@ -3,12 +3,60 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-17 (patch 0terdecies — Module IA : pipeline d'entraînement
-> reproductible `ai-models/training`, générateur de dataset restauré, intégration `ai-service`
-> (chargement + reload + scoring) — PROMPT 4.3)
+> **Dernière mise à jour** : 2026-06-17 (patch 0quaterdecies — Frontend : couture API mock↔live,
+> hooks `@nina-aes/api-client/react`, BFF tokens httpOnly + transport anonyme SIGAC ; écrans citoyen
+> PC-02 → PC-06 branchés — PROMPT 5.1, tranche 1 (app citizen))
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quaterdecies. Patch 2026-06-17 — Frontend : couture API mock↔live + hooks `@react` + BFF (PROMPT 5.1, tranche 1 — app citizen)
+
+Passage des écrans citoyen d'un rendu **sur mocks locaux** à une **couture de données** branchée sur
+`@nina-aes/api-client`, avec bascule mock↔live et garanties de sécurité. **ADR :
+[ADR-031](./adr/ADR-031-frontend-data-layer-mock-live-bff.md).**
+
+> Constat de départ : `api-client`, `i18n`, `auth` et les providers React Query **existaient déjà**
+> ; le vrai manque était la couture UI ↔ client (aucun hook, aucun écran branché). Décision validée
+> (chemin « 1/1/1 ») : **garder le client fait-main**, y ajouter une couche de hooks, **pas** de
+> codegen orval au runtime (l'agrégateur du gateway supprime silencieusement les services éteints).
+
+**Livré** :
+
+- **`@nina-aes/api-client`** : interfaces de sous-clients (permettent un mock structurel),
+  **`createMockApiClient()`** (fixtures déterministes **validées par les mêmes schémas Zod** =
+  fail-closed même en démo), mappers `ficheFromCitizen`/`ficheFromDemo` (modèle de vue
+  `CitizenFiche`), option `credentials` sur le `HttpClient` (anonymat). Nouveau sous-chemin
+  **`@nina-aes/api-client/react`** : `ApiClientProvider`/`useApiClient` + fabrique de query-keys +
+  12 hooks RQ ; `react`/`@tanstack/react-query` en **peerDependencies optionnelles** (`jsx` activé).
+- **`apps/citizen`** : `lib/api/{config,server,browser}.ts` (résolution mode + **kill-switch prod**
+  `assertApiModeSafe`, couche RSC cookie→Bearer, client navigateur) ; **BFF**
+  `app/api/v1/[...path]/route.ts` (Bearer injecté **côté serveur** depuis le cookie httpOnly, jamais
+  en JS ; rejet de traversée de chemin) ; `instrumentation.ts` (kill-switch au boot) ;
+  `ApiClientProvider` câblé dans `providers.tsx`. **Écrans citoyen PC-02 → PC-06 branchés** : PC-02
+  (lecture `fetchCitizenFiche`), PC-03 (`useSubmitCorrection`), PC-04 (`useAvailableSlots` +
+  `useCreateAppointment`, créneaux porteurs de leur centre), PC-05 (dashboard via
+  `fetchMyCorrections`/`fetchMyAppointments`), PC-06 (**signalement anonyme** `useSubmitAlert` —
+  transport sans cookie vers le gateway public, `meta.anonymous` ⇒ pas de redirection /login sur
+  401).
+- **Bascule** : `NEXT_PUBLIC_NINA_API_MODE` (`mock`|`live`, repli `NEXT_PUBLIC_DEMO_MODE`) ;
+  `NEXT_PUBLIC_APP_URL` + `NEXT_PUBLIC_GATEWAY_URL` ajoutés à `apps/citizen/.env.example`.
+
+**Vérif** : typecheck (api-client + citizen) ✅, lint citizen (0 warning) ✅, **e2e citizen 13/13**
+(mode mock, dont flux PC-03 soumission→suivi, PC-04 réservation→confirmation, PC-06
+signalement→token) ✅, `verify:repo` ✅.
+
+**Revue** : revue adversariale (workflow 16 agents) — 8 findings confirmés → 3 correctifs (BFF
+anti-traversée, 401 anonyme via `MutationCache`+`meta`, kill-switch refusant `localhost` en prod) +
+3 clarifications de commentaires ; 2 rejetés (dont « NINA mock checksum » — l'e2e prouve `…V`
+valide).
+
+**Reste** : polling temps réel PC-05 (hook `useCorrection({ refetchInterval })` prêt, non câblé) ;
+apps **admin** & **governance** = tranches suivantes. Mode live câblé mais non testé contre backend
+réel (stack non démarrée).
+
+**Drift pré-existant repéré (hors périmètre)** : `.env.example` racine `CITIZEN_PORT=4000` alors que
+les apps tournent en 4001/4002/4003 (apps lancées hors docker → pas d'impact runtime).
 
 ### 0terdecies. Patch 2026-06-17 — Module IA : pipeline d'entraînement + générateur restauré + intégration `ai-service` (PROMPT 4.3)
 

@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState, useRef, useTransition, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@nina-aes/ui/components/button';
@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
 import type { CorrectionField } from '@nina-aes/api-client';
+import { useSubmitCorrection } from '@nina-aes/api-client/react';
 
 interface WizardProps {
   nina: string;
@@ -80,7 +81,8 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
   const router = useRouter();
   const [state, setState] = useState<WizardState>(INITIAL_STATE);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, startTransition] = useTransition();
+  const submitCorrection = useSubmitCorrection();
+  const isSubmitting = submitCorrection.isPending;
 
   // ── Justificatif (étape 3) — upload mock : validé localement, jamais envoyé ─
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -133,21 +135,25 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
     state.step === 3 ||
     state.step === 4;
 
-  /** Soumet la correction au backend. */
-  const handleSubmit = (e: FormEvent) => {
+  /** Soumet la correction au backend (mock → fixture, live → gateway via BFF). */
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!state.field) return;
+    const field = state.field;
+    if (!field) return;
     setError(null);
-
-    startTransition(async () => {
-      try {
-        // Mode démo : on simule sans appel HTTP réel
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        router.push(`/${locale}/dashboard?submitted=1`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      }
-    });
+    try {
+      // Le justificatif n'est pas encore transmis (document-service, cf. doc 10) :
+      // on n'envoie donc pas `justificationDocUrl` tant que l'upload n'est pas câblé.
+      await submitCorrection.mutateAsync({
+        nina,
+        field,
+        proposedValue: state.proposedValue.trim(),
+        reason: state.reason.trim(),
+      });
+      router.push(`/${locale}/dashboard?submitted=1`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('summary.error'));
+    }
   };
 
   return (

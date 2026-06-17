@@ -1,71 +1,33 @@
 /**
  * @file        appointment-form.tsx
- * @description Formulaire de prise de RDV — sélection centre + créneau (groupés
- *              par jour) + motif, suivi d'une modale de confirmation présentant
- *              un récapitulatif et un QR code de rendez-vous.
+ * @description Formulaire de prise de RDV — sélection d'un créneau disponible
+ *              (groupés par jour) + motif, suivi d'une modale de confirmation
+ *              avec récapitulatif et QR code de rendez-vous.
  *
- *              **Mode démo** : créneaux fictifs en mémoire, succès simulé, et QR
- *              décoratif déterministe (le QR signé réel sera émis par
- *              `document-service`, cf. doc 10). Aucun appel réseau.
+ *              Les créneaux proviennent de `useAvailableSlots` (mock → fixtures,
+ *              live → appointment-service via le BFF). Chaque créneau porte son
+ *              centre (la file prioritaire éventuelle est décidée côté serveur
+ *              selon la vulnérabilité). La création passe par
+ *              `useCreateAppointment`. Le QR signé réel sera émis par
+ *              `document-service` (cf. doc 10) — ici un aperçu décoratif.
  * @module      @nina-aes/citizen
  */
 
 'use client';
 
-import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { formatNina } from '@nina-aes/utils';
+import { useAvailableSlots, useCreateAppointment } from '@nina-aes/api-client/react';
+import type { Slot } from '@nina-aes/api-client';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
 import { Badge } from '@nina-aes/ui/components/badge';
+import { Skeleton } from '@nina-aes/ui/components/skeleton';
 import { Calendar, MapPin, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
-
-/** Centres mockés — en prod, fetch depuis `/api/v1/centers`. */
-const MOCK_CENTERS = [
-  { id: 'ctdec-bamako', name: 'CTDEC Bamako', region: 'Bamako (District)' },
-  { id: 'ravec-kayes', name: 'Antenne RAVEC Kayes', region: 'Kayes' },
-  { id: 'ravec-sikasso', name: 'Antenne RAVEC Sikasso', region: 'Sikasso' },
-  { id: 'ravec-mopti', name: 'Antenne RAVEC Mopti', region: 'Mopti' },
-];
-
-interface Slot {
-  id: string;
-  date: string;
-  time: string;
-  priority: 'P1' | 'P2' | 'P3';
-}
-
-/**
- * Génère 6 créneaux fictifs sur les 3 prochains jours ouvrés.
- *
- * TODO Session backend — Migration appointment-service (port 3008, doc 09) :
- *   remplacer par un fetch server-side `api.appointment.getAvailableSlots(...)`
- *   dans `page.tsx`, passé en prop ici. Le mock reste derrière la même forme de
- *   données (la « couture » côté écran ne change pas).
- */
-function generateMockSlots(isPriority: boolean): Slot[] {
-  const now = new Date();
-  const slots: Slot[] = [];
-  for (let i = 1; i <= 3; i++) {
-    const day = new Date(now);
-    day.setDate(day.getDate() + i);
-    const dateStr = day.toISOString().slice(0, 10);
-    // En mode prioritaire (P1), créneaux dès 7h ; sinon dès 9h.
-    const baseHour = isPriority ? 7 : 9;
-    for (let h = 0; h < 2; h++) {
-      slots.push({
-        id: `${dateStr}-${baseHour + h}h00`,
-        date: dateStr,
-        time: `${String(baseHour + h).padStart(2, '0')}:00`,
-        priority: isPriority ? 'P1' : 'P3',
-      });
-    }
-  }
-  return slots;
-}
 
 /** Hash déterministe (FNV-1a) d'une chaîne → entier non signé 32 bits. */
 function hashString(value: string): number {
@@ -79,16 +41,12 @@ function hashString(value: string): number {
 
 /**
  * QR code DÉCORATIF déterministe (aperçu démo, non scannable).
- *
- * Le QR signé réel (JWT RS256) sera produit par `document-service`. Ici on rend
- * une matrice 25×25 reproductible à partir d'un hash de `value`, avec les trois
- * motifs de détection caractéristiques, pour matérialiser l'UX de confirmation.
+ * Le QR signé réel (JWT RS256) sera produit par `document-service`.
  */
 function DemoQrCode({ value, size = 132 }: { value: string; size?: number }) {
   const N = 25;
   let state = hashString(value) || 1;
   const rand = () => {
-    // xorshift32 déterministe
     state ^= state << 13;
     state ^= state >>> 17;
     state ^= state << 5;
@@ -138,7 +96,6 @@ function DemoQrCode({ value, size = 132 }: { value: string; size?: number }) {
 
 interface AppointmentFormProps {
   locale: string;
-  isPriority: boolean;
   nina: string;
 }
 
@@ -150,31 +107,57 @@ interface Confirmation {
   reference: string;
 }
 
-export function AppointmentForm({ locale, isPriority, nina }: AppointmentFormProps) {
+/** Clé stable d'un créneau (centre + horodatage). */
+const slotKey = (s: Slot) => `${s.centerId}|${s.startsAt}`;
+/** Date `YYYY-MM-DD` locale d'un `Date`. */
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+
+export function AppointmentForm({ locale, nina }: AppointmentFormProps) {
   const t = useTranslations('appointments');
   const router = useRouter();
-  const [centerId, setCenterId] = useState<string>('');
-  const [slotId, setSlotId] = useState<string>('');
+
+  // Plage de recherche : aujourd'hui → +7 jours (calcul client, hors render serveur).
+  const { fromDate, toDate } = useMemo(() => {
+    const now = new Date();
+    const to = new Date(now);
+    to.setDate(to.getDate() + 7);
+    return { fromDate: isoDay(now), toDate: isoDay(to) };
+  }, []);
+
+  const slotsQuery = useAvailableSlots({ fromDate, toDate });
+  const createAppointment = useCreateAppointment();
+
+  const [selectedKey, setSelectedKey] = useState<string>('');
   const [reason, setReason] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const slots = generateMockSlots(isPriority);
-  const slotsByDay = slots.reduce<Record<string, Slot[]>>((acc, s) => {
-    (acc[s.date] ??= []).push(s);
-    return acc;
-  }, {});
-  const canSubmit = centerId && slotId && reason.trim().length >= 5;
+  const slots = useMemo(() => slotsQuery.data?.slots ?? [], [slotsQuery.data]);
+  const selectedSlot = slots.find((s) => slotKey(s) === selectedKey) ?? null;
 
-  /** Ferme la modale et redirige vers le tableau de bord. */
+  /** Créneaux regroupés par jour. */
+  const slotsByDay = useMemo(() => {
+    return slots.reduce<Record<string, Slot[]>>((acc, s) => {
+      const day = s.startsAt.slice(0, 10);
+      (acc[day] ??= []).push(s);
+      return acc;
+    }, {});
+  }, [slots]);
+
+  const canSubmit =
+    selectedSlot !== null && reason.trim().length >= 5 && !createAppointment.isPending;
+
   const finish = () => router.push(`/${locale}/dashboard?appointment=1`);
 
-  // Fermeture de la modale au clavier (Échap).
+  const timeOf = (iso: string) =>
+    new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  const dayLabel = (day: string) =>
+    new Date(day).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+
+  // Fermeture de la modale au clavier (Échap) + focus à l'ouverture.
   useEffect(() => {
     if (!confirmation) return;
-    // Déplace le focus clavier dans la modale à l'ouverture (accessibilité).
     dialogRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') finish();
@@ -184,121 +167,103 @@ export function AppointmentForm({ locale, isPriority, nina }: AppointmentFormPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmation]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!selectedSlot) return;
     setError(null);
-    startTransition(async () => {
-      try {
-        // Mode démo : succès simulé (aucun appel HTTP réel)
-        await new Promise((r) => setTimeout(r, 600));
-        const center = MOCK_CENTERS.find((c) => c.id === centerId);
-        const slot = slots.find((s) => s.id === slotId);
-        if (!center || !slot) throw new Error('Sélection incomplète');
-        const seed = hashString(`${centerId}|${slotId}|${nina}`);
-        setConfirmation({
-          centerName: center.name,
-          dateLabel: new Date(slot.date).toLocaleDateString(locale, {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          }),
-          time: slot.time,
-          queue: (seed % 40) + 1,
-          reference: `RDV-2026-${String(seed % 10000).padStart(4, '0')}`,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      }
-    });
+    try {
+      const appt = await createAppointment.mutateAsync({
+        centerId: selectedSlot.centerId,
+        scheduledAt: selectedSlot.startsAt,
+        reason: reason.trim(),
+      });
+      setConfirmation({
+        centerName: appt.centerName,
+        dateLabel: dayLabel(appt.scheduledAt.slice(0, 10)),
+        time: timeOf(appt.scheduledAt),
+        queue: appt.queueNumber,
+        reference: `RDV-${appt.id.slice(0, 8).toUpperCase()}`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('form.error'));
+    }
   };
 
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Sélection du centre */}
-        <fieldset>
-          <legend className="mb-3 flex items-center gap-2 text-sm font-medium">
-            <MapPin className="size-4" aria-hidden="true" />
-            {t('form.center')}
-          </legend>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {MOCK_CENTERS.map((c) => (
-              <label
-                key={c.id}
-                className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-base border p-3 transition-colors',
-                  'hover:border-primary hover:bg-primary-50/30',
-                  centerId === c.id ? 'border-primary bg-primary-50' : 'border-border',
-                )}
-              >
-                <input
-                  type="radio"
-                  name="center"
-                  value={c.id}
-                  checked={centerId === c.id}
-                  onChange={(e) => setCenterId(e.target.value)}
-                  className="mt-0.5 size-4 accent-primary"
-                />
-                <span className="flex-1">
-                  <span className="block font-medium">{c.name}</span>
-                  <span className="block text-xs text-fg-muted">{c.region}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* Sélection du créneau, regroupé par jour */}
+        {/* Sélection du créneau (chaque créneau porte son centre) */}
         <fieldset>
           <legend className="mb-3 flex items-center gap-2 text-sm font-medium">
             <Calendar className="size-4" aria-hidden="true" />
             {t('form.slot')}
           </legend>
-          <div className="space-y-4">
-            {Object.entries(slotsByDay).map(([date, daySlots]) => (
-              <div key={date}>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
-                  {new Date(date).toLocaleDateString(locale, {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                  })}
-                </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {daySlots.map((s) => (
-                    <label
-                      key={s.id}
-                      className={cn(
-                        'flex cursor-pointer items-center justify-center gap-1 rounded-base border p-3 text-sm transition-colors',
-                        'hover:border-primary hover:bg-primary-50/30',
-                        slotId === s.id ? 'border-primary bg-primary-50' : 'border-border',
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="slot"
-                        value={s.id}
-                        checked={slotId === s.id}
-                        onChange={(e) => setSlotId(e.target.value)}
-                        aria-label={`${new Date(date).toLocaleDateString(locale, {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                        })} ${s.time}`}
-                        className="sr-only"
-                      />
-                      <span className="font-mono font-medium">{s.time}</span>
-                      {isPriority && (
-                        <Badge className="bg-success-50 px-1.5 py-0 text-xs text-success-700">
-                          {s.priority}
-                        </Badge>
-                      )}
-                    </label>
-                  ))}
+
+          {slotsQuery.isLoading ? (
+            <div className="space-y-3" aria-busy="true">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : slotsQuery.isError ? (
+            <Alert variant="danger">
+              <AlertTitle>{t('form.error')}</AlertTitle>
+              <AlertDescription>
+                {slotsQuery.error instanceof Error ? slotsQuery.error.message : ''}
+              </AlertDescription>
+            </Alert>
+          ) : slots.length === 0 ? (
+            <Alert>
+              <AlertDescription>{t('form.noSlots')}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(slotsByDay).map(([day, daySlots]) => (
+                <div key={day}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                    {dayLabel(day)}
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {daySlots.map((s) => {
+                      const key = slotKey(s);
+                      return (
+                        <label
+                          key={key}
+                          className={cn(
+                            'flex cursor-pointer items-center justify-between gap-2 rounded-base border p-3 text-sm transition-colors',
+                            'hover:border-primary hover:bg-primary-50/30',
+                            selectedKey === key ? 'border-primary bg-primary-50' : 'border-border',
+                          )}
+                        >
+                          <span className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="slot"
+                              value={key}
+                              checked={selectedKey === key}
+                              onChange={() => setSelectedKey(key)}
+                              className="size-4 accent-primary"
+                              aria-label={`${dayLabel(day)} ${timeOf(s.startsAt)} — ${s.centerName}`}
+                            />
+                            <span className="font-mono font-medium">{timeOf(s.startsAt)}</span>
+                            <span className="flex items-center gap-1 text-xs text-fg-muted">
+                              <MapPin className="size-3" aria-hidden="true" />
+                              {s.centerName}
+                            </span>
+                          </span>
+                          {s.priority !== 'P3' && (
+                            <Badge className="bg-success-50 px-1.5 py-0 text-xs text-success-700">
+                              {s.priority}
+                            </Badge>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </fieldset>
 
         {/* Motif */}
@@ -324,8 +289,8 @@ export function AppointmentForm({ locale, isPriority, nina }: AppointmentFormPro
           </Alert>
         )}
 
-        <Button type="submit" disabled={!canSubmit || isPending} className="w-full" size="lg">
-          {isPending ? (
+        <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
+          {createAppointment.isPending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (
             <Send className="size-4" aria-hidden="true" />

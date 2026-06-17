@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/ale
 import { Send, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
 import type { AlertCategory } from '@nina-aes/api-client';
+import { useSubmitAlert } from '@nina-aes/api-client/react';
 
 const CATEGORIES: AlertCategory[] = [
   'BRIBERY',
@@ -50,7 +51,9 @@ export function WhistleblowerForm() {
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ token: string; alertId: string } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  // Mutation anonyme : transport sans cookie (cf. lib/api/browser.ts).
+  const submitAlert = useSubmitAlert();
+  const isPending = submitAlert.isPending;
 
   const handleCopy = (token: string) => {
     void navigator.clipboard?.writeText(token);
@@ -61,21 +64,25 @@ export function WhistleblowerForm() {
   const canSubmit =
     state.category !== '' && state.description.trim().length >= 50 && state.consentGiven;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const category = state.category;
+    if (category === '') return;
     setError(null);
-    startTransition(async () => {
-      try {
-        // En mode démo : on simule un succès et on génère un token fictif
-        await new Promise((r) => setTimeout(r, 700));
-        setReceipt({
-          token: `vault:v3:${cryptoRandom(20)}`,
-          alertId: cryptoRandom(8),
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      }
-    });
+    try {
+      // Soumission anonyme via le client API (mock → fixture, live → gateway
+      // public sans cookie). Le reçu contient le token de suivi opaque.
+      const data = await submitAlert.mutateAsync({
+        category,
+        description: state.description.trim(),
+        evidence: [],
+        region: state.region.trim() || undefined,
+        cercle: state.cercle.trim() || undefined,
+      });
+      setReceipt({ token: data.trackingToken, alertId: data.alertId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('form.error'));
+    }
   };
 
   // ── Reçu post-soumission : remplace le formulaire ───────────────────────
@@ -232,11 +239,4 @@ export function WhistleblowerForm() {
       </Button>
     </form>
   );
-}
-
-/** Génère une chaîne aléatoire courte côté client (uniquement pour la démo). */
-function cryptoRandom(bytes: number): string {
-  const buf = new Uint8Array(bytes);
-  crypto.getRandomValues(buf);
-  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
 }

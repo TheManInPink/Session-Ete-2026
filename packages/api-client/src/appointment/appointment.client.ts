@@ -5,6 +5,7 @@
  */
 
 import type { HttpClient } from '../core/http-client';
+import type { AppointmentApi, SlotsQuery } from '../core/client.types';
 import {
   AppointmentListSchema,
   AppointmentSchema,
@@ -15,7 +16,7 @@ import {
   type SlotsList,
 } from './appointment.schema';
 
-export class AppointmentClient {
+export class AppointmentClient implements AppointmentApi {
   constructor(private readonly http: HttpClient) {}
 
   /**
@@ -23,11 +24,7 @@ export class AppointmentClient {
    * Si le citoyen est marqué `vulnerable`, le serveur renverra automatiquement
    * les créneaux prioritaires (P1 / P2) en plus des standards.
    */
-  async getAvailableSlots(params: {
-    fromDate: string; // YYYY-MM-DD
-    toDate: string;
-    centerId?: string;
-  }): Promise<SlotsList> {
+  async getAvailableSlots(params: SlotsQuery): Promise<SlotsList> {
     return this.http.request<SlotsList>({
       method: 'GET',
       path: '/api/v1/appointments/slots',

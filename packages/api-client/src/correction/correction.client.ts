@@ -5,6 +5,7 @@
  */
 
 import type { HttpClient } from '../core/http-client';
+import type { CorrectionApi, CorrectionListParams } from '../core/client.types';
 import {
   CorrectionListSchema,
   CorrectionRequestSchema,
@@ -13,7 +14,7 @@ import {
   type CreateCorrectionDto,
 } from './correction.schema';
 
-export class CorrectionClient {
+export class CorrectionClient implements CorrectionApi {
   constructor(private readonly http: HttpClient) {}
 
   /**
@@ -37,14 +38,7 @@ export class CorrectionClient {
    *
    * @param params - Filtres (status, page, pageSize).
    */
-  async list(
-    params: {
-      nina?: string;
-      status?: string;
-      page?: number;
-      pageSize?: number;
-    } = {},
-  ): Promise<CorrectionList> {
+  async list(params: CorrectionListParams = {}): Promise<CorrectionList> {
     return this.http.request<CorrectionList>({
       method: 'GET',
       path: '/api/v1/corrections',

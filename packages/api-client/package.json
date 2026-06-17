@@ -10,6 +10,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./react": {
+      "types": "./src/react/index.ts",
+      "default": "./src/react/index.ts"
     }
   },
   "files": [
@@ -23,11 +27,26 @@
     "@nina-aes/shared-types": "workspace:*",
     "zod": "^4.3.6"
   },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5.60.0",
+    "react": ">=19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
+    "@tanstack/react-query": "^5.60.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.5.2",
+    "@types/react": "19.2.14",
     "jest": "^30.3.0",
+    "react": "^19.2.5",
     "ts-jest": "^29.4.9",
     "typescript": "^6.0.2"
   }

@@ -49,4 +49,31 @@ test.describe('PC-03 — Wizard correction', () => {
     // Au moins 9 boutons aria-pressed=false (étape 1 = 9 choix de champs).
     expect(await fieldButtons.count()).toBeGreaterThanOrEqual(9);
   });
+
+  test('soumet une correction de bout en bout (mode mock) → redirige vers le suivi', async ({
+    page,
+  }) => {
+    await page.goto(`/fr/nina/${MOCK_NINA}/correction`);
+
+    // Étape 1 — choisir un champ.
+    await page.getByRole('button', { name: /Profession/ }).click();
+    await page.getByRole('button', { name: 'Suivant' }).click();
+
+    // Étape 2 — nouvelle valeur + motif (≥ 10 caractères).
+    await page.getByLabel('Nouvelle valeur').fill('Couturière');
+    await page
+      .getByLabel('Motif de la correction')
+      .fill('Erreur de saisie sur ma profession actuelle, à rectifier.');
+    await page.getByRole('button', { name: 'Suivant' }).click();
+
+    // Étape 3 — justificatif facultatif → on passe.
+    await page.getByRole('button', { name: 'Suivant' }).click();
+
+    // Étape 4 — soumettre.
+    await page.getByRole('button', { name: 'Soumettre la demande' }).click();
+
+    // Redirection vers le tableau de bord avec l'accusé de soumission.
+    await page.waitForURL(/\/dashboard\?submitted=1/);
+    await expect(page.getByText('Corrections en cours').first()).toBeVisible();
+  });
 });

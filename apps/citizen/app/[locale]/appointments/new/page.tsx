@@ -68,11 +68,7 @@ export default async function NewAppointmentPage({ params }: PageProps) {
               </div>
             }
           >
-            <AppointmentForm
-              locale={locale}
-              isPriority={isVulnerable}
-              nina={session.user.nina ?? ''}
-            />
+            <AppointmentForm locale={locale} nina={session.user.nina ?? ''} />
           </Suspense>
         </CardContent>
       </Card>

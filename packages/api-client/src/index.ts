@@ -17,19 +17,14 @@ import { IdentityClient } from './identity/identity.client';
 import { CorrectionClient } from './correction/correction.client';
 import { AppointmentClient } from './appointment/appointment.client';
 import { SigacClient } from './sigac/sigac.client';
-
-export interface ApiClient {
-  identity: IdentityClient;
-  correction: CorrectionClient;
-  appointment: AppointmentClient;
-  sigac: SigacClient;
-}
+import type { ApiClient } from './core/client.types';
 
 /**
- * Crée une instance ApiClient prête à l'emploi.
+ * Crée une instance ApiClient **HTTP réelle** prête à l'emploi.
  *
  * Au fur et à mesure que les services backend sont livrés (docs 07 → 11), de
  * nouveaux sous-clients seront ajoutés ici (auth, document, audit, gov, …).
+ * Pour le mode démo/hors-ligne, voir {@link createMockApiClient}.
  */
 export function createApiClient(opts: HttpClientOptions): ApiClient {
   const http = new HttpClient(opts);
@@ -46,11 +41,27 @@ export { HttpClient } from './core/http-client';
 export type { HttpClientOptions, RequestOptions } from './core/http-client';
 export { ApiError, ApiNetworkError, ApiValidationError } from './core/errors';
 export type { ApiErrorBody } from './core/errors';
+export type {
+  ApiClient,
+  IdentityApi,
+  CorrectionApi,
+  AppointmentApi,
+  SigacApi,
+  IdentitySearchParams,
+  CorrectionListParams,
+  SlotsQuery,
+} from './core/client.types';
+
+// ── Client mock (fixtures déterministes, zéro réseau) ────────────────────────
+export { createMockApiClient } from './mock/mock-client';
 
 // ── Réexports identity ──────────────────────────────────────────────────────
 export type { Citizen, CitizenSearchResult } from './identity/identity.client';
+export { CitizenResponseSchema, CitizenSearchResultSchema } from './identity/identity.client';
 export { generateDemoCitizen } from './identity/demo-citizen';
 export type { DemoCitizen, DemoParent } from './identity/demo-citizen';
+export { ficheFromCitizen, ficheFromDemo } from './identity/citizen-fiche';
+export type { CitizenFiche } from './identity/citizen-fiche';
 
 // ── Réexports correction ────────────────────────────────────────────────────
 export {
