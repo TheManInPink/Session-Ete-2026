@@ -351,8 +351,18 @@ def train(args: argparse.Namespace) -> dict:
         "metadata": metadata,
     }
     joblib.dump(bundle, joblib_path)
+
+    # Empreinte d'intégrité (sidecar .sha256) — vérifiée par ai-service AVANT la
+    # désérialisation pickle (cf. ADR-030 / doc 15). On l'inscrit aussi dans les
+    # métadonnées (informatif). Format `<hex>  <nom>` (compatible `sha256sum -c`).
+    bundle_sha = _hash_file(joblib_path)
+    metadata["bundle_sha256"] = bundle_sha
+    sha_path = joblib_path.with_suffix(joblib_path.suffix + ".sha256")
+    sha_path.write_text(f"{bundle_sha}  {joblib_path.name}\n", encoding="utf-8")
+
     metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"      → {joblib_path}")
+    print(f"      → {sha_path} (intégrité)")
     print(f"      → {metadata_path}")
 
     print("[7/7] Journalisation des métriques…")

@@ -18,26 +18,16 @@ Date    : 2026
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from .auth import require_role
 from .config import settings
 from .inference import registry
 
 # Borne de taille de lot (évite un appel de scoring synchrone non borné = levier DoS).
 _MAX_BATCH = 1000
-
-
-def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
-    """Garde admin : exige X-Admin-Token si ``AI_ADMIN_TOKEN`` est défini.
-
-    En développement (jeton non configuré), l'endpoint reste ouvert. En production,
-    définissez ``AI_ADMIN_TOKEN`` pour exiger l'en-tête. Complète le RBAC Keycloak
-    (doc 08) sans le remplacer.
-    """
-    if settings.admin_token and x_admin_token != settings.admin_token:
-        raise HTTPException(status_code=403, detail="Jeton admin requis ou invalide.")
 
 
 @asynccontextmanager
@@ -110,19 +100,34 @@ class ScoreRequest(BaseModel):
 # ──────────────────────────────────────────────────────────────────────────────
 #  Endpoints
 # ──────────────────────────────────────────────────────────────────────────────
-@app.get("/api/v1/ai/health")
-async def health_check():
-    """Endpoint de santé — vérifie que le service IA est opérationnel.
-
-    Returns:
-        dict: Statut du service avec timestamp et état du modèle.
-    """
+def _health_payload() -> dict:
+    """Charge utile de santé partagée par les sondes."""
     return {
         "status": "ok",
         "service": "ai-service",
         "model_loaded": registry.is_loaded,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@app.get("/health")
+async def health_probe():
+    """Liveness **non préfixée** — cible de la sonde Docker/K8s (`curl /health`).
+
+    Convention plateforme : la sonde conteneur interroge `/health` (cf. Dockerfile),
+    distincte de l'endpoint API préfixé ci-dessous.
+    """
+    return _health_payload()
+
+
+@app.get("/api/v1/ai/health")
+async def health_check():
+    """Endpoint de santé (préfixé API) — état du service et du modèle.
+
+    Returns:
+        dict: Statut du service avec timestamp et état du modèle.
+    """
+    return _health_payload()
 
 
 @app.get("/api/v1/ai/model-info")
@@ -135,12 +140,14 @@ async def model_info():
     return registry.status()
 
 
-@app.post("/api/v1/ai/reload-models", dependencies=[Depends(require_admin)])
+@app.post("/api/v1/ai/reload-models", dependencies=[Depends(require_role("admin"))])
 async def reload_models():
     """Recharge à chaud le modèle XGBoost depuis ``ai-models/exported`` (endpoint admin).
 
-    🔒 Protégé par :func:`require_admin` : si ``AI_ADMIN_TOKEN`` est défini, l'en-tête
-    ``X-Admin-Token`` est exigé. À compléter par le rôle ADMIN Keycloak (doc 08).
+    🔒 Protégé par :func:`app.auth.require_role` (escalade RBAC) : si ``AI_JWKS_URL``
+    est défini, un Bearer RS256 portant le rôle ``admin`` est exigé (RBAC Keycloak,
+    doc 08) ; sinon, repli sur ``X-Admin-Token`` (``AI_ADMIN_TOKEN``) ; sinon, ouvert
+    en développement.
 
     Returns:
         dict: Statut du registre après rechargement.

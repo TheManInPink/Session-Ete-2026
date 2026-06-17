@@ -49,6 +49,20 @@ class AIServiceSettings(BaseSettings):
     # main.py désactive automatiquement allow_credentials si "*" est présent.
     cors_origins: list[str] = ["*"]
 
+    # ── Intégrité du modèle (doc 15 — durcissement) ──────────────────────────
+    # Le bundle .joblib est désérialisé (pickle) → on vérifie son empreinte
+    # SHA-256 (sidecar .sha256 produit à l'entraînement) avant chargement.
+    # `require_signed_bundle=true` ⇒ refuse de charger un bundle SANS sidecar.
+    require_signed_bundle: bool = False
+
+    # ── RBAC (doc 08 — auth-service / Keycloak) ──────────────────────────────
+    # URL JWKS de l'émetteur (auth-service / Keycloak). Si défini, les endpoints
+    # sensibles exigent un Bearer RS256 valide portant le rôle requis ; sinon on
+    # retombe sur `admin_token`, sinon (dev) ouvert. Cf. app/auth.py + ADR-030.
+    jwks_url: str = ""
+    # Audience attendue dans le JWT (vide = non vérifiée).
+    jwt_audience: str = ""
+
     model_config = {"env_prefix": "AI_"}
 
 

@@ -113,8 +113,15 @@ distributions du premier dataset. Son référentiel (`catalog.json`, régions **
 - **Régions ≥ 10 non gérées** par le champ NINA 1-chiffre (limite de format).
 - **Générateur = reconstruction**, pas la source d'origine (perdue) ; fidèle au schéma/distributions
   mais non bit-identique.
-- **Signature/checksum du bundle** non encore en place (pickle = surface de confiance) → à durcir
-  doc 15 ; `Dockerfile` du service à corriger doc 20.
+- **Intégrité du bundle** : vérification **SHA-256** (sidecar `.joblib.sha256` produit à
+  l'entraînement, vérifié avant désérialisation ; `AI_REQUIRE_SIGNED_BUNDLE` pour l'exiger). Une
+  **signature cryptographique forte** (Vault Transit / cosign) reste à ajouter (doc 15).
+- **RBAC service livré** (`app/auth.py`) : Bearer **RS256/JWKS** + contrôle de rôle (`AI_JWKS_URL`),
+  repli `X-Admin-Token`, dev ouvert. L'intégration au flux gateway `X-User-Context` (ADR-029) et la
+  matrice de rôles complète relèvent de la doc 08.
+- **Dockerfile** : la variante autonome `services/ai-service/Dockerfile` est corrigée (3.13-slim,
+  `app.main:app`, `training` sur PYTHONPATH, `/health`). Le **provisioning du bundle** en production
+  (volume / MinIO) reste à définir (doc 20).
 
 ## Alternatives écartées
 

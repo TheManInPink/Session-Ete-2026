@@ -33,22 +33,26 @@ Service stateless — pas de BDD propre. Les corrections sont persistées via `i
 | `GET`   | `/api/v1/ai/docs`          | OpenAPI / Swagger UI                                    | —      |
 | `GET`   | `/api/v1/ai/openapi.json`  | Schema OpenAPI                                          | —      |
 
-> ¹ `reload-models` exige l'en-tête `X-Admin-Token` **si** `AI_ADMIN_TOKEN` est défini (ouvert en
-> dev). À compléter par le rôle ADMIN Keycloak (doc 08). Modèle entraîné par
-> [`ai-models/training`](../../ai-models/training/README.md).
+> ¹ `reload-models` — escalade RBAC (`app/auth.py`) : si `AI_JWKS_URL` est défini, un Bearer
+> **RS256** portant le rôle `admin` est exigé (Keycloak, doc 08) ; sinon repli sur `X-Admin-Token`
+> (`AI_ADMIN_TOKEN`) ; sinon ouvert en dev. Le bundle est vérifié (**SHA-256**) avant chargement.
+> Modèle entraîné par [`ai-models/training`](../../ai-models/training/README.md).
 
 ---
 
 ## 3. Variables d'environnement
 
-| Variable                 | Défaut                                 | Rôle                                        |
-| ------------------------ | -------------------------------------- | ------------------------------------------- |
-| `AI_SERVICE_PORT`        | `3003`                                 | Port d'écoute HTTP                          |
-| `AI_XGBOOST_BUNDLE_PATH` | `ai-models/exported/xgboost_v1.joblib` | Bundle modèle chargé au démarrage           |
-| `AI_ADMIN_TOKEN`         | _(vide)_                               | Si défini, exige `X-Admin-Token` sur reload |
-| `AI_CORS_ORIGINS`        | `["*"]`                                | Origines CORS (jamais `*` + credentials)    |
-| `API_GATEWAY_URL`        | `http://localhost:3000`                | Endpoint pour rappel identity-service       |
-| `VAULT_ADDR`             | (cf. `.env`)                           | Récupération secrets (clés modèles)         |
+| Variable                   | Défaut                                 | Rôle                                                      |
+| -------------------------- | -------------------------------------- | --------------------------------------------------------- |
+| `AI_SERVICE_PORT`          | `3003`                                 | Port d'écoute HTTP                                        |
+| `AI_XGBOOST_BUNDLE_PATH`   | `ai-models/exported/xgboost_v1.joblib` | Bundle modèle chargé au démarrage                         |
+| `AI_REQUIRE_SIGNED_BUNDLE` | `false`                                | Si `true`, refuse un bundle sans sidecar `.sha256`        |
+| `AI_JWKS_URL`              | _(vide)_                               | Si défini, RBAC Bearer RS256/JWKS sur endpoints sensibles |
+| `AI_JWT_AUDIENCE`          | _(vide)_                               | Audience JWT attendue (vide = non vérifiée)               |
+| `AI_ADMIN_TOKEN`           | _(vide)_                               | Repli (sans JWKS) : exige `X-Admin-Token` sur reload      |
+| `AI_CORS_ORIGINS`          | `["*"]`                                | Origines CORS (jamais `*` + credentials)                  |
+| `API_GATEWAY_URL`          | `http://localhost:3000`                | Endpoint pour rappel identity-service                     |
+| `VAULT_ADDR`               | (cf. `.env`)                           | Récupération secrets (clés modèles)                       |
 
 ---
 

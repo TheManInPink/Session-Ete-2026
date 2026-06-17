@@ -50,9 +50,14 @@ modèle — cf. ADR-030 § limites).
 `services/ai-service/src/main.py` mort) est cohérente avec la saturation disque `.turbo` (ENOSPC) —
 l'app vivante reste `app/main.py`.
 
-**Limites connues** : séparabilité synthétique élevée (perfs réelles RAVEC inférieures) ;
-`services/ai-service/Dockerfile` toujours cassé (lance `src.main:app` vide, base invalide) → à
-corriger doc 20 ; signature/checksum du bundle → doc 15.
+**Durcissement (même session)** : intégrité du bundle (sidecar `.sha256` vérifié AVANT
+désérialisation, `AI_REQUIRE_SIGNED_BUNDLE`) ; RBAC service (`app/auth.py` — Bearer RS256/JWKS +
+rôle, repli `X-Admin-Token`, `AI_JWKS_URL`) ; `services/ai-service/Dockerfile` corrigé (3.13-slim,
+`app.main:app`, `training` sur PYTHONPATH) + route `/health` non préfixée. +10 tests ai-service.
+
+**Limites résiduelles** : séparabilité synthétique élevée (perfs réelles RAVEC inférieures) ;
+provisioning du bundle en production (volume/MinIO) → doc 20 ; signature cryptographique forte
+(Vault/cosign au-delà du SHA-256) → doc 15.
 
 ### 0duodecies. Patch 2026-06-13 — `api-gateway` : auth au bord + rate limit Redis + Swagger agrégé (PROMPT 3.7)
 

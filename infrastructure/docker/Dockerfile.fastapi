@@ -92,6 +92,10 @@ COPY --from=deps /usr/local/bin /usr/local/bin
 
 # Copie le code source du service.
 COPY --chown=nina:nina services/${SERVICE}/app ./app
+# ⚠️ ai-service : charger le bundle IA exige (1) le paquet `training` importable
+# (désérialisation du FeatureBuilder — ajouter ai-models/training/src au PYTHONPATH)
+# et (2) le fichier .joblib (volume monté / MinIO). Provisioning = doc 20 + ADR-030.
+# Cf. la variante autonome services/ai-service/Dockerfile pour un exemple complet.
 # Variable d'environnement pour que le service puisse retrouver son nom.
 ENV NINA_SERVICE_NAME=${SERVICE}
 

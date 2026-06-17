@@ -20,6 +20,7 @@ Date    : 2026
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import threading
 from pathlib import Path
@@ -31,6 +32,40 @@ from .config import settings
 
 # Clés minimales attendues dans le bundle joblib (validation à la désérialisation).
 _REQUIRED_BUNDLE_KEYS = {"model", "feature_builder", "label_encoder", "classes"}
+
+
+def _sha256_file(path: Path) -> str:
+    """Empreinte SHA-256 d'un fichier (vérification d'intégrité du bundle)."""
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _verify_integrity(path: Path) -> str | None:
+    """Vérifie l'empreinte SHA-256 du bundle via son sidecar ``.sha256``.
+
+    Le sidecar (``<bundle>.joblib.sha256``) est produit à l'entraînement. Le
+    bundle étant désérialisé (pickle = exécution de code), cette vérification
+    détecte toute altération avant le ``joblib.load``.
+
+    Args:
+        path: Chemin du bundle ``.joblib``.
+
+    Returns:
+        ``None`` si l'intégrité est OK (ou tolérée), sinon un message d'erreur.
+    """
+    sidecar = path.with_suffix(path.suffix + ".sha256")
+    if not sidecar.exists():
+        if settings.require_signed_bundle:
+            return f"Bundle non signé (sidecar absent : {sidecar.name}) et AI_REQUIRE_SIGNED_BUNDLE=true"
+        return None  # toléré en dev (pas de sidecar = pas de vérif)
+    expected = sidecar.read_text(encoding="utf-8").split()[0].strip().lower()
+    actual = _sha256_file(path).lower()
+    if actual != expected:
+        return f"Intégrité du bundle invalide (SHA-256 attendu {expected[:12]}…, obtenu {actual[:12]}…)"
+    return None
 
 
 def _ensure_training_importable() -> None:
@@ -83,6 +118,12 @@ class ModelRegistry:
             if not path.exists():
                 self._bundle = None
                 self._error = f"Bundle introuvable : {path}"
+                return self.status()
+            # Vérifie l'intégrité AVANT toute désérialisation (pickle = exécution).
+            integrity_error = _verify_integrity(path)
+            if integrity_error:
+                self._bundle = None
+                self._error = integrity_error
                 return self.status()
             try:
                 _ensure_training_importable()
