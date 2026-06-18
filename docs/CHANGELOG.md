@@ -36,8 +36,12 @@ Invisible pour `tsc`/lint (chaînes runtime) et pour les tests (pas de broker e2
 `services/identity-service/.env` (non versionné) fixe `RABBITMQ_EXCHANGE=nina-aes.events`, le passer
 à `nina.events`.
 
-**Drift doc résiduel** (non corrigé ici) : ADR-014 + docs 09/10/11 nomment encore l'exchange
-historique `audit.events` ; le code + `definitions.json` font foi avec `nina.events`/`nina.audit`.
+**Réconciliation doc** (faite) : ADR-014, docs 09/10/11 et les diagrammes 99 (Mermaid + PlantUML)
+nommaient encore l'exchange/file historiques `audit.events` / `audit.queue` — désormais alignés sur
+`nina.events` (topic) / `nina.audit` (fanout) / `audit.log`. ADR-014 conserve sa décision de fond +
+une note de mise à jour ; doc 09 §9 décrit la topologie réelle (deux exchanges, publishers par
+service, ACK+drop des messages non normalisables, DLQ recommandée). Le code + `definitions.json`
+font foi.
 
 ### 0novemdecies. Patch 2026-06-18 — Pipeline de tokens : `tokens.json` autoritatif → Style Dictionary → `tokens.css`
 

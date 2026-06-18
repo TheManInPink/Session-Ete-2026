@@ -1336,7 +1336,7 @@ sequenceDiagram
     participant Pg as PostgreSQL audit_logs
 
     Svc->>MQ: publish event.audit {actor, action, payload}
-    MQ->>Aud: consume from audit.queue
+    MQ->>Aud: consume from audit.log
     Aud->>Pg: SELECT merkle_hash FROM audit_logs ORDER BY id DESC LIMIT 1
     Pg-->>Aud: previousHash
     Aud->>Aud: merkleHash = SHA256(previousHash + payload + timestamp)

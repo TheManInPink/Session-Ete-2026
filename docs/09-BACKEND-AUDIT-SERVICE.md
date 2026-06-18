@@ -59,7 +59,7 @@ existante, la chaîne Merkle se rompt et la falsification devient **prouvable de
 ### Livrable à la fin de ce document
 
 - **5 endpoints REST** sur `http://localhost:3007/api/v1/audit/*`
-- **1 consumer RabbitMQ** écoutant `audit.queue` (exchange `audit.events`)
+- **1 consumer RabbitMQ** (`audit.log`) lié à `nina.events` (topic) + `nina.audit` (fanout)
 - **Chaîne Merkle SHA-256** fonctionnelle avec `previousHash` + `merkleHash`
 - **Triggers Postgres** bloquant tout `UPDATE`/`DELETE` sur `audit_logs`
 - **Scellement horaire** : signature Ed25519 de la racine toutes les 60 min
@@ -161,7 +161,7 @@ reste utilisé côté serveur pour les opérations non-critiques (ID de corréla
 │                                                                     │
 │  ┌────────────────┐    ┌────────────────┐    ┌──────────────────┐  │
 │  │  HTTP REST API │    │ AMQP Consumer  │    │  Cron Scheduler  │  │
-│  │  /audit/*      │    │ audit.events   │    │ @Cron hourly     │  │
+│  │  /audit/*      │    │ nina.events    │    │ @Cron hourly     │  │
 │  └────────┬───────┘    └────────┬───────┘    └─────────┬────────┘  │
 │           │                     │                      │           │
 │           ▼                     ▼                      ▼           │
@@ -466,7 +466,7 @@ async function bootstrap() {
     transport: Transport.RMQ,
     options: {
       urls: [process.env.RABBITMQ_URL!],
-      queue: 'audit.queue',
+      queue: 'audit.log',
       queueOptions: { durable: true },
       noAck: false, // manual ack pour idempotence
       prefetchCount: 1, // ordering garanti par consumer unique
@@ -950,46 +950,62 @@ export class QueryAuditDto {
 
 ## 9. Intégration événementielle RabbitMQ
 
-### 9.1 Exchange et queues
+### 9.1 Exchanges et queue
 
-Déclaration (idempotente) côté émetteurs (`identity-service`, `correction-service`, etc.) :
+> **Implémentation de référence** : `services/audit-service/src/audit/audit.consumer.ts` (basé sur
+> `amqp-connection-manager`, reconnexion auto). Les exemples ci-dessous illustrent le modèle ; les
+> noms exacts proviennent du schéma d'env (`env.schema.ts`) et de
+> `infrastructure/docker/rabbitmq/definitions.json`.
 
-```typescript
-// packages/shared-lib/src/messaging/audit-publisher.ts
-export const AUDIT_EXCHANGE = 'audit.events';
-export const AUDIT_ROUTING_KEY = 'audit.event';
-export const AUDIT_QUEUE = 'audit.queue';
-```
-
-### 9.2 Publisher (côté autres services)
+Le consumer déclare (idempotent) **deux** exchanges + **une** queue, puis lie la queue aux deux :
 
 ```typescript
-@Injectable()
-export class AuditPublisher {
-  constructor(@Inject('AUDIT_CLIENT') private readonly client: ClientProxy) {}
+// audit.consumer.ts — topologie (valeurs par défaut de env.schema.ts)
+const RABBITMQ_AUDIT_EXCHANGE = 'nina.audit'; // fanout — audit explicite
+const RABBITMQ_EVENTS_EXCHANGE = 'nina.events'; // topic  — événements métier
+const RABBITMQ_AUDIT_QUEUE = 'audit.log'; // durable, x-message-ttl 7 j
+// AUDIT_EVENT_PATTERNS : citizen.#, correction.#, agent.#, governance.#,
+//   document.#, identity.#, appointment.#, vulnerability.#, interop.#
 
-  async publish(event: Omit<IngestEventDto, 'sourceEventId'>) {
-    await firstValueFrom(
-      this.client.emit(AUDIT_ROUTING_KEY, {
-        ...event,
-        sourceEventId: randomUUID(),
-      }),
-    );
-  }
+await ch.assertExchange(RABBITMQ_AUDIT_EXCHANGE, 'fanout', { durable: true });
+await ch.assertExchange(RABBITMQ_EVENTS_EXCHANGE, 'topic', { durable: true });
+await ch.assertQueue(RABBITMQ_AUDIT_QUEUE, { durable: true });
+await ch.bindQueue(RABBITMQ_AUDIT_QUEUE, RABBITMQ_AUDIT_EXCHANGE, ''); // tout le fanout
+for (const pattern of AUDIT_EVENT_PATTERNS) {
+  await ch.bindQueue(RABBITMQ_AUDIT_QUEUE, RABBITMQ_EVENTS_EXCHANGE, pattern);
 }
 ```
 
-### 9.3 Dead Letter Queue
+Les **publishers** sont propres à chaque service (pas de shared-lib) : ils publient sur
+`nina.events` avec une clé de routage de leur domaine. Exemple : `document-service` →
+`audit-publisher.service.ts` (clés `document.*`), `identity-service` → `rabbitmq.service.ts` (clés
+`citizen.*` / `correction.*`).
 
-Déclarer `audit.dlq` et lier `audit.queue` via :
+### 9.2 Publisher (côté autres services)
 
+Chaque service publie en `amqp-connection-manager` sur `nina.events` avec une clé de routage de son
+domaine (cf. `document-service/src/audit/audit-publisher.service.ts`) :
+
+```typescript
+// fire-and-forget, jamais bloquant pour l'opération métier
+await channel.publish(RABBITMQ_EVENTS_EXCHANGE /* 'nina.events' */, 'document.fdi.generated', {
+  ...payload,
+  source: 'document-service',
+  emittedAt: new Date().toISOString(),
+});
 ```
-x-dead-letter-exchange:    "audit.dlx"
-x-dead-letter-routing-key: "audit.failed"
-```
 
-Tout événement rejeté (payload invalide, etc.) atterrit en DLQ → un alerting Grafana/Loki signale si
-la DLQ dépasse 10 messages sur 5 min.
+### 9.3 Robustesse des messages
+
+Comportement **actuel** du consumer (`audit.consumer.ts`) : ACK différé après insertion en lot
+(at-least-once + idempotence via `source_event_id UNIQUE`) ; un message non-JSON ou non normalisable
+est **ACK + droppé** (pas de boucle de poison) ; la queue `audit.log` porte un `x-message-ttl` de 7
+jours.
+
+> **Évolution recommandée** : une Dead Letter Queue dédiée (`audit.dlx` → `audit.dlq`,
+> `x-dead-letter-routing-key: audit.failed`) pour conserver les messages rejetés au lieu de les
+> dropper, avec alerting Grafana/Loki si la DLQ dépasse 10 messages sur 5 min. _Non implémentée à ce
+> jour._
 
 ---
 

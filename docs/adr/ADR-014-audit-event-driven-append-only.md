@@ -4,6 +4,13 @@
 document** : [09 — Backend Audit Service](../09-BACKEND-AUDIT-SERVICE.md) **Complète** :
 [ADR-007 — Chaîne Merkle d'audit](./ADR-007-merkle-audit.md)
 
+> **Mise à jour 2026-06-18 (noms d'exchanges)** — La topologie a évolué depuis la rédaction :
+> l'exchange unique `audit.events` (topic) a été scindé en **deux** — `nina.events` (topic,
+> événements métier) + `nina.audit` (fanout, audit explicite) — et la file consommée se nomme
+> `audit.log`. La **décision de fond** (ingestion RabbitMQ découplée + append-only) reste valable ;
+> seuls les noms changent. Source de vérité : `infrastructure/docker/rabbitmq/definitions.json` +
+> `services/audit-service/src/audit/audit.consumer.ts` (cf. CHANGELOG `0vicies`).
+
 ---
 
 ## Contexte
@@ -62,8 +69,9 @@ l'audit.
 
 ### Option C — File de messages RabbitMQ (choix) ✅
 
-Chaque service publie un événement AMQP vers l'exchange `audit.events` avec routing key
-`audit.event`. L'`audit-service` consomme via `audit.queue`.
+Chaque service publie un événement AMQP vers l'exchange topic `nina.events` (clés de routage par
+domaine : `citizen.*`, `correction.*`, `document.*`, …) ; l'audit explicite passe par le fanout
+`nina.audit`. L'`audit-service` consomme les deux via sa file `audit.log`.
 
 - ➕ **Découplage** : l'`audit-service` peut être redémarré sans bloquer la plateforme
 - ➕ **Durabilité** : RabbitMQ persiste les messages sur disque (quorum queue) — zéro perte même si
@@ -162,8 +170,8 @@ Déléguer le stockage à un système nativement inviolable.
 
 L'`audit-service` ingère ses événements :
 
-1. Exclusivement via la file RabbitMQ durable `audit.queue` (exchange `audit.events`, routing key
-   `audit.event`).
+1. Exclusivement via la file RabbitMQ durable `audit.log`, liée à l'exchange topic `nina.events`
+   (clés de routage par domaine) et au fanout `nina.audit`.
 2. Avec idempotence stricte par contrainte `UNIQUE(source_event_id)` et DLQ `audit.dlq` pour les
    échecs de validation.
 3. Les tables `audit_logs` et `audit_roots` sont append-only enforced via :
@@ -189,7 +197,7 @@ L'`audit-service` ingère ses événements :
   trois surfaces distinctes.
 - **Scalabilité** : l'audit scale selon sa propre charge (ingestion + vérifications) sans impacter
   les écritures métier.
-- **Observabilité** : la profondeur de `audit.queue` devient une métrique de santé globale lisible
+- **Observabilité** : la profondeur de `audit.log` devient une métrique de santé globale lisible
   (alerte si > 10 000 ou > 30 s de retard).
 - **Testabilité** : le consumer est une unité isolée, testable avec `@testcontainers/rabbitmq` +
   `@testcontainers/postgresql`.

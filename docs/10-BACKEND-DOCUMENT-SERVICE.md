@@ -221,7 +221,7 @@ box "document-service (3004)" #LightYellow
   participant "RevocationService\n(Redis)" as Rev
 end box
 database "PostgreSQL\nDocument" as DB
-queue "RabbitMQ\naudit.events" as MQ
+queue "RabbitMQ\nnina.events" as MQ
 participant "Vault\ntransit/sign" as Vault
 participant "MinIO\nbucket fiches" as Minio
 
@@ -451,7 +451,7 @@ services/document-service/
 │   │   ├── minio.service.ts              # putObject avec ObjectLock + presign
 │   │   └── minio.config.ts
 │   ├── audit/
-│   │   └── audit-publisher.service.ts    # RabbitMQ → audit.events
+│   │   └── audit-publisher.service.ts    # RabbitMQ → nina.events
 │   ├── identity-client/
 │   │   └── identity.client.ts            # gRPC vers identity-service (port 3001)
 │   ├── vault/
@@ -917,7 +917,7 @@ export const envSchema = z.object({
   REDIS_URL: z.string().url(),
 
   RABBITMQ_URL: z.string().url(),
-  RABBITMQ_AUDIT_EXCHANGE: z.string().default('audit.events'),
+  RABBITMQ_EVENTS_EXCHANGE: z.string().default('nina.events'),
   RABBITMQ_NOTIF_EXCHANGE: z.string().default('notification.events'),
 
   // Vault Transit

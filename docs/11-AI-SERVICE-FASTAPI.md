@@ -277,7 +277,8 @@ Sortie :
 - Si score ≥ 85 : propose auto-approbation au `correction-service`
 - Si score < 40 : crée une `CorrectionRequest` en file urgente
 - Sinon : insertion en file de revue standard
-- Publication AMQP sur `audit.events` avec `action=ai.analysis.completed`
+- Publication AMQP (planifiée) sur `nina.events`, routing key `ai.analysis.completed` (captée par
+  audit-service ; l'ai-service n'émet pas encore d'événement AMQP dans le code actuel)
 
 ---
 
