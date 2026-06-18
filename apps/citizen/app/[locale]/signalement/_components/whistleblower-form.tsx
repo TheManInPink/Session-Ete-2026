@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
@@ -64,7 +64,7 @@ export function WhistleblowerForm() {
   const canSubmit =
     state.category !== '' && state.description.trim().length >= 50 && state.consentGiven;
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     const category = state.category;
     if (category === '') return;

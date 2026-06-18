@@ -23,7 +23,7 @@ export function NinaHeroSearch() {
   const [submitting, setSubmitting] = React.useState(false);
   const isValid = validateNina(nina);
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     if (!isValid) return;
     setSubmitting(true);

@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { formatNina } from '@nina-aes/utils';
@@ -167,7 +167,7 @@ export function AppointmentForm({ locale, nina }: AppointmentFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmation]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     if (!selectedSlot) return;
     setError(null);

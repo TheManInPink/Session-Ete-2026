@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState, useRef, type FormEvent } from 'react';
+import { useState, useRef, type SyntheticEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@nina-aes/ui/components/button';
@@ -136,7 +136,7 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
     state.step === 4;
 
   /** Soumet la correction au backend (mock → fixture, live → gateway via BFF). */
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     const field = state.field;
     if (!field) return;

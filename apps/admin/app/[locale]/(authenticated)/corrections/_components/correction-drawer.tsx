@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, useTransition, type SyntheticEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Sheet,
@@ -54,7 +54,7 @@ export function CorrectionDrawer({ correction, open, onOpenChange, onDecision }:
     });
   };
 
-  const handleRejectSubmit = (e: FormEvent) => {
+  const handleRejectSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
     if (rejectReason.trim().length < 5) return;
     startTransition(() => {
