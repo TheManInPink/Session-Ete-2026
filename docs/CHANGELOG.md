@@ -3,12 +3,45 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-17 (patch 0quaterdecies — Frontend : couture API mock↔live,
-> hooks `@nina-aes/api-client/react`, BFF tokens httpOnly + transport anonyme SIGAC ; écrans citoyen
-> PC-02 → PC-06 branchés — PROMPT 5.1, tranche 1 (app citizen))
+> **Dernière mise à jour** : 2026-06-17 (patch 0quindecies — Design system : 24 composants
+> `@nina-aes/ui` (atomes, conteneurs, métier), déprécations React 19 corrigées, dashboard citoyen
+> dédupliqué sur la CorrectionTimeline du DS — voir aussi 0quaterdecies pour PROMPT 5.1)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quindecies. Patch 2026-06-17 — Design system : 24 composants `@nina-aes/ui` + déprécations React 19 + dedupe
+
+Industrialisation du design system par **lots vérifiés** (typecheck + lint à chaque lot). **ADR :
+[ADR-032](./adr/ADR-032-design-system-component-buildout.md).**
+
+> Style maison unifié : primitives **Radix** + **class-variance-authority** + **tokens sémantiques**
+> Tailwind v4 (uniquement les classes du `@theme inline`, robustes) + `React.ComponentRef` + a11y
+> native. Composants métier **découplés** du domaine (unions locales, pas de dépendance
+> shared-types).
+
+**Livré** :
+
+- **8 atomes** : switch, radio-group, textarea, avatar, spinner, tooltip, tabs, progress.
+- **8 conteneurs / navigation** : dialog (4 tailles), popover, accordion, breadcrumb, pagination,
+  table, stepper, empty-state.
+- **8 composants métier** (`components/business/`) : NinaDisplay, CitizenCard, AiScorePanel (jauge
+  SVG `role="meter"`), CorrectionTimeline, AlertSeverityBadge, PrioritySlot, LanguageSelector (8
+  langues), AESCountrySwitcher.
+- **Déprécations React 19** corrigées (`FormEvent`→`SyntheticEvent`, `ElementRef`→`ComponentRef`)
+  dans ui + citizen + admin.
+- **Déduplication** : le dashboard citoyen (PC-05) consomme désormais la `CorrectionTimeline` du
+  design system au lieu d'une copie inline (~75 lignes supprimées ; étape courante en `warning`
+  conforme à design-system.md §3.6).
+- **Doc** : `figma-prompts.md` aligné (NINA d'exemple valide `…V`, plan 43h).
+
+**Vérif** : `@nina-aes/ui` typecheck + lint OK à chaque lot ; citizen typecheck + lint + **e2e
+13/13** après dedupe ; `verify:repo` OK.
+
+**Reste** (cf. ADR-032 § limites) : atomes select/slider ; conteneurs toast/data-grid/error-boundary
+; métier UploadZone/MaliMap/DirectiveCard/SignedMessageBubble/WhistleblowerForm/KioskKeyboard/
+UssdSimulator ; 5 icônes maliennes ; pipeline Style Dictionary ; dedupe restante (drawer admin,
+appointment-form, LanguageSwitcher citoyen).
 
 ### 0quaterdecies. Patch 2026-06-17 — Frontend : couture API mock↔live + hooks `@react` + BFF (PROMPT 5.1, tranche 1 — app citizen)
 
