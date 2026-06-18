@@ -839,7 +839,7 @@ rectangle "NINA-AES — Citoyen" {
   usecase "Accéder via USSD multilingue" as UC6
   usecase "Recevoir notification SMS" as UC7
   usecase "Consulter statut dossier" as UC8
-  usecase "Signer électoralement" as UC9
+  usecase "Vérifier inscription électorale" as UC9
   usecase "S'authentifier Keycloak" as UC10
 }
 
@@ -1293,27 +1293,27 @@ Mobile --> Citizen : ✓ Agent vérifié
 @startuml
 actor "Citizen" as Citizen
 participant "web-citoyen" as Web
-participant "identity-service :3001" as Corr
+participant "identity-service :3001" as Iden
 participant "ai-service :3003" as AI
 database "MinIO" as Minio
 queue "RabbitMQ" as MQ
 participant "anticorruption-service" as AntiC
 
 Citizen -> Web : Soumet correction + photo CNI
-Web -> Corr : POST /corrections {dto, file}
-Corr -> Minio : PUT /corrections/{id}.jpg
-Minio --> Corr : object URL
-Corr -> AI : POST /analyze {citizenId, objectUrl, proposed}
+Web -> Iden : POST /corrections {dto, file}
+Iden -> Minio : PUT /corrections/{id}.jpg
+Minio --> Iden : object URL
+Iden -> AI : POST /analyze {citizenId, objectUrl, proposed}
 AI -> AI : OCR Tesseract
 AI -> AI : NLP spaCy + langdetect
 AI -> AI : Fuzzy match RapidFuzz
 AI -> AI : XGBoost confidence
-AI --> Corr : {score=87.3, anomalies=[]}
-Corr -> Corr : auto-approve (≥85)
-Corr -> MQ : publish correction.approved
+AI --> Iden : {score=87.3, anomalies=[]}
+Iden -> Iden : auto-approve (≥85)
+Iden -> MQ : publish correction.approved
 MQ -> AntiC : consume → check agent pattern
 AntiC -> AntiC : if suspicious → create alert
-Corr --> Web : {status=APPROVED, score=87.3}
+Iden --> Web : {status=APPROVED, score=87.3}
 Web --> Citizen : ✓ Correction approuvée
 @enduml
 ```
