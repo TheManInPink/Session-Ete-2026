@@ -1,27 +1,15 @@
 /**
- * tokens.css — Variables CSS NINA-AES (généré à partir de docs/design-system/tokens.json)
+ * tokens.css — GÉNÉRÉ par Style Dictionary (packages/ui/style-dictionary/build.mjs).
+ * NE PAS ÉDITER À LA MAIN. Source de vérité : docs/design-system/tokens.json.
+ * Régénérer : pnpm --filter @nina-aes/ui tokens:build
  *
- * Source de vérité : docs/design-system/tokens.json (Style Dictionary 4)
- * Toute couleur / espacement / ombre y est défini en premier puis dérivé ici.
- *
- * Les variables sont en HSL pour faciliter le mode sombre (un seul axe — la
- * luminance — à inverser).
- *
- * IMPORTANT (Tailwind v4) : les ÉCHELLES de couleur sont déclarées dans un bloc
- * `@theme` — c'est la seule façon de générer les utilitaires (`bg-primary-50`,
- * `text-success-700`, `bg-danger-50`, …). Des variables placées dans un simple
- * `:root` / `@layer theme` ne produisent AUCUN utilitaire (classes mortes,
- * invisibles pour tsc/eslint). Les rôles sémantiques (`--bg`, `--primary`, …) et
- * les jetons non-couleur restent dans `:root` car ils sont, soit consommés par le
- * `@theme inline` de globals.css, soit surchargés en mode sombre (ce qu'un bloc
- * `@theme` statique ne permet pas).
+ * Échelles de couleur dans @theme → utilitaires Tailwind v4 (bg-primary-50, text-success-700…).
+ * Rôles sémantiques + mode sombre dans :root (consommés par le @theme inline de globals.css).
  */
 
 @layer theme, base, components, utilities;
 
-/* ── Échelles de couleur — enregistrées pour générer les utilitaires Tailwind ── */
 @theme {
-  /* Palette primaire (bleu profond AES) — 11 nuances */
   --color-primary-50: hsl(213, 80%, 96%);
   --color-primary-100: hsl(213, 75%, 90%);
   --color-primary-200: hsl(213, 70%, 80%);
@@ -33,17 +21,17 @@
   --color-primary-800: hsl(213, 72%, 20%);
   --color-primary-900: hsl(213, 74%, 16%);
   --color-primary-950: hsl(213, 78%, 10%);
-
-  /* Accent (turquoise lumineux pour CTAs) */
   --color-accent-50: hsl(180, 80%, 96%);
   --color-accent-100: hsl(180, 75%, 90%);
+  --color-accent-200: hsl(180, 70%, 80%);
   --color-accent-300: hsl(180, 70%, 65%);
+  --color-accent-400: hsl(180, 70%, 50%);
   --color-accent-500: hsl(180, 75%, 42%);
   --color-accent-600: hsl(180, 80%, 32%);
   --color-accent-700: hsl(180, 82%, 25%);
-
-  /* Neutres (légèrement chauds, saturation 4-10%) — surcharge la palette par
-     défaut de Tailwind pour appliquer la teinte chaude voulue */
+  --color-accent-800: hsl(180, 84%, 20%);
+  --color-accent-900: hsl(180, 86%, 14%);
+  --color-accent-950: hsl(180, 88%, 9%);
   --color-neutral-0: hsl(0, 0%, 100%);
   --color-neutral-50: hsl(30, 8%, 98%);
   --color-neutral-100: hsl(30, 8%, 95%);
@@ -56,32 +44,37 @@
   --color-neutral-800: hsl(30, 7%, 18%);
   --color-neutral-900: hsl(30, 8%, 12%);
   --color-neutral-950: hsl(30, 10%, 6%);
-
-  /* Sémantique */
   --color-success-50: hsl(142, 76%, 96%);
   --color-success-100: hsl(142, 73%, 90%);
   --color-success-500: hsl(142, 71%, 45%);
   --color-success-700: hsl(142, 75%, 28%);
+  --color-success-900: hsl(142, 80%, 16%);
   --color-warning-50: hsl(38, 92%, 96%);
   --color-warning-500: hsl(38, 92%, 50%);
   --color-warning-700: hsl(38, 95%, 35%);
   --color-warning-800: hsl(38, 95%, 28%);
+  --color-warning-900: hsl(38, 98%, 18%);
   --color-danger-50: hsl(0, 86%, 97%);
   --color-danger-500: hsl(0, 84%, 60%);
   --color-danger-700: hsl(0, 80%, 42%);
+  --color-danger-900: hsl(0, 80%, 22%);
   --color-info-50: hsl(199, 89%, 96%);
   --color-info-500: hsl(199, 89%, 48%);
   --color-info-700: hsl(199, 92%, 32%);
-
-  /* Drapeaux AES */
+  --color-info-900: hsl(199, 95%, 16%);
   --color-aes-mali-green: hsl(150, 79%, 25%);
   --color-aes-mali-yellow: hsl(48, 100%, 53%);
   --color-aes-mali-red: hsl(2, 78%, 52%);
+  --color-aes-burkina-red: hsl(0, 72%, 50%);
+  --color-aes-burkina-green: hsl(135, 70%, 32%);
+  --color-aes-burkina-yellow: hsl(50, 100%, 55%);
+  --color-aes-niger-orange: hsl(22, 92%, 53%);
+  --color-aes-niger-white: hsl(0, 0%, 100%);
+  --color-aes-niger-green: hsl(120, 60%, 35%);
 }
 
 @layer theme {
   :root {
-    /* ── Rôles sémantiques (utilisés par @theme inline + composants) ──────── */
     --bg: var(--color-neutral-50);
     --bg-card: var(--color-neutral-0);
     --bg-muted: var(--color-neutral-100);
@@ -94,25 +87,36 @@
     --destructive: var(--color-danger-500);
     --destructive-fg: var(--color-neutral-0);
 
-    /* ── Espacements (4px base) ────────────────────────────────────────────── */
+    --space-0: 0;
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
     --space-4: 16px;
+    --space-5: 20px;
     --space-6: 24px;
     --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+    --space-24: 96px;
+    --space-32: 128px;
 
-    /* ── Rayons ─────────────────────────────────────────────────────────────── */
+    --radius-none: 0;
     --radius-sm: 4px;
     --radius-base: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
+    --radius-xl: 24px;
     --radius-full: 9999px;
 
-    /* ── Ombres ─────────────────────────────────────────────────────────────── */
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
+    --shadow-base: 0 4px 6px -1px hsl(0 0% 0% / 0.08), 0 2px 4px -2px hsl(0 0% 0% / 0.05);
     --shadow-md: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.06);
     --shadow-lg: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.06);
+    --shadow-xl: 0 25px 50px -12px hsl(0 0% 0% / 0.18);
+    --shadow-2xl: 0 35px 60px -15px hsl(0 0% 0% / 0.3);
     --shadow-focus: 0 0 0 3px hsl(213 60% 54% / 0.5);
   }
 

@@ -68,7 +68,8 @@
   },
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "tokens:build": "node style-dictionary/build.mjs"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
@@ -79,6 +80,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^10.2.0",
     "postcss": "^8.5.3",
+    "style-dictionary": "^4.0.0",
     "tailwindcss": "^4.2.1",
     "typescript": "6.0.2"
   },

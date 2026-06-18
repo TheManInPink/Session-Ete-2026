@@ -3,13 +3,41 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-18 (patch 0octodecies — **correctif tokens** : les échelles de
-> couleur sont désormais enregistrées dans `@theme` → tous les utilitaires `bg-*-50`/`text-*-700`/…
-> sont générés (Alert, Badge, statuts, scores IA… des 3 apps rendaient sans couleur). Voir
-> 0septdecies pour le lot 3 du design system)
+> **Dernière mise à jour** : 2026-06-18 (patch 0novemdecies — **pipeline de tokens** : `tokens.json`
+> devient la source autoritative, `tokens.css` est généré par Style Dictionary 4
+> (`pnpm --filter @nina-aes/ui tokens:build`). Industrialise le correctif 0octodecies. ADR-033)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0novemdecies. Patch 2026-06-18 — Pipeline de tokens : `tokens.json` autoritatif → Style Dictionary → `tokens.css`
+
+Industrialisation du correctif `0octodecies`. **ADR :
+[ADR-033](./adr/ADR-033-design-tokens-style-dictionary-pipeline.md).**
+
+`tokens.json` (DTCG / Style Dictionary 4) était documenté comme source de vérité mais n'était
+branché à rien — `tokens.css` était maintenu à la main (d'où le bug de classes mortes). Désormais
+**`tokens.json` est autoritatif** et `tokens.css` est **généré**.
+
+**Livré** :
+
+- **`tokens.json` complété** : `neutral.0`, `success.100`, `warning.800` (utilisés mais absents) +
+  sections `semantic` (rôles mode clair) et `semanticDark` (surcharges sombres), en références.
+- **Pipeline** : `packages/ui/style-dictionary/build.mjs` + script `tokens:build`. Format CSS custom
+  (`nina/tokens-css`) : échelles → `@theme` (valeurs hsl résolues, aucun transform de couleur) ;
+  rôles → `:root` en `var(--color-…)` ; mode sombre → `:root[data-theme='dark']`. Sortie JS
+  (`javascript/esm`) pour RN/JS (artefact non versionné).
+- **`src/styles/tokens.css` est maintenant GÉNÉRÉ** (en-tête « ne pas éditer à la main »). Toute
+  valeur passe par `tokens.json` puis `tokens:build`.
+- **pnpm 11** : `style-dictionary` + `@bundled-es-modules/glob` en `allowBuilds: false` (JS pur, pas
+  de script de build requis) ; `style-dictionary` ajouté en devDependency de `@nina-aes/ui`.
+
+**Vérif (empirique)** : `tokens.css` généré compilé via `@tailwindcss/postcss@4.3.0` — 27 classes
+témoins (échelles + jetons sémantiques + opacité) **toutes générées, 0 manquante** ; `build.mjs`
+lint OK ; `tokens.json` JSON valide.
+
+**Reste** (cf. ADR-032 § limites) : dedupe d'apps (drawer admin, appointment-form, LanguageSwitcher
+citoyen — bloqué sur vérif e2e fiable dans cet environnement).
 
 ### 0octodecies. Patch 2026-06-18 — Correctif tokens : échelles de couleur enregistrées dans `@theme`
 

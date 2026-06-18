@@ -24,6 +24,7 @@ verifyDepsBeforeRun: false
 #
 # Format pnpm 11 : map avec valeurs booléennes (true = autorisé).
 allowBuilds:
+  '@bundled-es-modules/glob': false
   '@nestjs/core': true
   '@parcel/watcher': true
   '@prisma/client': true
@@ -36,6 +37,7 @@ allowBuilds:
   protobufjs: true
   puppeteer: false
   sharp: true
+  style-dictionary: false
   unrs-resolver: true
 
 # ─── Overrides CVE (force les versions patchées détectées par Trivy) ──

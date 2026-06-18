@@ -6,10 +6,11 @@
 >
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
-> **Dernière mise à jour** : 17 juin 2026 · **Status** : ✅ initialisé (27 docs + **30 ADRs** —
-> ADR-030 ajouté pour le module IA : pipeline d'entraînement `ai-models/training`, bundle joblib
-> auto-suffisant anti-fuite, générateur de dataset restauré et intégration `ai-service` — PROMPT
-> 4.3).
+> **Dernière mise à jour** : 18 juin 2026 · **Status** : ✅ initialisé (27 docs + **33 ADRs** —
+> ADR-031 (data layer frontend mock/live/BFF), ADR-032 (design system) et ADR-033 (pipeline de
+> tokens Style Dictionary) ajoutés depuis ; ADR-030 couvre le module IA : pipeline d'entraînement
+> `ai-models/training`, bundle joblib auto-suffisant anti-fuite, générateur de dataset restauré et
+> intégration `ai-service` — PROMPT 4.3).
 
 ---
 

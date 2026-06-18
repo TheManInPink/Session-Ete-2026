@@ -87,7 +87,8 @@ composant publié **après** que ce dernier est livré + vérifié. Premier exem
 
 ## Limites / reste à faire
 
-- **Pipeline tokens** : `sd.config.cjs` (Style Dictionary) → génération tokens.css / tailwind / RN.
-  (Tous les composants atomes/conteneurs/métier sont désormais livrés — lots 1 à 3.)
+- **Pipeline tokens** : ✅ livré — `tokens.json` autoritatif → Style Dictionary → `tokens.css` (cf.
+  [ADR-033](./ADR-033-design-tokens-style-dictionary-pipeline.md), CHANGELOG `0novemdecies`). Tous
+  les composants atomes/conteneurs/métier sont par ailleurs livrés (lots 1 à 3).
 - **Dedupe restante** : drawer admin (AiScorePanel/CorrectionTimeline inline), `appointment-form`
   citoyen (créneaux → PrioritySlot), `LanguageSwitcher` citoyen → LanguageSelector.
