@@ -64,6 +64,8 @@ node "Datacenter CTDEC — Bamako\nSouveraineté numérique 🇲🇱" as CTDEC #
       component "notification-service :3005" as Notif
       component "audit-service :3007" as Audit
       component "appointment-service :3008" as Appt
+      component "biometric-service :3012" as Biometric
+      component "enrollment-service :3013" as Enrollment
     }
 
     node "ns: ai" as NSAI #FEE2E2 {
