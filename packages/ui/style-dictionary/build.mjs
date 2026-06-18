@@ -19,8 +19,10 @@
  *     (`:root[data-theme='dark']`) — ce qu'un `@theme` statique ne permet pas.
  */
 
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import prettier from 'prettier';
 import StyleDictionary from 'style-dictionary';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -127,4 +129,17 @@ const sd = new StyleDictionary({
 });
 
 await sd.buildAllPlatforms();
+
+// Reformate le CSS généré avec la config Prettier du dépôt : la génération devient
+// IDEMPOTENTE (re-`tokens:build` ne produit aucun diff parasite) et la sortie est
+// déjà conforme à ce que lint-staged écrirait au commit.
+const cssPath = path.join(packageRoot, 'src', 'styles', 'tokens.css');
+const prettierConfig = await prettier.resolveConfig(cssPath);
+const formatted = await prettier.format(fs.readFileSync(cssPath, 'utf8'), {
+  ...prettierConfig,
+  parser: 'css',
+  filepath: cssPath,
+});
+fs.writeFileSync(cssPath, formatted);
+
 console.log('✅ tokens générés depuis', path.relative(repoRoot, tokensSource));

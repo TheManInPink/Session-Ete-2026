@@ -59,8 +59,9 @@ Dictionary 4** (`packages/ui/style-dictionary/build.mjs`, script
 - Effet de bord positif : les neutres chauds surchargent désormais la palette par défaut de Tailwind
   ; les flags Burkina/Niger et les stops `-900`/accent complets deviennent disponibles (additif,
   sans consommateur pour l'instant).
-- `tokens.css` étant reformaté par Prettier au commit, le re-`tokens:build` produit un diff de
-  formatage bénin (valeurs identiques).
+- **Génération idempotente** : `build.mjs` reformate sa sortie avec la config Prettier du dépôt,
+  donc `tokens.css` généré est déjà conforme à lint-staged — re-`tokens:build` ne produit aucun diff
+  parasite (vérifié : deux builds consécutifs → hash identique).
 
 ## Liens
 
