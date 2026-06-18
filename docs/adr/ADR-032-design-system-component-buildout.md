@@ -25,9 +25,11 @@ variantes + **uniquement les classes utilitaires de tokens sémantiques** expos�
 `text-fg-muted`, `border-border`, `ring-ring`, `bg-fg`/`text-bg`, `bg-destructive`, `bg-success`,
 `bg-warning`, `bg-info` + modificateurs d'opacité) + `forwardRef` + `displayName`.
 
-- **Pourquoi** : cohérence avec button/input/checkbox ; **robustesse** — seules les classes mappées
-  dans `@theme inline` sont garanties générées par Tailwind v4, donc on évite les classes d'échelle
-  (`bg-primary-50`, …) potentiellement « mortes » selon la config.
+- **Pourquoi** : cohérence avec button/input/checkbox. Les nouveaux composants privilégient les
+  jetons sémantiques + opacité (rendu cohérent clair/sombre, moins de variantes). _Note : depuis le
+  correctif `0octodecies` (CHANGELOG), les échelles (`bg-primary-50`, …) sont enregistrées dans
+  `@theme` et donc bien générées — elles étaient auparavant « mortes ». Les deux vocabulaires sont
+  désormais valides ; le sémantique reste la convention par défaut._
 - **Conséquence** : `React.ComponentRef` partout (et non `ElementRef`, déprécié en @types/react 19 —
   cf. balayage de déprécations, commit `7c40e02`).
 
@@ -77,17 +79,15 @@ composant publié **après** que ce dernier est livré + vérifié. Premier exem
   étape courante en `warning` conforme à design-system.md §3.6, au lieu de `primary`).
 - Déprécations React 19 corrigées (FormEvent→SyntheticEvent, ElementRef→ComponentRef) et
   `figma-prompts.md` aligné (NINA d'exemple valide `…V`, plan 43h).
+- **Correctif tokens (`0octodecies`)** : échelles de couleur déplacées de `@layer theme` vers
+  `@theme` → les utilitaires `bg-*-50` / `text-*-700` / … sont enfin générés. Corrige un bug
+  systémique (Alert/Badge/IntegrityGauge/Input + ~40 fichiers d'app rendaient sans couleur). Vérifié
+  par compilation Tailwind réelle (`@tailwindcss/postcss`). Découvert via la revue adversariale du
+  lot 3.
 
 ## Limites / reste à faire
 
 - **Pipeline tokens** : `sd.config.cjs` (Style Dictionary) → génération tokens.css / tailwind / RN.
   (Tous les composants atomes/conteneurs/métier sont désormais livrés — lots 1 à 3.)
-- **Drift tokens à corriger** (découvert au lot 3) : `alert.tsx` et `input.tsx` emploient des
-  classes d'échelle Tailwind (`bg-info-50`, `text-info-700`, `bg-danger-50/30`, …) **non générées**
-  — seuls les jetons de `@theme inline` produisent des utilitaires. Les variants colorés d'`Alert`
-  et la teinte d'erreur d'`Input` ne sont donc pas rendus (invisible pour tsc/eslint). À remplacer
-  par des jetons sémantiques + opacité (`bg-info/10 text-info`, …) dans un correctif dédié
-  (composants fondamentaux consommés par les 3 apps). Tous les composants des lots 1-3 n'utilisent
-  que des jetons sémantiques.
 - **Dedupe restante** : drawer admin (AiScorePanel/CorrectionTimeline inline), `appointment-form`
   citoyen (créneaux → PrioritySlot), `LanguageSwitcher` citoyen → LanguageSelector.

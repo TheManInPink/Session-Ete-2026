@@ -5,68 +5,83 @@
  * Toute couleur / espacement / ombre y est défini en premier puis dérivé ici.
  *
  * Les variables sont en HSL pour faciliter le mode sombre (un seul axe — la
- * luminance — à inverser). Tailwind v4 lit ces variables via @theme.
+ * luminance — à inverser).
+ *
+ * IMPORTANT (Tailwind v4) : les ÉCHELLES de couleur sont déclarées dans un bloc
+ * `@theme` — c'est la seule façon de générer les utilitaires (`bg-primary-50`,
+ * `text-success-700`, `bg-danger-50`, …). Des variables placées dans un simple
+ * `:root` / `@layer theme` ne produisent AUCUN utilitaire (classes mortes,
+ * invisibles pour tsc/eslint). Les rôles sémantiques (`--bg`, `--primary`, …) et
+ * les jetons non-couleur restent dans `:root` car ils sont, soit consommés par le
+ * `@theme inline` de globals.css, soit surchargés en mode sombre (ce qu'un bloc
+ * `@theme` statique ne permet pas).
  */
 
 @layer theme, base, components, utilities;
 
+/* ── Échelles de couleur — enregistrées pour générer les utilitaires Tailwind ── */
+@theme {
+  /* Palette primaire (bleu profond AES) — 11 nuances */
+  --color-primary-50: hsl(213, 80%, 96%);
+  --color-primary-100: hsl(213, 75%, 90%);
+  --color-primary-200: hsl(213, 70%, 80%);
+  --color-primary-300: hsl(213, 65%, 68%);
+  --color-primary-400: hsl(213, 60%, 54%);
+  --color-primary-500: hsl(213, 60%, 42%);
+  --color-primary-600: hsl(213, 65%, 32%);
+  --color-primary-700: hsl(213, 70%, 25%);
+  --color-primary-800: hsl(213, 72%, 20%);
+  --color-primary-900: hsl(213, 74%, 16%);
+  --color-primary-950: hsl(213, 78%, 10%);
+
+  /* Accent (turquoise lumineux pour CTAs) */
+  --color-accent-50: hsl(180, 80%, 96%);
+  --color-accent-100: hsl(180, 75%, 90%);
+  --color-accent-300: hsl(180, 70%, 65%);
+  --color-accent-500: hsl(180, 75%, 42%);
+  --color-accent-600: hsl(180, 80%, 32%);
+  --color-accent-700: hsl(180, 82%, 25%);
+
+  /* Neutres (légèrement chauds, saturation 4-10%) — surcharge la palette par
+     défaut de Tailwind pour appliquer la teinte chaude voulue */
+  --color-neutral-0: hsl(0, 0%, 100%);
+  --color-neutral-50: hsl(30, 8%, 98%);
+  --color-neutral-100: hsl(30, 8%, 95%);
+  --color-neutral-200: hsl(30, 6%, 89%);
+  --color-neutral-300: hsl(30, 5%, 78%);
+  --color-neutral-400: hsl(30, 4%, 60%);
+  --color-neutral-500: hsl(30, 4%, 46%);
+  --color-neutral-600: hsl(30, 5%, 36%);
+  --color-neutral-700: hsl(30, 6%, 28%);
+  --color-neutral-800: hsl(30, 7%, 18%);
+  --color-neutral-900: hsl(30, 8%, 12%);
+  --color-neutral-950: hsl(30, 10%, 6%);
+
+  /* Sémantique */
+  --color-success-50: hsl(142, 76%, 96%);
+  --color-success-100: hsl(142, 73%, 90%);
+  --color-success-500: hsl(142, 71%, 45%);
+  --color-success-700: hsl(142, 75%, 28%);
+  --color-warning-50: hsl(38, 92%, 96%);
+  --color-warning-500: hsl(38, 92%, 50%);
+  --color-warning-700: hsl(38, 95%, 35%);
+  --color-warning-800: hsl(38, 95%, 28%);
+  --color-danger-50: hsl(0, 86%, 97%);
+  --color-danger-500: hsl(0, 84%, 60%);
+  --color-danger-700: hsl(0, 80%, 42%);
+  --color-info-50: hsl(199, 89%, 96%);
+  --color-info-500: hsl(199, 89%, 48%);
+  --color-info-700: hsl(199, 92%, 32%);
+
+  /* Drapeaux AES */
+  --color-aes-mali-green: hsl(150, 79%, 25%);
+  --color-aes-mali-yellow: hsl(48, 100%, 53%);
+  --color-aes-mali-red: hsl(2, 78%, 52%);
+}
+
 @layer theme {
   :root {
-    /* ── Palette primaire (bleu profond AES) — 11 nuances ──────────────── */
-    --color-primary-50: hsl(213, 80%, 96%);
-    --color-primary-100: hsl(213, 75%, 90%);
-    --color-primary-200: hsl(213, 70%, 80%);
-    --color-primary-300: hsl(213, 65%, 68%);
-    --color-primary-400: hsl(213, 60%, 54%);
-    --color-primary-500: hsl(213, 60%, 42%);
-    --color-primary-600: hsl(213, 65%, 32%);
-    --color-primary-700: hsl(213, 70%, 25%);
-    --color-primary-800: hsl(213, 72%, 20%);
-    --color-primary-900: hsl(213, 74%, 16%);
-    --color-primary-950: hsl(213, 78%, 10%);
-
-    /* ── Accent (turquoise lumineux pour CTAs) ─────────────────────────── */
-    --color-accent-50: hsl(180, 80%, 96%);
-    --color-accent-100: hsl(180, 75%, 90%);
-    --color-accent-300: hsl(180, 70%, 65%);
-    --color-accent-500: hsl(180, 75%, 42%);
-    --color-accent-600: hsl(180, 80%, 32%);
-    --color-accent-700: hsl(180, 82%, 25%);
-
-    /* ── Neutres (légèrement chauds, saturation 4-10%) ─────────────────── */
-    --color-neutral-0: hsl(0, 0%, 100%);
-    --color-neutral-50: hsl(30, 8%, 98%);
-    --color-neutral-100: hsl(30, 8%, 95%);
-    --color-neutral-200: hsl(30, 6%, 89%);
-    --color-neutral-300: hsl(30, 5%, 78%);
-    --color-neutral-400: hsl(30, 4%, 60%);
-    --color-neutral-500: hsl(30, 4%, 46%);
-    --color-neutral-600: hsl(30, 5%, 36%);
-    --color-neutral-700: hsl(30, 6%, 28%);
-    --color-neutral-800: hsl(30, 7%, 18%);
-    --color-neutral-900: hsl(30, 8%, 12%);
-    --color-neutral-950: hsl(30, 10%, 6%);
-
-    /* ── Sémantique ─────────────────────────────────────────────────────── */
-    --color-success-50: hsl(142, 76%, 96%);
-    --color-success-500: hsl(142, 71%, 45%);
-    --color-success-700: hsl(142, 75%, 28%);
-    --color-warning-50: hsl(38, 92%, 96%);
-    --color-warning-500: hsl(38, 92%, 50%);
-    --color-warning-700: hsl(38, 95%, 35%);
-    --color-danger-50: hsl(0, 86%, 97%);
-    --color-danger-500: hsl(0, 84%, 60%);
-    --color-danger-700: hsl(0, 80%, 42%);
-    --color-info-50: hsl(199, 89%, 96%);
-    --color-info-500: hsl(199, 89%, 48%);
-    --color-info-700: hsl(199, 92%, 32%);
-
-    /* ── Drapeaux AES ──────────────────────────────────────────────────── */
-    --color-aes-mali-green: hsl(150, 79%, 25%);
-    --color-aes-mali-yellow: hsl(48, 100%, 53%);
-    --color-aes-mali-red: hsl(2, 78%, 52%);
-
-    /* ── Rôles sémantiques (utilisés par les composants) ────────────────── */
+    /* ── Rôles sémantiques (utilisés par @theme inline + composants) ──────── */
     --bg: var(--color-neutral-50);
     --bg-card: var(--color-neutral-0);
     --bg-muted: var(--color-neutral-100);
@@ -79,7 +94,7 @@
     --destructive: var(--color-danger-500);
     --destructive-fg: var(--color-neutral-0);
 
-    /* ── Espacements (4px base) ────────────────────────────────────────── */
+    /* ── Espacements (4px base) ────────────────────────────────────────────── */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -87,14 +102,14 @@
     --space-6: 24px;
     --space-8: 32px;
 
-    /* ── Rayons ─────────────────────────────────────────────────────────── */
+    /* ── Rayons ─────────────────────────────────────────────────────────────── */
     --radius-sm: 4px;
     --radius-base: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
     --radius-full: 9999px;
 
-    /* ── Ombres ─────────────────────────────────────────────────────────── */
+    /* ── Ombres ─────────────────────────────────────────────────────────────── */
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
     --shadow-md: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.06);
     --shadow-lg: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.06);

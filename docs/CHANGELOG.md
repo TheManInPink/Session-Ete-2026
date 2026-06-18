@@ -3,13 +3,40 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-18 (patch 0septdecies — Design system, lot 3 : 11 composants
-> restants (Combobox, Calendar, DatePicker, Toast, DataGrid, ErrorBoundary, UploadZone, MaliMap,
-> WhistleblowerForm, KioskKeyboard, UssdSimulator), 0 nouvelle dépendance ; drift découvert sur
-> alert.tsx/input.tsx — voir 0sexdecies pour le lot 2 et 0quaterdecies pour PROMPT 5.1)
+> **Dernière mise à jour** : 2026-06-18 (patch 0octodecies — **correctif tokens** : les échelles de
+> couleur sont désormais enregistrées dans `@theme` → tous les utilitaires `bg-*-50`/`text-*-700`/…
+> sont générés (Alert, Badge, statuts, scores IA… des 3 apps rendaient sans couleur). Voir
+> 0septdecies pour le lot 3 du design system)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0octodecies. Patch 2026-06-18 — Correctif tokens : échelles de couleur enregistrées dans `@theme`
+
+**Root-cause d'un bug systémique de rendu.** `packages/ui/src/styles/tokens.css` définissait les
+échelles de couleur (`--color-primary-50…950`, `--color-success-50/500/700`, `--color-danger-*`, …)
+dans un simple `@layer theme { :root { … } }`. En Tailwind v4, **seul le bloc `@theme` génère des
+utilitaires** : ces variables n'étaient donc que des variables CSS sans classes associées. Toutes
+les classes d'échelle (`bg-success-50`, `text-danger-700`, `bg-primary-50`, `text-warning-800`,
+`stroke-success-500`, …) — utilisées **massivement** dans `Alert`, `Badge`, `IntegrityGauge`,
+`Input` et **~40 fichiers d'app** (badges de statut, fils d'alertes, panneaux de score IA, états de
+créneaux, surbrillances) — étaient **mortes** : aucun fond ni couleur de texte rendus. Invisible
+pour `tsc`/ESLint (les noms de classes Tailwind ne sont pas validés) et pour les e2e (qui
+n'assertent pas les couleurs).
+
+**Correctif** : déplacement des échelles de couleur dans un bloc `@theme` (les rôles sémantiques
+`--bg`/`--primary`/… et le mode sombre restent dans `:root`, qu'un `@theme` statique ne permettrait
+pas). Ajout de `--color-success-100` et `--color-warning-800` (utilisés mais jamais définis). Les
+neutres chauds surchargent désormais correctement la palette par défaut de Tailwind.
+
+**Pourquoi ce choix** (vs réécrire ~45 fichiers en jetons sémantiques + opacité) : **un seul
+changement** de la source de vérité des tokens corrige tout l'existant **en préservant le design
+voulu** (fonds `-50` clairs + texte `-700` foncé), sans toucher au moindre composant/app.
+
+**Vérif (empirique)** : compilation réelle via `@tailwindcss/postcss@4.3.0` avant/après — avant :
+les classes d'échelle absentes du CSS généré ; après : `bg-success-50`, `text-danger-700`,
+`bg-primary-50`, `stroke-success-500`, … **toutes générées**, les jetons sémantiques + modificateurs
+d'opacité (`bg-success/10`, `text-primary-fg/70`, …) restant générés. CSS 78,4 Ko → 81,2 Ko.
 
 ### 0septdecies. Patch 2026-06-18 — Design system (lot 3) : 11 composants restants + drift tokens découvert
 
@@ -42,15 +69,13 @@ appliquées : annotation `FormEvent` retirée (handler inline, WhistleblowerForm
 `onInput`/`onKeyPress` natifs résolue via `Omit` (UssdSimulator/KioskKeyboard) ; cibles `nina`
 portées à 64px ; entité non échappée (ErrorBoundary).
 
-**⚠ Drift découvert (hors lot — à corriger)** : `alert.tsx` et `input.tsx` utilisent des classes
-d'échelle Tailwind (`bg-info-50`, `text-info-700`, `bg-danger-50/30`, …) qui **ne sont pas
-générées** — seuls les jetons mappés dans `@theme inline` de `globals.css` produisent des
-utilitaires ; les échelles vivent dans `@layer theme` (variables CSS, sans génération
-d'utilitaires). Conséquence : les variants colorés d'`Alert` et la teinte d'erreur d'`Input` **ne
-sont pas rendus**. Non détectable par tsc/eslint (les classes mortes ne sont pas validées). Les
-composants du lot 3 n'utilisent **que** des jetons sémantiques + opacité. Correctif suggéré :
-remplacer les échelles par `bg-info/10 text-info`, etc. (suivi dédié, car `Alert`/`Input` sont
-consommés par les 3 apps).
+**⚠ Drift découvert (hors lot)** : `alert.tsx`/`input.tsx` — et en réalité tout le code (≈45
+fichiers) — utilisent des classes d'échelle Tailwind (`bg-info-50`, `text-info-700`,
+`bg-danger-50/30`, …) qui **ne sont pas générées** (échelles dans `@layer theme`, et non `@theme`).
+**✅ Résolu en
+[0octodecies](#0octodecies-patch-2026-06-18--correctif-tokens--échelles-de-couleur-enregistrées-dans-theme)**
+par enregistrement des échelles dans `@theme` (correction à la source, sans réécrire les
+composants). Les composants du lot 3 n'utilisent que des jetons sémantiques + opacité.
 
 **Reste** (cf. ADR-032 § limites) : pipeline Style Dictionary ; dedupe d'apps (drawer admin,
 appointment-form, LanguageSwitcher citoyen — bloqué sur vérif e2e fiable dans cet environnement).
