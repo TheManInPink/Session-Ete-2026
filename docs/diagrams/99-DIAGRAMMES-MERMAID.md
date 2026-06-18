@@ -398,7 +398,8 @@ classDiagram
 
 ### 5 — Diagramme de composants — Architecture globale NINA-AES
 
-Vue macro : 5 apps frontends + 11 microservices + infra + APIs externes.
+Vue macro : apps frontends + 12 microservices NestJS + 2 services IA FastAPI + infra + APIs
+externes.
 
 ```mermaid
 flowchart TB
@@ -418,23 +419,24 @@ flowchart TB
         Vault[HashiCorp Vault]
     end
 
-    subgraph Core["Core Services NestJS 11"]
-        AuthSvc[auth-service :3002]
+    subgraph Core["Core Services NestJS 12"]
         IdentitySvc[identity-service :3001]
-        CorrSvc[correction-service :3003]
-        AppSvc[appointment-service :3004]
-        GovSvc[governance-service :3005]
-        AuditSvc[audit-service :3006]
-        NotifSvc[notification-service :3007]
-        InteropSvc[interop-aes-service :3008]
-        ElectoralSvc[electoral-service :3009]
-        KioskSvc[kiosk-service :3010]
-        FileSvc[file-service :3011]
+        AuthSvc[auth-service :3002]
+        DocSvc[document-service :3004]
+        NotifSvc[notification-service :3005]
+        InteropSvc[interop-service :3006]
+        AuditSvc[audit-service :3007]
+        AppSvc[appointment-service :3008]
+        GovSvc[governance-service :3010]
+        VulnSvc[vulnerability-service :3011]
+        BioSvc[biometric-service :3012]
+        EnrollSvc[enrollment-service :3013]
+        UssdSvc[ussd-service :3014]
     end
 
     subgraph AI["IA Python FastAPI"]
-        AIService[ai-service :8001]
-        AntiCorr[anticorruption-service :8002]
+        AIService[ai-service :3003]
+        AntiCorr[anticorruption-service :3009]
     end
 
     subgraph Data["Stockage"]
@@ -461,29 +463,36 @@ flowchart TB
     USSD --> Traefik
 
     Traefik --> Keycloak
-    Traefik --> AuthSvc
     Traefik --> IdentitySvc
-    Traefik --> CorrSvc
-    Traefik --> AppSvc
-    Traefik --> GovSvc
+    Traefik --> AuthSvc
+    Traefik --> AIService
+    Traefik --> DocSvc
+    Traefik --> NotifSvc
     Traefik --> InteropSvc
+    Traefik --> AuditSvc
+    Traefik --> AppSvc
+    Traefik --> AntiCorr
+    Traefik --> GovSvc
+    Traefik --> VulnSvc
+    Traefik --> BioSvc
+    Traefik --> EnrollSvc
+    Traefik --> UssdSvc
 
     AuthSvc --> Keycloak
     AuthSvc --> Redis
     IdentitySvc --> Postgres
     IdentitySvc --> Elastic
-    CorrSvc --> AIService
-    CorrSvc --> Postgres
-    CorrSvc --> RabbitMQ
+    IdentitySvc --> AIService
+    IdentitySvc --> RabbitMQ
     AppSvc --> Postgres
     GovSvc --> Postgres
     AuditSvc --> Postgres
     AuditSvc --> RabbitMQ
     NotifSvc --> RabbitMQ
     InteropSvc --> Postgres
-    ElectoralSvc --> Postgres
-    KioskSvc --> Postgres
-    FileSvc --> MinIO
+    DocSvc --> MinIO
+    AIService --> Postgres
+    AIService --> Redis
     AntiCorr --> Postgres
     AntiCorr --> Elastic
 
@@ -1241,8 +1250,8 @@ sequenceDiagram
 sequenceDiagram
     actor Citizen
     participant Web as web-citoyen
-    participant Corr as correction-service :3003
-    participant AI as ai-service :8001
+    participant Corr as identity-service :3001
+    participant AI as ai-service :3003
     participant Minio
     participant MQ as RabbitMQ
     participant AntiC as anticorruption-service
@@ -1274,7 +1283,7 @@ sequenceDiagram
     participant SysBFA as Système BFA
     participant GwM as Gateway Mali
     participant Auth as auth-service
-    participant Interop as interop-aes-service :3008
+    participant Interop as interop-service :3006
     participant Iden as identity-service
     participant Aud as audit-service
 

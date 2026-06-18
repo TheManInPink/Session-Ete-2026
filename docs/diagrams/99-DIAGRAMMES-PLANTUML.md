@@ -424,22 +424,23 @@ package "Edge/Sécurité" {
 }
 
 package "Core NestJS 11" {
-  [auth-service :3002] as auth
   [identity-service :3001] as iden
-  [correction-service :3003] as corr
-  [appointment-service :3004] as appt
-  [governance-service :3005] as gov
-  [audit-service :3006] as aud
-  [notification-service :3007] as notif
-  [interop-aes-service :3008] as int
-  [electoral-service :3009] as ele
-  [kiosk-service :3010] as ksvc
-  [file-service :3011] as fil
+  [auth-service :3002] as auth
+  [document-service :3004] as doc
+  [notification-service :3005] as notif
+  [interop-service :3006] as int
+  [audit-service :3007] as aud
+  [appointment-service :3008] as appt
+  [governance-service :3010] as gov
+  [vulnerability-service :3011] as vuln
+  [biometric-service :3012] as bio
+  [enrollment-service :3013] as enrl
+  [ussd-service :3014] as ussdSvc
 }
 
 package "IA Python FastAPI" {
-  [ai-service :8001] as ai
-  [anticorruption-service :8002] as anti
+  [ai-service :3003] as ai
+  [anticorruption-service :3009] as anti
 }
 
 database "PostgreSQL 18" as pg
@@ -464,29 +465,34 @@ ksk --> tr
 ussd --> tr
 
 tr --> kc
-tr --> auth
 tr --> iden
-tr --> corr
-tr --> appt
-tr --> gov
+tr --> auth
+tr --> ai
+tr --> doc
+tr --> notif
 tr --> int
+tr --> aud
+tr --> appt
+tr --> anti
+tr --> gov
+tr --> vuln
+tr --> bio
+tr --> enrl
+tr --> ussdSvc
 
 auth --> kc
 auth --> rds
 iden --> pg
 iden --> els
-corr --> ai
-corr --> pg
-corr --> mq
+iden --> ai
+iden --> mq
 appt --> pg
 gov --> pg
 aud --> pg
 aud --> mq
 notif --> mq
 int --> pg
-ele --> pg
-ksvc --> pg
-fil --> minio
+doc --> minio
 anti --> pg
 anti --> els
 
@@ -1287,8 +1293,8 @@ Mobile --> Citizen : ✓ Agent vérifié
 @startuml
 actor "Citizen" as Citizen
 participant "web-citoyen" as Web
-participant "correction-service :3003" as Corr
-participant "ai-service :8001" as AI
+participant "identity-service :3001" as Corr
+participant "ai-service :3003" as AI
 database "MinIO" as Minio
 queue "RabbitMQ" as MQ
 participant "anticorruption-service" as AntiC
@@ -1321,7 +1327,7 @@ Web --> Citizen : ✓ Correction approuvée
 participant "Système BFA" as BFA
 participant "Gateway Mali" as GwM
 participant "auth-service" as Auth
-participant "interop-aes-service :3008" as Int
+participant "interop-service :3006" as Int
 participant "identity-service" as Iden
 participant "audit-service" as Aud
 
