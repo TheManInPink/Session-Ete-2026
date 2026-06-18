@@ -48,7 +48,8 @@
     "./components/business/alert-severity-badge": "./src/components/business/alert-severity-badge.tsx",
     "./components/business/priority-slot": "./src/components/business/priority-slot.tsx",
     "./components/business/language-selector": "./src/components/business/language-selector.tsx",
-    "./components/business/aes-country-switcher": "./src/components/business/aes-country-switcher.tsx"
+    "./components/business/aes-country-switcher": "./src/components/business/aes-country-switcher.tsx",
+    "./icons": "./src/icons/index.ts"
   },
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
