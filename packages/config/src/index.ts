@@ -261,7 +261,7 @@ export const CORS_CONFIG = {
   maxAge: 86400,
 } as const;
 
-/** Ports canoniques des 11 microservices (doc 07 → 11). */
+/** Ports canoniques des 14 microservices (doc 07 → 11 + Bloc A/E : biometric, enrollment, ussd). */
 export const SERVICE_PORTS = {
   API_GATEWAY: Number(process.env.API_GATEWAY_PORT) || 3000,
   IDENTITY_SERVICE: Number(process.env.IDENTITY_SERVICE_PORT) || 3001,
@@ -275,6 +275,9 @@ export const SERVICE_PORTS = {
   ANTICORRUPTION_SERVICE: Number(process.env.ANTICORRUPTION_SERVICE_PORT) || 3009,
   GOVERNANCE_SERVICE: Number(process.env.GOVERNANCE_SERVICE_PORT) || 3010,
   VULNERABILITY_SERVICE: Number(process.env.VULNERABILITY_SERVICE_PORT) || 3011,
+  BIOMETRIC_SERVICE: Number(process.env.BIOMETRIC_SERVICE_PORT) || 3012,
+  ENROLLMENT_SERVICE: Number(process.env.ENROLLMENT_SERVICE_PORT) || 3013,
+  USSD_SERVICE: Number(process.env.USSD_SERVICE_PORT) || 3014,
 } as const;
 
 /** Configuration de limitation de débit (rate limiting) standard. */
