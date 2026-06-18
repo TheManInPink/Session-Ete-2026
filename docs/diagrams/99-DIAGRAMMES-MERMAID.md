@@ -595,13 +595,12 @@ flowchart TB
         subgraph NodeB["Node B — worker"]
             PodAuth[Pod auth-service x2]
             PodIdentity[Pod identity-service x3]
-            PodCorr[Pod correction-service x2]
             PodAI[Pod ai-service GPU x1]
         end
         subgraph NodeC["Node C — worker"]
             PodGov[Pod governance-service x1]
             PodAudit[Pod audit-service x2]
-            PodInterop[Pod interop-aes-service x2]
+            PodInterop[Pod interop-service x2]
             PodAntiCorr[Pod anticorruption-service x1]
         end
         subgraph Storage["PersistentVolumes"]
@@ -688,17 +687,18 @@ flowchart TB
             Ksk[kiosk-agent]
         end
         subgraph Svc["services/"]
-            Auth[auth-service]
             Iden[identity-service]
-            Corr[correction-service]
+            Auth[auth-service]
+            Doc[document-service]
+            Not[notification-service]
+            Int[interop-service]
+            Aud[audit-service]
             App[appointment-service]
             Gov[governance-service]
-            Aud[audit-service]
-            Not[notification-service]
-            Int[interop-aes-service]
-            Ele[electoral-service]
-            Kio[kiosk-service]
-            Fil[file-service]
+            Vuln[vulnerability-service]
+            Bio[biometric-service]
+            Enr[enrollment-service]
+            Ussd[ussd-service]
             AI[ai-service]
             AntiC[anticorruption-service]
         end
@@ -1051,7 +1051,7 @@ flowchart TD
     MenuDJE --> Choice
     Choice -- "1. Consulter" --> Query[Query identity-service]
     Choice -- "2. RDV" --> Book[Book appointment-service]
-    Choice -- "3. Statut" --> Status[Status correction-service]
+    Choice -- "3. Statut" --> Status[Status identity-service]
     Choice -- "4. Alerte" --> Alert[Alert corruption anon]
     Query --> Resp[Réponse USSD 182 chars]
     Book --> Resp
@@ -1577,13 +1577,13 @@ gantt
     Infra Docker + K3s      :active, a2, after a1, 20d
     Auth Keycloak           :a3, after a2, 25d
     identity-service        :a4, after a2, 40d
-    correction-service + IA :a5, after a4, 45d
+    Module correction + IA  :a5, after a4, 45d
     Web citoyen/agent       :a6, after a4, 50d
     Mobile Expo             :a7, after a6, 30d
     USSD 8 langues          :a8, after a4, 35d
 
     section P1 Bloc B — Interop AES
-    interop-aes-service     :b1, after a5, 40d
+    interop-service         :b1, after a5, 40d
     mTLS + Ed25519 gateway  :b2, after b1, 20d
     Tests cross-border      :b3, after b2, 25d
 
@@ -1598,7 +1598,7 @@ gantt
     Alertes ML              :d3, after d2, 25d
 
     section P2 Bloc E — Kiosk
-    kiosk-service           :e1, after b3, 25d
+    kiosk-agent             :e1, after b3, 25d
     Electron app            :e2, after e1, 30d
 
     section P3 Bloc F — Biométrie
@@ -1709,8 +1709,8 @@ architecture-beta
 
     service auth(server)[auth-service] in core
     service identity(server)[identity-service] in core
-    service correction(server)[correction-service] in core
-    service interop(server)[interop-aes-service] in core
+    service document(server)[document-service] in core
+    service interop(server)[interop-service] in core
 
     service aisvc(server)[ai-service] in ai
     service anti(server)[anticorruption-service] in ai
@@ -1722,15 +1722,14 @@ architecture-beta
 
     traefik:B -- T:auth
     traefik:B -- T:identity
-    traefik:B -- T:correction
+    traefik:B -- T:document
     traefik:B -- T:interop
     auth:R -- L:keycloak
     auth:B -- T:redis
     identity:B -- T:pg
-    identity:B -- T:elastic
-    correction:B -- T:aisvc
-    correction:B -- T:pg
-    correction:B -- T:minio
+    identity:L -- R:aisvc
+    identity:T -- B:elastic
+    document:B -- T:minio
     anti:B -- T:pg
     anti:L -- R:elastic
 ```

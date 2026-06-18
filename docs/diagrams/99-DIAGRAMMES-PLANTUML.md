@@ -609,13 +609,12 @@ cloud "Cluster K3s prod — 3 nodes" as cluster {
   node "Node B — worker" as nodeB {
     artifact "Pod auth-service x2" as podAuth
     artifact "Pod identity-service x3" as podI
-    artifact "Pod correction-service x2" as podC
     artifact "Pod ai-service GPU x1" as podAI
   }
   node "Node C — worker" as nodeC {
     artifact "Pod governance-service x1" as podG
     artifact "Pod audit-service x2" as podAud
-    artifact "Pod interop-aes-service x2" as podInt
+    artifact "Pod interop-service x2" as podInt
     artifact "Pod anticorruption-service x1" as podAnti
   }
   database "PVC postgres-data 500GB" as pvcPg
@@ -706,17 +705,18 @@ package "nina-aes-platform (Turborepo 2.9.4)" {
     [kiosk-agent]
   }
   package "services/" {
-    [auth-service]
     [identity-service]
-    [correction-service]
+    [auth-service]
+    [document-service]
+    [notification-service]
+    [interop-service]
+    [audit-service]
     [appointment-service]
     [governance-service]
-    [audit-service]
-    [notification-service]
-    [interop-aes-service]
-    [electoral-service]
-    [kiosk-service]
-    [file-service]
+    [vulnerability-service]
+    [biometric-service]
+    [enrollment-service]
+    [ussd-service]
     [ai-service]
     [anticorruption-service]
   }
@@ -1085,7 +1085,7 @@ case (1 Consulter)
 case (2 RDV)
   :Book appointment-service;
 case (3 Statut)
-  :Status correction-service;
+  :Status identity-service;
 case (4 Alerte)
   :Alert corruption anon;
 endswitch
@@ -1415,7 +1415,6 @@ object "Citoyen" as C
 object "web-citoyen" as W
 object "auth-service" as A
 object "identity-service" as I
-object "correction-service" as Co
 object "ai-service" as AI
 object "audit-service" as Au
 object "RabbitMQ" as MQ
@@ -1424,12 +1423,12 @@ C --> W : 1 : login()
 W --> A : 2 : authenticate()
 A --> C : 3 : JWT token
 C --> W : 4 : submitCorrection()
-W --> Co : 5 : POST /corrections
-Co --> AI : 6 : analyze()
-AI --> Co : 7 : score
-Co --> MQ : 8 : publish event
+W --> I : 5 : POST /corrections
+I --> AI : 6 : analyze()
+AI --> I : 7 : score
+I --> MQ : 8 : publish event
 MQ --> Au : 9 : consume → Merkle
-Co --> I : 10 : update citizen
+I --> I : 10 : update citizen
 I --> Au : 11 : audit log
 @enduml
 ```
@@ -1695,8 +1694,8 @@ project starts 2026-04-01
 [Auth Keycloak] starts at [Infra Docker + K3s]'s end
 [identity-service] lasts 40 days
 [identity-service] starts at [Infra Docker + K3s]'s end
-[correction-service + IA] lasts 45 days
-[correction-service + IA] starts at [identity-service]'s end
+[Correction module + IA] lasts 45 days
+[Correction module + IA] starts at [identity-service]'s end
 [Web citoyen/agent] lasts 50 days
 [Web citoyen/agent] starts at [identity-service]'s end
 [Mobile Expo] lasts 30 days
@@ -1705,16 +1704,16 @@ project starts 2026-04-01
 [USSD 8 langues] starts at [identity-service]'s end
 
 -- P1 Bloc B — Interop AES --
-[interop-aes-service] lasts 40 days
-[interop-aes-service] starts at [correction-service + IA]'s end
+[interop-service] lasts 40 days
+[interop-service] starts at [Correction module + IA]'s end
 [mTLS + Ed25519 gateway] lasts 20 days
-[mTLS + Ed25519 gateway] starts at [interop-aes-service]'s end
+[mTLS + Ed25519 gateway] starts at [interop-service]'s end
 [Tests cross-border] lasts 25 days
 [Tests cross-border] starts at [mTLS + Ed25519 gateway]'s end
 
 -- P1 Bloc C — Gouvernance --
 [governance-service] lasts 35 days
-[governance-service] starts at [correction-service + IA]'s end
+[governance-service] starts at [Correction module + IA]'s end
 [web-gouvernance] lasts 30 days
 [web-gouvernance] starts at [governance-service]'s end
 [Directives signées] lasts 20 days
@@ -1729,10 +1728,8 @@ project starts 2026-04-01
 [Alertes ML] starts at [Score intégrité agents]'s end
 
 -- P2 Bloc E — Kiosk --
-[kiosk-service] lasts 25 days
-[kiosk-service] starts at [Tests cross-border]'s end
-[Electron app] lasts 30 days
-[Electron app] starts at [kiosk-service]'s end
+[kiosk-agent Electron] lasts 30 days
+[kiosk-agent Electron] starts at [Tests cross-border]'s end
 
 -- P3 Bloc F — Biométrie --
 [Empreintes digitales] lasts 50 days
@@ -1849,8 +1846,7 @@ cloud "Edge" {
 cloud "Core NestJS" {
   [auth-service] as auth
   [identity-service] as iden
-  [correction-service] as corr
-  [interop-aes-service] as int
+  [interop-service] as int
 }
 
 cloud "IA FastAPI" {
@@ -1867,15 +1863,13 @@ cloud "Stockage" {
 
 tr --> auth
 tr --> iden
-tr --> corr
 tr --> int
 auth --> kc
 auth --> rds
 iden --> pg
 iden --> els
-corr --> ai
-corr --> pg
-corr --> minio
+iden --> ai
+iden --> minio
 anti --> pg
 anti --> els
 @enduml
