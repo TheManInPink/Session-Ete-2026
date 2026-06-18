@@ -415,6 +415,7 @@ flowchart TB
 
     subgraph Edge["Edge / Sécurité"]
         Traefik[Traefik v3 mTLS]
+        ApiGateway[api-gateway :3000]
         Keycloak[Keycloak 26.5 OIDC]
         Vault[HashiCorp Vault]
     end
@@ -463,20 +464,21 @@ flowchart TB
     USSD --> Traefik
 
     Traefik --> Keycloak
-    Traefik --> IdentitySvc
-    Traefik --> AuthSvc
-    Traefik --> AIService
-    Traefik --> DocSvc
-    Traefik --> NotifSvc
-    Traefik --> InteropSvc
-    Traefik --> AuditSvc
-    Traefik --> AppSvc
-    Traefik --> AntiCorr
-    Traefik --> GovSvc
-    Traefik --> VulnSvc
-    Traefik --> BioSvc
-    Traefik --> EnrollSvc
-    Traefik --> UssdSvc
+    Traefik --> ApiGateway
+    ApiGateway --> IdentitySvc
+    ApiGateway --> AuthSvc
+    ApiGateway --> AIService
+    ApiGateway --> DocSvc
+    ApiGateway --> NotifSvc
+    ApiGateway --> InteropSvc
+    ApiGateway --> AuditSvc
+    ApiGateway --> AppSvc
+    ApiGateway --> AntiCorr
+    ApiGateway --> GovSvc
+    ApiGateway --> VulnSvc
+    ApiGateway --> BioSvc
+    ApiGateway --> EnrollSvc
+    ApiGateway --> UssdSvc
 
     AuthSvc --> Keycloak
     AuthSvc --> Redis
@@ -687,6 +689,7 @@ flowchart TB
             Ksk[kiosk-agent]
         end
         subgraph Svc["services/"]
+            ApiGw[api-gateway]
             Iden[identity-service]
             Auth[auth-service]
             Doc[document-service]

@@ -419,11 +419,12 @@ package "Apps clientes" {
 
 package "Edge/Sécurité" {
   [Traefik v3 mTLS] as tr
+  [api-gateway :3000] as gw
   [Keycloak 26.5] as kc
   [HashiCorp Vault] as vlt
 }
 
-package "Core NestJS 11" {
+package "Core NestJS 12" {
   [identity-service :3001] as iden
   [auth-service :3002] as auth
   [document-service :3004] as doc
@@ -465,20 +466,21 @@ ksk --> tr
 ussd --> tr
 
 tr --> kc
-tr --> iden
-tr --> auth
-tr --> ai
-tr --> doc
-tr --> notif
-tr --> int
-tr --> aud
-tr --> appt
-tr --> anti
-tr --> gov
-tr --> vuln
-tr --> bio
-tr --> enrl
-tr --> ussdSvc
+tr --> gw
+gw --> iden
+gw --> auth
+gw --> ai
+gw --> doc
+gw --> notif
+gw --> int
+gw --> aud
+gw --> appt
+gw --> anti
+gw --> gov
+gw --> vuln
+gw --> bio
+gw --> enrl
+gw --> ussdSvc
 
 auth --> kc
 auth --> rds
@@ -705,6 +707,7 @@ package "nina-aes-platform (Turborepo 2.9.4)" {
     [kiosk-agent]
   }
   package "services/" {
+    [api-gateway]
     [identity-service]
     [auth-service]
     [document-service]
