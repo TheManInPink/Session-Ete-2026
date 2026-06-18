@@ -35,6 +35,8 @@
     "./components/table": "./src/components/ui/table.tsx",
     "./components/empty-state": "./src/components/ui/empty-state.tsx",
     "./components/stepper": "./src/components/ui/stepper.tsx",
+    "./components/select": "./src/components/ui/select.tsx",
+    "./components/slider": "./src/components/ui/slider.tsx",
     "./components/charts/mali-heatmap": "./src/components/charts/mali-heatmap.tsx",
     "./components/charts/sparkline": "./src/components/charts/sparkline.tsx",
     "./components/charts/area-chart": "./src/components/charts/area-chart.tsx",
@@ -49,6 +51,8 @@
     "./components/business/priority-slot": "./src/components/business/priority-slot.tsx",
     "./components/business/language-selector": "./src/components/business/language-selector.tsx",
     "./components/business/aes-country-switcher": "./src/components/business/aes-country-switcher.tsx",
+    "./components/business/directive-card": "./src/components/business/directive-card.tsx",
+    "./components/business/signed-message-bubble": "./src/components/business/signed-message-bubble.tsx",
     "./icons": "./src/icons/index.ts"
   },
   "scripts": {
@@ -77,6 +81,8 @@
     "@radix-ui/react-dropdown-menu": "^2.1.0",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-radio-group": "^1.2.0",
+    "@radix-ui/react-select": "^2.1.0",
+    "@radix-ui/react-slider": "^1.2.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-switch": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
