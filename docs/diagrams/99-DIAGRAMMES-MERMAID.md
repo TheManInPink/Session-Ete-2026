@@ -1332,7 +1332,7 @@ sequenceDiagram
 sequenceDiagram
     participant Svc as Any microservice
     participant MQ as RabbitMQ
-    participant Aud as audit-service :3006
+    participant Aud as audit-service :3007
     participant Pg as PostgreSQL audit_logs
 
     Svc->>MQ: publish event.audit {actor, action, payload}

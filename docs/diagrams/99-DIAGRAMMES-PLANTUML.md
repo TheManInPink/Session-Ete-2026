@@ -1381,7 +1381,7 @@ AT --> Tel : Display response
 @startuml
 participant "Any microservice" as Svc
 queue "RabbitMQ" as MQ
-participant "audit-service :3006" as Aud
+participant "audit-service :3007" as Aud
 database "PostgreSQL audit_logs" as Pg
 
 Svc -> MQ : publish event.audit {actor, action, payload}
