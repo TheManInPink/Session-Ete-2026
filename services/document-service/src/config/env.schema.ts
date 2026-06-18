@@ -18,7 +18,10 @@ export const envSchema = z.object({
   REDIS_KEY_PREFIX: z.string().default('document-service:'),
 
   RABBITMQ_URL: z.string().default('amqp://nina:nina@localhost:5672'),
-  RABBITMQ_AUDIT_EXCHANGE: z.string().default('audit.events'),
+  // Exchange topic CANONIQUE du bus d'événements (cf. infrastructure/.../definitions.json et
+  // audit-service). Les routing keys `document.*` y sont captées par audit-service (pattern
+  // `document.#`). Anciennement `audit.events` — exchange orphelin non consommé (drift corrigé).
+  RABBITMQ_EVENTS_EXCHANGE: z.string().default('nina.events'),
   RABBITMQ_NOTIF_EXCHANGE: z.string().default('notification.events'),
 
   // Vault Transit pour signer le QR

@@ -1,7 +1,8 @@
 /**
  * @file        audit-publisher.service.ts
- * @description Publisher RabbitMQ vers l'exchange `audit.events`
- *              (consommé par audit-service qui chaîne en Merkle, cf. doc 09).
+ * @description Publisher RabbitMQ vers l'exchange d'événements canonique `nina.events`
+ *              (topic). Les routing keys `document.*` y sont captées par audit-service
+ *              (pattern `document.#`) qui chaîne en Merkle, cf. doc 09.
  *
  *              En P0 : retry transparent + fire-and-forget (jamais bloquant).
  *              Si le broker est down, on logge un warn — l'opération métier
@@ -32,7 +33,7 @@ export class AuditPublisherService implements OnModuleInit, OnApplicationShutdow
 
   constructor(cfg: ConfigService<Env, true>) {
     this.url = cfg.get('RABBITMQ_URL', { infer: true });
-    this.exchange = cfg.get('RABBITMQ_AUDIT_EXCHANGE', { infer: true });
+    this.exchange = cfg.get('RABBITMQ_EVENTS_EXCHANGE', { infer: true });
   }
 
   onModuleInit(): void {

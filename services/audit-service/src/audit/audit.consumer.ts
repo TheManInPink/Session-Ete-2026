@@ -14,10 +14,11 @@
  *              via `source_event_id UNIQUE`). Un message non-JSON / non
  *              normalisable est ACK + droppé (pas de boucle de poison).
  *
- *              ⚠️  DRIFT CONNU : document-service publie aujourd'hui sur son
- *              propre exchange `audit.events` (cf. son `RABBITMQ_AUDIT_EXCHANGE`),
- *              non capté ici. Réconciliation : aligner document-service sur
- *              `nina.events` + clés `document.*` (cf. doc 09 §9 / MAINTENANCE).
+ *              Réconciliation des publishers (drift résolu, cf. CHANGELOG 0vicies) :
+ *              document-service et identity-service publient désormais tous deux sur
+ *              `nina.events` (clés `document.*` / `citizen.*` / `correction.*`), captées
+ *              ici par `AUDIT_EVENT_PATTERNS`. (Auparavant : `audit.events` et
+ *              `nina-aes.events` respectivement — exchanges orphelins non consommés.)
  *
  * @author      Étudiant UQAR
  * @date        2026

@@ -3,12 +3,41 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-18 (patch 0novemdecies — **pipeline de tokens** : `tokens.json`
-> devient la source autoritative, `tokens.css` est généré par Style Dictionary 4
-> (`pnpm --filter @nina-aes/ui tokens:build`). Industrialise le correctif 0octodecies. ADR-033)
+> **Dernière mise à jour** : 2026-06-18 (patch 0vicies — **réconciliation topologie RabbitMQ** :
+> document-service (`audit.events`) et identity-service (`nina-aes.events`) publient désormais sur
+> l'exchange canonique `nina.events`, capté par audit-service. Voir 0novemdecies pour le pipeline de
+> tokens)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0vicies. Patch 2026-06-18 — Réconciliation de la topologie RabbitMQ (audit non capté)
+
+audit-service consomme l'exchange topic **`nina.events`** (+ fanout `nina.audit`), patterns
+`citizen.#,correction.#,document.#,identity.#,…` — conforme à
+`infrastructure/docker/rabbitmq/ definitions.json`. Mais **deux publishers émettaient ailleurs**,
+donc leurs événements **n'étaient jamais audités** :
+
+- **document-service** publiait sur `audit.events` (un exchange orphelin auto-créé, non consommé) ;
+- **identity-service** publiait sur `nina-aes.events` (coquille avec tiret) au lieu de
+  `nina.events`.
+
+Invisible pour `tsc`/lint (chaînes runtime) et pour les tests (pas de broker e2e).
+
+**Correctif (côté publishers)** :
+
+- `identity-service` : défaut de l'exchange `nina-aes.events` → **`nina.events`** (code +
+  `.env.example` ; var `RABBITMQ_EXCHANGE`).
+- `document-service` : variable `RABBITMQ_AUDIT_EXCHANGE` (défaut `audit.events`) **renommée
+  `RABBITMQ_EVENTS_EXCHANGE`** (défaut `nina.events`), alignée sur la convention d'audit-service.
+- Notes de drift mises à jour (audit-service `audit.consumer.ts` + README).
+
+**Vérif** : `tsc` OK sur document/identity/audit-service. ⚠️ **Action requise en local** : si votre
+`services/identity-service/.env` (non versionné) fixe `RABBITMQ_EXCHANGE=nina-aes.events`, le passer
+à `nina.events`.
+
+**Drift doc résiduel** (non corrigé ici) : ADR-014 + docs 09/10/11 nomment encore l'exchange
+historique `audit.events` ; le code + `definitions.json` font foi avec `nina.events`/`nina.audit`.
 
 ### 0novemdecies. Patch 2026-06-18 — Pipeline de tokens : `tokens.json` autoritatif → Style Dictionary → `tokens.css`
 
@@ -466,9 +495,9 @@ Passage du **squelette** à un service complet (`services/audit-service/`, port 
   Ed25519 en en-têtes), `/:id`, `/:id/proof`, `/roots/latest`. Guards JWKS locaux (ADR-027).
 - **Vérif offline** `pnpm --filter @nina-aes/audit-service verify:chain`.
 
-**Drift signalé (non corrigé ici)** : `document-service` publie sur l'exchange `audit.events`,
-`identity-service` sur `nina-aes.events` — ni l'un ni l'autre ne correspond à `nina.events` consommé
-par audit-service. Réconciliation à faire côté publishers (cf. README audit-service §2).
+**Drift signalé** : `document-service` publiait sur `audit.events`, `identity-service` sur
+`nina-aes.events` — ni l'un ni l'autre ne correspondait à `nina.events` consommé par audit-service.
+**✅ Résolu en 0vicies** (réconciliation côté publishers).
 
 **Versions** : `@noble/hashes@^1.8.0` (la 1.9.0 n'existe pas ; la v2 déplace les sous-chemins) ;
 `canonicalize` retiré du service.
