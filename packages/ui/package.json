@@ -40,7 +40,15 @@
     "./components/charts/area-chart": "./src/components/charts/area-chart.tsx",
     "./components/charts/integrity-gauge": "./src/components/charts/integrity-gauge.tsx",
     "./components/brand/aes-logo": "./src/components/brand/aes-logo.tsx",
-    "./components/forms/nina-input": "./src/components/forms/nina-input.tsx"
+    "./components/forms/nina-input": "./src/components/forms/nina-input.tsx",
+    "./components/business/nina-display": "./src/components/business/nina-display.tsx",
+    "./components/business/citizen-card": "./src/components/business/citizen-card.tsx",
+    "./components/business/ai-score-panel": "./src/components/business/ai-score-panel.tsx",
+    "./components/business/correction-timeline": "./src/components/business/correction-timeline.tsx",
+    "./components/business/alert-severity-badge": "./src/components/business/alert-severity-badge.tsx",
+    "./components/business/priority-slot": "./src/components/business/priority-slot.tsx",
+    "./components/business/language-selector": "./src/components/business/language-selector.tsx",
+    "./components/business/aes-country-switcher": "./src/components/business/aes-country-switcher.tsx"
   },
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
