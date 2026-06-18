@@ -3,12 +3,57 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-18 (patch 0sexdecies — Design system, lot 2 : 5 icônes
-> maliennes custom + atomes Select/Slider + cartes gouvernance DirectiveCard/SignedMessageBubble —
-> voir aussi 0quindecies pour le lot 1 et 0quaterdecies pour PROMPT 5.1)
+> **Dernière mise à jour** : 2026-06-18 (patch 0septdecies — Design system, lot 3 : 11 composants
+> restants (Combobox, Calendar, DatePicker, Toast, DataGrid, ErrorBoundary, UploadZone, MaliMap,
+> WhistleblowerForm, KioskKeyboard, UssdSimulator), 0 nouvelle dépendance ; drift découvert sur
+> alert.tsx/input.tsx — voir 0sexdecies pour le lot 2 et 0quaterdecies pour PROMPT 5.1)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0septdecies. Patch 2026-06-18 — Design system (lot 3) : 11 composants restants + drift tokens découvert
+
+Achèvement des composants `@nina-aes/ui` spécifiés (design-system.md §3-4), **sans aucune nouvelle
+dépendance** (tout fait main ou composé sur les primitives existantes). **ADR :
+[ADR-032](./adr/ADR-032-design-system-component-buildout.md).** Méthode : orchestration multi-agents
+(22 agents — construction parallèle + **revue adversariale** par composant), corrections appliquées,
+puis vérification centralisée.
+
+**Livré** :
+
+- **Atomes** : `Combobox` (sélecteur recherchable accessible — Popover + listbox filtré, motif
+  WAI-ARIA, insensible aux accents) ; `Calendar` (grille mensuelle pure React + Intl, navigation
+  clavier complète, **sans `react-day-picker`**) ; `DatePicker` (Popover + Calendar).
+- **Conteneurs** : `Toast` (`ToastProvider` + `useToast`, file + portail SSR-safe, auto-dismiss,
+  `role=status`/`alert` selon variant) ; `DataGrid` (générique `<T>`, **contrôlé** — tri/sélection/
+  pagination via callbacks — bâti sur `Table`/`Checkbox`/`Select`) ; `ErrorBoundary` (class
+  component, repli par défaut avec ID de corrélation + boutons recharger/accueil).
+- **Métier** : `UploadZone` (drag-drop + états uploading/success/error) ; `MaliMap` (carte SVG des
+  régions, **présentationnelle / props-driven** — projection GeoJSON laissée à la couche app pour
+  rester souverain) ; `WhistleblowerForm` (signalement **anonyme** — aucun champ identifiant,
+  `autoComplete="off"`, aucun cookie/empreinte ; compose Alert/RadioGroup/Textarea/UploadZone) ;
+  `KioskKeyboard` (variantes numeric/azerty/nina, cibles ≥ 64px WCAG 2.5.5) ; `UssdSimulator`
+  (maquette feature phone + écran LCD + `KioskKeyboard`).
+- **11 sous-chemins `exports`** ajoutés à `packages/ui/package.json`. **0 nouvelle dépendance.**
+
+**Vérif** : `@nina-aes/ui` typecheck (tsc) **0 erreur** + lint `--max-warnings=0` **0 warning** ;
+`package.json` JSON valide. Lot **purement additif** (aucune app recâblée). Corrections post-revue
+appliquées : annotation `FormEvent` retirée (handler inline, WhistleblowerForm) ; collision
+`onInput`/`onKeyPress` natifs résolue via `Omit` (UssdSimulator/KioskKeyboard) ; cibles `nina`
+portées à 64px ; entité non échappée (ErrorBoundary).
+
+**⚠ Drift découvert (hors lot — à corriger)** : `alert.tsx` et `input.tsx` utilisent des classes
+d'échelle Tailwind (`bg-info-50`, `text-info-700`, `bg-danger-50/30`, …) qui **ne sont pas
+générées** — seuls les jetons mappés dans `@theme inline` de `globals.css` produisent des
+utilitaires ; les échelles vivent dans `@layer theme` (variables CSS, sans génération
+d'utilitaires). Conséquence : les variants colorés d'`Alert` et la teinte d'erreur d'`Input` **ne
+sont pas rendus**. Non détectable par tsc/eslint (les classes mortes ne sont pas validées). Les
+composants du lot 3 n'utilisent **que** des jetons sémantiques + opacité. Correctif suggéré :
+remplacer les échelles par `bg-info/10 text-info`, etc. (suivi dédié, car `Alert`/`Input` sont
+consommés par les 3 apps).
+
+**Reste** (cf. ADR-032 § limites) : pipeline Style Dictionary ; dedupe d'apps (drawer admin,
+appointment-form, LanguageSwitcher citoyen — bloqué sur vérif e2e fiable dans cet environnement).
 
 ### 0sexdecies. Patch 2026-06-18 — Design system (lot 2) : icônes maliennes + Select/Slider + cartes gouvernance
 

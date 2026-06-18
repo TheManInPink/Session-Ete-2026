@@ -67,6 +67,12 @@ composant publié **après** que ce dernier est livré + vérifié. Premier exem
     (`React.SVGProps` + prop `size`), exportées via `@nina-aes/ui/icons` (`17f5fa3`).
   - **Lot 2** — 2 atomes Radix (Select, Slider) + 2 cartes métier gouvernance (DirectiveCard,
     SignedMessageBubble) (`8f5fc07`).
+  - **Lot 3** — 11 composants restants, **0 nouvelle dépendance** : atomes Combobox / Calendar /
+    DatePicker ; conteneurs Toast (`ToastProvider`+`useToast`) / DataGrid (générique `<T>` contrôlé)
+    / ErrorBoundary (class component) ; métier UploadZone / MaliMap (présentationnel) /
+    WhistleblowerForm (anonyme) / KioskKeyboard / UssdSimulator. Construits + revus par
+    orchestration multi-agents (22 agents : build parallèle + revue adversariale), typecheck + lint
+    0/0.
 - **Déduplication** : dashboard citoyen → `CorrectionTimeline` du DS (légère évolution visuelle :
   étape courante en `warning` conforme à design-system.md §3.6, au lieu de `primary`).
 - Déprécations React 19 corrigées (FormEvent→SyntheticEvent, ElementRef→ComponentRef) et
@@ -74,10 +80,14 @@ composant publié **après** que ce dernier est livré + vérifié. Premier exem
 
 ## Limites / reste à faire
 
-- **Atomes** : combobox, datepicker (Select + Slider livrés au lot 2).
-- **Conteneurs** : toast, data-grid, error-boundary.
-- **Métier** : UploadZone, MaliMap, WhistleblowerForm, KioskKeyboard, UssdSimulator (DirectiveCard +
-  SignedMessageBubble livrés au lot 2).
 - **Pipeline tokens** : `sd.config.cjs` (Style Dictionary) → génération tokens.css / tailwind / RN.
+  (Tous les composants atomes/conteneurs/métier sont désormais livrés — lots 1 à 3.)
+- **Drift tokens à corriger** (découvert au lot 3) : `alert.tsx` et `input.tsx` emploient des
+  classes d'échelle Tailwind (`bg-info-50`, `text-info-700`, `bg-danger-50/30`, …) **non générées**
+  — seuls les jetons de `@theme inline` produisent des utilitaires. Les variants colorés d'`Alert`
+  et la teinte d'erreur d'`Input` ne sont donc pas rendus (invisible pour tsc/eslint). À remplacer
+  par des jetons sémantiques + opacité (`bg-info/10 text-info`, …) dans un correctif dédié
+  (composants fondamentaux consommés par les 3 apps). Tous les composants des lots 1-3 n'utilisent
+  que des jetons sémantiques.
 - **Dedupe restante** : drawer admin (AiScorePanel/CorrectionTimeline inline), `appointment-form`
   citoyen (créneaux → PrioritySlot), `LanguageSwitcher` citoyen → LanguageSelector.
