@@ -3,12 +3,40 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-17 (patch 0quindecies — Design system : 24 composants
-> `@nina-aes/ui` (atomes, conteneurs, métier), déprécations React 19 corrigées, dashboard citoyen
-> dédupliqué sur la CorrectionTimeline du DS — voir aussi 0quaterdecies pour PROMPT 5.1)
+> **Dernière mise à jour** : 2026-06-18 (patch 0sexdecies — Design system, lot 2 : 5 icônes
+> maliennes custom + atomes Select/Slider + cartes gouvernance DirectiveCard/SignedMessageBubble —
+> voir aussi 0quindecies pour le lot 1 et 0quaterdecies pour PROMPT 5.1)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0sexdecies. Patch 2026-06-18 — Design system (lot 2) : icônes maliennes + Select/Slider + cartes gouvernance
+
+Suite de l'industrialisation du DS, toujours par **lots additifs vérifiés** (typecheck + lint
+`@nina-aes/ui` à chaque lot, sans réécriture d'UX d'app). **ADR :
+[ADR-032](./adr/ADR-032-design-system-component-buildout.md).**
+
+**Livré** :
+
+- **5 icônes maliennes custom** (`src/icons/`, commit `17f5fa3`) : BlackStar (étoile de l'AES,
+  `fill=currentColor`), Baobab, KolaNut, Hornbill, Mask — toutes sur `IconBase`
+  (`React.SVGProps<SVGSVGElement>` + prop `size`), exportées via `@nina-aes/ui/icons`.
+- **2 atomes Radix** (commit `8f5fc07`) : Select (Trigger/Content/Item/Label/Separator, déclencheur
+  calqué sur Input) et Slider (valeur unique, a11y native flèches/Home/End).
+- **2 cartes métier gouvernance** (`components/business/`, commit `8f5fc07`) : DirectiveCard (carte
+  Kanban SGOGT — priorité P1/P2/P3, bordure rouge si en retard, niveau d'escalade) et
+  SignedMessageBubble (bulle de messagerie officielle — badge signature Ed25519 vérifiée/absente,
+  empreinte de clé via `title` natif).
+- **Dépendances** : `@radix-ui/react-select`, `@radix-ui/react-slider` + 4 sous-chemins `exports`
+  dans `packages/ui/package.json`.
+
+**Vérif** : `@nina-aes/ui` typecheck (11/11 turbo) + lint OK ; `verify:repo` + `docs:sync:check` OK.
+Lot **purement additif** (aucune app recâblée) — pas de risque e2e.
+
+**Reste** (cf. ADR-032 § limites) : atomes combobox/datepicker ; conteneurs
+toast/data-grid/error-boundary ; métier UploadZone/MaliMap/WhistleblowerForm/KioskKeyboard/
+UssdSimulator ; pipeline Style Dictionary ; dedupe d'apps (drawer admin, appointment-form,
+LanguageSwitcher citoyen).
 
 ### 0quindecies. Patch 2026-06-17 — Design system : 24 composants `@nina-aes/ui` + déprécations React 19 + dedupe
 

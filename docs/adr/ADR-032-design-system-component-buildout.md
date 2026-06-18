@@ -63,6 +63,10 @@ composant publié **après** que ce dernier est livré + vérifié. Premier exem
     stepper, empty-state (`b40be90`).
   - **8 composants métier** : NinaDisplay, CitizenCard, AiScorePanel, CorrectionTimeline,
     AlertSeverityBadge, PrioritySlot, LanguageSelector, AESCountrySwitcher (`e38baec`).
+  - **5 icônes maliennes custom** : BlackStar, Baobab, KolaNut, Hornbill, Mask, sur `IconBase`
+    (`React.SVGProps` + prop `size`), exportées via `@nina-aes/ui/icons` (`17f5fa3`).
+  - **Lot 2** — 2 atomes Radix (Select, Slider) + 2 cartes métier gouvernance (DirectiveCard,
+    SignedMessageBubble) (`8f5fc07`).
 - **Déduplication** : dashboard citoyen → `CorrectionTimeline` du DS (légère évolution visuelle :
   étape courante en `warning` conforme à design-system.md §3.6, au lieu de `primary`).
 - Déprécations React 19 corrigées (FormEvent→SyntheticEvent, ElementRef→ComponentRef) et
@@ -70,11 +74,10 @@ composant publié **après** que ce dernier est livré + vérifié. Premier exem
 
 ## Limites / reste à faire
 
-- **Atomes** : select/combobox/datepicker, slider.
+- **Atomes** : combobox, datepicker (Select + Slider livrés au lot 2).
 - **Conteneurs** : toast, data-grid, error-boundary.
-- **Métier** : UploadZone, MaliMap, DirectiveCard, SignedMessageBubble, WhistleblowerForm,
-  KioskKeyboard, UssdSimulator.
-- **Icônes** : 5 maliennes custom (KolaNut, Baobab, Hornbill, Mask, BlackStar).
+- **Métier** : UploadZone, MaliMap, WhistleblowerForm, KioskKeyboard, UssdSimulator (DirectiveCard +
+  SignedMessageBubble livrés au lot 2).
 - **Pipeline tokens** : `sd.config.cjs` (Style Dictionary) → génération tokens.css / tailwind / RN.
 - **Dedupe restante** : drawer admin (AiScorePanel/CorrectionTimeline inline), `appointment-form`
   citoyen (créneaux → PrioritySlot), `LanguageSwitcher` citoyen → LanguageSelector.
