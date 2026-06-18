@@ -19,7 +19,11 @@ import { fetchMyCorrections, fetchMyAppointments } from '../../../lib/api/server
 import { Card, CardContent } from '@nina-aes/ui/components/card';
 import { Badge } from '@nina-aes/ui/components/badge';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
-import { cn } from '@nina-aes/ui/lib/utils';
+import {
+  CorrectionTimeline,
+  type TimelineNode,
+  type TimelineNodeState,
+} from '@nina-aes/ui/components/business/correction-timeline';
 import { FileText, Calendar, ArrowRight, CheckCircle2, Check } from 'lucide-react';
 
 interface PageProps {
@@ -29,7 +33,6 @@ interface PageProps {
 
 /** Étapes de la timeline de suivi d'une correction. */
 const TIMELINE_STEPS = ['submitted', 'aiScored', 'agentReview', 'decision', 'notified'] as const;
-type TimelineStep = (typeof TIMELINE_STEPS)[number];
 
 /** Mappe un statut de correction sur l'avancement de la timeline. */
 function progressFor(status: string): {
@@ -45,6 +48,30 @@ function progressFor(status: string): {
     default:
       return { current: 2, outcome: null };
   }
+}
+
+/**
+ * Construit les nœuds de la {@link CorrectionTimeline} (design system) à partir
+ * du statut + du score IA. Les libellés sont déjà localisés côté serveur.
+ */
+function buildCorrectionNodes(
+  status: string,
+  score: number | null,
+  labels: Record<string, string>,
+): TimelineNode[] {
+  const { current, outcome } = progressFor(status);
+  return TIMELINE_STEPS.map((step, i) => {
+    const state: TimelineNodeState = i < current ? 'done' : i === current ? 'current' : 'todo';
+    let label = labels[step] ?? step;
+    if (step === 'aiScored' && state === 'done' && score !== null) {
+      label = `${labels.aiScored} · ${score}/100`;
+    } else if (step === 'decision' && outcome === 'approved') {
+      label = labels.approved ?? label;
+    } else if (step === 'decision' && outcome === 'rejected') {
+      label = labels.rejected ?? label;
+    }
+    return { label, state, icon: state === 'done' ? Check : undefined };
+  });
 }
 
 export default async function DashboardPage({ params, searchParams }: PageProps) {
@@ -148,9 +175,8 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
                       <StatusBadge status={c.status} label={statusLabel(c.status)} />
                     </div>
                     <CorrectionTimeline
-                      status={c.status}
-                      score={c.aiScore}
-                      labels={timelineLabels}
+                      nodes={buildCorrectionNodes(c.status, c.aiScore, timelineLabels)}
+                      className="mt-4 border-t pt-4"
                     />
                   </CardContent>
                 </Card>
@@ -189,83 +215,6 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
         )}
       </section>
     </main>
-  );
-}
-
-/** Timeline verticale du cycle de vie d'une correction (étape courante animée). */
-function CorrectionTimeline({
-  status,
-  score,
-  labels,
-}: {
-  status: string;
-  score: number | null;
-  labels: Record<string, string>;
-}) {
-  const { current, outcome } = progressFor(status);
-
-  return (
-    <ol className="mt-4 border-t pt-4">
-      {TIMELINE_STEPS.map((step: TimelineStep, i) => {
-        const done = i < current;
-        const isCurrent = i === current;
-        const isLast = i === TIMELINE_STEPS.length - 1;
-
-        let label = labels[step];
-        let labelColor = 'text-fg';
-        if (step === 'aiScored' && done && score !== null) {
-          label = `${labels.aiScored} · ${score}/100`;
-        }
-        if (step === 'decision' && outcome === 'approved') {
-          label = labels.approved;
-          labelColor = 'text-success-700';
-        } else if (step === 'decision' && outcome === 'rejected') {
-          label = labels.rejected;
-          labelColor = 'text-danger-700';
-        }
-
-        return (
-          <li key={step} className="flex gap-3">
-            {/* Rail : pastille + segment de liaison */}
-            <div className="flex flex-col items-center">
-              <span
-                className={cn(
-                  'flex size-5 items-center justify-center rounded-full border-2',
-                  done && 'border-primary bg-primary text-primary-fg',
-                  isCurrent && 'border-primary text-primary',
-                  !done && !isCurrent && 'border-border',
-                )}
-              >
-                {done ? (
-                  <Check className="size-3" aria-hidden="true" />
-                ) : isCurrent ? (
-                  <span
-                    className="size-2 animate-pulse rounded-full bg-primary"
-                    aria-hidden="true"
-                  />
-                ) : null}
-              </span>
-              {!isLast && (
-                <span className={cn('min-h-6 w-0.5 flex-1', done ? 'bg-primary' : 'bg-border')} />
-              )}
-            </div>
-            {/* Libellé */}
-            <div className="pb-4">
-              <p
-                className={cn(
-                  'text-sm font-medium',
-                  isCurrent ? 'text-primary' : done ? labelColor : 'text-fg-muted',
-                )}
-              >
-                {label}
-              </p>
-              {isCurrent && <p className="text-xs text-fg-muted">{labels.current}</p>}
-              {!done && !isCurrent && <p className="text-xs text-fg-muted">{labels.pending}</p>}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 
