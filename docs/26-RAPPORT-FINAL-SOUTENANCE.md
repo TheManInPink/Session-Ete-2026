@@ -1,8 +1,8 @@
 # 26 — Rapport final et soutenance (plan, démo, métriques, questions anticipées)
 
 > **Bloc concerné** : Clôture du projet (post-Blocs A → F). **Prérequis** : Bloc A complet (MVP
-> démontrable) ; ADRs 001-025 livrées ; observabilité doc 17 fonctionnelle pour montrer des
-> métriques live ; tests doc 18 verts pour la couverture. **Durée estimée** : 12 à 16 heures
+> démontrable) ; ADRs 001-034 livrées (34 ADRs) ; observabilité doc 17 fonctionnelle pour montrer
+> des métriques live ; tests doc 18 verts pour la couverture. **Durée estimée** : 12 à 16 heures
 > (rédaction rapport + diapositives
 >
 > - scripts démo + répétitions). **Livrables** :
@@ -88,12 +88,14 @@ docs/soutenance/RAPPORT-FINAL.pdf
 │   ├── 5.1 Pyramide de tests (cf. doc 18)
 │   ├── 5.2 Couverture mesurée (objectif 80 %)
 │   ├── 5.3 Tests de charge k6 — SLO validés
-│   └── 5.4 Audit sécurité OWASP + Trivy + Semgrep
+│   └── 5.4 Audit sécurité : bilan OWASP réel (honnête) ; Trivy + Semgrep = conçus, Phase 2
 │
 ├── 6. Sécurité et souveraineté (8 pages)
-│   ├── 6.1 Vault PKI, mTLS, JWS Ed25519
-│   ├── 6.2 Chaîne Merkle audit (ADR-014)
-│   ├── 6.3 PII redact automatique (Pino logger doc 17)
+│   ├── 6.1 Vault PKI (acquis) ; mTLS strict (conçu, Phase 2) ; signature QR = RS256 Transit
+│   │        (Vault Transit ne supporte PAS Ed25519, ADR-026/034) ; scellement audit = Ed25519
+│   │        in-process @noble/ed25519 (doc 09)
+│   ├── 6.2 Audit hash-chain SHA-256 (ADR-007 ; ADR-014 ancrage tiers) — PAS un arbre de Merkle
+│   ├── 6.3 Redaction PII des logs (conçu doc 17, implémentation Phase 2)
 │   ├── 6.4 Anonymat lanceurs d'alerte (SIGAC doc 23)
 │   └── 6.5 Souveraineté numérique : analyse couches par couches
 │
@@ -109,7 +111,7 @@ docs/soutenance/RAPPORT-FINAL.pdf
 │   └── 8.3 Perspectives institutionnelles
 │
 └── Annexes (15 pages)
-    ├── A. Liste complète des 25 ADRs (1 ligne chacune)
+    ├── A. Liste complète des 34 ADRs (ADR-001 à ADR-034, 1 ligne chacune)
     ├── B. Diagrammes UML 8 PlantUML (cf. docs/diagrams/)
     ├── C. Schema Prisma complet (extrait + commentaires)
     ├── D. Métriques chiffrées finales
@@ -140,12 +142,18 @@ docs/soutenance/RAPPORT-FINAL.pdf
 |  1:30 | Recherche NINA → erreur détectée | identity + ai service | Pipeline ML           |
 |  3:00 | Demande de correction            | UI + audit            | Workflow citoyen      |
 |  4:30 | Bascule sur `admin` `:4002`      | Frontend admin        | Validation par agent  |
-|  6:00 | Approuver la correction          | audit + identity      | Merkle chain          |
-|  7:00 | Generation FDI PDF + QR code     | document-service      | Signature JWS         |
+|  6:00 | Approuver la correction          | audit + identity      | Hash-chain SHA-256    |
+|  7:00 | Generation FDI PDF + QR code     | document-service      | Signature QR RS256    |
 |  8:30 | Scan QR sur mobile Expo          | mobile app            | Vérification offline  |
 |  9:30 | USSD simulator `*123*NINA#`      | ussd-service          | Inclusion numérique   |
 | 11:00 | Grafana dashboard `:3000`        | observabilité         | SLO en temps réel     |
 | 12:00 | Récap visuel : tout est tracé    | (parole)              | Audit complet         |
+
+> ⚠️ **Données de démo = FICTIVES.** Le NINA, les noms et les scores IA affichés proviennent d'un
+> jeu de données de démonstration local (`seed`). Aucune donnée réelle de citoyen malien n'est
+> manipulée. À annoncer au jury en ouverture de démo. Rappel canon : « Audit complet » =
+> **hash-chain SHA-256** (ADR-007), opposable seulement après ancrage tiers (Phase 2) ; signature QR
+> = **RS256** (Vault Transit).
 
 ### Section 3 — Architecture et décisions (8 min)
 
@@ -153,14 +161,21 @@ docs/soutenance/RAPPORT-FINAL.pdf
 - Slide 6 : stack technique justifiée — versions effectives mai 2026
 - Slide 7 : ADRs phares (4-5 ADRs critiques mis en lumière)
 - Slide 8 : modèle de données Prisma (extrait visuel)
-- Slide 9 : sécurité défense en profondeur (mTLS + Vault + Merkle)
+- Slide 9 : sécurité — **distinguer l'acquis du conçu**. Acquis et démontrable : Vault PKI
+  opérationnel + audit hash-chain SHA-256 (ADR-007, PAS un arbre de Merkle ; ancrage tiers
+  OCLEI/Vérificateur Général = Phase 2). Conçu et spécifié mais **implémentation Phase 2** : mTLS
+  strict intra-cluster (ADR-034 / doc 15), redaction PII des logs (doc 17), scans Trivy CI (doc 16),
+  packaging Helm (doc 20). ⚠️ Ne PAS présenter ces 4 derniers comme une « défense en profondeur »
+  déjà en place — ce serait incohérent avec le tableau de métriques §5 (colonnes « Spécifié » vs «
+  Implémenté »).
 - Slide 10 : souveraineté numérique — analyse couches par couches
 
 ### Section 4 — Phase transversale et qualité (4 min)
 
 - Slide 11 : CI/CD GitHub Actions — 5 workflows
 - Slide 12 : observabilité LGTM (Grafana screenshot)
-- Slide 13 : pyramide de tests — couverture 80 %+
+- Slide 13 : pyramide de tests — 53 tests Jest + 11 E2E livrés ; **couverture non encore mesurée**
+  (cible 80 %, ⏳ Phase 2 — ne pas annoncer « 80 % atteint »)
 - Slide 14 : backup 3-2-1 + DRP RTO < 4h
 
 ### Section 5 — Blocs B-F et perspectives (2 min)
@@ -182,7 +197,8 @@ Voir §6 du présent document — top 30 questions anticipées.
 
 ## 4. Script de démonstration live (déroulé minute par minute)
 
-**Fichier à créer** : `docs/soutenance/demo-script.md`
+**Fichier existant** : `docs/soutenance/demo-script.md` (le bloc ci-dessous est le gabarit de
+référence ; le script livré doit garder l'avertissement « données FICTIVES »).
 
 ```markdown
 # Démonstration live NINA-AES — script T-12 minutes
@@ -195,24 +211,30 @@ Voir §6 du présent document — top 30 questions anticipées.
 - [ ] Tester un parcours complet une fois (warmup)
 - [ ] Backup vidéo en local si réseau tombe
 
+> ⚠️ **AVERTISSEMENT DONNÉES** : toutes les données affichées pendant la démo (NINA, noms, dates,
+> scores IA) sont **FICTIVES** — jeu de données de démonstration (`seed` local). Aucune donnée
+> réelle de citoyen malien n'est utilisée. À énoncer explicitement au jury avant la première
+> recherche.
+
 ## T+0:00 — Introduction
 
 > « Je vais maintenant vous montrer le MVP NINA-AES en direct. Tout tourne sur ce portable — 11
 > microservices Docker, 3 frontends Next.js, 1 mobile Expo, 1 simulateur USSD. Aucune connexion à un
-> cloud externe. »
+> cloud externe. **Toutes les données que vous allez voir sont fictives, issues d'un jeu de
+> démonstration local.** »
 
 ## T+0:30 — Citizen app — recherche NINA
 
 - Aller sur `http://localhost:4001`
 - Cliquer « Vérifier mon NINA »
-- Saisir `1 89 03 1 02 015 042 V`
-  > « Voici Fatoumata Diallo, citoyenne mock de notre démo. Le système détecte qu'il y a une erreur
-  > dans son enregistrement... »
+- Saisir `1 89 03 1 02 015 042 V` _(NINA FICTIF de démo)_
+  > « Voici Fatoumata Diallo, citoyenne **FICTIVE** de notre jeu de démonstration (aucun citoyen
+  > réel). Le système détecte qu'il y a une erreur dans son enregistrement... »
 
 ## T+1:30 — IA détecte erreur
 
 - Le résultat affiche un warning IA : « confiance 67 % — possible doublon avec Fatumata Dialo
-  (différence orthographique) »
+  (différence orthographique) » _(exemple FICTIF)_
   > « Le service IA en Python a comparé phonétiquement et trigram-aussi. Le score est confidentiel
   > 67 % — sous le seuil 80, donc on propose au citoyen de soumettre une correction. »
 
@@ -230,13 +252,29 @@ Voir §6 du présent document — top 30 questions anticipées.
 
 ## 5. Tableau de métriques chiffrées (consolidées)
 
-**Fichier à créer** : `docs/soutenance/metrics.md`
+**Fichier existant** : `docs/soutenance/metrics.md` — ⚠️ **drift connu à corriger avant soutenance**
+: le fichier livré n'intègre PAS encore le tableau « Spécifié vs Implémenté » ci-dessous et emploie
+encore le terme **« Merkle »** (lignes ~211 et ~229 : « Journal d'audit immuable chaîné Merkle ») là
+où le canon impose **hash-chain SHA-256, PAS un arbre de Merkle** (ADR-007). Tant que `metrics.md`
+et `slides-content.md` n'ont pas été réalignés, ne pas affirmer que l'incohérence « défense en
+profondeur » est levée : elle ne l'est que dans le présent document. Aligner les trois fichiers (ce
+doc 26 + `metrics.md` + `slides-content.md`) avant de figer le snapshot J-3.
+
+> ⚠️ **Lecture honnête (cf. règle soutenance)** : pour la sécurité, on distingue explicitement deux
+> colonnes — **« Spécifié »** (conçu, documenté dans un doc/ADR) et **« Implémenté »** (réellement
+> présent dans le code et démontrable). Un contrôle peut être à 100 % spécifié et à 0 % implémenté :
+> il doit alors être présenté au jury comme « conçu, Phase 2 » et **jamais** comme une protection
+> acquise. Cette distinction ne lèvera l'incohérence du discours « défense en profondeur » que
+> lorsque `metrics.md` et la slide 9 (`slides-content.md`) auront été réalignés sur le tableau
+> ci-dessous (voir drift connu).
+
+### 5.1 Métriques générales
 
 | Catégorie          | Métrique                        | Valeur                             |         Cible |     Statut |
 | ------------------ | ------------------------------- | ---------------------------------- | ------------: | ---------: |
 | **Code**           | Lignes de code (Bloc A)         | ~28 000                            |           n/a |   tracking |
 |                    | Lignes de doc                   | ~17 000 (40+ fichiers)             |           n/a |   ✅ riche |
-|                    | Nombre d'ADRs                   | 25                                 |           20+ |         ✅ |
+|                    | Nombre d'ADRs                   | 34 (ADR-001 à ADR-034)             |           20+ |         ✅ |
 |                    | Nombre de microservices Bloc A  | 6 (sur 11 prévus V1)               |           4-6 |         ✅ |
 |                    | Nombre de frontends Next.js     | 2 livrés (citizen+admin), 3ᵉ prévu |             3 |         ⚠️ |
 | **Tests**          | Tests Jest unitaires            | 53 livrés (44 utils + 9 config)    |     800 cible | ⏳ partial |
@@ -244,30 +282,102 @@ Voir §6 du présent document — top 30 questions anticipées.
 |                    | Couverture globale              | non mesurée encore                 |          80 % |         ⏳ |
 | **Performance**    | Latence p95 `/api/nina` (local) | ~180 ms                            |      < 500 ms |         ✅ |
 |                    | Throughput k6 enrollment-peak   | non testé V1                       | 5 000 req/min |         ⏳ |
-| **Sécurité**       | Vault opérationnel              | ✅ (docker-compose)                |            ✅ |         ✅ |
-|                    | mTLS intra-cluster              | spec doc 15, pas implémenté        |            ✅ |         ⏳ |
-|                    | Audit Merkle chain              | ✅ (audit-service Bloc A)          |            ✅ |         ✅ |
-|                    | PII redact logger               | spec doc 17, pas implémenté        |            ✅ |         ⏳ |
-|                    | Scans Trivy                     | spec doc 16, pas activé            |    0 CRITICAL |         ⏳ |
 | **Données Mali**   | Régions livrées                 | 20/20                              |            20 |   ✅ 100 % |
 |                    | Cercles livrés                  | 142/159                            |           159 |    ✅ 89 % |
 |                    | Polygones ADM2                  | 50 (geoBoundaries)                 |           159 |    ⚠️ 31 % |
 | **Infrastructure** | Docker Compose dev              | ✅ opérationnel                    |            ✅ |         ✅ |
-|                    | K3s spec                        | ✅ doc 20 livré                    |            ✅ |    ✅ spec |
-|                    | Helm chart                      | spec, pas livré                    |            ✅ |         ⏳ |
 | **Souveraineté**   | Dépendances SaaS US             | 0 (sauf GitHub Actions exec)       |             0 |         ✅ |
 |                    | Stack 100 % open-source         | ✅                                 |            ✅ |         ✅ |
-|                    | ADRs souveraineté explicites    | 7/25 ADRs                          |           ≥ 5 |         ✅ |
+|                    | ADRs souveraineté explicites    | 7/34 ADRs                          |           ≥ 5 |         ✅ |
 
-> 💡 **À mettre en valeur** : la doc est très en avance sur le code (40 fichiers .md, 25 ADRs, 8
+### 5.2 Sécurité — « Spécifié » vs « Implémenté » (2 colonnes, lecture honnête)
+
+> La colonne **Spécifié** = un doc/ADR décrit complètement le contrôle. La colonne **Implémenté** =
+> le contrôle est présent dans le code et **démontrable en soutenance**. Ne présenter comme acquis
+> que les lignes où **Implémenté = ✅**.
+
+| Contrôle de sécurité                          | Référence        | Spécifié | Implémenté | À dire au jury                                                    |
+| --------------------------------------------- | ---------------- | :------: | :--------: | ----------------------------------------------------------------- |
+| Vault PKI + secrets (AppRole/lease)           | ADR-026/034      |    ✅    |     ✅     | Acquis — démontrable (docker-compose dev)                         |
+| Audit **hash-chain SHA-256** (PAS Merkle)     | ADR-007          |    ✅    |     ✅     | Acquis — chaînage en place (audit-service)                        |
+| Ancrage racine audit chez un tiers (OCLEI/VG) | ADR-014          |    ✅    |     ❌     | Conçu, Phase 2 — sinon « intégrité auto-déclarée »                |
+| Signature QR = **RS256** (Transit)            | ADR-026/034      |    ✅    |     ✅     | Acquis — Transit ne supporte PAS Ed25519                          |
+| Scellement audit Ed25519 in-process (@noble)  | doc 09           |    ✅    |     ⚠️     | Partiel — bibliothèque en place, intégration à finaliser          |
+| **mTLS strict** intra-cluster                 | ADR-034 / doc 15 |    ✅    |     ❌     | **Conçu, Phase 2** — NON acquis (ne pas survendre)                |
+| **Redaction PII** des logs                    | doc 17           |    ✅    |     ❌     | **Conçu, Phase 2** — logger non encore filtré                     |
+| **Scans Trivy** en CI (0 CRITICAL)            | doc 16           |    ✅    |     ❌     | **Conçu, Phase 2** — workflow non activé                          |
+| Scan SAST Semgrep en CI                       | doc 16           |    ✅    |     ❌     | Conçu, Phase 2                                                    |
+| **Packaging Helm** (K3s)                      | doc 20           |    ✅    |     ❌     | **Conçu, Phase 2** — chart non livré (manifests bruts uniquement) |
+| Rotation clés / JWKS                          | ADR-034          |    ✅    |     ❌     | Conçu, Phase 2                                                    |
+
+> 💡 **À mettre en valeur** : la doc est très en avance sur le code (40 fichiers .md, 34 ADRs, 8
 > diagrammes UML). C'est intentionnel — les spécifications complètes permettent l'implémentation
-> future par une équipe institutionnelle.
+> future par une équipe institutionnelle. Mais cet écart doit être **assumé** : sur le plan
+> sécurité, l'acquis réel se limite à Vault PKI, à l'audit hash-chain SHA-256 et à la signature QR
+> RS256 ; mTLS, redaction PII, Trivy et Helm sont des **spécifications Phase 2**, pas une défense en
+> profondeur en production.
+
+### 5.3 Encart — Modèle de menace global (synthèse THREAT-MODEL.md)
+
+> Source : `docs/security/THREAT-MODEL.md` + `docs/security/SECURITY-RUNBOOK.md`. Présenté ici en
+> synthèse pour la soutenance ; ne pas réécrire le threat model complet.
+
+- **Surface d'attaque V1** : 3 frontends (citizen/admin/governance), API Gateway, 6 microservices
+  Bloc A, PostgreSQL/PostGIS, Vault, RabbitMQ, canal USSD. Périmètre souverain (pas de SaaS US sur
+  le cœur).
+- **Actifs critiques** : NINA + PII citoyens, biométrie (cancelable / fuzzy extractor ISO 24745),
+  journal d'audit, clés de signature (Vault Transit + Ed25519 in-process), identités lanceurs
+  d'alerte (SIGAC, doc 23).
+- **Menaces priorisées (STRIDE simplifié)** :
+  - _Spoofing / accès non autorisé_ → Keycloak (ADR-013) + AppRole Vault ; mTLS strict **Phase 2**.
+  - _Tampering journal d'audit_ → hash-chain SHA-256 ; **mais** intégrité réellement opposable
+    seulement après ancrage tiers (Phase 2) — aujourd'hui « auto-déclarée ».
+  - _Information disclosure (logs)_ → redaction PII **Phase 2** : risque résiduel de PII en clair
+    dans les logs en l'état actuel.
+  - _IDOR / accès objet direct_ (identity-service) → contrôle d'autorisation par ressource à durcir
+    (cf. Q-S4 §6).
+  - _Replay_ sur vérification QR / interop → anti-replay (nonce + horodatage) à compléter (Q-S3).
+- **Contrôles transverses prévus** : OWASP ASVS comme référentiel, scans Trivy/Semgrep en CI (Phase
+  2), rotation clés/JWKS (Phase 2).
+
+### 5.4 Encart — Bilan OWASP réel (honnête)
+
+> ⚠️ Ne pas annoncer « OWASP Top 10 couvert ». Bilan factuel de l'état du dépôt :
+
+| Risque OWASP (Top 10 2021)         | État réel V1                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| A01 Broken Access Control          | ⚠️ Partiel — risque IDOR identity-service identifié (correctif Phase 2) |
+| A02 Cryptographic Failures         | ✅/⚠️ — Vault + RS256/SHA-256 OK ; Ed25519 audit à finaliser            |
+| A03 Injection                      | ✅ — Prisma (requêtes paramétrées), validation DTO class-validator      |
+| A05 Security Misconfiguration      | ⚠️ — mTLS/headers durcis = Phase 2                                      |
+| A07 Identification & Auth Failures | ✅/⚠️ — Keycloak OK ; rotation JWKS Phase 2                             |
+| A08 Software & Data Integrity      | ⚠️ — audit hash-chain OK localement ; ancrage tiers Phase 2             |
+| A09 Security Logging & Monitoring  | ⚠️ — observabilité LGTM OK ; **redaction PII Phase 2**                  |
+| A10 SSRF                           | ✅ — pas d'appels sortants non maîtrisés sur le cœur souverain          |
+
+> Audit indépendant (pen-test ANSSI ou équivalent) = **prérequis Phase 2 non encore réalisé**.
+
+### 5.5 Encart — Plan de divulgation responsable (responsible disclosure)
+
+> À présenter comme une **discipline de maturité**, pas comme un aveu de faiblesse.
+
+- **Canal** : adresse de contact sécurité dédiée + clé de chiffrement publiée (age/sealed box) pour
+  signalement confidentiel ; **aucun** SaaS US (cf. souveraineté).
+- **Périmètre** : failles affectant PII citoyens, biométrie, journal d'audit, anonymat lanceurs
+  d'alerte.
+- **Engagement** : accusé de réception ≤ 72 h, correctif ou mesure de contournement priorisé, crédit
+  au rapporteur (sauf demande contraire).
+- **Honnêteté** : les limites déjà **connues** (mTLS/Trivy/PII Phase 2, IDOR identity-service,
+  anti-replay interop, matching biométrique flou) sont publiées proactivement dans
+  `docs/security/THREAT-MODEL.md` — elles ne relèvent donc pas de la divulgation externe mais de la
+  roadmap assumée.
 
 ---
 
 ## 6. Top 30 questions anticipées + réponses préparées
 
-**Fichier à créer** : `docs/soutenance/qa-anticipated.md`
+**Fichier existant** : `docs/soutenance/qa-anticipated.md` (déjà livré — le présent §6 en est la
+synthèse de référence ; tenir les deux alignés).
 
 ### Catégorie A — Choix techniques
 
@@ -317,7 +427,7 @@ Voir §6 du présent document — top 30 questions anticipées.
 
 **Q22 : Quelle est votre apport personnel par rapport à l'IA ?**
 
-> R : (a) Cahier des charges et objectifs O1-O9 ; (b) 25 ADRs avec justifications techniques propres
+> R : (a) Cahier des charges et objectifs O1-O9 ; (b) 34 ADRs avec justifications techniques propres
 > ; (c) architecture microservices et choix de stack ; (d) code review et tests ; (e) gestion du
 > backlog et priorisation Blocs A/B/C/D/E/F.
 
@@ -340,15 +450,70 @@ Voir §6 du présent document — top 30 questions anticipées.
 
 [... 3 autres questions perspectives ...]
 
+### Catégorie E — Failles de sécurité connues (questions « pièges » du jury)
+
+> 🎯 Ces questions ciblent des faiblesses **réelles et identifiées**. Stratégie de réponse
+> invariante : (1) reconnaître la limite sans la minimiser, (2) expliquer la cause technique, (3)
+> annoncer le correctif prévu et sa phase. **Jamais** présenter ces points comme résolus.
+
+**Q-S1 : Le chiffrement de l'identité des lanceurs d'alerte reposait-il sur Ed25519 ? Ed25519 ne
+chiffre pas.**
+
+> R : Limite identifiée et **corrigée dans la conception**. Ed25519 est un schéma de **signature**,
+> pas de chiffrement — l'utiliser pour protéger la confidentialité de l'identité d'un lanceur
+> d'alerte aurait été une erreur cryptographique. Le canon corrigé (ADR-026/034) sépare clairement :
+> chiffrement asymétrique = **age / libsodium sealed box** (X25519 + XSalsa20-Poly1305) ou RSA-OAEP
+> (Transit rsa-4096) ; Ed25519 reste réservé à la **signature** (scellement audit in-process via
+> `@noble/ed25519`, doc 09). Côté implémentation, le module SIGAC (doc 23) est conçu, l'intégration
+> du sealed box est **Phase 2**. Honnêteté : aujourd'hui le contrôle est spécifié correctement, pas
+> encore déployé en production.
+
+**Q-S2 : Votre matching biométrique « flou » (fuzzy) ne risque-t-il pas faux positifs / faux
+négatifs sur des millions de citoyens ?**
+
+> R : Oui, c'est une limite intrinsèque de tout système biométrique, et nous l'assumons. Le choix
+> d'un **fuzzy extractor / template annulable (cancelable biometrics, ISO 24745)** protège la vie
+> privée (pas de gabarit brut stocké) mais introduit un compromis FAR/FRR (taux de faux acceptés /
+> faux rejetés). Limite identifiée : sans dataset réel INSTAT et sans campagne de calibration des
+> seuils, les taux annoncés ne sont **pas** mesurés en conditions réelles. Correctif prévu : (a)
+> calibration sur données réelles INSTAT (demande formelle rédigée), (b) parcours de repli humain
+> (agent CTDEC) en cas de score ambigu, (c) la biométrie reste **hors scope V1** (doc 25,
+> vision-only) — donc présentée comme conçue, Phase 2, jamais comme acquise.
+
+**Q-S3 : Comment empêchez-vous le rejeu (replay) d'un QR code FDI vérifié, surtout en
+interopérabilité avec un autre service AES ?**
+
+> R : Limite identifiée. La signature du QR (RS256 via Vault Transit) garantit l'**authenticité** et
+> l'**intégrité** du contenu, mais une signature valide peut être **rejouée** si rien ne lie la
+> vérification à un contexte unique. Le contrôle anti-replay (nonce à usage unique + horodatage +
+> fenêtre de validité courte, idéalement vérification en ligne contre l'état révocation) est
+> **spécifié mais pas complètement implémenté**, et le cas interop (un vérificateur d'un autre État
+> AES) ajoute la difficulté d'un référentiel de nonce partagé. Correctif prévu Phase 2 : (a)
+> horodatage + nonce signés dans le QR, (b) endpoint de vérification en ligne avec liste de
+> révocation, (c) protocole d'interop AES standardisé. À dire honnêtement : en l'état, le QR est
+> vérifiable hors-ligne mais **pas** protégé contre un rejeu sophistiqué.
+
+**Q-S4 : Un citoyen peut-il accéder au dossier NINA d'un autre en changeant l'identifiant dans l'URL
+(IDOR) sur identity-service ?**
+
+> R : Risque identifié — **Broken Access Control / IDOR** (OWASP A01). En V1, l'authentification
+> (Keycloak, ADR-013) est en place mais le contrôle d'**autorisation par ressource** (vérifier que
+> le NINA demandé appartient bien à l'appelant, ou qu'il dispose d'un rôle agent légitime) doit être
+> **systématisé** sur tous les endpoints d'identity-service. Limite assumée : tant que ce garde-fou
+> n'est pas appliqué partout, un IDOR est théoriquement possible. Correctif prévu Phase 2 : (a)
+> guard d'autorisation centralisé (ownership + RBAC) en amont de chaque accès objet, (b) tests
+> d'autorisation négatifs en CI, (c) audit systématique des accès dans le journal hash-chain. C'est
+> précisément le type de faille couverte par notre **plan de divulgation responsable** (§5.5).
+
 ---
 
 ## 7. Rétrospective honnête
 
-**Fichier à créer** : `docs/soutenance/retrospective.md`
+**Fichier existant** : `docs/soutenance/retrospective.md`
 
 ### Ce qui a marché ✅
 
-1. **Documentation comme code** : 25 ADRs + CHANGELOG vivant + MAINTENANCE.md. Toujours la doc avant
+1. **Documentation comme code** : 34 ADRs + CHANGELOG vivant + MAINTENANCE.md. Toujours la doc avant
    le code → réduit la dette technique de moitié.
 
 2. **Turborepo + pnpm** : monorepo sans friction, builds parallèles, cache local. Excellent choix.
@@ -469,7 +634,7 @@ Voir §6 du présent document — top 30 questions anticipées.
 
 ## 10. Pour aller plus loin
 
-- **Publication open-source** : publier le rapport + 25 ADRs sur GitHub public avec licence Creative
+- **Publication open-source** : publier le rapport + 34 ADRs sur GitHub public avec licence Creative
   Commons BY-NC-SA 4.0. Utile pour la communauté NINA / souveraineté Sahel.
 - **Article scientifique** : adapter le chapitre « souveraineté numérique » en article de 6 pages
   pour conférence AfriCHI ou COLINGUE.

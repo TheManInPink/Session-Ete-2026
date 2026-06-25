@@ -1,8 +1,8 @@
 # 00 — Index de Navigation et Vue d'Ensemble
 
 > **Projet** : NINA-AES Platform — Système Sécurisé de Gestion d'Identité Numérique pour l'AES
-> **Auteur** : Étudiant en informatique, UQAR **Date de création** : Avril 2026 **Version** : 1.0
-> **Statut** : CONFIDENTIEL — Document académique
+> **Auteur** : Étudiant en informatique, UQAR **Date de création** : Avril 2026 **Version** : 1.1
+> (dernière révision Juin 2026 — cf. pied de page) **Statut** : CONFIDENTIEL — Document académique
 
 ---
 
@@ -38,7 +38,7 @@ Le parcours suit trois principes :
 | Élément                          | État                                                                                                                                                                            |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Monorepo Turborepo 2.9.5         | ✅ Initialisé                                                                                                                                                                   |
-| pnpm                             | ✅ v10.12.1                                                                                                                                                                     |
+| pnpm                             | ✅ v11.4.0 (pin `packageManager`)                                                                                                                                               |
 | `apps/web` + `apps/docs`         | ⚠️ Scaffolds par défaut Turborepo — à remplacer par `citizen`, `admin`, `governance`                                                                                            |
 | `apps/citizen` (port 4001)       | ✅ **Sessions 1+2 livrées** — PC-01 à PC-06 + auth Keycloak BFF (mock mode actif)                                                                                               |
 | `apps/admin` (port 4002)         | ✅ **Sessions 3+4 — foundation + AD-01/02/03** — Dashboard + DataGrid + SIGAC (mock)                                                                                            |
@@ -77,7 +77,7 @@ Le parcours suit trois principes :
 | ------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---- |
 | **00** | `00-README-INDEX.md`                  | Ce document. Index de navigation, vue d'ensemble du parcours, jalons de soutenance.                                                                                                                                                                               | —             | —    |
 | **01** | `01-CAHIER-DES-CHARGES.md`            | Spécifications fonctionnelles et non-fonctionnelles complètes. Exigences par objectif (O1–O9), cas d'utilisation principaux, contraintes techniques, critères d'acceptation mesurables.                                                                           | 8–12 h        | —    |
-| **02** | `02-ARCHITECTURE-GLOBALE.md`          | Architecture technique détaillée avec diagrammes Mermaid : vue C4 (contexte, conteneurs, composants), flux de données inter-services, choix techniques justifiés avec ADR (Architecture Decision Records).                                                        | 6–10 h        | —    |
+| **02** | `02-ARCHITECTURE-GLOBALE.md`          | Architecture technique détaillée avec diagrammes Mermaid : vue C4 (contexte, conteneurs, composants), flux de données inter-services, choix techniques justifiés avec les **34 ADR** (Architecture Decision Records, `ADR-001` à `ADR-034`, cf. `docs/adr/`).     | 6–10 h        | —    |
 | **03** | `03-SETUP-ENVIRONNEMENT-DEV.md`       | Installation complète du poste de travail Windows : Node.js 24 LTS, pnpm 10, Docker Desktop, PostgreSQL 18, Python 3.14, Git, VS Code avec extensions recommandées, WSL2 si nécessaire. Vérification de chaque outil.                                             | 4–6 h         | —    |
 | **04** | `04-MONOREPO-STRUCTURE.md`            | Restructuration du Turborepo starter vers l'arborescence cible. Création des workspaces `services/*`, `packages/*` manquants. Configuration Husky, commitlint, Makefile, scripts utilitaires.                                                                     | 6–10 h        | —    |
 | **05** | `05-INFRASTRUCTURE-DOCKER-COMPOSE.md` | Fichier `docker-compose.yml` local complet avec PostgreSQL 18, Redis 8.6, RabbitMQ 4.2, MinIO, Keycloak 26.5, HashiCorp Vault, Elasticsearch 9.3. Healthchecks, volumes persistants, réseau dédié.                                                                | 8–12 h        | —    |
@@ -355,36 +355,39 @@ Avant de commencer le document 01, vérifier que les éléments suivants sont en
 
 ### Ports réservés
 
-| Port  | Service                       | Stack             |
-| ----- | ----------------------------- | ----------------- |
-| 3000  | API Gateway (futur)           | NestJS            |
-| 3001  | identity-service              | NestJS            |
-| 3002  | auth-service                  | NestJS            |
-| 3003  | ai-service                    | FastAPI           |
-| 3004  | document-service              | NestJS            |
-| 3005  | notification-service          | NestJS            |
-| 3006  | interop-service               | NestJS            |
-| 3007  | audit-service                 | NestJS            |
-| 3008  | appointment-service           | NestJS            |
-| 3009  | anticorruption-service        | FastAPI           |
-| 3010  | governance-service            | NestJS            |
-| 3011  | vulnerability-service         | NestJS            |
-| 4000  | Portail citoyen (Next.js)     | Next.js           |
-| 4001  | Dashboard admin (Next.js)     | Next.js           |
-| 4002  | Portail gouvernance (Next.js) | Next.js           |
-| 5432  | PostgreSQL                    | PostgreSQL 18     |
-| 6379  | Redis                         | Redis 8.6         |
-| 5672  | RabbitMQ (AMQP)               | RabbitMQ 4.2      |
-| 15672 | RabbitMQ (Management UI)      | RabbitMQ 4.2      |
-| 8080  | Keycloak                      | Keycloak 26.5     |
-| 8200  | HashiCorp Vault               | Vault             |
-| 9200  | Elasticsearch                 | Elasticsearch 9.3 |
-| 9000  | MinIO (API)                   | MinIO             |
-| 9001  | MinIO (Console)               | MinIO             |
-| 9090  | Prometheus                    | Prometheus        |
-| 3100  | Grafana                       | Grafana           |
-| 3200  | Loki                          | Loki              |
-| 16686 | Jaeger                        | Jaeger            |
+| Port  | Service                                 | Stack             |
+| ----- | --------------------------------------- | ----------------- |
+| 3000  | api-gateway (scaffold livré)            | NestJS            |
+| 3001  | identity-service                        | NestJS            |
+| 3002  | auth-service                            | NestJS            |
+| 3003  | ai-service                              | FastAPI           |
+| 3004  | document-service                        | NestJS            |
+| 3005  | notification-service                    | NestJS            |
+| 3006  | interop-service                         | NestJS            |
+| 3007  | audit-service                           | NestJS            |
+| 3008  | appointment-service                     | NestJS            |
+| 3009  | anticorruption-service                  | FastAPI           |
+| 3010  | governance-service                      | NestJS            |
+| 3011  | vulnerability-service                   | NestJS            |
+| 3012  | biometric-service                       | NestJS            |
+| 3013  | enrollment-service                      | NestJS            |
+| 3014  | ussd-service                            | NestJS            |
+| 4001  | Portail citoyen (`apps/citizen`)        | Next.js           |
+| 4002  | Dashboard admin (`apps/admin`)          | Next.js           |
+| 4003  | Portail gouvernance (`apps/governance`) | Next.js           |
+| 5432  | PostgreSQL                              | PostgreSQL 18     |
+| 6379  | Redis                                   | Redis 8.6         |
+| 5672  | RabbitMQ (AMQP)                         | RabbitMQ 4.2      |
+| 15672 | RabbitMQ (Management UI)                | RabbitMQ 4.2      |
+| 8080  | Keycloak                                | Keycloak 26.5     |
+| 8200  | HashiCorp Vault                         | Vault             |
+| 9200  | Elasticsearch                           | Elasticsearch 9.3 |
+| 9000  | MinIO (API)                             | MinIO             |
+| 9001  | MinIO (Console)                         | MinIO             |
+| 9090  | Prometheus                              | Prometheus        |
+| 3100  | Grafana                                 | Grafana           |
+| 3200  | Loki                                    | Loki              |
+| 16686 | Jaeger                                  | Jaeger            |
 
 ---
 
@@ -447,36 +450,133 @@ financières qui dépassent le cadre du baccalauréat.
 
 ---
 
-## 10. Versions technologiques de référence (avril 2026)
+## 10. Versions technologiques de référence (révision juin 2026)
 
 Ce tableau sert de **référence unique** pour les versions utilisées dans tous les documents.
 
-| Technologie    | Version  | Vérification             |
-| -------------- | -------- | ------------------------ |
-| Node.js        | 24.x LTS | `node --version`         |
-| pnpm           | 10.x     | `pnpm --version`         |
-| TypeScript     | 6.0+     | `npx tsc --version`      |
-| Turborepo      | 2.9+     | `npx turbo --version`    |
-| Next.js        | 16+      | `package.json`           |
-| React          | 19.x     | `package.json`           |
-| NestJS         | 11.1+    | `package.json`           |
-| Prisma         | 7.6+     | `npx prisma --version`   |
-| Python         | 3.14+    | `python --version`       |
-| FastAPI        | 0.135+   | `pip show fastapi`       |
-| PostgreSQL     | 18.x     | `psql --version`         |
-| Redis          | 8.6+     | `redis-server --version` |
-| Elasticsearch  | 9.3+     | via Docker               |
-| RabbitMQ       | 4.2+     | via Docker               |
-| Keycloak       | 26.5+    | via Docker               |
-| Docker         | 27+      | `docker --version`       |
-| Docker Compose | 2.30+    | `docker compose version` |
-| Git            | 2.53+    | `git --version`          |
+> ⚠️ **Réconciliation** : les versions ci-dessous sont alignées sur l'état réel du repo
+> (`package.json` racine et `packages/database/package.json`). En cas de contradiction avec un
+> document numéroté, c'est **[`CHANGELOG.md`](./CHANGELOG.md)** qui fait foi (cf. §1). La colonne «
+> repo » de la table §1 reste un instantané daté ; ce tableau §10 est la cible de référence.
+
+| Technologie    | Version (cible)                    | Vérification             |
+| -------------- | ---------------------------------- | ------------------------ |
+| Node.js        | 24.x LTS                           | `node --version`         |
+| pnpm           | 11.x (`packageManager` pin 11.4.0) | `pnpm --version`         |
+| TypeScript     | 6.0+                               | `npx tsc --version`      |
+| Turborepo      | 2.9+ (2.9.14)                      | `npx turbo --version`    |
+| Next.js        | 16+                                | `package.json`           |
+| React          | 19.x                               | `package.json`           |
+| NestJS         | 11.1+                              | `package.json`           |
+| Prisma         | 7.8+                               | `npx prisma --version`   |
+| Python         | 3.14+                              | `python --version`       |
+| FastAPI        | 0.135+                             | `pip show fastapi`       |
+| PostgreSQL     | 18.x                               | `psql --version`         |
+| Redis          | 8.6+                               | `redis-server --version` |
+| Elasticsearch  | 9.3+                               | via Docker               |
+| RabbitMQ       | 4.2+                               | via Docker               |
+| Keycloak       | 26.5+                              | via Docker               |
+| Docker         | 27+                                | `docker --version`       |
+| Docker Compose | 2.30+                              | `docker compose version` |
+| Git            | 2.53+                              | `git --version`          |
 
 ---
 
+## 11. Sécurité transversale (matrice doc ↔ contrôle)
+
+Cette section rend **visibles les contrôles de sécurité** et les **lacunes** : elle croise les
+documents du parcours avec les grandes familles de contrôle. Elle complète — sans le remplacer — le
+document **15 (Security Hardening)** et
+l'**[`ADR-034`](./adr/ADR-034-security-hardening-vault-mtls-owasp.md)** (décision sécurité de
+référence : mTLS strict + PKI + rotation clés/JWKS + OWASP + scans CI).
+
+> 🔒 **Honnêteté soutenance** : la colonne « État » distingue ce qui est **implémenté** de ce qui
+> est **conçu / Phase 2**. Un contrôle « spécifié mais pas codé » est marqué `⏳ conçu` et ne doit
+> jamais être présenté comme acquis devant le jury.
+
+### 11.1 Matrice doc ↔ contrôle
+
+| Contrôle de sécurité                               | Document(s) porteur(s)                               | ADR                       | État                            |
+| -------------------------------------------------- | ---------------------------------------------------- | ------------------------- | ------------------------------- |
+| AuthN/AuthZ (Keycloak OIDC, JWT RS256, RBAC)       | 08, 12, `packages/auth`                              | ADR-013, ADR-029          | ✅ partiel (mock BFF actif)     |
+| Gestion des secrets (Vault AppRole/lease)          | 05, 15                                               | ADR-026, ADR-034          | ⏳ conçu (Vault dev)            |
+| Signature QR / scellement                          | 10 (QR RS256 Transit), 09 (audit Ed25519 in-process) | ADR-006, ADR-026, ADR-034 | ✅ spécifié                     |
+| Audit append-only **hash-chain SHA-256**           | 09                                                   | ADR-007, ADR-014          | ⏳ conçu (ancrage tiers requis) |
+| mTLS inter-services + PKI                          | 15, 20, 21                                           | ADR-034                   | ⏳ conçu (Phase 2)              |
+| OWASP (ZAP) + scans conteneurs (Trivy/Snyk)        | 15, 16                                               | ADR-034, ADR-016          | ⏳ conçu (CI partielle)         |
+| RGPD / minimisation / rétention 10 ans             | 06, 09, 25                                           | ADR-014, ADR-025          | ⏳ conçu (cadre)                |
+| Chiffrement asymétrique des dénonciations          | 23                                                   | ADR-023, ADR-034          | ⏳ conçu (Phase 2)              |
+| Biométrie cancelable / fuzzy extractor (ISO 24745) | 25                                                   | ADR-025                   | ⏳ conçu (Bloc F, P3)           |
+
+> ⚠️ **Précisions canon (cohérence inter-docs)** :
+>
+> - L'audit (ADR-007/014) est une **chaîne de hash SHA-256 (hash-chain)**, **pas** un arbre de
+>   Merkle au sens strict ; son intégrité n'est garantie qu'**une fois la racine ancrée chez un
+>   tiers** (OCLEI / Vérificateur Général). Les mentions « Merkle » des docs 09/Jalon 2 sont à lire
+>   comme « chaîne de hash chaînée ».
+> - **Vault Transit ne supporte pas Ed25519** (ADR-026/034) : la signature QR utilise **RS256
+>   Transit** ; le scellement d'audit Ed25519 est réalisé **in-process** via `@noble/ed25519` (doc
+>   09).
+> - Ed25519 = **signature seulement**. Le chiffrement asymétrique repose sur `age`/libsodium sealed
+>   box (X25519 + XSalsa20-Poly1305) ou RSA-OAEP (Transit `rsa-4096`).
+
+### 11.2 Invariants — plateforme de gestion des clés
+
+Indépendamment de l'avancement, les **invariants** suivants s'appliquent à toute manipulation de
+clés (détail dans **[`ADR-034`](./adr/ADR-034-security-hardening-vault-mtls-owasp.md)** et
+**[`docs/security/THREAT-MODEL.md`](./security/THREAT-MODEL.md)**) :
+
+- 🔒 **Aucune clé privée en clair** sur disque, en variable d'environnement ou en repo. Le matériel
+  cryptographique réside dans **Vault** (Transit / KV v2) ou en mémoire process (scellement
+  Ed25519).
+- 🔒 **Pas de `VAULT_TOKEN` long-lived** : authentification par **AppRole** (services) ou **K8s
+  ServiceAccount** (K3s), avec **lease** et renouvellement automatique.
+- 🔒 **Rotation des clés et secrets tous les 90 jours** (signature JWKS, secrets applicatifs,
+  certificats internes), rotation déclenchable à la demande en cas de compromission (cf. doc 15
+  §rotation Vault).
+- 🔒 **Rotation JWKS** côté auth/gateway avec période de chevauchement (ancien `kid` accepté le
+  temps de la propagation) pour ne pas invalider les tokens en vol.
+- 🔒 **Séparation des rôles** : les politiques Vault accordent le moindre privilège par service (un
+  service ne lit que ses propres chemins de secrets).
+
+Procédures opérationnelles détaillées :
+**[`docs/security/SECURITY-RUNBOOK.md`](./security/SECURITY-RUNBOOK.md)** et
+**[`docs/security/vault-usage.md`](./security/vault-usage.md)**.
+
+### 11.3 Checklist souveraineté — plan de sortie des dépendances étrangères
+
+Le cœur de la plateforme vise une **souveraineté numérique** (AES/Mali). Les dépendances étrangères
+ci-dessous sont **tolérées en développement / hors-cœur** mais font l'objet d'un **plan de sortie
+daté**. Aucune (AWS KMS, Cloudflare, Slack/PagerDuty US…) ne doit toucher le **cœur souverain**
+(clés, audit, données citoyens).
+
+| Dépendance étrangère        | Usage actuel                                                                                   | Périmètre  | Substitut souverain visé                                        | Sortie (date cible) |
+| --------------------------- | ---------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------- | ------------------- |
+| **Cloudflare**              | CDN / TLS edge (dev/commodité)                                                                 | Hors-cœur  | Nginx + TLS auto-géré / cert-manager                            | T4 2026             |
+| **Africa's Talking** (USSD) | Passerelle USSD (doc 14, ADR-008)                                                              | Périphérie | Agrégateur USSD régional / accord opérateur Sotelma-Orange Mali | T2 2027             |
+| **GitHub** (Actions/CI)     | Repo + CI/CD (doc 16, ADR-016)                                                                 | Outillage  | Gitea + Forgejo Actions auto-hébergés                           | T1 2027             |
+| **AWS KMS**                 | ❌ non utilisé sur le cœur — **interdit** par canon ; gestion de clés = **Vault** auto-hébergé | —          | Vault Transit (déjà en place)                                   | N/A (jamais adopté) |
+
+> 💡 Le tableau ci-dessus est un **plan**, pas un acquis : les dates sont des cibles académiques.
+> Toute adoption d'un service tiers US sur le cœur (Slack, PagerDuty, AWS KMS…) est **proscrite**
+> par le canon souveraineté du projet et doit être présentée comme telle en soutenance.
+
+### 11.4 Pour aller plus loin (liens sécurité)
+
+- 🔒 **[`ADR-034`](./adr/ADR-034-security-hardening-vault-mtls-owasp.md)** — décision sécurité de
+  référence (mTLS + PKI + rotation + OWASP + scans CI).
+- 🔒 **[`docs/security/THREAT-MODEL.md`](./security/THREAT-MODEL.md)** — modèle de menaces (STRIDE,
+  surfaces d'attaque, invariants clés).
+- 🔒 **[`docs/security/SECURITY-RUNBOOK.md`](./security/SECURITY-RUNBOOK.md)** — runbook d'incident
+  et procédures de rotation.
+- 🔒 **[`docs/security/vault-usage.md`](./security/vault-usage.md)** — usage Vault (AppRole,
+  Transit, bootstrap dev).
+- 📋 **[`15-SECURITY-HARDENING.md`](./15-SECURITY-HARDENING.md)** — durcissement complet (mTLS,
+  CSP/HSTS, rate limiting, scans).
+
 ---
 
-## 11. Gouvernance IA et maintenance continue
+## 12. Gouvernance IA et maintenance continue
 
 Pour assurer la continuité entre sessions d'assistants IA:
 
@@ -491,4 +591,4 @@ Validation minimale avant PR:
 - `pnpm run validate:schemas`
 - `pnpm run docs:sync:check`
 
-_Document 00 — Version 1.1 — Mai 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_
+_Document 00 — Version 1.1 — Juin 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_
