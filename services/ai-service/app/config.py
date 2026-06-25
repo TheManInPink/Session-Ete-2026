@@ -22,8 +22,11 @@ class AIServiceSettings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 3003
 
-    # Base de données NINA (lecture seule)
-    database_url: str = "postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db"
+    # Base de données NINA (lecture seule). AUCUN identifiant en clair commité :
+    # la valeur réelle provient de l'environnement ou de Vault (AppRole) à
+    # l'exécution (cf. src/vault.py + doc 11 §10.7). Vide par défaut = le service
+    # exige une URL explicite ; on ne livre pas de mot de passe DB dans le dépôt.
+    database_url: str = ""
 
     # Seuils du pipeline IA (en pourcentage du score P(erreur)).
     ai_auto_threshold: float = 85.0  # Score >= 85% → correction automatique
@@ -53,7 +56,9 @@ class AIServiceSettings(BaseSettings):
     # Le bundle .joblib est désérialisé (pickle) → on vérifie son empreinte
     # SHA-256 (sidecar .sha256 produit à l'entraînement) avant chargement.
     # `require_signed_bundle=true` ⇒ refuse de charger un bundle SANS sidecar.
-    require_signed_bundle: bool = False
+    # Défaut = fail-closed (refuse un bundle non signé) : le brief impose
+    # « échec si SHA absent ». Le dev peut désactiver via AI_REQUIRE_SIGNED_BUNDLE=false.
+    require_signed_bundle: bool = True
 
     # ── RBAC (doc 08 — auth-service / Keycloak) ──────────────────────────────
     # URL JWKS de l'émetteur (auth-service / Keycloak). Si défini, les endpoints

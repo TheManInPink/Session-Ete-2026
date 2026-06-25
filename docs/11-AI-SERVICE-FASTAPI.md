@@ -21,6 +21,26 @@
 > l'implémentation effective et ses décisions sont tracées dans **ADR-030** et le CHANGELOG (patch
 > 0terdecies). En cas de divergence, **le code et l'ADR font foi**.
 
+> 🔴 **AVERTISSEMENT DE COHÉRENCE (lire avant d'implémenter) — deux jeux d'endpoints coexistent.**
+> Ce document décrit une **cible pédagogique** (pipeline 5 étapes, `/analyze`, `/batch`,
+> `/feedback`, `build_features` à 9 variables) qui **N'EST PAS** ce que le code livré expose. Pour
+> éviter un crash à l'inférence et une fausse impression de sécurité, voici la **réalité du code**
+> (à jour 2026-06) :
+>
+> | Sujet                | Cible pédagogique (sections 5–10)                           | **Code réel livré** (fait foi)                                                                                                                                                                                             |
+> | -------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | Endpoints            | `POST /analyze`, `/batch`, `/feedback`, `GET /health`       | `POST /api/v1/ai/score`, `POST /api/v1/ai/reload-models` (admin), `GET /api/v1/ai/model-info`, `GET /api/v1/ai/health` (+ `/health` non préfixé pour la sonde Docker) — **pas** de `/analyze` ni `/feedback`               |
+> | Features             | tableau « 40 features » + `build_features` (9 features, §8) | **38 features** produites par le `FeatureBuilder` **embarqué dans le bundle** (`feature_names` dans `ai-models/exported/metadata.json`) — l'inférence réutilise l'objet d'entraînement, donc **aucune** dérive serve/train |
+> | Sérialisation modèle | `joblib` brut                                               | `joblib` **+ vérification SHA-256 obligatoire** via sidecar `<bundle>.joblib.sha256` AVANT `joblib.load` (cf. §10.5 réécrite)                                                                                              |
+> | Vérif JWT            | `python-jose`                                               | **PyJWT** `algorithms=["RS256"]` + JWKS Keycloak (`app/auth.py`)                                                                                                                                                           |
+> | Tâche du modèle      | binaire « erreur / pas erreur »                             | **multi-classes** (9 classes : `none`, `typo_*`, `phonetic_spelling`, `field_inversion`, `geographic_mismatch`, `date_format_error`, `invalid_checksum`)                                                                   |
+>
+> ⚠️ **Le `build_features` (9 colonnes) de §8 et le `score_record` de §10.4 sont des illustrations
+> historiques : les exécuter tels quels contre le bundle 38-features livré lève une exception de
+> forme.** Le scoring réel passe par `ModelRegistry.predict()` (`app/inference.py`), qui appelle
+> `feature_builder.transform(df)` pour reconstruire **exactement** les 38 variables. **Le code et
+> `metadata.json` font foi.**
+
 ---
 
 ## Table des matières
@@ -80,10 +100,13 @@ Ce service alimente :
 
 ### Livrable à la fin de ce document
 
-- **5 endpoints REST** sur `http://localhost:3003/api/v1/ai/*`
-- **Pipeline 5 étapes** intégralement implémenté
+- **Endpoints REST** sur `http://localhost:3003/api/v1/ai/*` (livrés : `/score`, `/model-info`,
+  `/reload-models`, `/health` ; `/analyze`, `/batch`, `/feedback` restent la cible pédagogique — cf.
+  avertissement de cohérence en tête de document)
+- **Pipeline 5 étapes** (cible pédagogique ; l'inférence livrée passe par `ModelRegistry.predict`)
 - **Dataset synthétique** de 10 000 enregistrements générés
-- **Modèle XGBoost entraîné** (`nina_detector_v1.pkl`) avec AUC ≥ 0.92
+- **Bundle XGBoost entraîné** (`ai-models/exported/xgboost_v1.joblib` + sidecar `.sha256`),
+  multi-classes, AUC binaire `has_error` ≈ 0.986
 - **Soundex africain** avec golden-set de 200 paires testées
 - **Dockerfile** Python 3.14 alpine → image < 400 Mo
 - **Tests** ≥ 85 % de couverture + 1 golden-set test fonctionnel
@@ -129,39 +152,50 @@ Les seules actions automatiques possibles :
 
 ## 3. Technologies utilisées
 
-| Dépendance                  | Version   | Rôle                                           |
-| --------------------------- | --------- | ---------------------------------------------- |
-| `python`                    | `3.14.0`  | Runtime                                        |
-| `fastapi`                   | `0.135.0` | Framework web ASGI                             |
-| `uvicorn[standard]`         | `0.35.0`  | Serveur ASGI production                        |
-| `pydantic`                  | `2.11.3`  | Validation + sérialisation                     |
-| `pydantic-settings`         | `2.9.1`   | Chargement .env typé                           |
-| `xgboost`                   | `3.2.0`   | Gradient boosting                              |
-| `scikit-learn`              | `1.8.0`   | Preprocessing, metrics, split                  |
-| `shap`                      | `0.48.0`  | Explicabilité par prédiction                   |
-| `rapidfuzz`                 | `3.14.1`  | Fuzzy matching ultra-rapide                    |
-| `jellyfish`                 | `1.1.3`   | Soundex, Metaphone, Jaro-Winkler (compléments) |
-| `spacy`                     | `3.8.5`   | NLP industriel                                 |
-| `fr-core-news-md`           | `3.8.0`   | Modèle spaCy français                          |
-| `pandas`                    | `2.3.2`   | DataFrames + feature engineering               |
-| `numpy`                     | `2.3.0`   | Calculs vectoriels                             |
-| `joblib`                    | `1.4.2`   | Sérialisation modèles                          |
-| `onnxruntime`               | `1.22.0`  | Inférence ONNX (optionnel, export du modèle)   |
-| `asyncpg`                   | `0.30.0`  | Pool Postgres async natif                      |
-| `redis[hiredis]`            | `6.1.0`   | Cache feature + file travail                   |
-| `aio-pika`                  | `9.5.0`   | AMQP async (pour publier vers audit)           |
-| `prometheus-client`         | `0.23.0`  | Métriques                                      |
-| `structlog`                 | `25.1.0`  | Logs JSON structurés                           |
-| `opentelemetry-sdk`         | `1.30.0`  | Traces OTEL                                    |
-| `python-jose[cryptography]` | `3.4.0`   | Vérification JWT RS256                         |
-| `httpx`                     | `0.28.1`  | Client HTTP async (appels identity-service)    |
-| `pytest`                    | `8.3.0`   | Framework tests                                |
-| `pytest-asyncio`            | `0.25.0`  | Tests async                                    |
-| `pytest-cov`                | `6.0.0`   | Couverture                                     |
-| `faker`                     | `30.5.0`  | Dataset synthétique (noms FR + africains)      |
-| `hypothesis`                | `6.125.0` | Property-based testing                         |
-| `ruff`                      | `0.9.1`   | Linter ultra-rapide                            |
-| `mypy`                      | `1.16.0`  | Vérification de types                          |
+| Dépendance          | Version   | Rôle                                                  |
+| ------------------- | --------- | ----------------------------------------------------- |
+| `python`            | `3.14.0`  | Runtime                                               |
+| `fastapi`           | `0.135.0` | Framework web ASGI                                    |
+| `uvicorn[standard]` | `0.35.0`  | Serveur ASGI production                               |
+| `pydantic`          | `2.11.3`  | Validation + sérialisation                            |
+| `pydantic-settings` | `2.9.1`   | Chargement .env typé                                  |
+| `xgboost`           | `3.2.0`   | Gradient boosting                                     |
+| `scikit-learn`      | `1.8.0`   | Preprocessing, metrics, split                         |
+| `shap`              | `0.48.0`  | Explicabilité par prédiction                          |
+| `rapidfuzz`         | `3.14.1`  | Fuzzy matching ultra-rapide                           |
+| `jellyfish`         | `1.1.3`   | Soundex, Metaphone, Jaro-Winkler (compléments)        |
+| `spacy`             | `3.8.5`   | NLP industriel                                        |
+| `fr-core-news-md`   | `3.8.0`   | Modèle spaCy français                                 |
+| `pandas`            | `2.3.2`   | DataFrames + feature engineering                      |
+| `numpy`             | `2.3.0`   | Calculs vectoriels                                    |
+| `joblib`            | `1.4.2`   | Sérialisation modèles (pickle ⇒ vérif SHA-256, §10.5) |
+| `onnxruntime`       | `1.22.0`  | Inférence ONNX (optionnel, export du modèle)          |
+| `asyncpg`           | `0.30.0`  | Pool Postgres async natif                             |
+| `redis[hiredis]`    | `6.1.0`   | Cache feature + file travail                          |
+| `aio-pika`          | `9.5.0`   | AMQP async (pour publier vers audit)                  |
+| `prometheus-client` | `0.23.0`  | Métriques                                             |
+| `structlog`         | `25.1.0`  | Logs JSON structurés                                  |
+| `opentelemetry-sdk` | `1.30.0`  | Traces OTEL                                           |
+| `pyjwt[crypto]`     | `≥2.10.0` | Vérification JWT **RS256** + JWKS (cf. note ↓)        |
+| `hvac`              | `≥2.4.0`  | Client Vault (AppRole) — secrets jamais en clair      |
+| `httpx`             | `0.28.1`  | Client HTTP async (appels identity-service)           |
+| `pytest`            | `8.3.0`   | Framework tests                                       |
+| `pytest-asyncio`    | `0.25.0`  | Tests async                                           |
+| `pytest-cov`        | `6.0.0`   | Couverture                                            |
+| `faker`             | `30.5.0`  | Dataset synthétique (noms FR + africains)             |
+| `hypothesis`        | `6.125.0` | Property-based testing                                |
+| `ruff`              | `0.9.1`   | Linter ultra-rapide                                   |
+| `mypy`              | `1.16.0`  | Vérification de types                                 |
+
+> ⚠️ **Sécurité supply-chain (P0) — `python-jose` est BANNI de ce service.** La bibliothèque
+> `python-jose` est non maintenue et exposée à une **confusion d'algorithme** (CVE-2024-33663 :
+> acceptation d'une clé HMAC là où une clé RSA est attendue ⇒ contournement de signature) et à un
+> déni de service (CVE-2024-33664). Le code réel (`services/ai-service/app/auth.py`) utilise donc
+> **PyJWT** avec `algorithms=["RS256"]` **explicitement épinglé** — ce qui interdit `alg=none` et
+> tout repli HS256/HMAC — et résout la clé publique via le **JWKS** de l'émetteur (auth-service /
+> Keycloak). Ne jamais réintroduire `python-jose`, ni laisser `algorithms` ouvert. Cf.
+> [15 — Security Hardening](./15-SECURITY-HARDENING.md) et
+> [ADR-034 — Vault/mTLS/OWASP](./adr/ADR-034-security-hardening-vault-mtls-owasp.md).
 
 ### Pourquoi Python 3.14 (et pas 3.12 LTS) ?
 
@@ -454,7 +488,17 @@ python ai-models/scripts/generate_synthetic_dataset.py
 
 ### 7.1 Catalogue des 40 features
 
-Fichier : `services/ai-service/src/features/extractor.py`
+> ⚠️ **Cible vs réalité.** Ce catalogue de « 40 features » est la **vision** d'origine. Le bundle
+> **livré** produit **38 features** via le `FeatureBuilder` d'entraînement (cf. `feature_names` dans
+> `ai-models/exported/metadata.json`), nommées par préfixe `fn_*` (prénom), `ln_*` (nom), `nina_*`,
+> `region_*`, `ocr_*` (p. ex. `fn_len`, `fn_vowel_ratio`, `ln_max_consonant_run`,
+> `nina_checksum_ok`, `region_name_match`, `ocr_mean_conf`). **C'est cette liste — et l'objet
+> `FeatureBuilder` du bundle — qui fait foi à l'inférence**, pas le tableau ci-dessous. Toute
+> feature ajoutée au service **doit** l'être dans le pipeline d'entraînement (`ai-models/training`)
+> puis ré-exportée, sinon l'inférence diverge de l'entraînement (dérive serve/train) et `predict()`
+> lève une exception de forme.
+
+Fichier (cible illustrative) : `services/ai-service/src/features/extractor.py`
 
 | #   | Feature                           | Type    | Description                                           |
 | --- | --------------------------------- | ------- | ----------------------------------------------------- |
@@ -715,7 +759,17 @@ AES_REGIONS = {"Bamako", "Kayes", "Koulikoro", "Sikasso", "Ségou", "Mopti",
 
 ### 8.1 Script d'entraînement
 
-Fichier : `ai-models/scripts/train_xgboost.py`
+> ⚠️ **Illustration historique — NE PAS exécuter contre le service livré.** Le `build_features` à
+> **9 colonnes** ci-dessous et la cible binaire `has_error` sont un exemple pédagogique. Le pipeline
+> réellement livré vit dans **`ai-models/training/`** : il entraîne un **XGBoost multi-classes** (9
+> classes : `none`, `typo_substitution`, `typo_omission`, `typo_insertion`, `phonetic_spelling`,
+> `field_inversion`, `geographic_mismatch`, `date_format_error`, `invalid_checksum`), construit **38
+> features** via un `FeatureBuilder` anti-fuite, et exporte un **bundle joblib auto-suffisant**
+> (`model` + `feature_builder` + `label_encoder` + `classes`) **accompagné de son sidecar
+> `.joblib.sha256`** (vérifié au chargement, §10.5). Scorer le bundle livré avec ces 9 colonnes
+> **lèverait une exception de forme**. Cf. `ai-models/training/README.md` + ADR-030.
+
+Fichier (cible illustrative) : `ai-models/scripts/train_xgboost.py`
 
 ```python
 """Entraîne le modèle XGBoost de détection d'erreurs NINA."""
@@ -962,6 +1016,43 @@ def create_app() -> FastAPI:
 app = create_app()
 ```
 
+> 🔒 **Durcissement P0 — état réel du code livré (`app/main.py` est l'entrypoint Docker :
+> `uvicorn app.main:app`). Certains contrôles ci-dessous sont CÂBLÉS, d'autres seulement CONÇUS dans
+> `src/` mais NON branchés sur l'entrypoint — c'est marqué explicitement ✅ / ⏳ :**
+>
+> - **⏳ `/metrics` — CONÇU dans `src/observability.py`, NON câblé dans `app/main.py`.** Le module
+>   `src/observability.py` prévoit un
+>   `Instrumentator(...).expose(app, endpoint="/metrics", include_in_schema=False)` restreint au
+>   réseau d'observabilité — **mais l'entrypoint livré `app/main.py` ne l'importe pas et n'appelle
+>   jamais `instrument()`** : le service live n'expose donc **aucun** `/metrics` aujourd'hui. La
+>   cible reste : exposer via l'instrumentator et restreindre au scraper Prometheus interne
+>   (NetworkPolicy / allowlist ingress), jamais sur Internet. Tant que `src/observability.py` n'est
+>   pas câblé dans `app/main.py`, **`/metrics` n'existe pas** dans le service en cours d'exécution.
+> - **⏳ Rate-limiting `/score` — gardé côté gateway uniquement (pas de limiteur applicatif).** Le
+>   scoring est synchrone et CPU-intensif (XGBoost + features) ⇒ levier de DoS. `app/main.py` ne
+>   contient **aucun** middleware `slowapi` / limiteur : le rate-limiting est **délégué à la
+>   gateway** (cf. [10 — API Gateway](./10-API-GATEWAY.md)) par clé d'agent + IP. C'est un **écart
+>   disclosé** (cf. §10.6), pas un contrôle livré dans le service. Le lot est néanmoins **borné**
+>   côté Pydantic (`max_length=1000`, constante `_MAX_BATCH`) pour empêcher un batch non borné.
+> - **✅ Garde RBAC `/score`.** `app/main.py` impose désormais `Depends(require_role("agent"))` sur
+>   `/score` (défense en profondeur — ne se repose plus uniquement sur la gateway pour l'auth),
+>   comme `/reload-models` le fait pour `admin`. Cf. §10.6.
+> - **✅ CORS.** Le code réel ne combine jamais `allow_origins=["*"]` avec `allow_credentials=True`
+>   : `app/main.py` désactive automatiquement `allow_credentials` quand `"*"` est présent.
+> - **⏳ Secrets via Vault — client présent (`src/vault.py`), NON consommé par `app/config.py`.** Un
+>   client Vault AppRole existe dans `src/vault.py`, **mais `app/config.py` ne l'importe pas** :
+>   `database_url` et `admin_token` sont aujourd'hui lus via **variables d'environnement** (`AI_*`).
+>   La cible (lease + auto-renew, **jamais de `VAULT_TOKEN` long-lived**) reste à brancher. Cf.
+>   §10.7. À noter : `app/config.py` ne livre plus d'identifiant DB en clair (`database_url` vide
+>   par défaut).
+> - **⏳ Logs sans PII — redactor CONÇU dans `src/observability.py`, NON câblé.** Le processeur
+>   structlog `_redact_pii` (caviardage de `nina`, `date_of_birth`, `fingerprint_hash`, `token`…)
+>   vit dans `src/observability.py`, **mais `app/main.py` n'appelle jamais `get_logger()`** et
+>   journalise via `print()` brut : la redaction **n'est pas active** dans le service livré. Par
+>   prudence, l'endpoint `/score` **masque le NINA** (4 derniers caractères) dans sa réponse et le
+>   code évite de logger des payloads citoyens bruts. La cible (brancher `get_logger()` sur
+>   l'entrypoint) reste ouverte. Cf. §14.2.
+
 ### 10.2 `models/schemas.py` (Pydantic v2)
 
 ```python
@@ -1148,13 +1239,29 @@ def score_record(features: dict, record, registry: ModelRegistry) -> AnalyzeResp
     )
 ```
 
-### 10.5 `models/registry.py`
+### 10.5 `models/registry.py` — chargement avec **vérification d'intégrité obligatoire**
+
+> 🔴 **POURQUOI (P0 supply-chain ML).** `joblib.load` / `pickle.load` = **exécution de code
+> arbitraire** : un attaquant qui substitue le fichier `.joblib` (poste compromis, volume monté,
+> artefact CI empoisonné) obtient une **RCE** dans le service IA au démarrage. Deux parades, à
+> appliquer ensemble :
+>
+> 1. **Vérifier le SHA-256 du bundle AVANT toute désérialisation** (le hash est produit à
+>    l'entraînement et stocké dans un sidecar `<bundle>.joblib.sha256`). C'est ce que fait le code
+>    réel `app/inference.py` (`_verify_integrity`). Le flag `AI_REQUIRE_SIGNED_BUNDLE=true` **refuse
+>    de charger un bundle sans sidecar** (à activer en production).
+> 2. **À terme, éliminer le pickle** : exporter le modèle en **ONNX** (`onnxruntime`) ou via
+>    **skops** (format sûr scikit-learn), ce qui supprime la classe de vulnérabilité. Tracé en §18.
+>
+> ⚠️ L'ancienne forme `if expected_sha and actual_sha != expected_sha` était **dangereuse** : si la
+> variable d'environnement était absente, le bundle se chargeait **sans aucune vérification**. La
+> version ci-dessous **échoue par défaut** (fail-closed) quand l'intégrité ne peut pas être prouvée
+> en production.
 
 ```python
 from __future__ import annotations
 
 import hashlib
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -1162,44 +1269,145 @@ from typing import Any
 import joblib
 
 
+def _sha256_file(p: Path) -> str:
+    """Empreinte SHA-256 en streaming (ne charge pas tout le fichier en RAM)."""
+    h = hashlib.sha256()
+    with open(p, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 @dataclass
 class ModelRegistry:
+    """Registre chargeant le bundle XGBoost APRÈS preuve d'intégrité SHA-256."""
+
     model: Any
-    explainer: Any
-    feature_names: list[str]
+    feature_builder: Any
+    classes: list[str]
     version: str
     sha256: str
 
     @classmethod
-    def load(cls, path: str) -> "ModelRegistry":
+    def load(cls, path: str, *, require_signed: bool = True) -> "ModelRegistry":
+        """Charge le bundle joblib en vérifiant son sidecar `.sha256` au préalable.
+
+        Args:
+            path: Chemin du bundle `.joblib`.
+            require_signed: Si ``True`` (production), refuse de charger un bundle
+                dont le sidecar `<bundle>.sha256` est absent (fail-closed).
+
+        Raises:
+            FileNotFoundError: bundle introuvable.
+            RuntimeError: sidecar manquant alors que ``require_signed`` est vrai,
+                ou empreinte SHA-256 ne correspondant pas (altération détectée).
+        """
         p = Path(path)
         if not p.exists():
             raise FileNotFoundError(f"Modèle introuvable : {p}")
-        expected_sha = os.getenv("MODEL_EXPECTED_SHA256")
-        actual_sha = hashlib.sha256(p.read_bytes()).hexdigest()
-        if expected_sha and actual_sha != expected_sha:
-            raise RuntimeError(
-                f"Hash modèle incorrect : attendu {expected_sha}, reçu {actual_sha}"
-            )
+
+        # ── Vérification d'intégrité OBLIGATOIRE avant joblib.load (= exécution) ──
+        sidecar = p.with_suffix(p.suffix + ".sha256")
+        if not sidecar.exists():
+            if require_signed:
+                raise RuntimeError(
+                    f"Bundle non signé : sidecar absent ({sidecar.name}). "
+                    "Refus de charger (AI_REQUIRE_SIGNED_BUNDLE=true)."
+                )
+        else:
+            expected = sidecar.read_text(encoding="utf-8").split()[0].strip().lower()
+            actual = _sha256_file(p).lower()
+            if actual != expected:
+                raise RuntimeError(
+                    f"Intégrité invalide : SHA-256 attendu {expected[:12]}…, "
+                    f"obtenu {actual[:12]}…"
+                )
+
+        # ⚠️ joblib.load = pickle = exécution de code → n'arriver ici qu'après vérif.
         bundle = joblib.load(p)
         return cls(
             model=bundle["model"],
-            explainer=bundle["explainer"],
-            feature_names=bundle["feature_names"],
-            version=bundle["version"],
-            sha256=actual_sha,
+            feature_builder=bundle["feature_builder"],  # rejoue les 38 features d'entraînement
+            classes=list(bundle["classes"]),
+            version=(bundle.get("metadata", {}) or {}).get("model_name", "unknown"),
+            sha256=_sha256_file(p),
         )
 ```
 
-### 10.6 Les 5 endpoints
+> ℹ️ **Le code livré** (`services/ai-service/app/inference.py`) implémente cette logique sous forme
+> d'un `ModelRegistry` **thread-safe** (verrou `RLock` pour le rechargement à chaud
+> `/reload-models`), valide aussi les **clés du bundle**
+> (`{"model", "feature_builder", "label_encoder", "classes"}`) et **dégrade proprement** (service «
+> live » mais `/score` → 503) si le modèle est absent, plutôt que de planter le démarrage. Il n'y a
+> **pas** d'`explainer` SHAP embarqué dans le bundle livré : la colonne « explanations » de la
+> réponse cible reste à brancher.
+
+### 10.6 Les endpoints
+
+**Cible pédagogique** (sections 5–10, _non implémentée telle quelle_) :
 
 | Méthode | URL                   | Rôles                | Description                                     |
 | ------- | --------------------- | -------------------- | ----------------------------------------------- |
 | POST    | `/api/v1/ai/analyze`  | AGENT, ADMIN, SYSTEM | Analyse un enregistrement unique                |
 | POST    | `/api/v1/ai/batch`    | ADMIN, SYSTEM        | Batch d'analyses (jusqu'à 1000 NINA)            |
 | POST    | `/api/v1/ai/feedback` | AGENT, ADMIN         | Feedback humain (re-étiquetage pour retraining) |
-| GET     | `/api/v1/ai/health`   | Public               | Healthcheck Postgres + Redis + modèle chargé    |
-| GET     | `/metrics`            | Public (scraping)    | Prometheus                                      |
+
+**Endpoints réellement livrés** (`services/ai-service/app/main.py` — font foi) :
+
+| Méthode | URL                        | Garde                                                         | Description                                                                                                            |
+| ------- | -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| POST    | `/api/v1/ai/score`         | `require_role("agent")` ✅ ; rate-limit gateway uniquement ⏳ | Score un lot borné (`max_length=1000`) d'enregistrements ; NINA masqué en réponse                                      |
+| POST    | `/api/v1/ai/reload-models` | `require_role("admin")`                                       | Recharge le bundle à chaud (RBAC RS256, repli X-Admin-Token)                                                           |
+| GET     | `/api/v1/ai/model-info`    | —                                                             | Métadonnées du modèle chargé (classes, n_features, métriques)                                                          |
+| GET     | `/api/v1/ai/health`        | —                                                             | Santé service + `model_loaded`                                                                                         |
+| GET     | `/health`                  | —                                                             | Liveness non préfixée (sonde Docker/K8s)                                                                               |
+| GET     | `/metrics`                 | ⏳ NON exposé (instrumentator non câblé)                      | Prometheus — **absent du service live** : conçu dans `src/observability.py`, pas branché sur `app/main.py` (cf. §10.1) |
+
+> 🔒 **Garde `/score` (✅ livrée) + rate-limiting (⏳ écart disclosé).** `/api/v1/ai/score` impose
+> désormais `Depends(require_role("agent"))` côté code (défense en profondeur — même garde que
+> `/reload-models`), donc l'endpoint n'est plus non authentifié dès lors que `AI_JWKS_URL` /
+> `AI_ADMIN_TOKEN` sont configurés ; il **masque** aussi le NINA dans sa réponse. En revanche le
+> **rate-limiting reste un écart livré non comblé dans le service** : `app/main.py` ne contient
+> aucun limiteur applicatif (`slowapi`) et délègue entièrement à la **gateway**. Le brief demandait
+> explicitement un rate-limiter `/score` (`/analyze` + `/batch`) ; tant qu'aucun middleware
+> applicatif n'est ajouté, c'est un **gap disclosé**, pas un simple choix de conception «
+> gateway-only ».
+
+---
+
+### 10.7 Secrets via Vault (AppRole) — cible conçue, **pas encore consommée par l'entrypoint**
+
+> ⏳ **ÉTAT RÉEL.** Un client Vault **existe** (`services/ai-service/src/vault.py`, `hvac`) **mais
+> `app/config.py` ne l'importe pas** : à ce jour, `database_url` et le jeton admin (`AI_ADMIN_TOKEN`
+> → en-tête `X-Admin-Token`) sont lus via **variables d'environnement** (`AI_*`), pas via Vault. Le
+> code livré ne livre toutefois **plus d'identifiant DB en clair** : `database_url` est **vide par
+> défaut** et doit être fourni par l'environnement/Vault. La bascule des secrets vers Vault au
+> runtime reste **à brancher** (le module `src/vault.py` est prêt mais inerte tant que
+> `app/config.py`/`app/main.py` ne l'appellent pas).
+>
+> 🔒 **POURQUOI (cible).** `database_url`, le jeton admin et la clé de vérification JWT ne doivent
+> **jamais** vivre en clair dans un `.env` de production ni dans l'image Docker. Le client Vault
+> `src/vault.py` est conçu pour les récupérer à l'exécution :
+>
+> - **Auth AppRole** (`role_id` + `secret_id`) ou **Kubernetes ServiceAccount** — **jamais** de
+>   `VAULT_TOKEN` long-lived (le mode token n'existe que pour le dev local).
+> - **Lease + auto-renew** : un thread daemon renouvelle le bail à **80 % du TTL**
+>   (`_start_renew_thread`), et s'arrête proprement (`close()`).
+> - **Credentials Postgres dynamiques** via `get_database_creds("ai-readonly")` (le service ne lit
+>   le registre NINA qu'en **lecture seule**).
+> - **Cache mémoire TTL** (défaut 5 min) pour limiter les appels Vault.
+>
+> Souveraineté : Vault est **auto-hébergé** sur le cœur AES — **pas** d'AWS KMS ni de service de
+> secrets étranger sur le chemin critique. Cf. [15 — Security Hardening](./15-SECURITY-HARDENING.md)
+> §4 + ADR-034.
+
+```bash
+# Variables d'environnement consommées par src/vault.py (valeurs réelles = Vault, pas en clair)
+#   VAULT_ADDR              http://vault:8200
+#   VAULT_AUTH_METHOD       approle            # 'token' réservé au dev local
+#   VAULT_APPROLE_ROLE_ID   <fourni par l'orchestrateur, jamais commité>
+#   VAULT_APPROLE_SECRET_ID <injecté via fichier monté / response-wrapping, TTL court>
+```
 
 ---
 
@@ -1512,6 +1720,31 @@ ai_score_distribution = Histogram(
 ai_model_version = Gauge("ai_model_version_info", "Info version modèle", ["version", "sha256"])
 ```
 
+### 14.2 Exposition `/metrics`, redaction PII et logs structurés (état réel du code)
+
+> ⏳ **`/metrics` — CONÇU dans `src/observability.py`, NON câblé dans l'entrypoint `app/main.py`.**
+> `src/observability.py` prévoit `prometheus-fastapi-instrumentator` avec
+> `expose(app, endpoint="/metrics", include_in_schema=False)` et l'exclusion de `/metrics` +
+> `/health*` de l'instrumentation. **Mais l'entrypoint Docker livré (`uvicorn app.main:app`)
+> n'importe pas ce module et n'appelle jamais `instrument()`** : le service en cours d'exécution
+> **n'expose aucun `/metrics`** aujourd'hui. La cible (exposition restreinte au scraper Prometheus
+> interne via NetworkPolicy / ingress, jamais sur Internet — divulguerait sinon distributions de
+> scores et volumétrie par agent) reste à brancher dans `app/main.py`.
+
+> ⏳ **Redaction PII des logs — CONÇUE dans `src/observability.py`, NON active dans le service
+> livré.** `src/observability.get_logger()` branche un processeur structlog (`_redact_pii`) qui
+> **caviarde récursivement** un ensemble de champs sensibles : `nina`, `nina_raw`, `ninaNumber`,
+> `date_of_birth`/`dateNaissance`, `fingerprint_hash`, `face_embedding`, `phone_number`, `password`,
+> `token`, `refresh_token`, `authorization`, `cookie` → `***REDACTED***`. **Mais `app/main.py`
+> n'appelle jamais `get_logger()`** et journalise via `print()` brut : la redaction **n'est pas
+> active** dans le service en cours d'exécution (un `print`/une exception pourrait fuiter un NINA).
+> Mesures réellement en place côté entrypoint, en attendant le câblage : `/score` **masque le NINA**
+> (4 derniers caractères) dans sa réponse et le code évite de logger des payloads citoyens bruts. 🔴
+> **Cible P0 RGPD-like** : câbler `src/observability.get_logger()` sur `app/main.py`, ne jamais
+> logger un payload citoyen brut ni interpoler le NINA dans un message (`log.info(f"... {nina}")`
+> contournerait la redaction par-champ). La liste de champs doit rester synchronisée avec
+> `packages/observability/src/logger.ts` (stack TS).
+
 ### 14.1 Dashboard Grafana
 
 JSON de base fourni dans `infrastructure/grafana/dashboards/ai-service.json` (à créer en doc 17).
@@ -1614,15 +1847,29 @@ jobs:
 - [ ] ✅ Python 3.14 + venv local fonctionnel (`python --version`)
 - [ ] ✅ `pyproject.toml` versionné + `pnpm turbo build --filter=ai-service` OK
 - [ ] ✅ Dataset synthétique 10 000 lignes généré
-- [ ] ✅ Modèle `nina_detector_v1.pkl` entraîné avec AUC ≥ 0.92
-- [ ] ✅ SHAP values fonctionnelles (top-5 affichées dans response)
+- [ ] ✅ Bundle `xgboost_v1.joblib` entraîné (multi-classes, AUC binaire `has_error` ≈ 0.986 livré)
+- [ ] ⏳ SHAP values (top-5 dans la réponse) — **conçu, non implémenté** (pas d'explainer dans le
+      bundle livré)
 - [ ] ✅ Soundex africain : golden-set 10 paires tous passent
-- [ ] ✅ 5 endpoints Swagger accessibles sur `/docs`
-- [ ] ✅ Hash SHA-256 du `.pkl` vérifié au startup
-- [ ] ✅ JWT RS256 vérifié via JWKS Keycloak
-- [ ] ✅ Pool asyncpg Postgres fonctionne
-- [ ] ✅ Audit AMQP publie `ai.analysis.completed`
-- [ ] ✅ Métriques Prometheus exposées sur `/metrics`
+- [ ] ✅ Endpoints livrés accessibles via Swagger sur `/api/v1/ai/docs` (`/score`, `/model-info`,
+      `/reload-models`, `/health`)
+- [ ] ✅ Intégrité SHA-256 du bundle `.joblib` vérifiée au startup via sidecar `.sha256`
+      (fail-closed si `AI_REQUIRE_SIGNED_BUNDLE=true`)
+- [ ] ✅ JWT **RS256** vérifié via **PyJWT + JWKS Keycloak** (`algorithms=["RS256"]`, `alg=none`
+      interdit) — `python-jose` banni
+- [ ] ⏳ Secrets via **Vault AppRole** — **client présent (`src/vault.py`) mais NON consommé par
+      `app/config.py`** ; `database_url`/`admin_token` encore via env (`database_url` vide par
+      défaut, plus d'identifiant DB en clair commité)
+- [ ] ⏳ Logs **sans NINA** — redactor `_redact_pii` **conçu dans `src/observability.py` mais NON
+      câblé** dans `app/main.py` (entrypoint Docker = `app.main:app`, journalise via `print()`) ;
+      mitigation livrée : NINA masqué dans la réponse `/score`
+- [ ] ⏳ Audit AMQP publie `ai.analysis.completed` — **planifié, non émis** dans le code actuel
+- [ ] ⏳ `/metrics` — **conçu dans `src/observability.py` mais NON câblé** dans `app/main.py`
+      (instrumentator jamais appelé → endpoint absent du service live) ; cible = réseau
+      d'observabilité uniquement
+- [ ] ✅ Garde RBAC `/score` : `Depends(require_role("agent"))` (défense en profondeur) ; ⏳
+      rate-limiting `/score` **délégué à la gateway** (pas de limiteur applicatif `slowapi` — écart
+      disclosé)
 - [ ] ✅ Dockerfile build < 400 Mo
 - [ ] ✅ Couverture tests ≥ 85 %
 - [ ] ✅ Healthcheck `/api/v1/ai/health` vérifie Postgres + Redis + modèle
@@ -1633,8 +1880,11 @@ jobs:
 
 ## 18. Pour aller plus loin
 
-1. **Export ONNX** : convertir le modèle XGBoost en ONNX pour inférence C++/JS (utile si on déplace
-   le scoring en edge mobile).
+1. **Export ONNX / skops (priorité sécurité)** : convertir le modèle XGBoost en **ONNX**
+   (`onnxruntime`) ou le sérialiser via **skops** (format sûr) pour **éliminer le risque RCE du
+   pickle** (`joblib.load` = exécution de code). Au-delà du portage edge C++/JS, c'est la parade
+   structurelle au P0 supply-chain : tant que le bundle reste `joblib`, la vérification SHA-256 + le
+   sidecar signé (§10.5) restent **obligatoires**.
 2. **Sentence-transformers multilingue** : ajouter des embeddings E5 multilingual comme feature
    (enrichit la détection sémantique, coût = latence +50 ms, à évaluer).
 3. **Active learning** : prioriser les dossiers ambigus (score 40–60) pour annotation manuelle afin

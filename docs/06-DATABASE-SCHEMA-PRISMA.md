@@ -12,6 +12,17 @@
 > - 16 modèles (spec initiale ; schéma implémenté étendu à 22 — cf. §3.2 et CHANGELOG), 10 enums,
 >   soft-delete via callback `Prisma.defineExtension`.
 > - Singleton paresseux via Proxy.
+>
+> ⚠️ **Audit honnêteté (cf. ADR-007 / canon sécurité)** — Le journal d'audit n'est **pas** un arbre
+> de Merkle malgré certains noms de variables historiques (`computeMerkleHash`, `merkleHash`). C'est
+> une **hash-chain SHA-256 linéaire** : chaque entrée chaîne le hash de la précédente. Une
+> hash-chain seule **n'est pas inaltérable** — un administrateur disposant d'un accès
+> `UPDATE`/`DELETE` sur la base pourrait recalculer toute la chaîne. L'intégrité réelle repose sur
+> **deux** mécanismes complémentaires décrits en §4bis : (1) un **scellement Ed25519 in-process**
+> (via `@noble/ed25519`, **pas** Vault Transit qui ne supporte pas Ed25519 — cf. ADR-026 / ADR-034)
+> des racines périodiques, et (2) l'**ancrage horodaté chez un tiers** (registre signé OCLEI /
+> Vérificateur Général). Tant que l'ancrage tiers n'est pas déployé, on parle de hash-chain «
+> append-only + scellée », jamais d'« inaltérable ».
 
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00 à 05 complétés
 > ; PostgreSQL Docker running et healthy ; `packages/database` existant avec **Prisma 7.8+** **Durée
@@ -72,7 +83,8 @@ disproportionnée. Le schéma unifié dans `packages/database` garantit la cohé
 | **Prisma Client**  | 7.7+    | Client TypeScript auto-généré (requêtes typées)       | https://www.prisma.io/docs/orm/prisma-client       |
 | **Prisma Migrate** | 7.7+    | Système de migrations SQL (create, alter, drop)       | https://www.prisma.io/docs/orm/prisma-migrate      |
 | **Prisma Studio**  | 7.7+    | Interface web pour visualiser et éditer les données   | https://www.prisma.io/docs/orm/tools/prisma-studio |
-| **PostgreSQL**     | 17      | SGBD cible (via Docker, document 05)                  | https://www.postgresql.org/docs/17/                |
+| **PostgreSQL**     | 18      | SGBD cible (image `postgis/postgis:18-3.6`, doc 05)   | https://www.postgresql.org/docs/18/                |
+| **pgcrypto**       | (ext.)  | Chiffrement de colonne PII (option B — cf. §4ter)     | https://www.postgresql.org/docs/18/pgcrypto.html   |
 | **tsx**            | 4.21+   | Exécuteur TypeScript pour le script de seed           | https://tsx.is/                                    |
 | **TypeScript**     | 6.0.2   | Typage statique du client Prisma                      | https://www.typescriptlang.org/docs/               |
 
@@ -116,11 +128,17 @@ erDiagram
     %% ═══ IA ═══
     NinaCorrection }o--o| AiAnalysis : "suggérée par IA"
 
-    %% ═══ AUDIT ═══
+    %% ═══ AUDIT (hash-chain SHA-256, PAS Merkle) ═══
     AuditLog {
-        string hash
+        string payloadHash
         string previousHash
+        string merkleHash
     }
+    AuditRoot {
+        string chainRootHash
+        string signature_Ed25519
+    }
+    AuditLog ||--o| AuditRoot : "scellée périodiquement par"
 
     %% ═══ DOCUMENTS ═══
     Document }o--|| Citizen : "concerne"
@@ -135,31 +153,34 @@ erDiagram
     Appointment }o--|| User : "citoyen"
 
     %% ═══ ANTI-CORRUPTION ═══
+    %% NB : `Alert` est le nom CIBLE du doc ; le modèle réel est `CorruptionAlert`
+    %%      (table `corruption_alerts`). Mapping : Alert (doc) == CorruptionAlert (schema.prisma).
     IntegrityScore }o--|| User : "évalué"
     Alert }o--o| User : "signalement"
 ```
 
 ### 3.2 Tableau récapitulatif des modèles
 
-| Modèle                | Table SQL               | Service principal             | Nb de champs | Rôle                                                                            |
-| --------------------- | ----------------------- | ----------------------------- | ------------ | ------------------------------------------------------------------------------- |
-| `Region`              | `regions`               | identity-service              | 4            | Régions du Mali (10)                                                            |
-| `Cercle`              | `cercles`               | identity-service              | 5            | Cercles (49)                                                                    |
-| `Commune`             | `communes`              | identity-service              | 5            | Communes (703)                                                                  |
-| `Citizen`             | `citizens`              | identity-service              | 14           | Enregistrements d'identité NINA                                                 |
-| `User`                | `users`                 | auth-service                  | 15           | Utilisateurs du système (agents, admins, citoyens)                              |
-| `NinaCorrection`      | `nina_corrections`      | identity-service + ai-service | 16           | Demandes de correction (manuelles et IA)                                        |
-| `AiAnalysis`          | `ai_analyses`           | ai-service                    | 12           | Résultats d'analyse IA par batch                                                |
-| `AuditLog`            | `audit_logs`            | audit-service                 | 14           | Journal d'audit Merkle (chaîne de hash)                                         |
-| `Document`            | `documents`             | document-service              | 12           | Fiches Descriptives, récépissés, etc.                                           |
-| `Appointment`         | `appointments`          | appointment-service           | 11           | Rendez-vous en mairie / CTDEC                                                   |
-| `EnrollmentCenter`    | `enrollment_centers`    | appointment-service           | 16           | Profil opérationnel d'un centre (horaires, capacité, quotas, géo) — cf. ADR-028 |
-| `Notification`        | `notifications`         | notification-service          | 10           | Emails, SMS, push                                                               |
-| `AesVerification`     | `aes_verifications`     | interop-service               | 11           | Vérifications inter-pays AES                                                    |
-| `VulnerabilityRecord` | `vulnerability_records` | vulnerability-service         | 10           | Personnes vulnérables                                                           |
-| `IntegrityScore`      | `integrity_scores`      | anticorruption-service        | 10           | Scores d'intégrité SIGAC                                                        |
-| `Alert`               | `alerts`                | anticorruption-service        | 11           | Signalements lanceurs d'alerte                                                  |
-| `UssdSession`         | `ussd_sessions`         | notification-service          | 8            | Historique des sessions USSD                                                    |
+| Modèle                | Table SQL               | Service principal             | Nb de champs | Rôle                                                                                                                                                                                           |
+| --------------------- | ----------------------- | ----------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Region`              | `regions`               | identity-service              | 4            | Régions du Mali (10)                                                                                                                                                                           |
+| `Cercle`              | `cercles`               | identity-service              | 5            | Cercles (49)                                                                                                                                                                                   |
+| `Commune`             | `communes`              | identity-service              | 5            | Communes (703)                                                                                                                                                                                 |
+| `Citizen`             | `citizens`              | identity-service              | 14           | Enregistrements d'identité NINA                                                                                                                                                                |
+| `User`                | `users`                 | auth-service                  | 15           | Utilisateurs du système (agents, admins, citoyens)                                                                                                                                             |
+| `NinaCorrection`      | `nina_corrections`      | identity-service + ai-service | 16           | Demandes de correction (manuelles et IA)                                                                                                                                                       |
+| `AiAnalysis`          | `ai_analyses`           | ai-service                    | 12           | Résultats d'analyse IA par batch                                                                                                                                                               |
+| `AuditLog`            | `audit_logs`            | audit-service                 | 14           | Journal d'audit append-only — hash-chain SHA-256 (PAS Merkle)                                                                                                                                  |
+| `AuditRoot`           | `audit_roots`           | audit-service                 | 8            | Racines périodiques scellées Ed25519 + ancrage tiers (cf. §4bis)                                                                                                                               |
+| `Document`            | `documents`             | document-service              | 12           | Fiches Descriptives, récépissés, etc.                                                                                                                                                          |
+| `Appointment`         | `appointments`          | appointment-service           | 11           | Rendez-vous en mairie / CTDEC                                                                                                                                                                  |
+| `EnrollmentCenter`    | `enrollment_centers`    | appointment-service           | 16           | Profil opérationnel d'un centre (horaires, capacité, quotas, géo) — cf. ADR-028                                                                                                                |
+| `Notification`        | `notifications`         | notification-service          | 10           | Emails, SMS, push                                                                                                                                                                              |
+| `AesVerification`     | `aes_verifications`     | interop-service               | 11           | Vérifications inter-pays AES                                                                                                                                                                   |
+| `VulnerabilityRecord` | `vulnerability_records` | vulnerability-service         | 10           | Personnes vulnérables                                                                                                                                                                          |
+| `IntegrityScore`      | `integrity_scores`      | anticorruption-service        | 10           | Scores d'intégrité SIGAC                                                                                                                                                                       |
+| `Alert`               | `alerts`                | anticorruption-service        | 11           | Signalements lanceurs d'alerte — ⚠️ nom **cible** : le modèle réel est `CorruptionAlert` / table `corruption_alerts` (`Alert` == `CorruptionAlert`), description en clair (`body`) aujourd'hui |
+| `UssdSession`         | `ussd_sessions`         | notification-service          | 8            | Historique des sessions USSD                                                                                                                                                                   |
 
 > **Note de synchronisation (2026-06-04)** — Ce tableau reflète la **spec initiale** (PROMPT 1.3).
 > Le schéma **implémenté** a évolué depuis : modèles `document-service` (`Document`,
@@ -184,12 +205,29 @@ erDiagram
 
 ## 4. Schéma Prisma complet — Code commenté
 
-Le schéma ci-dessous est le contenu complet de `packages/database/prisma/schema.prisma`. Il remplace
+Le schéma ci-dessous documente le contenu de `packages/database/prisma/schema.prisma`. Il remplace
 le schéma minimal du document 04.
 
 ⚠️ **Ce schéma est conçu pour être extensible**. Chaque modèle contient les champs essentiels. Des
 champs supplémentaires seront ajoutés lors de l'implémentation détaillée de chaque service
 (documents 07 à 14).
+
+> 🧭 **Contrat de compilation (à lire avant de copier-coller).** Ce bloc mélange volontairement deux
+> générations de modèles :
+>
+> 1. **Modèles RÉELS implémentés** (source de vérité, compilables tels quels) : `Location`,
+>    `Parent`, `Citizen`, `CorrectionRequest`, `ElectoralRecord`, `AuditLog`, `AuditRoot`, `Alert`
+>    (+ enums `Sex`, `MaritalStatus`, `Language`, `UserRole`, `CorrectionStatus`). Ce sont eux qui
+>    font foi et que ce document a complétés.
+> 2. **Modèles PÉDAGOGIQUES / hérités** (illustratifs, conservés pour la lecture progressive) :
+>    `Region`, `Cercle`, `Commune`, `NinaCorrection`, et le câblage `User`-centrique de
+>    `Appointment` / `Notification`. Ils utilisent un vocabulaire d'enums en français (`SOUMISE`,
+>    `CITOYEN`, …) et **ne sont pas reliés** au `Citizen` réel.
+>
+> **Pour obtenir un `.prisma` qui compile (`pnpm run db:validate`), c'est `schema.prisma` du repo
+> qui fait foi**, pas la juxtaposition des deux générations ci-dessous. Les blocs hérités sont
+> signalés par un commentaire `⚠️ Modèle PÉDAGOGIQUE`. Cette honnêteté évite de laisser croire qu'un
+> simple copier-coller produit un schéma valide.
 
 ```prisma
 // ═══════════════════════════════════════════════════════════════
@@ -222,8 +260,32 @@ datasource db {
 
 /// Sexe encodé dans le premier chiffre du NINA
 enum Sex {
-  MASCULIN  // 1 dans le NINA
-  FEMININ   // 2 dans le NINA
+  MALE      // 1 dans le NINA
+  FEMALE    // 2 dans le NINA
+  UNKNOWN   // état civil incomplet (à compléter par correction)
+}
+
+/// Statut matrimonial (FDI / état civil). Référencé par `Citizen.maritalStatus`.
+enum MaritalStatus {
+  SINGLE        // célibataire
+  MARRIED       // marié·e
+  DIVORCED      // divorcé·e
+  WIDOWED       // veuf·ve
+  SEPARATED     // séparé·e
+  CIVIL_UNION   // union libre reconnue
+}
+
+/// Langues nationales supportées (UI + USSD + notifications).
+/// Référencé par `Citizen.preferredLanguage` et `User.preferredLanguage`.
+enum Language {
+  FR    // français (langue officielle)
+  BM    // bambara
+  SNK   // soninké
+  FF    // peul / fulfulde
+  TMQ   // tamasheq
+  HAU   // haoussa
+  MOS   // mossi
+  DJE   // zarma / djerma
 }
 
 /// Rôles RBAC — 6 niveaux d'accès dans le système
@@ -355,7 +417,71 @@ enum AlertStatus {
 // GÉOGRAPHIE RAVEC — Tables de référence
 // ═══════════════════════════════════════════════════
 
+/// Entité administrative hiérarchique (8 niveaux : pays → région → cercle →
+/// commune → arrondissement → quartier → village → fraction).
+///
+/// ⚠️ `Location` est la table géographique RÉELLEMENT implémentée et référencée
+/// par `Citizen.birthPlace`, `Citizen.residence`, `Appointment.location`,
+/// `ElectoralRecord.pollingStation`, etc. (auto-référente via `parent`).
+/// Les modèles `Region` / `Cercle` / `Commune` ci-dessous sont conservés à titre
+/// PÉDAGOGIQUE (modélisation « à plat » introductive du document) mais ne sont
+/// PAS reliés à `Citizen` ; la source de vérité reste `schema.prisma`.
+model Location {
+  id        String                                @id @default(uuid()) @db.Uuid
+  /// Code administratif officiel (ex. "ML-08-02-005"). Unique.
+  code      String                                @unique @db.VarChar(20)
+  name      String                                @db.VarChar(150)
+  /// Version ASCII (sans diacritiques) pour recherche fuzzy + index trigram.
+  nameAscii String                                @map("name_ascii") @db.VarChar(150)
+  /// Niveau : 0=pays, 1=région, 2=cercle, 3=commune, 4=arrondissement,
+  /// 5=quartier, 6=village, 7=fraction.
+  level     Int                                   @db.SmallInt
+  parentId  String?                               @map("parent_id") @db.Uuid
+  latitude  Decimal?                              @db.Decimal(10, 7)
+  longitude Decimal?                              @db.Decimal(10, 7)
+  /// Point géographique PostGIS (EPSG:4326). Rempli par trigger SQL.
+  geom      Unsupported("geography(Point,4326)")?
+  createdAt DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime                              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// Auto-relation hiérarchique : un niveau pointe vers son parent immédiat.
+  parent   Location?  @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children Location[] @relation("LocationHierarchy")
+
+  /// Relations entrantes (lieux de naissance / résidence / RDV / bureau de vote).
+  citizensBirth     Citizen[]         @relation("BirthLocation")
+  citizensResidence Citizen[]         @relation("ResidenceLocation")
+  electoralRecords  ElectoralRecord[]
+
+  @@index([parentId])
+  @@index([level])
+  @@index([nameAscii(ops: raw("gin_trgm_ops"))], type: Gin, map: "idx_locations_name_ascii_trgm")
+  @@map("locations")
+}
+
+/// Parent (père ou mère) d'un·e citoyen·ne. Référencé par `Citizen.father` et
+/// `Citizen.mother`. Peut être partagé entre frères et sœurs (fratrie).
+model Parent {
+  id        String    @id @default(uuid()) @db.Uuid
+  firstName String    @map("first_name") @db.VarChar(100)
+  lastName  String    @map("last_name") @db.VarChar(100)
+  /// NINA du parent s'il·elle est lui-même enregistré·e. Nullable.
+  nina      String?   @unique @db.VarChar(15)
+  sex       Sex
+  birthDate DateTime? @map("birth_date") @db.Date
+  deceased  Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  fatheredChildren Citizen[] @relation("FatherOf")
+  motheredChildren Citizen[] @relation("MotherOf")
+
+  @@index([lastName])
+  @@map("parents")
+}
+
 /// Région administrative du Mali (10 régions + district de Bamako)
+/// ⚠️ Modèle PÉDAGOGIQUE non relié à `Citizen` (cf. note sur `Location`).
 model Region {
   id        String   @id @default(uuid())
   /// Code RAVEC de la région (1 chiffre pour les régions historiques, 2 pour les nouvelles)
@@ -475,10 +601,81 @@ model Citizen {
 }
 
 // ═══════════════════════════════════════════════════
+// CORRECTIONS NINA — workflow citoyen ↔ agent
+// ═══════════════════════════════════════════════════
+
+/// Demande de correction d'un champ NINA. Référencé par `Citizen.correctionRequests`.
+/// (Modèle réellement implémenté — remplace l'ancien `NinaCorrection` documenté
+/// plus bas, conservé à titre historique.)
+model CorrectionRequest {
+  id                  String           @id @default(uuid()) @db.Uuid
+  citizenId           String           @map("citizen_id") @db.Uuid
+  requestedByUserId   String?          @map("requested_by_user_id") @db.Uuid
+  /// Agent assigné (alias UI : `reviewedBy`).
+  reviewedBy          String?          @map("reviewed_by") @db.Uuid
+  field               String           @db.VarChar(50)
+  currentValue        String           @map("current_value") @db.VarChar(500)
+  proposedValue       String           @map("proposed_value") @db.VarChar(500)
+  reason              String           @db.Text
+  /// URL MinIO du justificatif scanné (CIN, acte de naissance…).
+  justificationDocUrl String?          @map("justification_doc_url") @db.VarChar(500)
+  /// Score IA (0-100) — cf. doc 11 (ai-service).
+  aiScore             Decimal?         @map("ai_score") @db.Decimal(5, 2)
+  aiVerdict           String?          @map("ai_verdict") @db.VarChar(30)
+  aiExplanation       Json?            @map("ai_explanation")
+  /// Valeur initiale alignée sur l'enum §4 (SOUMISE). Le schéma implémenté
+  /// utilise le vocabulaire anglais (`DRAFT`) — cf. `schema.prisma`.
+  status              CorrectionStatus @default(SOUMISE)
+  decidedAt           DateTime?        @map("decided_at") @db.Timestamptz(6)
+  decisionReason      String?          @map("decision_reason") @db.Text
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt           DateTime?        @map("deleted_at") @db.Timestamptz(6)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  @@index([citizenId])
+  @@index([status])
+  @@index([reviewedBy])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("correction_requests")
+}
+
+// ═══════════════════════════════════════════════════
+// INSCRIPTION ÉLECTORALE — auto-inscription à 18 ans
+// ═══════════════════════════════════════════════════
+
+/// Inscription électorale d'un·e citoyen·ne. Référencé par `Citizen.electoralRecord`
+/// (relation 1-1) et par `Location.electoralRecords` (bureau de vote).
+model ElectoralRecord {
+  id                 String    @id @default(uuid()) @db.Uuid
+  citizenId          String    @unique @map("citizen_id") @db.Uuid
+  registrationNumber String    @unique @map("registration_number") @db.VarChar(30)
+  pollingStationId   String?   @map("polling_station_id") @db.Uuid
+  /// Date à partir de laquelle le·la citoyen·ne est éligible (18 ans).
+  eligibleAt         DateTime  @map("eligible_at") @db.Date
+  /// Enregistrement actif (désactivé en cas de radiation, décès, etc.).
+  active             Boolean   @default(true)
+  autoRegisteredAt   DateTime? @map("auto_registered_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen        Citizen   @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+  pollingStation Location? @relation(fields: [pollingStationId], references: [id], onDelete: Restrict)
+
+  @@index([active])
+  @@index([pollingStationId])
+  @@map("electoral_records")
+}
+
+// ═══════════════════════════════════════════════════
 // UTILISATEURS / AUTHENTIFICATION
 // ═══════════════════════════════════════════════════
 
 /// Utilisateur du système — agents CTDEC, superviseurs, admins, citoyens connectés
+/// ⚠️ Modèle PÉDAGOGIQUE simplifié (vocabulaire FR). Le `User` réellement implémenté
+/// (cf. `schema.prisma`) utilise des enums anglais et `username`/`institutionId`.
 model User {
   id              String   @id @default(uuid())
   /// Identifiant Keycloak (sub du JWT)
@@ -520,10 +717,14 @@ model User {
 }
 
 // ═══════════════════════════════════════════════════
-// CORRECTIONS NINA — Cycle de vie des modifications
+// CORRECTIONS NINA (HÉRITÉ) — superseded par CorrectionRequest
 // ═══════════════════════════════════════════════════
 
-/// Demande de correction d'un enregistrement NINA
+/// Demande de correction d'un enregistrement NINA.
+/// ⚠️ Modèle PÉDAGOGIQUE / HÉRITÉ — REMPLACÉ par `CorrectionRequest` (cf. supra).
+/// Conservé pour la lecture progressive ; NON présent dans `schema.prisma`.
+/// (Sa relation `ninaRecord → Citizen` n'a pas de contre-relation sur le
+/// `Citizen` réel : ne pas compiler ce bloc tel quel.)
 model NinaCorrection {
   id              String           @id @default(uuid())
   /// Enregistrement NINA concerné
@@ -603,10 +804,18 @@ model AiAnalysis {
 }
 
 // ═══════════════════════════════════════════════════
-// JOURNAL D'AUDIT — Chaîne de hash Merkle
+// JOURNAL D'AUDIT — Hash-chain SHA-256 append-only (PAS Merkle)
 // ═══════════════════════════════════════════════════
 
-/// Entrée du journal d'audit immuable (chaîne de hash SHA-256)
+/// Entrée du journal d'audit append-only (hash-chain SHA-256 linéaire).
+///
+/// ⚠️ HONNÊTETÉ : une hash-chain seule n'est PAS « inaltérable ». Un admin DB
+/// avec accès UPDATE/DELETE pourrait recalculer toute la chaîne. L'intégrité
+/// réelle repose sur (1) le trigger append-only §4ter qui REFUSE UPDATE/DELETE
+/// au niveau base, et (2) le scellement Ed25519 + ancrage tiers de `AuditRoot`.
+/// Le champ historique `hash`/`previousHash` est conservé ; le schéma implémenté
+/// nomme ces colonnes `payload_hash` / `previous_hash` / `merkle_hash`
+/// (« merkle » est un nom de variable hérité, PAS un arbre de Merkle réel).
 model AuditLog {
   id            String   @id @default(uuid())
   /// Utilisateur qui a effectué l'action
@@ -628,9 +837,9 @@ model AuditLog {
   before        Json?
   /// État après modification (JSON sérialisé) — null pour DELETE
   after         Json?
-  /// Hash SHA-256 de cette entrée (calculé via computeMerkleHash)
+  /// Hash SHA-256 du payload JSON canonicalisé (JCS RFC 8785) de cette entrée.
   hash          String   @db.VarChar(64)
-  /// Hash de l'entrée précédente (chaîne Merkle)
+  /// Hash de l'entrée précédente (chaînage SHA-256 linéaire ; GENESIS = 64 zéros).
   previousHash  String   @map("previous_hash") @db.VarChar(64)
   /// Numéro séquentiel dans la chaîne (pour tri déterministe)
   sequenceNumber BigInt  @map("sequence_number")
@@ -642,6 +851,41 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@index([sequenceNumber])
+}
+
+/// Racine périodique scellée de la hash-chain d'audit (cf. doc 09 §12, §4bis).
+///
+/// Toutes les heures, `audit-service` lit le dernier `AuditLog.hash` (la
+/// « racine » courante de la chaîne) et signe `chainRootHash|signedAt` avec une
+/// clé **Ed25519 IN-PROCESS** (`@noble/ed25519`) — Vault Transit ne supporte PAS
+/// Ed25519 (cf. ADR-026 / ADR-034). Même si un attaquant réécrivait toute la
+/// chaîne en base, il ne pourrait pas reforger une signature Ed25519 valide sans
+/// la clé privée. La preuve devient forte UNIQUEMENT après ancrage de
+/// `chainRootHash` chez un tiers (registre signé OCLEI / Vérificateur Général),
+/// matérialisé par `publishedExternal`. Table elle-même append-only (mêmes
+/// triggers que `audit_logs` — cf. §4ter).
+model AuditRoot {
+  /// BigInt aligné sur la volumétrie de `AuditLog`.
+  id                BigInt   @id @default(autoincrement())
+  /// `hash` du dernier `AuditLog` couvert par cette racine.
+  chainRootHash     String   @map("chain_root_hash") @db.VarChar(64)
+  /// id du dernier `AuditLog` couvert (borne haute de l'intervalle scellé).
+  lastLogId         BigInt   @map("last_log_id")
+  /// Nombre total de logs couverts au moment du scellement (cumulatif).
+  logCountCovered   Int      @map("log_count_covered")
+  /// Signature Ed25519 (hex, 128 chars) de `chainRootHash|signedAt(ISO)`.
+  /// Posée in-process via @noble/ed25519 — PAS via Vault Transit.
+  signature         String   @db.VarChar(160)
+  /// Identifiant de la clé de signature (support rotation).
+  signingKeyId      String   @map("signing_key_id") @db.VarChar(80)
+  /// Vrai SI la racine a été ancrée chez un tiers (notarisation hebdo OCLEI).
+  /// Tant que false, l'intégrité reste réfutable par un admin DB.
+  publishedExternal Boolean  @default(false) @map("published_external")
+  signedAt          DateTime @default(now()) @map("signed_at") @db.Timestamptz(6)
+
+  @@index([signedAt])
+  @@index([lastLogId])
+  @@map("audit_roots")
 }
 
 // ═══════════════════════════════════════════════════
@@ -846,18 +1090,62 @@ model IntegrityScore {
   @@index([period])
 }
 
-/// Signalement anti-corruption (lanceur d'alerte)
+/// Signalement anti-corruption (lanceur d'alerte).
+///
+/// 🔐 PROTECTION DES LANCEURS D'ALERTE (RGPD-like + canon sécurité) — ⏳ CIBLE PHASE 2,
+///    PAS L'ÉTAT ACTUEL (cf. bannière d'honnêteté juste avant `model Alert`) :
+///   - OBJECTIF : `description` et `investigationNotes` DEVRAIENT être des CHIFFRÉS RÉELS
+///     (Bytea), PAS du texte en clair. ⚠️ AUJOURD'HUI le modèle réel `CorruptionAlert`
+///     stocke la description EN CLAIR (`description String @map("body")`). Schéma de
+///     chiffrement cible : libsodium **sealed box** (X25519 + XSalsa20-Poly1305) —
+///     chiffrement asymétrique authentique : seul le service anti-corruption détenant la
+///     clé privée (Vault) pourrait déchiffrer ; un admin DB ne verrait que des octets
+///     opaques (ce n'est PAS le cas tant que le câblage Phase 2 n'est pas fait).
+///     ⚠️ Ed25519 NE CHIFFRE PAS (signature seule) — on utilise X25519, PAS Ed25519.
+///   - ANONYMAT : pour un canal ANONYME, `reporterId` DOIT rester null (aucune FK
+///     vers `User`). Le suivi se fait via `anonymousReporterToken` (nom réel du champ ;
+///     jeton aléatoire haute entropie, rotation Vault) remis au lanceur d'alerte, JAMAIS
+///     son identité.
+///   - Le couplage IP/User-Agent N'EST PAS journalisé pour les alertes anonymes
+///     (cf. trigger / politique applicative doc 23) afin d'éviter la dé-anonymisation.
+//
+// ⚠️ BANNIÈRE D'HONNÊTETÉ — MODÈLE CIBLE, PAS LE SCHÉMA IMPLÉMENTÉ.
+//   Ce `model Alert` est une CIBLE de conception (chiffrement asymétrique du
+//   signalement). Il NE correspond PAS au schéma réel `schema.prisma`. Le modèle
+//   RÉELLEMENT implémenté est `CorruptionAlert` (table `corruption_alerts`,
+//   schema.prisma:527), dont la description du lanceur d'alerte est aujourd'hui
+//   stockée EN CLAIR :
+//       description String @map("body") @db.Text   // ← PLAINTEXT, colonne `body`
+//   La seule colonne binaire réelle est `encryptedPayload Bytes? @map("encrypted_payload")`
+//   (NULLABLE, générique, NON câblée — reste nulle), avec `encryptionKeyId String?`.
+//   Le jeton de suivi anonyme s'appelle `anonymousReporterToken` (PAS `anonymousToken`),
+//   et il N'EXISTE AUCUNE colonne `description_enc` ni `investigation_notes_enc`.
+//   Correspondance doc↔schéma : `Alert` (doc) == `CorruptionAlert` (schema.prisma) ;
+//   `alerts` (doc) == `corruption_alerts` (table réelle). Cf. §4ter.3 « Honnêteté ».
+//   Les champs `descriptionEnc`/`investigationNotesEnc` ci-dessous sont donc
+//   ⏳ À IMPLÉMENTER EN PHASE 2 (migration ajoutant des colonnes `Bytes` + câblage
+//   sealed box X25519 dans anticorruption-service), pas l'état actuel du code.
 model Alert {
   id            String      @id @default(uuid())
-  /// Signalant (null si anonyme)
+  /// Signalant — null OBLIGATOIRE si canal = ANONYME (pas de FK ré-identifiante).
   reporterId    String?     @map("reporter_id")
   reporter      User?       @relation(fields: [reporterId], references: [id])
   /// Canal du signalement
   channel       AlertChannel
   /// Statut du signalement
   status        AlertStatus @default(RECUE)
-  /// Description du signalement (chiffré asymétrique en production)
-  description   String      @db.Text
+  /// ⏳ CIBLE PHASE 2 — Description qui DEVRAIT être CHIFFRÉE (sealed box X25519),
+  /// octets opaques en base. Format applicatif cible : `crypto_box_seal(plaintext,
+  /// anticorruptionPubKey)`. ⚠️ N'EXISTE PAS dans `schema.prisma` : le réel est
+  /// `description String @map("body")` EN CLAIR + `encryptedPayload Bytes?` (nul).
+  descriptionEnc      Bytes   @map("description_enc")
+  /// ⏳ CIBLE PHASE 2 — Notes d'enquête qui DEVRAIENT être CHIFFRÉES (sealed box X25519),
+  /// accès inspecteur. ⚠️ AUCUNE colonne `investigation_notes_enc` n'existe dans le schéma réel.
+  investigationNotesEnc Bytes? @map("investigation_notes_enc")
+  /// Jeton anonyme (haute entropie) remis au lanceur d'alerte pour suivre
+  /// l'instruction SANS révéler son identité. Rotation Vault.
+  /// ⚠️ Nom réel dans `schema.prisma` : `anonymousReporterToken` (`@map("anonymous_reporter_token")`).
+  anonymousToken String?    @unique @map("anonymous_token") @db.VarChar(128)
   /// Agent ou service visé par le signalement
   targetAgent   String?     @map("target_agent") @db.VarChar(200)
   /// Lieu de l'incident
@@ -866,8 +1154,6 @@ model Alert {
   incidentDate  DateTime?   @map("incident_date")
   /// Inspecteur assigné
   assignedTo    String?     @map("assigned_to") @db.VarChar(100)
-  /// Notes d'enquête (accès inspecteur uniquement)
-  investigationNotes String? @map("investigation_notes") @db.Text
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
@@ -907,6 +1193,303 @@ model UssdSession {
 
 ---
 
+## 4bis. Durcissement de l'audit — append-only + scellement Ed25519 + ancrage tiers
+
+> **POURQUOI cette section ?** Le modèle `AuditLog` du §4 décrit une **hash-chain SHA-256
+> linéaire**. C'est une bonne fondation, mais une hash-chain seule **n'est pas inaltérable** : un
+> administrateur de base disposant de `UPDATE`/`DELETE` peut réécrire chaque ligne ET recalculer
+> tous les hashs. Trois contrôles complémentaires transforment cette chaîne « réfutable » en preuve
+> robuste. **Honnêteté** : tant que le contrôle (3) — ancrage tiers — n'est pas en production, on
+> parle de chaîne « append-only + scellée », jamais d'« inaltérable ». Détails complets : doc 09
+> (audit-service) et ADR-007.
+
+### 4bis.1 Contrôle (1) — Trigger append-only au niveau base
+
+Le premier rempart est **dans PostgreSQL**, pas dans l'application : on refuse `UPDATE` et `DELETE`
+sur `audit_logs` et `audit_roots`, même pour le rôle applicatif. Seul `INSERT` est permis.
+
+```sql
+-- Migration manuelle (prisma migrate dev --create-only puis éditer le SQL).
+-- À appliquer sur audit_logs ET audit_roots.
+
+-- Fonction garde-fou : lève une exception sur toute mutation destructive.
+CREATE OR REPLACE FUNCTION nina_audit_append_only()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- On bloque AVANT toute modification : aucune ligne d'audit n'est
+  -- modifiable ou supprimable, quel que soit le rôle applicatif.
+  RAISE EXCEPTION 'audit append-only: % interdit sur %', TG_OP, TG_TABLE_NAME
+    USING ERRCODE = 'insufficient_privilege';
+END;
+$$;
+
+-- Trigger sur audit_logs : intercepte UPDATE et DELETE.
+CREATE TRIGGER trg_audit_logs_append_only
+  BEFORE UPDATE OR DELETE ON audit_logs
+  FOR EACH ROW EXECUTE FUNCTION nina_audit_append_only();
+
+-- Idem pour les racines scellées.
+CREATE TRIGGER trg_audit_roots_append_only
+  BEFORE UPDATE OR DELETE ON audit_roots
+  FOR EACH ROW EXECUTE FUNCTION nina_audit_append_only();
+```
+
+> ⚠️ **Limite honnête** : un trigger est contournable par le **propriétaire de la table** ou un
+> superuser PostgreSQL (`ALTER TABLE … DISABLE TRIGGER`, `DROP TRIGGER`). Le rôle applicatif
+> `nina_audit` (cf. §4ter) n'est PAS propriétaire et n'a pas ces privilèges — d'où l'importance du
+> least-privilege. Mais un superuser DB compromis reste un angle mort : c'est exactement ce que le
+> scellement (2) + l'ancrage (3) rendent **détectable**.
+
+### 4bis.2 Contrôle (2) — Scellement Ed25519 in-process des racines
+
+Toutes les heures, un cron de `audit-service` lit le dernier `AuditLog.hash` (la « racine » courante
+de la chaîne), puis insère une ligne `AuditRoot` signée :
+
+```typescript
+// services/audit-service/src/audit-root.cron.ts (extrait commenté)
+
+/**
+ * Scelle la racine courante de la hash-chain d'audit.
+ *
+ * POURQUOI Ed25519 IN-PROCESS et non Vault Transit ?
+ *   Vault Transit ne supporte PAS Ed25519 (cf. ADR-026 / ADR-034). La signature
+ *   est donc posée en mémoire du service via @noble/ed25519. La clé privée est
+ *   livrée par Vault (KV) au démarrage via AppRole, jamais écrite sur disque.
+ *
+ * @returns la racine scellée persistée (model AuditRoot)
+ */
+async function sealAuditRoot(): Promise<AuditRoot> {
+  // 1. Lire la racine courante = hash du dernier log inséré.
+  const last = await prisma.auditLog.findFirst({
+    orderBy: { sequenceNumber: 'desc' },
+  });
+  if (!last) throw new Error('Aucun log à sceller');
+
+  // 2. Construire le message signé : racine + horodatage ISO.
+  const signedAt = new Date().toISOString();
+  const message = new TextEncoder().encode(`${last.hash}|${signedAt}`);
+
+  // 3. Signer EN MÉMOIRE avec la clé privée Ed25519 (32 octets, depuis Vault).
+  //    ed25519.sign renvoie 64 octets → 128 hex.
+  const signature = Buffer.from(await ed25519.sign(message, privateKey)).toString('hex');
+
+  // 4. Persister la racine scellée (publishedExternal=false tant que non ancrée).
+  return prisma.auditRoot.create({
+    data: {
+      chainRootHash: last.hash,
+      lastLogId: last.sequenceNumber,
+      logCountCovered: await prisma.auditLog.count(),
+      signature, // 128 hex
+      signingKeyId: currentKeyId, // support rotation
+      publishedExternal: false,
+    },
+  });
+}
+```
+
+Pour **vérifier** une racine, on rejoue
+`verify(signature, "${chainRootHash}|${signedAt}", publicKey)` avec la clé **publique** Ed25519
+(distribuable largement, y compris à l'OCLEI / Vérificateur Général). Une chaîne réécrite produit un
+`chainRootHash` différent → la signature ne valide plus.
+
+### 4bis.3 Contrôle (3) — Ancrage horodaté chez un tiers
+
+Le scellement (2) prouve l'intégrité **uniquement** si l'attaquant n'a jamais eu accès à la clé
+privée Ed25519. Pour fermer cet angle mort, on **ancre** périodiquement (hebdomadaire) le dernier
+`chainRootHash` chez un tiers indépendant de l'exploitant de la base :
+
+- dépôt du hash dans un **registre signé** tenu par l'OCLEI (Office Central de Lutte contre
+  l'Enrichissement Illicite) ou le **Vérificateur Général**, horodaté et contresigné ;
+- une fois confirmé, on passe `publishedExternal = true` sur la racine correspondante.
+
+> **Statut : CONÇU, NON IMPLÉMENTÉ.** L'intégration avec un registre OCLEI/VG est une décision
+> institutionnelle hors périmètre du prototype. Le champ `publishedExternal` et la colonne
+> `audit_roots` sont en place pour l'accueillir. **Souveraineté** : l'ancrage doit rester sur un
+> tiers national (pas d'horodatage sur une blockchain publique étrangère ni un service KMS hors-AES
+> sur le chemin critique).
+
+---
+
+## 4ter. Sécurité des données — RLS, rôles least-privilege, chiffrement des PII
+
+> **POURQUOI cette section ?** Le `DATABASE_URL` du §7 (`nina_admin`) est un **superuser de
+> développement** : pratique localement, **inacceptable en production**. Un service compromis ne
+> doit pouvoir toucher QUE ses tables, et les données personnelles (PII) ne doivent pas être
+> lisibles en clair par un admin DB. Cette section décrit le modèle de production. Référence
+> transverse : `docs/security/THREAT-MODEL.md`, `docs/security/SECURITY-RUNBOOK.md`, ADR-034
+> (`ADR-034-security-hardening-vault-mtls-owasp.md`).
+
+### 4ter.1 Rôles least-privilege PAR service (au lieu d'un superuser partagé)
+
+Au lieu d'un unique `nina_admin` partagé par les 11 services, chaque service obtient un **rôle
+PostgreSQL dédié** aux privilèges minimaux. Les identifiants de connexion sont distribués par
+**Vault database secrets engine** (rotation automatique, leases courts — AppRole / K8s
+ServiceAccount, **jamais** de mot de passe long-lived en clair).
+
+```sql
+-- Migration manuelle — rôles de production (NON utilisés en dev local).
+-- POURQUOI : limiter le rayon de souffle d'un service compromis (OWASP A01).
+
+-- Rôle propriétaire du schéma (migrations Prisma uniquement, hors runtime).
+CREATE ROLE nina_owner NOLOGIN;
+
+-- ── identity-service : R/W sur citizens, parents, locations, correction_requests
+CREATE ROLE nina_identity LOGIN PASSWORD NULL; -- mot de passe injecté par Vault
+GRANT SELECT, INSERT, UPDATE ON citizens, parents, locations, correction_requests TO nina_identity;
+-- PAS de DELETE (soft-delete via deletedAt) ; PAS d'accès aux tables d'audit/alertes.
+
+-- ── audit-service : INSERT seul sur audit_logs/audit_roots, SELECT pour vérif.
+CREATE ROLE nina_audit LOGIN PASSWORD NULL;
+GRANT INSERT, SELECT ON audit_logs, audit_roots TO nina_audit;
+-- Le trigger append-only (§4bis) + l'absence de UPDATE/DELETE rendent la chaîne
+-- non ré-écrivable par ce rôle. nina_audit n'est PAS propriétaire des tables.
+
+-- ── anticorruption-service : accès EXCLUSIF aux alertes (lanceurs d'alerte).
+CREATE ROLE nina_anticorruption LOGIN PASSWORD NULL;
+GRANT SELECT, INSERT, UPDATE ON corruption_alerts, integrity_scores TO nina_anticorruption;
+-- AUCUN autre rôle n'a accès à `corruption_alerts` → cloisonnement des signalements.
+-- (Table réelle = `corruption_alerts`, modèle `CorruptionAlert` ; `alerts` est un nom cible du doc.)
+
+-- ── autres services : un rôle par service, sur ses tables uniquement
+--    (document-service → documents ; appointment-service → appointments ; …).
+```
+
+| Service                | Rôle PG               | Tables accessibles                                | Privilèges              |
+| ---------------------- | --------------------- | ------------------------------------------------- | ----------------------- |
+| identity-service       | `nina_identity`       | citizens, parents, locations, correction_requests | SELECT/INSERT/UPDATE    |
+| audit-service          | `nina_audit`          | audit_logs, audit_roots                           | INSERT, SELECT (append) |
+| anticorruption-service | `nina_anticorruption` | corruption_alerts, integrity_scores               | SELECT/INSERT/UPDATE    |
+| document-service       | `nina_document`       | documents                                         | SELECT/INSERT/UPDATE    |
+| appointment-service    | `nina_appointment`    | appointments, electoral_records                   | SELECT/INSERT/UPDATE    |
+| notification-service   | `nina_notification`   | notifications, ussd_sessions                      | SELECT/INSERT/UPDATE    |
+| (migrations Prisma)    | `nina_owner`          | toutes (DDL)                                      | OWNER (hors runtime)    |
+
+> **Honnêteté** : le schéma `schema.prisma` ne porte qu'UN `DATABASE_URL`. La séparation par rôle
+> est **conçue** au niveau infra (Vault DB engine + GRANTs ci-dessus), appliquée par migration SQL
+> manuelle ; elle n'apparaît pas dans le `.prisma`. En dev local, on reste sur `nina_admin`.
+>
+> ⚠️ **État réel des rôles (vérifié)** : les rôles par service `nina_identity` / `nina_audit` /
+> `nina_anticorruption` du tableau ci-dessus sont un **design de production (SQL manuel), NON
+> IMPLÉMENTÉ** — aucune migration ne contient `CREATE ROLE`, `CREATE POLICY` ni
+> `ENABLE ROW LEVEL SECURITY` (grep vérifiable sur `prisma/migrations/`). La SEULE migration
+> append-only réellement appliquée (`20260530120000_audit_chain_immutability`) suppose un **rôle
+> applicatif UNIQUE `nina_app`** et se contente d'un `REVOKE UPDATE, DELETE` _best-effort_
+> (conditionné à `IF EXISTS (... rolname = 'nina_app')`), pas d'une séparation par service. Les
+> rôles per-service sont donc ⏳ à provisionner en Phase 2.
+
+### 4ter.2 Row-Level Security (RLS) PostgreSQL
+
+Au-delà des privilèges de table, **RLS** filtre les LIGNES visibles selon un contexte applicatif
+(rôle métier, commune d'affectation). Exemple : un agent ne voit que les citoyens de sa commune.
+
+```sql
+-- POURQUOI RLS : défense en profondeur. Même si un service est détourné, la
+-- politique RLS limite les lignes lisibles au contexte transmis par l'app.
+
+-- 1. Activer RLS sur la table sensible.
+ALTER TABLE citizens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE citizens FORCE ROW LEVEL SECURITY; -- s'applique même au propriétaire
+
+-- 2. L'application pose le contexte par transaction (variable de session GUC) :
+--    SET LOCAL app.current_role = 'AGENT';
+--    SET LOCAL app.current_commune = 'ML-09-01-001';
+
+-- 3. Politique : un agent ne lit que sa commune ; un admin/auditeur voit tout.
+CREATE POLICY citizens_commune_isolation ON citizens
+  FOR SELECT
+  USING (
+    current_setting('app.current_role', true) IN ('ADMIN', 'AUDITOR', 'SUPERVISOR')
+    OR residence_id IN (
+      SELECT id FROM locations
+      WHERE code = current_setting('app.current_commune', true)
+    )
+  );
+
+-- 4. corruption_alerts : RLS pour cloisonner les signalements aux inspecteurs assignés.
+--    ⚠️ La table réelle s'appelle `corruption_alerts` (modèle `CorruptionAlert`),
+--       PAS `alerts` : un `ALTER TABLE alerts ...` ÉCHOUERAIT (relation inexistante).
+ALTER TABLE corruption_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE corruption_alerts FORCE ROW LEVEL SECURITY;
+CREATE POLICY corruption_alerts_inspector_only ON corruption_alerts
+  FOR ALL
+  USING (current_setting('app.current_role', true) = 'ANTICORRUPTION_INSPECTOR');
+```
+
+> **Honnêteté** : RLS est **conçu** ici ; il exige que CHAQUE requête applicative pose le
+> `SET LOCAL app.*` au début de la transaction (via un middleware Prisma `$executeRaw`). C'est une
+> tâche d'implémentation des services (docs 07+), pas encore câblée dans `packages/database`.
+
+### 4ter.3 Chiffrement des PII — deux options
+
+Les données personnelles sensibles (photo, hash biométrique, e-mail, téléphone, et surtout les
+signalements de lanceurs d'alerte) ne doivent pas être lisibles en clair par un admin DB ni dans une
+sauvegarde volée. Deux stratégies, **non exclusives** :
+
+**Option A — Chiffrement applicatif via Vault Transit (recommandé pour le cœur).** Le service
+chiffre/déchiffre via l'API Vault Transit avant écriture ; la base ne voit que
+`vault:v1:<ciphertext>`. La clé ne quitte jamais Vault. C'est déjà le cas pour `User.mfaSecret` (cf.
+`schema.prisma` réel). Convient aux champs symétriques (TOTP, e-mail). **Souveraineté** : Vault
+auto-hébergé, pas d'AWS KMS.
+
+```typescript
+// Extrait conceptuel — chiffrement d'un e-mail avant persistance.
+// La base ne stocke jamais l'e-mail en clair, seulement le ciphertext Vault.
+const emailEnc = await vault.transit.encrypt('nina-pii', { plaintext: base64(email) });
+await prisma.citizen.update({ where: { id }, data: { email: emailEnc } }); // "vault:v1:..."
+```
+
+**Option B — Chiffrement de colonne `pgcrypto` / `pgsodium` (au repos en base).** Pour les champs
+gérés majoritairement en SQL, `pgcrypto` (`pgp_sym_encrypt`) ou `pgsodium` (chiffrement transparent
+par colonne) chiffrent côté base. La clé reste hors de la base (transmise par session, jamais
+stockée à côté du ciphertext).
+
+```sql
+-- pgcrypto activé via postgresqlExtensions (cf. generator). Clé fournie par
+-- l'application (Vault), JAMAIS codée en dur ni stockée dans la table.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Écriture chiffrée :  pgp_sym_encrypt(plaintext, current_setting('app.pii_key'))
+-- Lecture déchiffrée : pgp_sym_decrypt(col,      current_setting('app.pii_key'))
+```
+
+**Cas spécial — lanceurs d'alerte (CIBLE : `corruption_alerts.encrypted_payload`).** Ici on
+**exige** (objectif) un chiffrement **asymétrique réel** : libsodium **sealed box** (X25519 +
+XSalsa20-Poly1305) ou RSA-OAEP (Transit `rsa-4096`). Le portail de dépôt ne détiendrait que la **clé
+publique** (il peut chiffrer mais PAS déchiffrer) ; seul `anticorruption-service`, avec la clé
+privée Vault, déchiffrerait. ⚠️ Rappel canon : **Ed25519 ne chiffre pas** (signature uniquement) —
+on utilise **X25519**.
+
+> ⚠️ **NON IMPLÉMENTÉ AUJOURD'HUI (vérifié).** Le modèle réel est `CorruptionAlert` (table
+> `corruption_alerts`) : la description du signalement y est stockée **EN CLAIR** via
+> `description String @map("body") @db.Text` (colonne `body`). La colonne binaire
+> `encryptedPayload Bytes? @map("encrypted_payload")` existe mais est **NULLABLE et reste nulle**
+> (non câblée), et le DTO de création (`packages/shared-types/src/dtos.ts`) accepte `description` en
+> clair (`z.string().min(10).max(8000)`). Le chiffrement sealed box X25519 ci-dessus est donc ⏳ **à
+> implémenter en Phase 2** (migration + service), pas l'état du code.
+
+| Champ                                         | Sensibilité            | Mécanisme retenu                                                                                            |
+| --------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `corruption_alerts.body` (réel)               | Lanceur d'alerte (max) | ⚠️ **EN CLAIR aujourd'hui** (`description String @map("body")`). CIBLE = chiffrer vers `encrypted_payload`  |
+| `corruption_alerts.encrypted_payload` (cible) | Lanceur d'alerte (max) | **CIBLE / NON IMPLÉMENTÉ** — Sealed box X25519 (asymétrique) prévu ; colonne `Bytes?` nullable, reste nulle |
+| `corruption_alerts` — notes d'enquête         | Enquête                | **CIBLE / NON IMPLÉMENTÉ** — aucune colonne `investigation_notes_enc` n'existe dans `schema.prisma`         |
+| `users.mfa_secret`                            | Secret TOTP            | Vault Transit (déjà implémenté)                                                                             |
+| `citizens.email` / `phone`                    | Contact PII            | Option A (Transit) ou B (pgcrypto) au choix                                                                 |
+| `citizens.fingerprint_hash`                   | Biométrie              | Hash dérivé (fuzzy extractor ISO/IEC 24745) — jamais le template brut                                       |
+
+> **Honnêteté (corrigée — état réel vérifié)** : à ce jour, la description des signalements est
+> stockée **EN CLAIR** dans la colonne `corruption_alerts.body` (modèle `CorruptionAlert`,
+> `schema.prisma:527`). Le chiffrement asymétrique (sealed box X25519 vers `encrypted_payload`, ou
+> Transit `rsa-4096`) est **CONÇU mais NON CÂBLÉ** : la colonne `encrypted_payload Bytes?` existe
+> mais reste **nulle**, aucune colonne `description_enc` ni `investigation_notes_enc` n'existe dans
+> le schéma, et le DTO de création accepte `description` en clair (`dtos.ts`). **Seul
+> `users.mfa_secret` est réellement chiffré** (Vault Transit, auth-service). Le chiffrement du
+> signalement et des PII citoyen relève d'une Phase 2 (migration ajoutant les colonnes + câblage
+> dans doc 23 anticorruption-service, doc 07 identity-service). Un admin DB lisant
+> `corruption_alerts.body` voit le texte du lanceur d'alerte **en clair**, pas des octets opaques.
+
+---
+
 ## 5. Index et performance — Stratégie d'indexation
 
 ### 5.1 Index déjà définis dans le schéma
@@ -917,7 +1500,7 @@ model UssdSession {
 | `citizens`         | `(lastName)`             | B-tree           | Recherche par nom de famille          |
 | `citizens`         | `residenceId`            | B-tree           | Filtrage par lieu de résidence        |
 | `citizens`         | `birthDate`              | B-tree           | Filtrage par date de naissance        |
-| `audit_logs`       | `sequenceNumber`         | B-tree           | Tri de la chaîne Merkle               |
+| `audit_logs`       | `sequenceNumber`         | B-tree           | Tri de la hash-chain (PAS Merkle)     |
 | `audit_logs`       | `(resource, resourceId)` | B-tree composite | Audit trail d'une ressource           |
 | `nina_corrections` | `status`                 | B-tree           | Filtrage par statut (dashboard admin) |
 | `nina_corrections` | `createdAt`              | B-tree           | Tri chronologique                     |
@@ -1282,6 +1865,11 @@ pnpm run docker:ps | Select-String postgres
 # S'assurer que le fichier .env contient DATABASE_URL
 Get-Content .env | Select-String "DATABASE_URL"
 # DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
+#
+# ⚠️ `nina_admin` est un compte SUPERUSER de DÉVELOPPEMENT uniquement. En
+# production, chaque service reçoit un rôle least-privilege distinct (cf. §4ter)
+# dont les identifiants sont fournis par le Vault database secrets engine
+# (leases courts, rotation) — JAMAIS de mot de passe long-lived en clair.
 ```
 
 ### 7.2 Générer le client Prisma
@@ -1439,7 +2027,9 @@ const records = await prisma.citizen.findMany({
   include: { residence: true },
 });
 
-// ── Créer une entrée d'audit ──
+// ── Créer une entrée d'audit (hash-chain SHA-256, PAS Merkle) ──
+// computeChainHash = SHA-256(JCS(payload) || previousHash). Le nom legacy
+// computeMerkleHash existe encore dans le code mais NE construit PAS d'arbre.
 const audit = await prisma.auditLog.create({
   data: {
     actorId: userId,
@@ -1449,11 +2039,13 @@ const audit = await prisma.auditLog.create({
     resourceId: recordId,
     ipAddress: req.ip,
     after: { nina: '19001101001001A', lastName: 'KEITA', firstName: 'Mamadou' },
-    hash: computeMerkleHash(data, previousHash),
-    previousHash: previousHash,
+    hash: computeChainHash(data, previousHash),
+    previousHash: previousHash, // GENESIS = 64 zéros pour la 1re entrée
     sequenceNumber: nextSequence,
   },
 });
+// Le scellement Ed25519 de la racine (AuditRoot) est posé hors-ligne par le
+// cron horaire de audit-service (cf. §4bis.2), pas à chaque INSERT.
 
 // ── Compter les corrections en attente ──
 const pendingCount = await prisma.ninaCorrection.count({
@@ -1500,8 +2092,9 @@ const fuzzyResults = await prisma.$queryRaw`
 
 - **Status** : ✅ Terminé / ⏳ En cours / ❌ Bloqué
 - **Temps réel passé** : X heures
-- **Nombre de modèles Prisma** : 16
-- **Nombre d'enums Prisma** : 16
+- **Nombre de modèles Prisma** : 22 implémentés (16 dans la spec initiale — `schema.prisma` fait
+  foi)
+- **Nombre d'enums Prisma** : 10 implémentés (cf. en-tête + `schema.prisma`)
 - **Migration initiale** : ✅ Exécutée sans erreur / ❌ Erreur
 - **Seed géographique** : ✅ Régions, cercles, communes insérés
 - **Prisma Studio** : ✅ Fonctionnel (http://localhost:5555)
@@ -1523,11 +2116,29 @@ const fuzzyResults = await prisma.$queryRaw`
 
 ### Schéma Prisma
 
-- [ ] Le fichier `packages/database/prisma/schema.prisma` contient les 16 modèles
-- [ ] Les 16 enums sont définis (Sex, UserRole, CorrectionStatus, etc.)
-- [ ] Toutes les relations sont définies (Region → Cercle → Commune → Citizen, etc.)
+- [ ] Le fichier `packages/database/prisma/schema.prisma` contient les 22 modèles implémentés (≥ 16
+      spec)
+- [ ] Les 10 enums sont définis (Sex, MaritalStatus, Language, UserRole, CorrectionStatus, etc.)
+- [ ] Toutes les relations sont définies (Location auto-référente → Citizen, Parent → Citizen, etc.)
+- [ ] Les enums `MaritalStatus` et `Language` (référencés par `Citizen`) sont bien présents
 - [ ] Les conventions de nommage sont respectées (camelCase Prisma, snake_case SQL via @map)
-- [ ] Chaque modèle a `id`, `createdAt`, et `updatedAt` (sauf AuditLog qui n'a pas updatedAt)
+- [ ] Chaque modèle a `id`, `createdAt`, et `updatedAt` (sauf AuditLog/AuditRoot, append-only)
+
+### Sécurité des données (§4bis / §4ter)
+
+- [ ] Trigger append-only posé sur `audit_logs` ET `audit_roots` (refus UPDATE/DELETE)
+- [ ] `AuditRoot` matérialisé (scellement Ed25519 in-process — PAS Vault Transit, PAS Merkle)
+- [ ] Ancrage tiers OCLEI/VG documenté comme CONÇU/NON IMPLÉMENTÉ (`publishedExternal`)
+- [ ] (CIBLE) Rôles least-privilege par service en prod — NON FAIT : la migration réelle suppose un
+      rôle UNIQUE `nina_app` (REVOKE best-effort), pas
+      `nina_identity`/`nina_audit`/`nina_anticorruption`
+- [ ] (CIBLE) RLS conçu sur `citizens` (commune) et `corruption_alerts` (inspecteurs) — NON FAIT :
+      aucun `CREATE POLICY`/`ENABLE ROW LEVEL SECURITY` dans les migrations
+- [ ] (CIBLE) **chiffrer le signalement** : aujourd'hui `corruption_alerts.body` est **EN CLAIR** ;
+      objectif = `encrypted_payload` (`Bytes`) via sealed box X25519 / Transit `rsa-4096` — **NON
+      FAIT** (ni `description_enc` ni `investigation_notes_enc` n'existent)
+- [ ] Anonymat lanceur d'alerte : `reporterId` null + `anonymousReporterToken`, pas de FK
+      ré-identifiante
 
 ### Migrations
 
