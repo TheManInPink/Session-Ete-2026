@@ -17,8 +17,15 @@
 > **Bloc concerné** : Transversal (tous les blocs A → F) **Prérequis** : Documents 00, 01, 02 et 03
 > complétés **Durée estimée** : 6 à 10 heures pour un étudiant seul **Livrables de cette étape** :
 >
-> - Monorepo restructuré : 3 apps Next.js + 11 microservices + 5+ packages partagés
-> - 22 workspaces pnpm fonctionnels (`pnpm install` sans erreur)
+> - Monorepo restructuré : 3 apps Next.js + 15 microservices + 14 packages partagés
+> - 32 workspaces pnpm fonctionnels (`pnpm install` sans erreur)
+>
+> ⚠️ **Réconciliation des comptes (juin 2026)** — la liste initiale parlait de « 11 services / 22
+> workspaces ». Le dépôt en compte aujourd'hui **15 services** (ajout de `api-gateway`,
+> `enrollment-service`, `biometric-service`, `ussd-service`), **14 packages** et **3 apps**, soit
+> **32 workspaces**. Les diagrammes et tableaux ci-dessous sont alignés sur cet état réel
+> (vérifiable par `ls services/ packages/ apps/`).
+>
 > - Configuration Turborepo (`turbo.json`) avec orchestration des tâches
 > - Husky + commitlint (Conventional Commits) opérationnels
 > - Makefile avec raccourcis pour toutes les opérations courantes
@@ -37,7 +44,7 @@ React et Babel utilisent tous un monorepo.
 
 Dans cette étape, on apprend à :
 
-- **Organiser un projet multi-services** — 11 microservices + 3 frontends + 5 packages dans un seul
+- **Organiser un projet multi-services** — 15 microservices + 3 frontends + 14 packages dans un seul
   dépôt, avec des dépendances internes claires entre eux. Chaque workspace a son propre
   `package.json` mais partage les mêmes conventions.
 
@@ -46,8 +53,8 @@ Dans cette étape, on apprend à :
   résultats pour éviter de refaire un travail déjà fait.
 
 - **Configurer des packages partagés** — Au lieu de dupliquer la logique de validation NINA dans 11
-  services, on l'écrit une seule fois dans `packages/utils` et on l'importe partout. C'est le
-  principe DRY (Don't Repeat Yourself) appliqué à l'architecture.
+  services, on l'écrit une seule fois dans `packages/utils` et on l'importe partout (15 services).
+  C'est le principe DRY (Don't Repeat Yourself) appliqué à l'architecture.
 
 - **Mettre en place la qualité de code** — Husky intercepte chaque commit Git pour vérifier le
   formatage (Prettier) et le lint (ESLint). Commitlint impose le format Conventional Commits. Ces
@@ -58,7 +65,7 @@ Dans cette étape, on apprend à :
   `.env.example` documente chaque variable. Un nouveau développeur peut être opérationnel en 30
   minutes.
 
-💡 **Pourquoi un monorepo et pas un multi-repo ?** Avec 11 microservices dans 11 dépôts séparés,
+💡 **Pourquoi un monorepo et pas un multi-repo ?** Avec 15 microservices dans 15 dépôts séparés,
 chaque modification d'un type partagé (`Citizen`, `AuditLogEntry`) nécessiterait de publier un
 package npm, puis de mettre à jour la dépendance dans chaque repo. En monorepo, un seul commit met à
 jour le type et tous ses consommateurs — cohérence garantie.
@@ -71,8 +78,8 @@ jour le type et tous ses consommateurs — cohérence garantie.
 | ------------------ | ------- | ------------------------------------------------------------ | ------------------------------------ |
 | **pnpm**           | 10.12.1 | Gestionnaire de paquets avec workspaces natifs               | https://pnpm.io/workspaces           |
 | **Turborepo**      | 2.9.5   | Orchestrateur de monorepo (build, dev, test parallèles)      | https://turborepo.dev/docs           |
-| **TypeScript**     | 6.0.2   | Typage statique pour 9 services NestJS + 3 apps Next.js      | https://www.typescriptlang.org/docs/ |
-| **NestJS**         | 11.1.18 | Framework backend pour 9 microservices TypeScript            | https://docs.nestjs.com/             |
+| **TypeScript**     | 6.0.2   | Typage statique pour 13 services NestJS + 3 apps Next.js     | https://www.typescriptlang.org/docs/ |
+| **NestJS**         | 11.1.18 | Framework backend pour 13 microservices TypeScript           | https://docs.nestjs.com/             |
 | **FastAPI**        | 0.135+  | Framework backend pour 2 microservices Python (IA + SIGAC)   | https://fastapi.tiangolo.com/        |
 | **Next.js**        | 16.2.2  | Framework frontend React avec SSR/SSG                        | https://nextjs.org/docs              |
 | **Prisma**         | 7.7+    | ORM TypeScript pour PostgreSQL                               | https://www.prisma.io/docs           |
@@ -111,7 +118,8 @@ nina-aes-platform/                          ← Racine du monorepo
 │       ├── package.json                    ← @nina-aes/governance
 │       └── tsconfig.json
 │
-├── services/                               ← 11 microservices backend
+├── services/                               ← 15 microservices backend
+│   ├── api-gateway/                        ← Point d'entrée unique (port 3000, NestJS)
 │   ├── identity-service/                   ← CRUD NINA (port 3001, NestJS)
 │   │   ├── src/
 │   │   │   ├── main.ts                     ← Bootstrap + ValidationPipe
@@ -133,13 +141,16 @@ nina-aes-platform/                          ← Racine du monorepo
 │   ├── document-service/                   ← Fiches descriptives PDF (port 3004, NestJS)
 │   ├── notification-service/               ← Email/SMS/Push (port 3005, NestJS)
 │   ├── interop-service/                    ← Interopérabilité AES (port 3006, NestJS)
-│   ├── audit-service/                      ← Journal Merkle (port 3007, NestJS)
+│   ├── audit-service/                      ← Journal hash-chain SHA-256 (port 3007, NestJS — ADR-007)
 │   ├── appointment-service/                ← Rendez-vous (port 3008, NestJS)
 │   ├── anticorruption-service/             ← SIGAC (port 3009, FastAPI)
 │   ├── governance-service/                 ← Gouvernance (port 3010, NestJS)
-│   └── vulnerability-service/              ← Personnes vulnérables (port 3011, NestJS)
+│   ├── vulnerability-service/              ← Personnes vulnérables (port 3011, NestJS)
+│   ├── biometric-service/                 ← Biométrie / déduplication (port 3012, NestJS)
+│   ├── enrollment-service/                ← Enrôlement RAVEC (port 3013, NestJS)
+│   └── ussd-service/                      ← Passerelle USSD/SMS (port 3014, NestJS — ADR-008)
 │
-├── packages/                               ← Bibliothèques internes partagées
+├── packages/                               ← Bibliothèques internes partagées (14)
 │   ├── shared-types/                       ← Enums, interfaces, DTOs
 │   │   └── src/index.ts                    ← Citizen, UserRole, AuditLogEntry...
 │   ├── database/                           ← Client Prisma + schéma PostgreSQL
@@ -153,6 +164,13 @@ nina-aes-platform/                          ← Racine du monorepo
 │   │       ├── merkle.ts                   ← computeMerkleHash, verifyMerkleChain
 │   │       └── cn.ts                       ← CSS class merger (clsx léger)
 │   ├── ui/                                 ← Composants React partagés (design system)
+│   ├── auth/                               ← Helpers session BFF (scope: auth-pkg)
+│   ├── auth-guards/                        ← Guards RBAC NestJS partagés (cf. §7.3.1)
+│   ├── api-client/                         ← Client REST + DTOs typés
+│   ├── i18n/                               ← Internationalisation (8 langues)
+│   ├── logger/                             ← Logger Pino → Loki (cf. note d'en-tête)
+│   ├── observability/                      ← Traces/metrics OpenTelemetry
+│   ├── vault-client/                       ← Client Vault (secrets, Transit)
 │   ├── eslint-config/                      ← Configuration ESLint partagée
 │   └── typescript-config/                  ← tsconfig.json partagés (base, nextjs, react)
 │
@@ -209,6 +227,7 @@ graph TB
     end
 
     subgraph "services/ (NestJS 11)"
+        GATEWAY["api-gateway<br/>:3000"]
         IDENTITY["identity-service<br/>:3001"]
         AUTH["auth-service<br/>:3002"]
         DOC["document-service<br/>:3004"]
@@ -218,6 +237,9 @@ graph TB
         APPT["appointment-service<br/>:3008"]
         GOV_SVC["governance-service<br/>:3010"]
         VULN["vulnerability-service<br/>:3011"]
+        BIOMETRIC["biometric-service<br/>:3012"]
+        ENROLLMENT["enrollment-service<br/>:3013"]
+        USSD["ussd-service<br/>:3014"]
     end
 
     subgraph "services/ (FastAPI)"
@@ -271,9 +293,9 @@ symboliques (symlinks) pour que chaque workspace voit ses propres dépendances.
 
 ```
 pnpm-workspace.yaml          ← Déclare quels dossiers sont des workspaces
-  ├── "apps/*"                ← citizen, admin, governance
-  ├── "packages/*"            ← shared-types, database, config, utils, ui, eslint-config, typescript-config
-  └── "services/*"            ← identity-service, auth-service, ... (9 NestJS + 2 FastAPI)
+  ├── "apps/*"                ← citizen, admin, governance (3)
+  ├── "packages/*"            ← shared-types, database, config, utils, ui, auth, auth-guards, api-client, i18n, logger, observability, vault-client, eslint-config, typescript-config (14)
+  └── "services/*"            ← api-gateway, identity-service, ... (13 NestJS + 2 FastAPI = 15)
 ```
 
 Pour référencer un package interne depuis un autre workspace :
@@ -377,8 +399,8 @@ orchestrer les workspaces et à définir les scripts globaux.
 
 packages:
   - 'apps/*' # 3 applications Next.js (citizen, admin, governance)
-  - 'packages/*' # Bibliothèques partagées (shared-types, database, config, utils, ui, ...)
-  - 'services/*' # 11 microservices (9 NestJS + 2 FastAPI ont un package.json pour pnpm)
+  - 'packages/*' # 14 bibliothèques partagées (shared-types, database, config, utils, ui, auth, auth-guards, ...)
+  - 'services/*' # 15 microservices (13 NestJS + 2 FastAPI ont un package.json pour pnpm)
 ```
 
 ⚠️ **Note FastAPI** : Les services Python (`ai-service`, `anticorruption-service`) ont un
@@ -601,7 +623,7 @@ export enum AesCountry {
   NIGER = 'NER',
 }
 
-/** Actions d'audit traçables dans le journal Merkle */
+/** Actions d'audit traçables dans le journal hash-chain (ADR-007) */
 export enum AuditAction {
   CREATE = 'CREATE',
   READ = 'READ',
@@ -636,7 +658,7 @@ export interface Citizen {
   updatedAt: string; // Timestamp ISO 8601
 }
 
-/** Entrée du journal d'audit (chaîne de hash Merkle) */
+/** Entrée du journal d'audit (chaîne de hash SHA-256 linéaire, ADR-007) */
 export interface AuditLogEntry {
   id: string;
   actorId: string; // userId ou serviceAccount
@@ -717,8 +739,29 @@ export const baseEnvSchema = z.object({
   /** URL du broker RabbitMQ (messages inter-services) */
   RABBITMQ_URL: z.string().default('amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672'),
 
-  /** Clé secrète JWT — en dev seulement, en prod utiliser Vault */
-  JWT_SECRET: z.string().min(32).default('dev-jwt-secret-change-this-in-production-32chars'),
+  /**
+   * Clé secrète JWT (HS256) — JAMAIS de valeur par défaut.
+   *
+   * ⚠️ ANTI-PATTERN à NE PAS copier : `.default('dev-secret-…')`.
+   *    Un défaut codé en dur dans le schéma finit invariablement déployé
+   *    en production (le développeur oublie de le surcharger). Tout porteur
+   *    du secret peut alors forger des JWT valides → escalade de privilèges.
+   *
+   * ✅ Pas de `.default` : si `JWT_SECRET` est absent, `validateEnv()` lève
+   *    une exception au démarrage (fail-fast) au lieu de booter avec un
+   *    secret connu. En dev, on le fournit via `.env` (gitignoré) ; en prod,
+   *    il est injecté depuis Vault (KV/Transit), jamais commité.
+   *
+   * ⏳ DRIFT À CORRIGER : le `packages/config/src/index.ts` réel conserve
+   *    encore `.default('dev-jwt-secret-…')` (idem `VAULT_TOKEN: .default('dev-root-token')`).
+   *    Ce sont les anti-patterns à supprimer côté code — l'extrait ci-dessus
+   *    est la cible. Retirer les `.default` sur tout secret avant la mise en prod.
+   *
+   * NOTE souveraineté : pour la signature des tokens d'accès, auth-service
+   * utilise RS256 (clé Vault Transit, voir doc 09) ; ce HS256 ne sert qu'aux
+   * usages internes/dev. Dans les deux cas, aucun secret en dur.
+   */
+  JWT_SECRET: z.string().min(32),
 
   /** Durée de validité du JWT en secondes (15 min par défaut) */
   JWT_EXPIRATION: z.coerce.number().default(900),
@@ -868,10 +911,15 @@ export function parseNina(nina: string): ParsedNina {
 }
 ```
 
-#### 5.3.2 Chaîne de hash Merkle (`merkle.ts`)
+#### 5.3.2 Chaîne de hash (hash-chain) SHA-256 (`merkle.ts`)
 
-Le journal d'audit utilise une chaîne de hash SHA-256 pour garantir l'immutabilité. Cette
-implémentation est documentée dans l'ADR-007.
+Le journal d'audit utilise une **chaîne de hash SHA-256 linéaire** (hash-chain), **pas** un arbre de
+Merkle : chaque entrée chaîne le hash de la précédente (ADR-007). C'est suffisant pour détecter
+toute falsification a posteriori, mais l'inviolabilité forte exige en plus d'**ancrer périodiquement
+la racine** chez un tiers indépendant (OCLEI / Vérificateur Général) — sinon un acteur disposant
+d'un accès en écriture pourrait recalculer toute la chaîne. ⏳ Cet ancrage reste **à implémenter**
+(cf. doc audit). Le nom de fichier historique `merkle.ts` est conservé pour ne pas casser les
+imports.
 
 ```typescript
 // packages/utils/src/merkle.ts
@@ -888,7 +936,11 @@ implémentation est documentée dans l'ADR-007.
  *              Si un attaquant modifie une entrée passée, son hash change,
  *              ce qui invalide en cascade TOUS les hash suivants.
  *
- * @see         ADR-007 — Chaîne de hash Merkle pour l'audit immuable
+ *              ⚠️ Hash-chain LINÉAIRE, pas un arbre de Merkle. L'intégrité
+ *                 forte suppose l'ancrage périodique de la racine chez un
+ *                 tiers (OCLEI / Vérificateur Général) — ⏳ à implémenter.
+ *
+ * @see         ADR-007 — Chaîne de hash SHA-256 (hash-chain) pour l'audit immuable
  * @module      utils
  */
 
@@ -990,13 +1042,18 @@ export { PrismaClient };
 export default prisma;
 ```
 
-**Schéma Prisma initial** (`packages/database/prisma/schema.prisma`) :
+**Schéma Prisma** (`packages/database/prisma/schema.prisma`) :
+
+Le schéma complet (modèle `Citizen` enrichi, corrections, audit, géographie RAVEC, etc.) est défini
+et commenté dans le document **06-DATABASE-SCHEMA-PRISMA.md** — c'est lui qui fait foi. Pour éviter
+toute dérive (un modèle « initial » figé ici diverge vite du vrai schéma), on ne reproduit ici que
+le **squelette generator/datasource** servant à valider le setup du package :
 
 ```prisma
 // ═══════════════════════════════════════════════════════════════
-// Schéma Prisma — NINA-AES Platform
-// Ce fichier sera enrichi dans le document 06-DATABASE-SCHEMA-PRISMA.md
-// Pour l'instant, structure minimale pour valider le setup
+// Schéma Prisma — NINA-AES Platform (squelette de structure)
+// ⚠️ Les MODÈLES (Citizen, corrections, audit…) sont définis dans
+//    06-DATABASE-SCHEMA-PRISMA.md, qui est la source de vérité.
 // ═══════════════════════════════════════════════════════════════
 
 generator client {
@@ -1004,30 +1061,18 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"          // PostgreSQL 17
-  url      = env("DATABASE_URL")   // Variable d'environnement
+  provider = "postgresql"          // PostgreSQL 18 (image postgis 18-3.6, cf. §8.1)
+  url      = env("DATABASE_URL")   // Variable d'environnement validée par @nina-aes/config
 }
 
-/// Enregistrement NINA — Table principale du système d'identité
-model Citizen {
-  id            String   @id @default(uuid())          // UUID v4 auto-généré
-  nina          String   @unique @db.VarChar(15)       // 14 chiffres + 1 lettre
-  nom           String   @db.VarChar(100)              // Nom de famille
-  prenoms       String   @db.VarChar(200)              // Prénoms (multi)
-  dateNaissance DateTime @map("date_naissance")        // snake_case en BDD
-  lieuNaissance String   @map("lieu_naissance") @db.VarChar(200)
-  sexe          Int      @db.SmallInt                  // 1=M, 2=F
-  codeRegion    String   @map("code_region") @db.VarChar(2)
-  codeCercle    String   @map("code_cercle") @db.VarChar(4)
-  codeCommune   String   @map("code_commune") @db.VarChar(7)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@map("citizens")                                 // Nom de table snake_case
-  @@index([nom, prenoms])                               // Index composite recherche
-  @@index([codeRegion, codeCercle, codeCommune])        // Index géographique
-}
+// Les modèles métier (Citizen, Correction, AuditLog, géographie RAVEC…)
+// sont décrits dans le document 06. Ne pas les dupliquer ici.
 ```
+
+> 💡 **Pourquoi pas de modèle complet ici ?** Ce document décrit la _structure du monorepo_, pas le
+> _schéma de données_. Recopier un modèle `Citizen` « initial » créerait deux définitions
+> concurrentes ; à la première migration réelle, ce document mentirait. La règle MAINTENANCE.md est
+> respectée : un seul fichier (06) porte le schéma.
 
 ---
 
@@ -1123,41 +1168,60 @@ pnpm exec commitlint --edit "$1" || {
 export default {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    // 26 scopes autorisés — couvrent tous les workspaces du monorepo
+    // scope-enum niveau 2 = ERREUR : un scope hors liste bloque le commit.
+    // ⚠️ Tenir cette liste alignée sur les workspaces réels : ajouter le scope
+    //    AVANT de committer un nouveau service (sinon le commit-msg échoue).
     'scope-enum': [
       2, // Niveau 2 = erreur (bloque le commit)
       'always',
       [
-        // Services (11)
-        'identity',
-        'auth',
-        'ai',
-        'document',
-        'notification',
-        'interop',
-        'audit',
-        'appointment',
-        'anticorruption',
-        'governance',
-        'vulnerability',
-        // Apps (5)
-        'citizen',
-        'admin',
-        'governance-app',
-        'mobile',
-        'kiosk',
-        // Packages (5)
+        // ── Microservices (ports 3000..3014) ──
+        'api-gateway', // api-gateway (3000)
+        'identity', // identity-service (3001)
+        'auth', // auth-service (3002)
+        'ai', // ai-service (3003, FastAPI)
+        'document', // document-service (3004)
+        'notification', // notification-service (3005)
+        'interop', // interop-service (3006)
+        'audit', // audit-service (3007)
+        'appointment', // appointment-service (3008)
+        'sigac', // anticorruption-service (3009, FastAPI)
+        'sgogt', // module SGOGT (governance-service)
+        'governance', // governance-service (3010)
+        'vulnerability', // vulnerability-service (3011)
+        // biometric-service (3012) → scope 'biometrics'
+        // enrollment-service (3013) → scope 'identity'/'data' selon le contexte
+        // ── Apps / canaux ──
+        'citizen', // apps/citizen
+        'admin', // apps/admin
+        'gov', // apps/governance
+        'mobile', // apps/mobile (Expo)
+        'kiosk', // apps/kiosk (Electron)
+        'ussd', // ussd-service (3014) + simulateur USSD
+        // ── Packages partagés ──
         'shared-types',
         'database',
         'config',
         'utils',
         'ui',
-        // Transversal (5)
+        'auth-pkg', // packages/auth
+        'api-client',
+        'logger',
+        'observability',
+        'test-fixtures',
+        // ── Transversal / infra ──
         'infra',
+        'docker',
         'ci',
-        'docs',
         'deps',
+        'biometrics', // biometric-service + module biométrie
+        'security',
+        'testing',
+        'backup',
+        'data',
+        'mali',
         'monorepo',
+        'docs',
       ],
     ],
     'scope-empty': [0], // Le scope est optionnel
@@ -1165,6 +1229,10 @@ export default {
   },
 };
 ```
+
+> ⚠️ **Source de vérité** : la liste exacte vit dans `commitlint.config.cjs` à la racine. L'extrait
+> ci-dessus est représentatif mais le fichier réel peut en ajouter (`i18n`, `auth-guards`,
+> `vault-client`…) au fil des nouveaux workspaces. En cas de doute, lire le fichier réel.
 
 **Tableau des types de commit** :
 
@@ -1186,9 +1254,9 @@ export default {
 
 ## 7. Microservices — Structure des scaffolds
 
-### 7.1 Service NestJS — Pattern commun (9 services)
+### 7.1 Service NestJS — Pattern commun (13 services)
 
-Les 9 microservices NestJS suivent exactement la même structure de base. Voici le pattern complet
+Les 13 microservices NestJS suivent exactement la même structure de base. Voici le pattern complet
 illustré avec `identity-service` :
 
 ```
@@ -1212,13 +1280,39 @@ services/identity-service/
 
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import helmet from 'helmet'; // En-têtes de sécurité HTTP (CSP, HSTS, …)
 import { AppModule } from './app.module';
 
 const PORT = process.env.PORT || 3001;
 
+// Liste blanche d'origines CORS, lue depuis l'env (jamais "*" avec credentials)
+const CORS_ORIGINS = (
+  process.env.CORS_ALLOWED_ORIGINS ??
+  'http://localhost:4001,http://localhost:4002,http://localhost:4003'
+)
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 async function bootstrap(): Promise<void> {
   const logger = new Logger('identity-service');
   const app = await NestFactory.create(AppModule);
+
+  // ── En-têtes de sécurité (helmet) ──
+  // CSP : bloque l'injection de scripts tiers ; HSTS : force HTTPS côté navigateur.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"], // anti-clickjacking
+        },
+      },
+      hsts: { maxAge: 31_536_000, includeSubDomains: true, preload: true },
+    }),
+  );
 
   // Validation automatique des DTOs entrants (class-validator)
   app.useGlobalPipes(
@@ -1230,10 +1324,18 @@ async function bootstrap(): Promise<void> {
   );
 
   // Préfixe global : toutes les routes commencent par /api/v1
-  app.setGlobalPrefix('api/v1');
+  // `health` est exclu pour matcher la sonde Docker `curl /health`.
+  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
 
-  // CORS activé pour le développement (désactivé/restreint en production)
-  app.enableCors();
+  // ⚠️ ANTI-PATTERN : `app.enableCors()` sans argument autorise TOUTES les
+  //    origines. Acceptable au mieux en dev local, jamais en production.
+  // ✅ CORS restreint à la liste blanche + credentials explicitement gérés.
+  app.enableCors({
+    origin: CORS_ORIGINS,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+  });
 
   await app.listen(PORT);
   logger.log(`identity-service démarré sur le port ${PORT}`);
@@ -1242,19 +1344,35 @@ async function bootstrap(): Promise<void> {
 bootstrap();
 ```
 
-**Tableau récapitulatif des 9 services NestJS** :
+> 🔒 **Rappel** : `helmet` est un middleware Express ; il s'installe via `pnpm add helmet` dans
+> chaque service NestJS. La CSP ci-dessus est volontairement stricte (API JSON, pas de HTML rendu
+> côté serveur) — un service qui sert une UI devra l'assouplir au cas par cas, jamais en désactivant
+> `helmet` globalement.
+>
+> ⏳ **État réel (juin 2026)** : ce `main.ts` est le **pattern cible**. À ce jour seuls 5 des 13
+> services NestJS appliquent `helmet` et le CORS restreint ; certains (`governance`, `interop`,
+> `vulnerability`) utilisent encore `app.enableCors()` nu et n'ont pas `helmet`. L'uniformisation
+> sur ce scaffold est **à finaliser** (vérifiable par `grep -L helmet services/*/src/main.ts`). Ne
+> pas considérer ces garde-fous comme acquis sur l'ensemble du parc tant que ce drift n'est pas
+> résorbé.
 
-| Service               | Package name                      | Port | Rôle principal             |
-| --------------------- | --------------------------------- | ---- | -------------------------- |
-| identity-service      | `@nina-aes/identity-service`      | 3001 | CRUD NINA, recherche floue |
-| auth-service          | `@nina-aes/auth-service`          | 3002 | JWT RS256, Keycloak, MFA   |
-| document-service      | `@nina-aes/document-service`      | 3004 | PDF, QR code signé, MinIO  |
-| notification-service  | `@nina-aes/notification-service`  | 3005 | Email, SMS, Push           |
-| interop-service       | `@nina-aes/interop-service`       | 3006 | mTLS inter-pays AES        |
-| audit-service         | `@nina-aes/audit-service`         | 3007 | Journal Merkle SHA-256     |
-| appointment-service   | `@nina-aes/appointment-service`   | 3008 | Prise de rendez-vous       |
-| governance-service    | `@nina-aes/governance-service`    | 3010 | Workflows gouvernance      |
-| vulnerability-service | `@nina-aes/vulnerability-service` | 3011 | Personnes vulnérables      |
+**Tableau récapitulatif des 13 services NestJS** :
+
+| Service               | Package name                      | Port | Rôle principal                |
+| --------------------- | --------------------------------- | ---- | ----------------------------- |
+| api-gateway           | `@nina-aes/api-gateway`           | 3000 | Entrée unique, rate-limit     |
+| identity-service      | `@nina-aes/identity-service`      | 3001 | CRUD NINA, recherche floue    |
+| auth-service          | `@nina-aes/auth-service`          | 3002 | JWT RS256, Keycloak, MFA      |
+| document-service      | `@nina-aes/document-service`      | 3004 | PDF, QR code signé, MinIO     |
+| notification-service  | `@nina-aes/notification-service`  | 3005 | Email, SMS, Push              |
+| interop-service       | `@nina-aes/interop-service`       | 3006 | mTLS inter-pays AES           |
+| audit-service         | `@nina-aes/audit-service`         | 3007 | Journal hash-chain SHA-256    |
+| appointment-service   | `@nina-aes/appointment-service`   | 3008 | Prise de rendez-vous          |
+| governance-service    | `@nina-aes/governance-service`    | 3010 | Workflows gouvernance         |
+| vulnerability-service | `@nina-aes/vulnerability-service` | 3011 | Personnes vulnérables         |
+| biometric-service     | `@nina-aes/biometric-service`     | 3012 | Biométrie / déduplication     |
+| enrollment-service    | `@nina-aes/enrollment-service`    | 3013 | Enrôlement RAVEC              |
+| ussd-service          | `@nina-aes/ussd-service`          | 3014 | Passerelle USSD/SMS (ADR-008) |
 
 ### 7.2 Service FastAPI — Pattern commun (2 services)
 
@@ -1291,6 +1409,8 @@ Auteur  : Étudiant UQAR
 Date    : 2026
 """
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -1302,13 +1422,30 @@ app = FastAPI(
     openapi_url="/api/v1/ai/openapi.json",
 )
 
-# CORS pour le développement (les frontends appellent ce service)
+# ═══════════════════════════════════════════════════════════════
+# CORS — origines EXPLICITES, jamais le wildcard avec credentials
+# ═══════════════════════════════════════════════════════════════
+#
+# ⚠️ ANTI-PATTERN à NE PAS copier :
+#       allow_origins=["*"], allow_credentials=True
+#    C'est une vraie vulnérabilité. La combinaison « wildcard + cookies/
+#    Authorization » est interdite par la spec CORS : Starlette l'ignore
+#    silencieusement et reflète l'Origin de l'appelant, ce qui revient à
+#    autoriser TOUT site tiers à émettre des requêtes authentifiées vers
+#    l'API au nom de l'utilisateur (CSRF / vol de session).
+#
+# ✅ Liste blanche d'origines, lue depuis l'environnement (.env / Vault).
+#    `allow_methods`/`allow_headers` sont également restreints au strict
+#    nécessaire plutôt qu'à "*".
+_default_origins = "http://localhost:4001,http://localhost:4002,http://localhost:4003"
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],         # En prod : restreindre aux domaines autorisés
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,          # citizen/admin/governance uniquement
+    allow_credentials=True,                 # OK car les origines sont explicites
+    allow_methods=["GET", "POST"],          # verbes réellement exposés par l'IA
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -1330,6 +1467,75 @@ async def health_check():
 | ---------------------- | ---- | ---------------------------- | ------------------------ |
 | ai-service             | 3003 | XGBoost, RapidFuzz, spaCy    | Détection d'erreurs NINA |
 | anticorruption-service | 3009 | Isolation Forest, LSTM, BERT | SIGAC intégrité          |
+
+### 7.3 Sécurité transversale du monorepo
+
+Les extraits `main.ts` / `main.py` ci-dessus montrent les garde-fous **par service**. Mais la
+sécurité d'une plateforme d'identité souveraine se joue surtout au niveau **transversal** : un seul
+service mal câblé suffit à exposer toute la fédération AES. Cette sous-section liste les contrôles
+qui doivent être identiques d'un workspace à l'autre. Le détail opérationnel vit dans
+[`docs/security/THREAT-MODEL.md`](./security/THREAT-MODEL.md) et
+[`docs/security/SECURITY-RUNBOOK.md`](./security/SECURITY-RUNBOOK.md) ; l'**ADR-034** est l'ADR de
+sécurité dédié (mTLS strict Linkerd + PKI Vault + rotation clés/JWKS + scans CI).
+
+#### 7.3.1 Garde RBAC obligatoire (deny-by-default)
+
+POURQUOI : la `ValidationPipe` valide la _forme_ d'une requête, jamais le _droit_ de l'émettre. Sans
+Guard, un citoyen authentifié pourrait appeler un endpoint réservé à un superviseur.
+
+- Chaque contrôleur exposant des données est protégé par un Guard d'authentification **et** un Guard
+  RBAC vérifiant le `UserRole` (voir l'enum `UserRole` en §5.1). Posture **deny-by-default** : une
+  route sans rôle déclaré est refusée, pas ouverte.
+- Les rôles proviennent du JWT émis par auth-service (Keycloak, ADR-013) ; ils ne sont jamais
+  déduits d'un champ du body modifiable par le client.
+- Le package partagé `@nina-aes/auth-guards` centralise ces Guards pour éviter 15 implémentations
+  divergentes. ⏳ Câblage complet à finaliser en Phase 2 — aujourd'hui le package existe mais tous
+  les services ne l'appliquent pas encore (vérifiable par `grep -r "auth-guards" services/`).
+
+#### 7.3.2 mTLS pour l'interopérabilité inter-services et inter-pays
+
+POURQUOI : entre microservices et surtout entre pays AES (Mali ↔ Burkina ↔ Niger), un simple JWT ne
+prouve pas l'identité _de la machine_ appelante.
+
+- Maillage interne : mTLS **strict** via Linkerd (ADR-034) — chaque pod présente un certificat émis
+  par la PKI Vault ; le trafic en clair est rejeté.
+- Interop transfrontalier (`interop-service`) : mTLS avec certificats par pays (`AES_MLI_CERT_PATH`,
+  `AES_BFA_CERT_PATH`, `AES_NER_CERT_PATH`, cf. §8.3). Souveraineté : pas d'autorité de
+  certification externe sur le cœur — PKI Vault interne, registry miroir CTDEC.
+- ⏳ Linkerd + PKI Vault sont **conçus, non déployés** dans ce document de structure ; ils sont
+  documentés et livrés au bloc infrastructure.
+
+#### 7.3.3 Rate-limiting à la passerelle (`api-gateway`)
+
+POURQUOI : exposer 15 services directement à Internet multiplie la surface d'attaque (brute-force
+JWT, scraping de NINA, déni de service).
+
+- `api-gateway` (port 3000) est le **point d'entrée unique** : les services métier ne sont pas
+  exposés publiquement. C'est là que vivent le rate-limiting (throttling par IP/utilisateur), la
+  terminaison TLS et la validation préliminaire des tokens.
+- Endpoints sensibles (login, recherche NINA, USSD) : quotas plus stricts pour limiter
+  l'énumération.
+- ⏳ Politiques de quota concrètes à définir au document infrastructure / gateway.
+
+#### 7.3.4 Mini threat model (STRIDE) + correspondance OWASP
+
+| Menace (STRIDE)            | Scénario concret NINA-AES                                 | Contrôle transversal                    | OWASP API/Top 10          |
+| -------------------------- | --------------------------------------------------------- | --------------------------------------- | ------------------------- |
+| **S**poofing               | Token forgé avec un `JWT_SECRET` deviné/codé en dur       | RS256 + secret hors-code (§5.2)         | API2 Broken Auth          |
+| **T**ampering              | Modification a posteriori d'une entrée d'audit            | Hash-chain SHA-256 (ADR-007, §5.3)      | A08 Data Integrity        |
+| **R**epudiation            | Un agent nie une correction NINA                          | Journal d'audit + `actorId`/`actorRole` | A09 Logging Failures      |
+| **I**nformation Disclosure | CORS `*` + credentials → fuite de session vers site tiers | Origines explicites (§7.1/§7.2)         | API8 Misconfiguration     |
+| **D**enial of Service      | Brute-force login / scraping NINA                         | Rate-limiting gateway (§7.3.3)          | API4 Resource Consumption |
+| **E**levation of Privilege | Citoyen accédant à un endpoint superviseur                | Guard RBAC deny-by-default (§7.3.1)     | API1 BOLA / API5 BFLA     |
+
+> 🔒 **Honnêteté** : ce tableau décrit la posture _cible_. À l'étape « structure du monorepo »,
+> seuls les contrôles in-process (validation, CORS restreint, helmet, hash-chain) sont présents dans
+> les scaffolds — et **pas encore uniformément** : `helmet`/CORS restreint ne couvrent que 5/13
+> services NestJS, `anticorruption-service` (`app/main.py`) garde un `allow_origins=["*"]` à
+> corriger, et `packages/config` conserve un `.default` sur `JWT_SECRET`/`VAULT_TOKEN`. RBAC
+> complet, mTLS, rate-limiting et ancrage de la racine d'audit chez un tiers (OCLEI / Vérificateur
+> Général) sont marqués ⏳ et livrés aux documents dédiés. Ces drifts code↔doc doivent être résorbés
+> avant prod.
 
 ---
 
@@ -1557,6 +1763,41 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 
 ---
 
+## 8bis. Tests de validation du monorepo (`verify:repo`)
+
+POURQUOI : un monorepo de 32 workspaces dérive vite — un compte de services faux dans un doc, un
+schéma JSON cassé, une donnée géographique Mali invalide. Plutôt que de relire à la main, on
+**automatise la cohérence** avec une chaîne de validation unique, exécutable en local et en CI.
+
+```powershell
+# ── Chaîne complète (préférée) ──
+pnpm run verify:repo
+# Équivalent : validate:data → validate:schemas → docs:sync:check
+
+# ── Maillons individuels (debug ciblé) ──
+pnpm run validate:data      # données géographiques Mali (régions/cercles/communes RAVEC)
+pnpm run validate:schemas   # schémas JSON du dépôt (fail-fast si un schéma est invalide)
+pnpm run docs:sync:check    # cohérence docs ↔ code (ports, comptes de services, scopes…)
+```
+
+| Script             | Fichier source                      | Vérifie quoi                                                     |
+| ------------------ | ----------------------------------- | ---------------------------------------------------------------- |
+| `validate:data`    | `scripts/validate-mali-data.mjs`    | Intégrité des données géographiques Mali (codes RAVEC cohérents) |
+| `validate:schemas` | `scripts/validate-json-schemas.mjs` | Tous les schémas JSON du dépôt sont valides et se compilent      |
+| `docs:sync:check`  | `scripts/docs-sync-check.mjs`       | La doc ne ment pas sur le code (drift ports / comptes / scopes)  |
+| `verify:repo`      | (orchestre les trois ci-dessus)     | Porte d'entrée unique — **à lancer avant chaque commit/PR**      |
+
+> 💡 **Lien avec ce document** : c'est `docs:sync:check` qui aurait dû signaler le drift « 11
+> services vs 15 réels » corrigé dans cette passe. Après toute modification de structure (ajout de
+> service, nouveau port, nouveau scope commitlint), relancer `pnpm run verify:repo` **et** mettre à
+> jour ce `.md` dans le même commit (règle `MAINTENANCE.md`).
+
+Les tests applicatifs (Jest pour NestJS, Pytest pour FastAPI) restent orchestrés par Turborepo
+(`pnpm run test`) et sont décrits aux documents dédiés (18). `verify:repo` couvre la cohérence
+**structurelle/documentaire**, pas la logique métier.
+
+---
+
 ## 9. Mini-rapport d'étape (template)
 
 ```markdown
@@ -1564,7 +1805,7 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 
 - **Status** : ✅ Terminé / ⏳ En cours / ❌ Bloqué
 - **Temps réel passé** : X heures
-- **Nombre de workspaces pnpm** : 22 (3 apps + 11 services + 8 packages)
+- **Nombre de workspaces pnpm** : 32 (3 apps + 15 services + 14 packages)
 - **Commande `pnpm install`** : ✅ Sans erreur / ❌ Erreurs
 - **Commande `pnpm run check-types`** : ✅ Passe / ❌ Échoue
 - **Docker Compose** : ✅ 8/8 conteneurs healthy
@@ -1588,11 +1829,13 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 ### Structure du monorepo
 
 - [ ] Le dossier `apps/` contient 3 applications : `citizen`, `admin`, `governance`
-- [ ] Le dossier `services/` contient 11 microservices (9 NestJS + 2 FastAPI)
+- [ ] Le dossier `services/` contient 15 microservices (13 NestJS + 2 FastAPI), dont `api-gateway`,
+      `biometric-service`, `enrollment-service`, `ussd-service`
 - [ ] Le dossier `packages/` contient au minimum : `shared-types`, `database`, `config`, `utils`,
       `ui`, `eslint-config`, `typescript-config`
 - [ ] `pnpm-workspace.yaml` inclut `"apps/*"`, `"packages/*"`, `"services/*"`
-- [ ] `pnpm install` s'exécute sans erreur et résout les 22 workspaces
+- [ ] `pnpm install` s'exécute sans erreur et résout les 32 workspaces (3 apps + 15 services + 14
+      packages)
 
 ### Configuration Turborepo
 
@@ -1605,7 +1848,8 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 
 - [ ] `.husky/pre-commit` vérifie le formatage et le lint
 - [ ] `.husky/commit-msg` valide le format Conventional Commits
-- [ ] `commitlint.config.js` contient les 26 scopes autorisés
+- [ ] `commitlint.config.cjs` contient tous les scopes (api-gateway, biometrics, ussd, … alignés sur
+      les workspaces réels)
 - [ ] `.editorconfig` définit les conventions (2 espaces TS, 4 espaces Python, tab Makefile)
 - [ ] `.prettierrc` configure : single quotes, trailing commas, 90 chars, LF
 
@@ -1643,7 +1887,9 @@ init: install docker-up db-migrate db-seed ## Setup complet : install → docker
 - [ ] Fichier `docs/adr/ADR-009-monorepo-turborepo.md` créé
 - [ ] Commit Git : `docs(monorepo): add 04-MONOREPO-STRUCTURE.md`
 - [ ] Mini-rapport rédigé
-- [ ] Aucun secret en clair dans les fichiers commités
+- [ ] `pnpm run verify:repo` passe (validate:data + validate:schemas + docs:sync:check)
+- [ ] Aucun secret en clair dans les fichiers commités (pas de `JWT_SECRET` codé en dur, pas de CORS
+      `*` + credentials)
 
 ---
 

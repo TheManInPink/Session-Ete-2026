@@ -240,11 +240,11 @@ graph TB
 
 ### 3.3 Communication : réseau interne vs accès externe
 
-| Depuis                         | Vers                                            | Adresse utilisée   | Exemple                                                                          |
-| ------------------------------ | ----------------------------------------------- | ------------------ | -------------------------------------------------------------------------------- |
-| Conteneur → Conteneur          | Un autre conteneur du même réseau               | **Nom du service** | Keycloak → `postgres:5432`                                                       |
-| Poste Windows → Conteneur      | Un conteneur via port mapping                   | **localhost:PORT** | `psql -h localhost -p 5432`                                                      |
-| Microservice local → Conteneur | L'infra Docker depuis un service NestJS/FastAPI | **localhost:PORT** | `DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db` |
+| Depuis                         | Vers                                            | Adresse utilisée   | Exemple                                                                                |
+| ------------------------------ | ----------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| Conteneur → Conteneur          | Un autre conteneur du même réseau               | **Nom du service** | Keycloak → `postgres:5432`                                                             |
+| Poste Windows → Conteneur      | Un conteneur via port mapping                   | **localhost:PORT** | `psql -h localhost -p 5432`                                                            |
+| Microservice local → Conteneur | L'infra Docker depuis un service NestJS/FastAPI | **localhost:PORT** | `DATABASE_URL=postgresql://nina_admin:${POSTGRES_PASSWORD}@localhost:5432/nina_aes_db` |
 
 ⚠️ **Point clé** : À l'intérieur du réseau Docker, les conteneurs se voient par **nom de service**
 (`postgres`, `redis`). Depuis l'extérieur (poste Windows), on utilise **`localhost`** avec le port
@@ -269,12 +269,23 @@ PostgreSQL est le choix n°1 pour un système d'identité nationale car il offre
 
 ### 4.2 Configuration Docker Compose
 
+> 🔒 **Secrets externalisés (P0)** — Dans tous les extraits qui suivent, **aucun mot de passe n'est
+> écrit en clair**. Chaque valeur sensible est interpolée depuis `.env` via `${VAR}` (compose v2).
+> Le `.env` réel n'est jamais commité (`.gitignore`) ; seul `.env.example` documente les **noms** de
+> variables avec des valeurs placeholder. En production, ces valeurs ne viennent **pas** de `.env`
+> mais sont injectées par **Vault** (Agent sidecar / `vault agent template` ou CSI Secrets Store) —
+> voir §7.4 et le bandeau « Migration Vault » à la fin de cette section.
+
 ```yaml
 # docker-compose.dev.yml — Section PostgreSQL
+# ⚠ Le pin réel (postgis/postgis:18-3.6) est dans le bandeau d'en-tête + §2.2.
+#   Ci-dessous on épingle PAR DIGEST (immutabilité, anti-supply-chain) : voir §7.6.
 
 postgres:
-  # Image Alpine : plus légère (~85 Mo vs ~420 Mo pour postgres:17)
-  image: postgres:17-alpine
+  # Image PostGIS Debian épinglée par DIGEST SHA-256 (pas seulement par tag).
+  # Un tag est mutable (peut être réécrit côté registre) ; un digest est immuable.
+  # Remplacer <sha256-postgis-18-3.6> par la valeur résolue via `docker buildx imagetools inspect`.
+  image: postgis/postgis:18-3.6@sha256:<sha256-postgis-18-3.6>
 
   # Nom explicite pour les commandes docker exec
   container_name: nina-postgres
@@ -283,14 +294,19 @@ postgres:
   restart: unless-stopped
 
   # Port mapping : localhost:5432 → conteneur:5432
+  # 🔒 Durcissement : en prod, NE PAS publier 5432 vers l'hôte (accès via réseau interne
+  #    uniquement). Voir §7.6 « segmentation réseau ».
   ports:
     - '5432:5432'
 
-  # Variables d'environnement pour la création initiale de la BDD
+  # Variables d'environnement pour la création initiale de la BDD.
+  # 🔒 P0 : toutes interpolées depuis .env — AUCUN secret en clair dans le YAML.
   environment:
-    POSTGRES_USER: nina_admin # Utilisateur principal
-    POSTGRES_PASSWORD: nina_dev_2026! # Mot de passe de développement
-    POSTGRES_DB: nina_aes_db # Base de données créée au démarrage
+    POSTGRES_USER: ${POSTGRES_USER} # ex. nina_admin (dans .env)
+    # _FILE permet de lire le secret depuis un fichier monté (Docker/K8s secret)
+    # plutôt qu'une variable d'env visible dans `docker inspect`. Préféré en prod.
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # jamais commité — fourni par .env (dev) / Vault (prod)
+    POSTGRES_DB: ${POSTGRES_DB} # ex. nina_aes_db
 
   # Volumes montés
   volumes:
@@ -302,11 +318,19 @@ postgres:
     - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
 
   # Healthcheck : vérifie que PostgreSQL accepte les connexions
+  # 🔒 On référence les variables, pas les valeurs littérales.
   healthcheck:
-    test: ['CMD-SHELL', 'pg_isready -U nina_admin -d nina_aes_db']
+    test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
     interval: 10s # Vérification toutes les 10 secondes
     timeout: 5s # Timeout si pas de réponse en 5s
     retries: 5 # 5 échecs consécutifs → conteneur "unhealthy"
+
+  # 🔒 Durcissement runtime (cf. §7.6) — empêche l'escalade de privilèges et
+  #    interdit l'écriture hors des volumes déclarés.
+  security_opt:
+    - no-new-privileges:true
+  # Note : Postgres a besoin d'écrire dans /var/lib/postgresql et /run → read_only:true
+  # exige des tmpfs explicites ; documenté en §7.6 (à activer en Phase 2).
 
   # Réseau dédié au projet
   networks:
@@ -428,9 +452,9 @@ SELECT unaccent('Sékou Touré');
 Les microservices NestJS/FastAPI se connectent à PostgreSQL via la variable `DATABASE_URL` :
 
 ```
-DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
-                          ^^^^^^^^^^ ^^^^^^^^^^^^^^ ^^^^^^^^^ ^^^^ ^^^^^^^^^^^
-                          user       password       host      port database
+DATABASE_URL=postgresql://nina_admin:${POSTGRES_PASSWORD}@localhost:5432/nina_aes_db
+                          ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^ ^^^^^^^^^ ^^^^ ^^^^^^^^^^^
+                          user       password (depuis .env) host    port database
 ```
 
 Le client Prisma (dans `packages/database`) utilise cette URL pour se connecter.
@@ -454,8 +478,8 @@ remplit trois rôles :
 
 ```yaml
 redis:
-  # Image Alpine pour la légèreté
-  image: redis:7-alpine
+  # Image Alpine épinglée par DIGEST (cohérent avec le pin 8.6.3 du bandeau / §2.2).
+  image: redis:8.6.3-alpine@sha256:<sha256-redis-8.6.3-alpine>
   container_name: nina-redis
   restart: unless-stopped
 
@@ -466,18 +490,22 @@ redis:
   # --appendonly yes    : Active la persistance AOF (Append-Only File)
   #                       Chaque écriture est loguée sur disque → résistance aux crashes
   # --requirepass       : Mot de passe obligatoire pour toutes les commandes
-  command: redis-server --appendonly yes --requirepass redis_dev_2026!
+  # 🔒 P0 : le mot de passe est interpolé depuis .env (${REDIS_PASSWORD}), jamais en clair.
+  command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
 
   volumes:
     # Persistance des données Redis (AOF + snapshots RDB)
     - redis_data:/data
 
   healthcheck:
-    # Le -a fournit le mot de passe pour la commande PING
-    test: ['CMD', 'redis-cli', '-a', 'redis_dev_2026!', 'ping']
+    # Le -a fournit le mot de passe pour la commande PING (référencé via .env).
+    test: ['CMD-SHELL', 'redis-cli -a "$REDIS_PASSWORD" ping']
     interval: 10s
     timeout: 5s
     retries: 5
+
+  security_opt:
+    - no-new-privileges:true
 
   networks:
     - nina-network
@@ -491,11 +519,10 @@ docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml p
 # Raccourci équivalent : pnpm run docker:ps | Select-String redis
 
 # Se connecter en ligne de commande
-# Note PowerShell: le `!` final du mot de passe doit être ECHAPPÉ avec `--% `
-# (stop-parsing) ou avec des single-quotes, sinon PowerShell tente une
-# expansion d'historique:
-#   docker exec -it nina-redis redis-cli -a 'redis_dev_2026!'
-docker exec -it nina-redis redis-cli -a 'redis_dev_2026!'
+# Le mot de passe vient du .env — on le passe via $env:REDIS_PASSWORD (jamais en clair).
+# Note PowerShell: si le mot de passe contient un `!` final, le protéger (single-quotes
+# ou stop-parsing `--%`) pour éviter l'expansion d'historique.
+docker exec -it nina-redis redis-cli -a "$env:REDIS_PASSWORD"
 
 # Tester les opérations de base
 127.0.0.1:6379> SET test:hello "world"
@@ -522,9 +549,9 @@ docker exec -it nina-redis redis-cli -a 'redis_dev_2026!'
 ### 5.4 Connexion depuis les microservices
 
 ```
-REDIS_URL=redis://:redis_dev_2026!@localhost:6379
-                   ^^^^^^^^^^^^^^^ ^^^^^^^^^ ^^^^
-                   password        host      port
+REDIS_URL=redis://:${REDIS_PASSWORD}@localhost:6379
+                   ^^^^^^^^^^^^^^^^^ ^^^^^^^^^ ^^^^
+                   password (.env)   host      port
 ```
 
 ⚠️ **Note** : L'URL Redis avec mot de passe commence par `redis://:password@` (double deux-points
@@ -595,8 +622,8 @@ message dans RabbitMQ.
 
 ```yaml
 rabbitmq:
-  # Image avec plugin management (interface web d'administration)
-  image: rabbitmq:4.2.4-management-alpine
+  # Image avec plugin management (interface web d'administration), épinglée par DIGEST.
+  image: rabbitmq:4.2.4-management-alpine@sha256:<sha256-rabbitmq-4.2.4-mgmt-alpine>
   container_name: nina-rabbitmq
   restart: unless-stopped
 
@@ -604,20 +631,27 @@ rabbitmq:
     - '5672:5672' # Port AMQP (protocole de messagerie)
     - '15672:15672' # Interface web d'administration
 
+  # 🔒 P0 : identifiants admin interpolés depuis .env, jamais en clair.
   environment:
-    RABBITMQ_DEFAULT_USER: nina_rabbit # Utilisateur admin
-    RABBITMQ_DEFAULT_PASS: rabbit_dev_2026! # Mot de passe admin
+    RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER} # ex. nina_rabbit (dans .env)
+    RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD} # fourni par .env (dev) / Vault (prod)
 
   volumes:
     # Persistance des queues et messages
     - rabbitmq_data:/var/lib/rabbitmq
 
   healthcheck:
-    # rabbitmq-diagnostics ping vérifie que le noeud Erlang est opérationnel
-    test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+    # ✅ Correctif (bandeau d'en-tête) : `check_running` est la BONNE sous-commande.
+    #    L'ancien `rabbitmq-diagnostics -q ping check_running` mélangeait deux sous-commandes
+    #    (`ping` ET `check_running`) et échouait toujours. `check_running` seul vérifie que
+    #    l'application RabbitMQ (pas seulement le nœud Erlang) est démarrée et accepte le trafic.
+    test: ['CMD', 'rabbitmq-diagnostics', '-q', 'check_running']
     interval: 15s # Intervalle plus long car RabbitMQ est plus lent à démarrer
     timeout: 10s
     retries: 5
+
+  security_opt:
+    - no-new-privileges:true
 
   networks:
     - nina-network
@@ -632,7 +666,7 @@ docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml p
 
 # Accéder à l'interface web d'administration
 # Ouvrir dans le navigateur : http://localhost:15672
-# Login : nina_rabbit / rabbit_dev_2026!
+# Login : ${RABBITMQ_USER} / ${RABBITMQ_PASSWORD} (valeurs dans .env, jamais commitées)
 
 # Vérifier via CLI
 docker exec -it nina-rabbitmq rabbitmqctl status
@@ -687,7 +721,9 @@ fiches descriptives, documents scannés).
 
 ```yaml
 minio:
-  image: minio/minio:latest
+  # Image épinglée par DIGEST sur la dernière release officielle (repo amont archivé —
+  # voir bandeau d'en-tête). JAMAIS `:latest` : non reproductible et non auditable.
+  image: minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:<sha256-minio-2025-09-07>
   container_name: nina-minio
   restart: unless-stopped
 
@@ -695,9 +731,10 @@ minio:
     - '9000:9000' # API S3 (pour les microservices)
     - '9001:9001' # Console web d'administration
 
+  # 🔒 P0 : credentials root interpolés depuis .env, jamais en clair.
   environment:
-    MINIO_ROOT_USER: nina_minio_admin # Équivalent de AWS_ACCESS_KEY_ID
-    MINIO_ROOT_PASSWORD: minio_dev_2026! # Équivalent de AWS_SECRET_ACCESS_KEY
+    MINIO_ROOT_USER: ${MINIO_ACCESS_KEY} # Équivalent de AWS_ACCESS_KEY_ID
+    MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY} # Équivalent de AWS_SECRET_ACCESS_KEY
 
   # Commande de lancement :
   # server /data          : chemin de stockage des objets
@@ -714,6 +751,9 @@ minio:
     timeout: 10s
     retries: 5
 
+  security_opt:
+    - no-new-privileges:true
+
   networks:
     - nina-network
 ```
@@ -722,7 +762,7 @@ minio:
 
 ```powershell
 # Ouvrir la console web : http://localhost:9001
-# Login : nina_minio_admin / minio_dev_2026!
+# Login : ${MINIO_ACCESS_KEY} / ${MINIO_SECRET_KEY} (valeurs dans .env, jamais commitées)
 
 # Créer les 4 buckets via le script idempotent (recommandé)
 bash scripts/init-minio.sh
@@ -734,29 +774,45 @@ bash scripts/init-minio.sh
 <summary>Équivalent manuel via mc CLI (debug / compréhension)</summary>
 
 ```powershell
-# Note PowerShell : le `!` final du password doit être protégé par
-# single-quotes, sinon expansion d'historique → "Unexpected token".
-docker exec -it nina-minio mc alias set local http://localhost:9000 nina_minio_admin 'minio_dev_2026!'
+# Les identifiants viennent du .env — on les lit ici via $env: (jamais en clair dans le doc).
+# `$env:MINIO_ACCESS_KEY` / `$env:MINIO_SECRET_KEY` sont chargés depuis .env par le shell appelant.
+docker exec -it nina-minio mc alias set local http://localhost:9000 "$env:MINIO_ACCESS_KEY" "$env:MINIO_SECRET_KEY"
 docker exec -it nina-minio mc mb local/nina-photos    --ignore-existing
 docker exec -it nina-minio mc mb local/nina-documents --ignore-existing
 docker exec -it nina-minio mc mb local/nina-scans     --ignore-existing
 docker exec -it nina-minio mc mb local/nina-backups   --ignore-existing
-# Politique de lecture publique pour les photos (DEV uniquement)
-docker exec -it nina-minio mc anonymous set download local/nina-photos
+
+# ⛔ INTERDIT — NE JAMAIS exposer nina-photos (ni AUCUN bucket NINA) en accès anonyme :
+#   docker exec -it nina-minio mc anonymous set download local/nina-photos   # ← FAILLE PII
+# Les photos d'identité sont des données BIOMÉTRIQUES (PII sensible). Un bucket en
+# `anonymous download` = n'importe qui sur le réseau peut télécharger toutes les photos
+# sans authentification. Tous les buckets restent PRIVÉS (politique par défaut), même en dev.
+#
+# ✅ Accès LÉGITIME aux objets : URLs présignées générées côté `document-service` /
+#    `identity-service`, à durée de vie courte (ex. 5 min), scellées par les credentials
+#    du service. L'app demande l'objet → le service vérifie le droit (RBAC) → renvoie une
+#    presigned URL temporaire. Voir l'équivalent mc ci-dessous (debug uniquement) :
+#       docker exec -it nina-minio mc share download --expire 5m local/nina-photos/<objet>
 ```
 
 </details>
 
 **Buckets prévus** :
 
-| Bucket           | Contenu                                                    | Service producteur                   |
-| ---------------- | ---------------------------------------------------------- | ------------------------------------ |
-| `nina-photos`    | Photos d'identité des citoyens (lecture publique en dev)   | `identity-service`                   |
-| `nina-documents` | Fiches Descriptives Individuelles (PDF signés), récépissés | `document-service`                   |
-| `nina-scans`     | Documents scannés (actes de naissance, justificatifs)      | `enrollment-service`, `auth-service` |
-| `nina-backups`   | Sauvegardes périodiques (dump PG, exports audit, ES)       | jobs cron / `audit-service`          |
+| Bucket           | Contenu                                                    | Service producteur                   | Politique d'accès                                 |
+| ---------------- | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------- |
+| `nina-photos`    | Photos d'identité des citoyens — **PII biométrique**       | `identity-service`                   | 🔒 **PRIVÉ** — URLs présignées courtes uniquement |
+| `nina-documents` | Fiches Descriptives Individuelles (PDF signés), récépissés | `document-service`                   | 🔒 PRIVÉ — URLs présignées (récépissé citoyen)    |
+| `nina-scans`     | Documents scannés (actes de naissance, justificatifs)      | `enrollment-service`, `auth-service` | 🔒 PRIVÉ — accès agent authentifié                |
+| `nina-backups`   | Sauvegardes périodiques (dump PG, exports audit, ES)       | jobs cron / `audit-service`          | 🔒 PRIVÉ — chiffré au repos, accès opérateur seul |
 
-### 7.2 Elasticsearch 8 — Recherche floue
+> ⚠️ **PII biométrique — règle non négociable** : aucun bucket NINA n'est jamais en lecture anonyme,
+> **même en développement**. Les photos et scans sont des données personnelles sensibles (biométrie
+> faciale). L'accès se fait exclusivement par **URL présignée** à durée de vie courte, émise par un
+> service après contrôle RBAC. Documenté dans la section §7.6 « Durcissement & threat model infra »
+> et dans `docs/security/THREAT-MODEL.md`.
+
+### 7.2 Elasticsearch 9 — Recherche floue
 
 Elasticsearch complète `pg_trgm` pour la recherche floue avancée sur les noms NINA. Il est
 particulièrement efficace pour la recherche multi-critères combinant nom, prénom, date de naissance
@@ -764,7 +820,8 @@ et lieu.
 
 ```yaml
 elasticsearch:
-  image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+  # Build local 9.4.1 (cohérent avec §2.2 — plugin analysis-phonetic), épinglé par digest.
+  image: nina-aes/elasticsearch:9.4.1@sha256:<sha256-nina-es-9.4.1>
   container_name: nina-elasticsearch
   restart: unless-stopped
 
@@ -775,9 +832,19 @@ elasticsearch:
     # Mode single-node (pas de cluster en dev)
     - discovery.type=single-node
 
-    # Désactiver la sécurité X-Pack en développement
-    # (simplification — en production, TLS + auth activés)
-    - xpack.security.enabled=false
+    # ✅ COHÉRENCE SÉCURITÉ : la sécurité X-Pack est ACTIVÉE (auth obligatoire).
+    #    Auparavant `xpack.security.enabled=false` contredisait le healthcheck qui
+    #    s'authentifiait avec `-u elastic:...` → incohérence corrigée. On reste authentifié
+    #    partout (healthcheck, scripts init, microservices).
+    - xpack.security.enabled=true
+
+    # Mot de passe du superuser `elastic` — interpolé depuis .env (P0), jamais en clair.
+    - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+
+    # TLS HTTP : désactivé en dev pour simplifier (auth déjà active). En prod : ACTIVÉ
+    #   (xpack.security.http.ssl.enabled=true + certificats Vault PKI). Voir §7.6.
+    - xpack.security.http.ssl.enabled=false
+    - xpack.security.transport.ssl.enabled=false
 
     # Limiter la mémoire JVM à 512 Mo
     # (Elasticsearch est gourmand — 512 Mo suffit pour le dev)
@@ -790,30 +857,42 @@ elasticsearch:
     - es_data:/usr/share/elasticsearch/data
 
   healthcheck:
-    # Vérifier le statut du cluster (green ou yellow acceptable en single-node)
+    # Vérifier le statut du cluster (green ou yellow acceptable en single-node).
+    # 🔒 S'authentifie via ${ELASTIC_PASSWORD} (cohérent avec xpack.security.enabled=true).
     test:
       [
         'CMD-SHELL',
-        "curl -s -u elastic:elastic_dev_2026! http://localhost:9200/_cluster/health | grep -q
+        "curl -s -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cluster/health | grep -q
         '\"status\":\"green\"\\|\"status\":\"yellow\"'",
       ]
     interval: 15s
     timeout: 10s
     retries: 10 # Plus de retries car ES est lent à démarrer
 
+  security_opt:
+    - no-new-privileges:true
+
   networks:
     - nina-network
 ```
 
+> ✅ **Incohérence résolue** : avant ce durcissement, le bloc déclarait
+> `xpack.security.enabled=false` alors que le healthcheck (et les scripts d'init) appelaient l'API
+> avec `-u elastic:…`. Sur un ES sans sécurité, ce `-u` est ignoré et masque le fait que **n'importe
+> qui** pouvait lire les index `nina_citizens` (noms + lieux de naissance = PII). La sécurité est
+> désormais **activée**, et le reset du mot de passe `kibana_system` (cf. bandeau d'en-tête) devient
+> obligatoire au premier boot.
+
 **Validation** :
 
 ```powershell
-# Vérifier la santé du cluster (xpack.security activé → -u requis)
-curl -u 'elastic:elastic_dev_2026!' http://localhost:9200/_cluster/health?pretty
+# Vérifier la santé du cluster (xpack.security activé → -u requis).
+# Le mot de passe vient du .env — on ne l'écrit pas en clair ($env:ELASTIC_PASSWORD en PowerShell).
+curl -u "elastic:$env:ELASTIC_PASSWORD" http://localhost:9200/_cluster/health?pretty
 # "status" : "green" (ou "yellow" en single-node, c'est normal)
 
 # Vérifier la version
-curl -u 'elastic:elastic_dev_2026!' http://localhost:9200
+curl -u "elastic:$env:ELASTIC_PASSWORD" http://localhost:9200
 # "version" : { "number" : "9.4.1" }
 
 # Créer les index réels (recommandé) — nina_citizens (avec phonétique
@@ -830,7 +909,7 @@ bash scripts/init-elasticsearch.sh
 # ⚠ Cet index est UNIQUEMENT pour comprendre l'API ES — ne pas le confondre
 #   avec nina_citizens créé par init-elasticsearch.sh (analyseurs plus riches:
 #   phonetic + synonymes pour les noms maliens).
-curl -u 'elastic:elastic_dev_2026!' -X PUT "http://localhost:9200/nina_test_demo" -H "Content-Type: application/json" -d "{
+curl -u "elastic:$env:ELASTIC_PASSWORD" -X PUT "http://localhost:9200/nina_test_demo" -H "Content-Type: application/json" -d "{
   \"settings\": {
     \"analysis\": {
       \"analyzer\": {
@@ -854,7 +933,7 @@ curl -u 'elastic:elastic_dev_2026!' -X PUT "http://localhost:9200/nina_test_demo
 }"
 
 # Nettoyer
-curl -u 'elastic:elastic_dev_2026!' -X DELETE "http://localhost:9200/nina_test_demo"
+curl -u "elastic:$env:ELASTIC_PASSWORD" -X DELETE "http://localhost:9200/nina_test_demo"
 ```
 
 </details>
@@ -867,29 +946,31 @@ système.
 
 ```yaml
 keycloak:
-  image: quay.io/keycloak/keycloak:26.6.2
+  image: quay.io/keycloak/keycloak:26.6.2@sha256:<sha256-keycloak-26.6.2>
   container_name: nina-keycloak
   restart: unless-stopped
 
   ports:
     - '8080:8080' # Console d'administration
 
+  # 🔒 P0 : DB password + identifiants admin bootstrap interpolés depuis .env, jamais en clair.
   environment:
     # Keycloak utilise PostgreSQL comme backend
     KC_DB: postgres
-    KC_DB_URL: jdbc:postgresql://postgres:5432/nina_aes_db
-    KC_DB_USERNAME: nina_admin
-    KC_DB_PASSWORD: nina_dev_2026!
+    KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+    KC_DB_USERNAME: ${POSTGRES_USER}
+    KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
 
     # Configuration réseau
     KC_HOSTNAME: localhost
     KC_HOSTNAME_STRICT: 'false' # Accepter les connexions non-HTTPS en dev
-    KC_HTTP_ENABLED: 'true' # Activer HTTP (pas uniquement HTTPS)
+    KC_HTTP_ENABLED: 'true' # Activer HTTP (pas uniquement HTTPS) — DEV uniquement
     KC_HEALTH_ENABLED: 'true' # Activer l'endpoint /health
 
-    # Compte administrateur initial
-    KEYCLOAK_ADMIN: admin
-    KEYCLOAK_ADMIN_PASSWORD: keycloak_admin_2026!
+    # Compte administrateur initial (bootstrap).
+    # ⚠ KC 26 : KEYCLOAK_ADMIN/_PASSWORD sont dépréciés → KC_BOOTSTRAP_ADMIN_*.
+    KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+    KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
 
   # Mode développement (rechargement à chaud, pas de cache de thèmes)
   command: start-dev
@@ -900,17 +981,21 @@ keycloak:
       condition: service_healthy
 
   healthcheck:
-    # Vérifier l'endpoint de santé Keycloak
+    # ✅ Correctif (bandeau d'en-tête) : KC 25+ expose /health/ready sur le port
+    #    MANAGEMENT 9000 (pas le 8080 API). On sonde donc localhost:9000.
     test:
       [
         'CMD-SHELL',
-        "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost:
+        "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost:
         localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200\\|UP'",
       ]
     interval: 20s # Intervalle plus long (Keycloak démarre lentement)
     timeout: 10s
     retries: 10
     start_period: 30s # Attendre 30s avant le premier check
+
+  security_opt:
+    - no-new-privileges:true
 
   networks:
     - nina-network
@@ -920,7 +1005,7 @@ keycloak:
 
 ```powershell
 # Ouvrir la console d'administration : http://localhost:8080
-# Login : admin / keycloak_admin_2026!
+# Login : ${KEYCLOAK_ADMIN_USER} / ${KEYCLOAK_ADMIN_PASSWORD} (valeurs dans .env, jamais commitées)
 
 # Vérifier que Keycloak répond (endpoint public du realm master)
 curl http://localhost:8080/realms/master
@@ -952,16 +1037,19 @@ mode « dev-server » (données en mémoire, non chiffrées).
 
 ```yaml
 vault:
-  image: hashicorp/vault:2.0.1 # saut majeur 1.x → 2.x (release 2026-05-19)
+  image: hashicorp/vault:2.0.1@sha256:<sha256-vault-2.0.1> # saut majeur 1.x → 2.x (2026-05-19)
   container_name: nina-vault
   restart: unless-stopped
 
   ports:
     - '8200:8200' # API + UI → http://localhost:8200
 
+  # 🔒 P0 : le token racine DEV est interpolé depuis .env (jamais en clair).
+  # ⚠ Le mode `start-dev` stocke les secrets EN MÉMOIRE, NON CHIFFRÉS, avec un token
+  #   racine connu → STRICTEMENT réservé au poste local. Voir « Migration Vault » ci-dessous.
   environment:
     # Token racine pour le mode développement
-    VAULT_DEV_ROOT_TOKEN_ID: nina-dev
+    VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN}
     # Adresse d'écoute
     VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
 
@@ -973,39 +1061,60 @@ vault:
     - IPC_LOCK
 
   healthcheck:
-    test: ['CMD', 'vault', 'status']
+    # VAULT_ADDR en HTTP (start-dev écoute HTTP, le client par défaut parle HTTPS).
+    test: ['CMD', 'vault', 'status', '-address=http://127.0.0.1:8200']
     interval: 10s
     timeout: 5s
     retries: 5
+
+  security_opt:
+    - no-new-privileges:true
 
   networks:
     - nina-network
 ```
 
+> 🔐 **Migration Vault (du dev-mode vers le mode production)** — _concept, non implémenté (Phase 2)_
+> :
+>
+> | Aspect              | Dev (`start-dev`, ce doc)                     | Production (cible — `docs/security/SECURITY-RUNBOOK.md`)                          |
+> | ------------------- | --------------------------------------------- | --------------------------------------------------------------------------------- |
+> | Stockage            | En mémoire, **non chiffré**, perdu au restart | Backend persistant (Raft intégré) **chiffré**                                     |
+> | Scellement          | Auto-unseal permanent (dev)                   | **Auto-unseal souverain** (Transit d'un Vault amont on-premise), PAS AWS KMS      |
+> | Authentification    | Token racine fixe (`${VAULT_DEV_ROOT_TOKEN}`) | **AppRole** (services) + **Kubernetes auth** (pods) avec leases courts            |
+> | Token long-lived    | Toléré en dev local seulement                 | **INTERDIT** — jamais de `VAULT_TOKEN` statique (cf. canon sécurité / ADR-034)    |
+> | Distribution secret | `.env` lu par compose                         | Vault Agent sidecar (`vault agent template`) ou CSI Secrets Store → fichier monté |
+> | TLS                 | HTTP local                                    | mTLS strict (Linkerd) + PKI Vault, rotation cert/JWKS automatique (ADR-034)       |
+>
+> En production, les services ne lisent **plus** `.env` : ils s'authentifient à Vault via
+> AppRole/SA, obtiennent un lease court, et Vault injecte les secrets (DB, MinIO, RabbitMQ, clés JWT
+> RS256) dans un fichier monté. Aucun secret ne transite par une variable d'environnement visible
+> dans `docker inspect`. Référence : ADR-026/034 + `docs/security/SECURITY-RUNBOOK.md`.
+
 **Validation** :
 
 ```powershell
 # Ouvrir l'UI web : http://localhost:8200
-# Token : nina-dev  (défini par VAULT_DEV_ROOT_TOKEN_ID dans docker-compose.dev.yml)
+# Token : ${VAULT_DEV_ROOT_TOKEN}  (défini dans .env, injecté via VAULT_DEV_ROOT_TOKEN_ID)
 
 # Vérifier le statut (VAULT_ADDR requis : le client défaut HTTPS, notre dev = HTTP)
 docker exec -e VAULT_ADDR=http://localhost:8200 nina-vault vault status
 # Sealed: false  (en mode dev, Vault est automatiquement "unsealed")
 
-# Stocker un secret de test (VAULT_TOKEN requis)
-docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN=nina-dev \
+# Stocker un secret de test (VAULT_TOKEN lu depuis le .env de l'hôte → jamais en clair ici)
+docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN="$env:VAULT_DEV_ROOT_TOKEN" \
   nina-vault vault kv put secret/jwt-keys private-key="test-key-content"
 # Success! Data written to: secret/data/jwt-keys
 
 # Lire le secret
-docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN=nina-dev \
+docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN="$env:VAULT_DEV_ROOT_TOKEN" \
   nina-vault vault kv get secret/jwt-keys
 # Key            Value
 # ---            -----
 # private-key    test-key-content
 
 # Astuce: pour éviter de répéter -e à chaque commande, entrer dans un shell:
-#   docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN=nina-dev \
+#   docker exec -e VAULT_ADDR=http://localhost:8200 -e VAULT_TOKEN="$env:VAULT_DEV_ROOT_TOKEN" \
 #     -it nina-vault sh
 # puis 'vault kv put/get/...' sans flags supplémentaires.
 ```
@@ -1026,7 +1135,7 @@ réellement. C'est un « bac à sable » pour les emails.
 
 ```yaml
 maildev:
-  image: maildev/maildev:2.2.1
+  image: maildev/maildev:2.2.1@sha256:<sha256-maildev-2.2.1>
   container_name: nina-maildev
   restart: unless-stopped
 
@@ -1036,6 +1145,9 @@ maildev:
 
   # Pas de volume (les emails capturés sont perdus au redémarrage)
   # Pas de healthcheck (service non critique)
+
+  security_opt:
+    - no-new-privileges:true
 
   networks:
     - nina-network
@@ -1065,6 +1177,135 @@ Send-MailMessage -From "test@nina-aes.ml" -To "citoyen@example.com" `
 #   Install-Module Send-MailKitMessage -Scope CurrentUser
 # Ou simplement passer par l'API HTTP du notification-service quand il sera up.
 ```
+
+### 7.6 Durcissement & threat model infra
+
+> 🎯 **But** : cette section décrit le **modèle de menace** de l'infrastructure et les
+> contre-mesures. En dev local, certaines sont relâchées (HTTP, ports publiés, `start-dev`) ; la
+> cible production est tracée dans `docs/security/THREAT-MODEL.md`,
+> `docs/security/SECURITY-RUNBOOK.md` et **ADR-034** (mTLS strict Linkerd + PKI Vault + rotation
+> clés/JWKS + scans CI). Statut ci-dessous : ✅ = appliqué dans ce doc, ⏳ = conçu, à implémenter en
+> Phase 2.
+
+#### 7.6.1 Secrets — zéro secret en clair
+
+- ✅ **Portée du doc (extraits)** : dans **les extraits YAML reproduits dans ce document**, chaque
+  mot de passe (Postgres, Redis, RabbitMQ, MinIO, Keycloak, Elasticsearch, Vault) est interpolé en
+  **`${VAR}` nu** (sans valeur par défaut). C'est la **cible** que le compose réel doit atteindre. ⚠
+  Honnêteté : cette affirmation ne porte **que** sur les extraits ci-dessus — **pas** sur le fichier
+  livré, qui présente encore le drift décrit au point suivant. (Anciennement ce point prétendait «
+  le YAML ne contient aucun littéral » et renvoyait à un grep censé « ne retourner aucune valeur » :
+  c'était un **overclaim** — le compose committé contient bien des secrets en clair, cf.
+  ci-dessous.)
+- ⏳ **DRIFT À CORRIGER (P0, code)** : le fichier réel
+  `infrastructure/docker/docker-compose.dev.yml` utilise encore des **fallbacks
+  `${VAR:-mot_de_passe_dev}`** qui exposent **6 secrets en clair committés** sur la branche. Les 6
+  valeurs littérales (avec leur variable primaire telle qu'écrite dans le compose livré) :
+  - `POSTGRES_PASSWORD` → `${POSTGRES_PASSWORD:-nina_dev_2026!}` (réutilisé par `KC_DB_PASSWORD`)
+  - `REDIS_PASSWORD` → `${REDIS_PASSWORD:-redis_dev_2026!}` (env **et** healthcheck `redis-cli -a`)
+  - `RABBITMQ_DEFAULT_PASS` → `${RABBITMQ_DEFAULT_PASS:-${RABBITMQ_PASSWORD:-rabbit_dev_2026!}}`
+  - `MINIO_ROOT_PASSWORD` → `${MINIO_ROOT_PASSWORD:-${MINIO_SECRET_KEY:-minio_dev_2026!}}`
+  - `ELASTIC_PASSWORD` → `${ELASTIC_PASSWORD:-${ELASTICSEARCH_PASSWORD:-elastic_dev_2026!}}` (env,
+    healthcheck, et propagé à Kibana)
+  - `KC_BOOTSTRAP_ADMIN_PASSWORD` →
+    `${KC_BOOTSTRAP_ADMIN_PASSWORD:-${KEYCLOAK_ADMIN_PASSWORD:-keycloak_admin_2026!}}`
+
+  Ces littéraux doivent être **retirés du YAML** (interpolation `${VAR}` nue, sans `:-default`), de
+  sorte qu'un `.env` manquant fasse **échouer** le `compose up` au lieu de démarrer avec un mot de
+  passe public connu de tous.
+
+- ✅ `.env` jamais commité (`.gitignore`) ; `.env.example` documente uniquement les **noms** + des
+  placeholders. Commande de contrôle du drift (compte les **valeurs littérales distinctes** encore
+  présentes) :
+  `git grep -hoE ':-[a-z_]+_(dev|admin)_2026!' infrastructure/docker/docker-compose.dev.yml | sort -u | wc -l`
+  → **retourne `6` aujourd'hui**, doit retourner **`0`** une fois le P0 appliqué. (Le pattern brut
+  sans `sort -u` matche ~10 lignes car certains secrets — `redis`, `elastic` — apparaissent aussi
+  dans les healthchecks/propagations ; c'est bien **6 secrets uniques** qui fuient.)
+- ⏳ **Production = Vault** (cf. « Migration Vault », §7.4) : AppRole / Kubernetes auth + leases
+  courts ; **jamais** de `VAULT_TOKEN` long-lived. Secrets injectés par Vault Agent / CSI Secrets
+  Store dans un fichier monté, pas en variable d'env (invisible dans `docker inspect`).
+
+#### 7.6.2 Chaîne d'approvisionnement (supply chain)
+
+- ✅ **Pinning par digest SHA-256** : chaque image est épinglée `name:tag@sha256:…` (pas seulement
+  par tag mutable). Un tag peut être réécrit côté registre ; un digest est immuable et auditable.
+  Résoudre les digests : `docker buildx imagetools inspect <image>:<tag>`.
+- ⏳ **Scan Trivy en CI** : bloquer le merge si une image contient une CVE `HIGH`/`CRITICAL`.
+
+  ```bash
+  # ⏳ à câbler dans le pipeline CI (Phase 2)
+  # Scanne chaque image épinglée et échoue (exit≠0) sur HIGH/CRITICAL.
+  trivy image --severity HIGH,CRITICAL --exit-code 1 \
+    postgis/postgis:18-3.6@sha256:<digest>
+  # Variante filesystem (scanne le compose + Dockerfiles) :
+  trivy config infrastructure/docker/
+  ```
+
+- ⏳ **Miroir registry on-premise (souveraineté)** : ne pas dépendre de Docker Hub / quay.io en
+  prod. Miroir interne CTDEC (Harbor / registry:2) qui réplique et signe les images approuvées.
+  Évite la fuite de métadonnées vers des registres étrangers et garantit la disponibilité hors
+  connexion. ⚠ Pas d'AWS ECR public ni Cloudflare sur le cœur (cohérent avec le canon souveraineté).
+- ⏳ **Signature d'images** (cosign) + vérification d'admission (policy controller) en cluster.
+
+#### 7.6.3 Durcissement runtime des conteneurs
+
+| Mesure                      | Effet                                                                 | Statut                                                       |
+| --------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `no-new-privileges:true`    | Interdit l'escalade de privilèges (setuid) dans le conteneur          | ✅ posé sur chaque service                                   |
+| `read_only: true` + `tmpfs` | Système de fichiers en lecture seule ; écritures cantonnées aux tmpfs | ⏳ Phase 2 (Postgres/ES ont besoin de chemins inscriptibles) |
+| `user:` non-root            | Le process ne tourne pas en UID 0 (réduit l'impact d'une évasion)     | ⏳ Phase 2 (images Debian root par défaut)                   |
+| `cap_drop: [ALL]`           | Retire toutes les capabilities Linux, on ne ré-ajoute que le strict   | ⏳ (Vault garde `IPC_LOCK`)                                  |
+| `pids_limit` / `mem_limit`  | Limite l'épuisement de ressources (DoS local)                         | ⏳ Phase 2                                                   |
+
+```yaml
+# ⏳ Exemple cible (Phase 2) — durcissement complet d'un service stateless :
+#   read_only + tmpfs + user non-root + cap_drop. À NE PAS appliquer tel quel à
+#   Postgres/ES (ils écrivent hors volumes) sans tmpfs adaptés.
+example-hardened-service:
+  image: some/image:tag@sha256:<digest>
+  read_only: true # FS racine en lecture seule
+  tmpfs:
+    - /tmp # zone scratch éphémère en RAM
+  user: '10001:10001' # UID/GID non privilégié
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL # on retire tout, on ne ré-ajoute que si nécessaire
+```
+
+#### 7.6.4 Chiffrement en transit — TLS / mTLS
+
+- En **dev**, on parle HTTP en local (simplicité) : ES `http.ssl.enabled=false`, Keycloak
+  `KC_HTTP_ENABLED=true`, Vault `start-dev` en HTTP. **Acceptable uniquement sur `localhost`**.
+- ⏳ En **prod** : **mTLS strict** entre tous les services via **Linkerd** (sidecar), certificats
+  issus de la **PKI Vault**, rotation automatique des certificats et des JWKS — couvert par
+  **ADR-034**. Aucun trafic inter-service en clair. TLS terminé au mesh, pas par chaque app.
+- ⏳ TLS HTTP activé sur ES (`xpack.security.http.ssl.enabled=true`) et Keycloak (HTTPS) avec certs
+  Vault, pas de certificat auto-signé long-lived.
+
+#### 7.6.5 Segmentation réseau & exposition
+
+- ✅ Réseau bridge dédié `nina-aes-network` (isolé du réseau Docker par défaut).
+- ⏳ **Ne pas publier les ports data en prod** : Postgres (5432), Redis (6379), ES (9200), RabbitMQ
+  (5672) **ne doivent pas** être mappés vers l'hôte — accès via réseau interne uniquement. Seuls les
+  ingress applicatifs (api-gateway) sont exposés. En dev local, les ports sont publiés pour le
+  confort (psql, redis-cli) — relâchement assumé.
+- ⏳ **NetworkPolicy** (en cluster) : segmenter en zones (data / app / edge) et n'autoriser que les
+  flux légitimes (ex. seul `document-service` joint MinIO ; seul Keycloak joint Postgres).
+- ✅ **PII biométrique (MinIO)** : aucun bucket en accès anonyme, **même en dev** (cf. §7.1). Accès
+  exclusivement par **URL présignée** courte émise après contrôle RBAC.
+
+#### 7.6.6 Menaces principales & contre-mesures (synthèse)
+
+| Menace                                                   | Contre-mesure                                                                                                                                 |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fuite de secrets (clair dans le repo / `docker inspect`) | ✅ extraits du doc en `${VAR}` nu ; ⏳ **P0** retirer les `:-…_dev_2026!` du compose réel (§7.6.1) ; ⏳ Vault + `_FILE`/fichier monté en prod |
+| Exfiltration des photos biométriques                     | ✅ buckets privés + URL présignées courtes ; ⏳ chiffrement au repos MinIO                                                                    |
+| Lecture non authentifiée des index ES (noms = PII)       | ✅ `xpack.security.enabled=true` ; ⏳ TLS HTTP + RBAC ES                                                                                      |
+| Image compromise / CVE                                   | ✅ pin par digest ; ⏳ scan Trivy CI + miroir on-premise + cosign                                                                             |
+| Évasion de conteneur / escalade privilèges               | ✅ `no-new-privileges` ; ⏳ read-only + non-root + `cap_drop: [ALL]`                                                                          |
+| Sniffing inter-services                                  | ⏳ mTLS strict Linkerd + PKI Vault (ADR-034)                                                                                                  |
+| Exposition réseau excessive                              | ✅ réseau dédié ; ⏳ ports data non publiés + NetworkPolicy en prod                                                                           |
 
 ---
 
@@ -1215,8 +1456,8 @@ Les autres services n'ont pas de dépendance inter-conteneurs.
 | Conteneur en état « unhealthy »                                                                 | Le service n'a pas fini de démarrer                                 | Attendre 60s et revérifier. Si persistant : `docker compose logs <service>` pour voir l'erreur.                                                                                                                    |
 | `keycloak` ne démarre pas                                                                       | PostgreSQL pas encore prêt                                          | Vérifier `docker compose ps postgres` → doit être « healthy ». Si non, checker les logs postgres.                                                                                                                  |
 | Elasticsearch « unhealthy » avec `max virtual memory areas vm.max_map_count [65530] is too low` | Paramètre Linux/WSL2 trop bas pour ES                               | Dans un terminal WSL2 : `wsl -d docker-desktop sysctl -w vm.max_map_count=262144`. Pour persister : ajouter dans `%USERPROFILE%\.wslconfig` la ligne `[wsl2]\nkernelCommandLine = sysctl.vm.max_map_count=262144`. |
-| Redis « NOAUTH Authentication required »                                                        | Le mot de passe n'est pas fourni dans l'URL                         | Vérifier `REDIS_URL=redis://:redis_dev_2026!@localhost:6379` (noter le `:` avant `redis_dev_2026!`).                                                                                                               |
-| MinIO « Access Denied »                                                                         | Mauvais credentials                                                 | Vérifier `MINIO_ACCESS_KEY=nina_minio_admin` et `MINIO_SECRET_KEY=minio_dev_2026!` dans le `.env`.                                                                                                                 |
+| Redis « NOAUTH Authentication required »                                                        | Le mot de passe n'est pas fourni dans l'URL                         | Vérifier `REDIS_URL=redis://:${REDIS_PASSWORD}@localhost:6379` (noter le `:` avant le mot de passe).                                                                                                               |
+| MinIO « Access Denied »                                                                         | Mauvais credentials                                                 | Vérifier que `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` du `.env` correspondent à `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` du conteneur.                                                                             |
 | Docker est très lent sous Windows                                                               | Docker Desktop utilise trop/pas assez de RAM                        | Paramètres Docker Desktop → Resources → augmenter à 4 Go RAM minimum, 4 CPUs.                                                                                                                                      |
 | `init-db.sql` ne s'exécute pas                                                                  | Le volume `postgres_data` existe déjà                               | Le script ne s'exécute qu'au premier démarrage. Supprimer le volume : `docker volume rm nina-aes-platform_postgres_data` puis relancer.                                                                            |
 | Espace disque Docker plein                                                                      | Images et volumes non utilisés                                      | `docker system prune -a --volumes` (⚠️ supprime tout ce qui n'est pas utilisé).                                                                                                                                    |
@@ -1259,68 +1500,77 @@ pnpm run docker:ps --format "table {{.Name}}\t{{.Status}}"
 ## 10. Variables d'environnement — Référence complète
 
 Le fichier `.env.example` contient toutes les variables nécessaires. Voici la documentation
-détaillée par catégorie :
+détaillée par catégorie.
+
+> 🔒 **P0** : la colonne « Valeur `.env.example` » ne contient que des **placeholders**, jamais de
+> secret réel. Sur le poste de dev, copier `.env.example` → `.env` et remplacer chaque
+> `__CHANGE_ME__*` par une valeur générée (`openssl rand -base64 24`). `.env` reste non commité. En
+> production, ces valeurs ne viennent **pas** de `.env` mais de Vault (cf. §7.4).
 
 ### 10.1 PostgreSQL
 
-| Variable            | Valeur dev                                                          | Utilisé par                      | Description                              |
-| ------------------- | ------------------------------------------------------------------- | -------------------------------- | ---------------------------------------- |
-| `POSTGRES_USER`     | `nina_admin`                                                        | Docker Compose                   | Utilisateur PostgreSQL créé au démarrage |
-| `POSTGRES_PASSWORD` | `nina_dev_2026!`                                                    | Docker Compose                   | Mot de passe PostgreSQL                  |
-| `POSTGRES_DB`       | `nina_aes_db`                                                       | Docker Compose                   | Base de données créée au démarrage       |
-| `DATABASE_URL`      | `postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db` | Prisma, tous les services NestJS | URL de connexion complète                |
+| Variable            | Valeur `.env.example`                                                | Utilisé par                      | Description                                  |
+| ------------------- | -------------------------------------------------------------------- | -------------------------------- | -------------------------------------------- |
+| `POSTGRES_USER`     | `nina_admin`                                                         | Docker Compose                   | Utilisateur PostgreSQL créé au démarrage     |
+| `POSTGRES_PASSWORD` | `__CHANGE_ME__PG`                                                    | Docker Compose                   | Mot de passe PostgreSQL (généré localement)  |
+| `POSTGRES_DB`       | `nina_aes_db`                                                        | Docker Compose                   | Base de données créée au démarrage           |
+| `DATABASE_URL`      | `postgresql://nina_admin:__CHANGE_ME__PG@localhost:5432/nina_aes_db` | Prisma, tous les services NestJS | URL de connexion (réutilise le mot de passe) |
 
 ### 10.2 Redis
 
-| Variable         | Valeur dev                                | Utilisé par                   | Description                  |
-| ---------------- | ----------------------------------------- | ----------------------------- | ---------------------------- |
-| `REDIS_URL`      | `redis://:redis_dev_2026!@localhost:6379` | Services NestJS (cache, USSD) | URL avec mot de passe        |
-| `REDIS_HOST`     | `localhost`                               | Config alternative            | Hôte seul (certains clients) |
-| `REDIS_PORT`     | `6379`                                    | Config alternative            | Port seul                    |
-| `REDIS_PASSWORD` | `redis_dev_2026!`                         | Config alternative            | Mot de passe seul            |
+| Variable         | Valeur `.env.example`                        | Utilisé par                   | Description                  |
+| ---------------- | -------------------------------------------- | ----------------------------- | ---------------------------- |
+| `REDIS_URL`      | `redis://:__CHANGE_ME__REDIS@localhost:6379` | Services NestJS (cache, USSD) | URL avec mot de passe        |
+| `REDIS_HOST`     | `localhost`                                  | Config alternative            | Hôte seul (certains clients) |
+| `REDIS_PORT`     | `6379`                                       | Config alternative            | Port seul                    |
+| `REDIS_PASSWORD` | `__CHANGE_ME__REDIS`                         | Docker Compose + config       | Mot de passe seul            |
 
 ### 10.3 RabbitMQ
 
-| Variable            | Valeur dev                                           | Utilisé par                | Description       |
+| Variable            | Valeur `.env.example`                                | Utilisé par                | Description       |
 | ------------------- | ---------------------------------------------------- | -------------------------- | ----------------- |
-| `RABBITMQ_URL`      | `amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672` | Services NestJS (messages) | URL AMQP complète |
+| `RABBITMQ_URL`      | `amqp://nina_rabbit:__CHANGE_ME__RMQ@localhost:5672` | Services NestJS (messages) | URL AMQP complète |
 | `RABBITMQ_HOST`     | `localhost`                                          | Config alternative         | Hôte seul         |
 | `RABBITMQ_USER`     | `nina_rabbit`                                        | Docker Compose + config    | Utilisateur AMQP  |
-| `RABBITMQ_PASSWORD` | `rabbit_dev_2026!`                                   | Docker Compose + config    | Mot de passe AMQP |
+| `RABBITMQ_PASSWORD` | `__CHANGE_ME__RMQ`                                   | Docker Compose + config    | Mot de passe AMQP |
 
 ### 10.4 MinIO
 
-| Variable                 | Valeur dev         | Utilisé par        | Description                          |
-| ------------------------ | ------------------ | ------------------ | ------------------------------------ |
-| `MINIO_ENDPOINT`         | `localhost`        | `document-service` | Hôte MinIO                           |
-| `MINIO_PORT`             | `9000`             | `document-service` | Port API S3                          |
-| `MINIO_ACCESS_KEY`       | `nina_minio_admin` | `document-service` | Access key (= AWS_ACCESS_KEY_ID)     |
-| `MINIO_SECRET_KEY`       | `minio_dev_2026!`  | `document-service` | Secret key (= AWS_SECRET_ACCESS_KEY) |
-| `MINIO_BUCKET_DOCUMENTS` | `nina-documents`   | `document-service` | Bucket pour les PDF                  |
-| `MINIO_BUCKET_PHOTOS`    | `nina-photos`      | `identity-service` | Bucket pour les photos               |
+| Variable                 | Valeur `.env.example` | Utilisé par        | Description                             |
+| ------------------------ | --------------------- | ------------------ | --------------------------------------- |
+| `MINIO_ENDPOINT`         | `localhost`           | `document-service` | Hôte MinIO                              |
+| `MINIO_PORT`             | `9000`                | `document-service` | Port API S3                             |
+| `MINIO_ACCESS_KEY`       | `nina_minio_admin`    | `document-service` | Access key (= AWS_ACCESS_KEY_ID)        |
+| `MINIO_SECRET_KEY`       | `__CHANGE_ME__MINIO`  | `document-service` | Secret key (= AWS_SECRET_ACCESS_KEY)    |
+| `MINIO_BUCKET_DOCUMENTS` | `nina-documents`      | `document-service` | Bucket pour les PDF                     |
+| `MINIO_BUCKET_PHOTOS`    | `nina-photos`         | `identity-service` | Bucket photos (PRIVÉ — URLs présignées) |
 
 ### 10.5 Elasticsearch
 
-| Variable                   | Valeur dev              | Utilisé par        | Description                                                |
-| -------------------------- | ----------------------- | ------------------ | ---------------------------------------------------------- |
-| `ELASTICSEARCH_URL`        | `http://localhost:9200` | `identity-service` | URL du cluster ES                                          |
-| `ELASTICSEARCH_INDEX_NINA` | `nina_citizens`         | `identity-service` | Index principal (créé par `scripts/init-elasticsearch.sh`) |
+| Variable                   | Valeur `.env.example`   | Utilisé par                  | Description                                                |
+| -------------------------- | ----------------------- | ---------------------------- | ---------------------------------------------------------- |
+| `ELASTICSEARCH_URL`        | `http://localhost:9200` | `identity-service`           | URL du cluster ES                                          |
+| `ELASTIC_PASSWORD`         | `__CHANGE_ME__ES`       | Docker Compose, scripts init | Mot de passe superuser `elastic` (xpack.security activé)   |
+| `ELASTICSEARCH_INDEX_NINA` | `nina_citizens`         | `identity-service`           | Index principal (créé par `scripts/init-elasticsearch.sh`) |
 
 ### 10.6 Keycloak
 
-| Variable                 | Valeur dev                | Utilisé par               | Description             |
-| ------------------------ | ------------------------- | ------------------------- | ----------------------- |
-| `KEYCLOAK_URL`           | `http://localhost:8080`   | `auth-service`, frontends | URL du serveur Keycloak |
-| `KEYCLOAK_REALM`         | `nina-aes`                | `auth-service`            | Realm dédié au projet   |
-| `KEYCLOAK_CLIENT_ID`     | `nina-platform`           | Frontends Next.js         | ID du client OAuth2     |
-| `KEYCLOAK_CLIENT_SECRET` | `change-me-in-production` | `auth-service`            | Secret du client OAuth2 |
+| Variable                  | Valeur `.env.example`    | Utilisé par               | Description                                   |
+| ------------------------- | ------------------------ | ------------------------- | --------------------------------------------- |
+| `KEYCLOAK_URL`            | `http://localhost:8080`  | `auth-service`, frontends | URL du serveur Keycloak                       |
+| `KEYCLOAK_REALM`          | `nina-aes`               | `auth-service`            | Realm dédié au projet                         |
+| `KEYCLOAK_CLIENT_ID`      | `nina-platform`          | Frontends Next.js         | ID du client OAuth2                           |
+| `KEYCLOAK_CLIENT_SECRET`  | `__CHANGE_ME__KC_CLIENT` | `auth-service`            | Secret du client OAuth2                       |
+| `KEYCLOAK_ADMIN_USER`     | `admin`                  | Docker Compose            | Admin bootstrap (KC_BOOTSTRAP_ADMIN_USERNAME) |
+| `KEYCLOAK_ADMIN_PASSWORD` | `__CHANGE_ME__KC_ADMIN`  | Docker Compose            | Mot de passe admin bootstrap                  |
 
 ### 10.7 Vault
 
-| Variable      | Valeur dev              | Utilisé par       | Description                        |
-| ------------- | ----------------------- | ----------------- | ---------------------------------- |
-| `VAULT_ADDR`  | `http://localhost:8200` | Tous les services | URL de l'API Vault                 |
-| `VAULT_TOKEN` | `nina-dev`              | Tous les services | Token racine (dev mode uniquement) |
+| Variable               | Valeur `.env.example`   | Utilisé par       | Description                                           |
+| ---------------------- | ----------------------- | ----------------- | ----------------------------------------------------- |
+| `VAULT_ADDR`           | `http://localhost:8200` | Tous les services | URL de l'API Vault                                    |
+| `VAULT_DEV_ROOT_TOKEN` | `__CHANGE_ME__VAULT`    | Docker Compose    | Token racine **dev mode uniquement** (jamais en prod) |
+| `VAULT_TOKEN`          | `__CHANGE_ME__VAULT`    | Services (dev)    | En prod : remplacé par AppRole/K8s auth + lease court |
 
 ### 10.8 SMTP (Maildev)
 
@@ -1384,33 +1634,41 @@ détaillée par catégorie :
 
 ### Redis
 
-- [ ] `docker exec -it nina-redis redis-cli -a redis_dev_2026! ping` retourne `PONG`
+- [ ] `docker exec -it nina-redis redis-cli -a "$env:REDIS_PASSWORD" ping` retourne `PONG`
 - [ ] Opérations SET/GET/EX fonctionnelles
 - [ ] Persistance AOF activée (`CONFIG GET appendonly` → `yes`)
 
 ### RabbitMQ
 
-- [ ] Interface web accessible : `http://localhost:15672` (nina_rabbit / rabbit_dev_2026!)
+- [ ] Interface web accessible : `http://localhost:15672` (identifiants depuis `.env` :
+      `RABBITMQ_USER`/`RABBITMQ_PASSWORD`)
 - [ ] `rabbitmqctl status` exécutable sans erreur
 
 ### MinIO
 
-- [ ] Console web accessible : `http://localhost:9001` (nina_minio_admin / minio_dev_2026!)
-- [ ] Buckets `nina-documents` et `nina-photos` créés
+- [ ] Console web accessible : `http://localhost:9001` (identifiants `.env` :
+      `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY`)
+- [ ] Buckets `nina-documents` et `nina-photos` créés — **tous PRIVÉS** (aucun accès anonyme)
+- [ ] Vérifié : `nina-photos` n'est PAS en `anonymous download` (PII biométrique)
 
 ### Elasticsearch
 
-- [ ] `curl http://localhost:9200` retourne les infos du cluster (version 8.17.0)
+- [ ] `curl -u "elastic:$env:ELASTIC_PASSWORD" http://localhost:9200` retourne les infos du cluster
+      (version 9.4.1)
+- [ ] `xpack.security.enabled=true` (auth obligatoire) ; mot de passe `kibana_system` réinitialisé
+      au premier boot
 - [ ] Statut du cluster : `green` ou `yellow`
 
 ### Keycloak
 
-- [ ] Console accessible : `http://localhost:8080` (admin / keycloak_admin_2026!)
-- [ ] Endpoint de santé : `curl http://localhost:8080/health/ready` → `UP`
+- [ ] Console accessible : `http://localhost:8080` (identifiants `.env` :
+      `KEYCLOAK_ADMIN_USER`/`KEYCLOAK_ADMIN_PASSWORD`)
+- [ ] Endpoint de santé (port management 9000) : `docker exec nina-keycloak ... /health/ready` →
+      `UP`
 
 ### Vault
 
-- [ ] UI accessible : `http://localhost:8200` (token: nina-dev)
+- [ ] UI accessible : `http://localhost:8200` (token : `VAULT_DEV_ROOT_TOKEN` depuis `.env`)
 - [ ] `vault status` → Sealed: false
 - [ ] Opérations kv put/get fonctionnelles
 
@@ -1437,7 +1695,7 @@ détaillée par catégorie :
 - **Docker Compose Specification** (https://docs.docker.com/compose/compose-file/) — Référence
   complète du format YAML de Docker Compose. Documente chaque directive (services, networks,
   volumes, healthcheck, depends_on, etc.).
-- **PostgreSQL Extensions** (https://www.postgresql.org/docs/17/contrib.html) — Liste complète des
+- **PostgreSQL Extensions** (https://www.postgresql.org/docs/18/contrib.html) — Liste complète des
   extensions contrib PostgreSQL. Utile pour comprendre pg_trgm et unaccent en profondeur.
 - **Redis Persistence** (https://redis.io/docs/management/persistence/) — Documentation officielle
   sur les stratégies de persistance Redis (RDB vs AOF vs les deux). Explique pourquoi

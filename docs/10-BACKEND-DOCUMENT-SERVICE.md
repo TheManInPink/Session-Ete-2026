@@ -1,11 +1,11 @@
 # 10 — Backend : Document-Service (NestJS 11 + Puppeteer + QR JWT RS256)
 
 > **Projet** : NINA-AES Platform · **Document** : 10/26 · **Bloc** : A (NINA Mali — P0) **Service**
-> : `document-service` — Génération de la Fiche Descriptive Individuelle (FDI) au format PDF/A-3b,
-> QR vérifiable hors ligne, archivage WORM MinIO. **Port** : `3004` · **Stack** : NestJS 11.1 ·
-> Puppeteer 24 · pdf-lib 1.17 · Handlebars 4.7 · qrcode 1.5 · jose 5 · Vault Transit · MinIO 2025-11
-> · PostgreSQL 18 · Prisma 7.6 · RabbitMQ 4.2 **Auteur** : Étudiant UQAR · **Date** : Avril 2026 ·
-> **Durée estimée** : 12–16 h **Prérequis** :
+> : `document-service` — Génération de la Fiche Descriptive Individuelle (FDI) au format PDF/A-3b
+> (visé — conformité à valider veraPDF, cf. §9.13), QR vérifiable hors ligne, archivage WORM MinIO.
+> **Port** : `3004` · **Stack** : NestJS 11.1 · Puppeteer 24 · pdf-lib 1.17 · Handlebars 4.7 ·
+> qrcode 1.5 · jose 5 · Vault Transit · MinIO 2025-11 · PostgreSQL 18 · Prisma 7.6 · RabbitMQ 4.2
+> **Auteur** : Étudiant UQAR · **Date** : Avril 2026 · **Durée estimée** : 12–16 h **Prérequis** :
 > [07 — Identity Service](./07-BACKEND-IDENTITY-SERVICE.md) ·
 > [08 — Auth Service](./08-BACKEND-AUTH-SERVICE.md) ·
 > [09 — Audit Service](./09-BACKEND-AUDIT-SERVICE.md) ·
@@ -31,7 +31,7 @@
 12. [Sécurité — protection PDF, anti-fraude, OWASP](#12-sécurité--protection-pdf-anti-fraude-owasp)
 13. [Performance — pool Puppeteer, cache, métriques](#13-performance--pool-puppeteer-cache-métriques)
 14. [Tests (unit + e2e + visual regression)](#14-tests-unit--e2e--visual-regression)
-15. [Swagger + OpenAPI 3.1](#15-swagger--openapi-31)
+15. [Swagger + OpenAPI 3.2](#15-swagger--openapi-32)
 16. [Mini-rapport d'étape (template)](#16-mini-rapport-détape-template)
 17. [Checklist de fin d'étape](#17-checklist-de-fin-détape)
 18. [Pour aller plus loin](#18-pour-aller-plus-loin)
@@ -54,7 +54,7 @@ La FDI est :
 - **Multilingue** : FR · BM (bamanankan) · SNK (soninké) · FF (peul/fulfulde) — extensible aux 4
   autres langues nationales (Tamasheq, Hausa, Mossi, Djerma) pour le Bloc B,
 - **Auditée** : chaque génération et chaque vérification publie un événement vers `audit-service`
-  (chaîne Merkle, cf. document 09).
+  (hash-chain SHA-256 linéaire, cf. document 09).
 
 Ce service joue le rôle de **carte d'identité numérique portable** en attendant la carte biométrique
 physique du Bloc F (qui n'arrive qu'en P3, prioritairement après l'interop AES).
@@ -84,7 +84,7 @@ physique du Bloc F (qui n'arrive qu'en P3, prioritairement après l'interop AES)
 - **Endpoint public** `/public/documents/verify-qr` sans auth (rate-limit IP 30/min)
 - **Audit** de chaque génération / révocation / vérification (RabbitMQ → audit-service)
 - **Tests** ≥ 85 % de couverture (unit + e2e + 1 test de régression visuelle)
-- **Swagger** OpenAPI 3.1 documentant les 6 endpoints
+- **Swagger** OpenAPI 3.2 documentant les 6 endpoints
 
 ---
 
@@ -162,7 +162,7 @@ mobile. Pour le QR :
 | `@nestjs/core`             | `11.1.18` | Runtime                                              |
 | `@nestjs/platform-express` | `11.1.18` | Adaptateur HTTP                                      |
 | `@nestjs/config`           | `4.1.2`   | `.env` validé via Zod                                |
-| `@nestjs/swagger`          | `11.2.0`  | OpenAPI 3.1                                          |
+| `@nestjs/swagger`          | `11.2.0`  | OpenAPI 3.2                                          |
 | `@nestjs/terminus`         | `11.1.0`  | Healthchecks (MinIO, Vault, Postgres)                |
 | `@nestjs/microservices`    | `11.1.18` | Publisher AMQP vers audit-service                    |
 | `@nestjs/schedule`         | `6.1.0`   | Cron : nettoyage cache, rafraîchissement JWKS        |
@@ -547,8 +547,8 @@ export interface QrPayload {
 | ----------------------- | --------------------------------------- |
 | Header base64url        | ~80 caractères                          |
 | Payload base64url       | ~550 caractères                         |
-| Signature RSA 3072      | 512 octets → 684 caractères base64url   |
-| **Total JWT**           | **~1 320 caractères**                   |
+| Signature RSA 3072      | 384 octets → 512 caractères base64url   |
+| **Total JWT**           | **~1 150 caractères**                   |
 | Niveau de correction QR | **H (30 %)** — résiste à pliage / usure |
 | Taille QR rendu (1 cm²) | ~600 × 600 px sur le PDF                |
 
@@ -826,12 +826,21 @@ body {
 
 ### 9.1 `main.ts`
 
+> ⏳ **STATUT — à implémenter Phase 2 (le code on-disk ne fait PAS ceci).** Le bloc ci-dessous
+> documente le **durcissement CIBLE** (CSP stricte globale + HSTS + helmet dédié assoupli sur
+> `/api/docs`). **Le `main.ts` réellement livré a encore
+> `helmet({ contentSecurityPolicy: false })`** (CSP désactivée sur TOUTE l'application), **sans**
+> HSTS, **sans** `strictHelmet`, **sans** `swaggerHelmet`. Vérifiable :
+> `grep -n "contentSecurityPolicy: false" services/document-service/src/main.ts` retourne bien
+> `main.ts:25`. Tant que ce correctif n'est pas appliqué, A05 reste ouvert.
+
 ```typescript
+// ⏳ DESIGN CIBLE — NON livré (cf. bannière ci-dessus). À implémenter en Phase 2.
 // services/document-service/src/main.ts
 /**
  * @file        main.ts
  * @description Bootstrap du microservice document-service (port 3004).
- *              Active Swagger, Helmet, validation Zod, logger pino.
+ *              Active Swagger, Helmet (CSP stricte + HSTS), validation Zod, logger pino.
  */
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
@@ -843,16 +852,69 @@ import { setupSwagger } from './swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
-  app.use(helmet({ contentSecurityPolicy: false })); // Swagger nécessite CSP relax
-  app.setGlobalPrefix('api/v1');
+
+  // ── DURCISSEMENT P1 — CSP STRICTE PAR DÉFAUT ───────────────────────────
+  // ANCIEN défaut dangereux : `helmet({ contentSecurityPolicy: false })`
+  // désactivait la CSP sur TOUTE l'application pour faire plaisir à Swagger.
+  // NOUVEAU : CSP stricte globale + HSTS. On ne relâche la CSP QUE sur la
+  // route Swagger (`/api/docs`), via un helmet dédié monté avant le router.
+  const strictHelmet = helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:'], // QR rendu en data:image/png — autorisé
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    // HSTS : 2 ans, sous-domaines inclus, éligible preload.
+    hsts: { maxAge: 63_072_000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: 'no-referrer' },
+  });
+
+  // CSP assouplie UNIQUEMENT pour la doc Swagger (inline styles/scripts de
+  // swagger-ui). HSTS et les autres en-têtes restent appliqués.
+  const swaggerHelmet = helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+      },
+    },
+    hsts: { maxAge: 63_072_000, includeSubDomains: true, preload: true },
+  });
+
+  // L'ordre compte : la route Swagger doit matcher AVANT le helmet strict.
+  app.use(['/api/docs', '/api/docs-json'], swaggerHelmet);
+  app.use(strictHelmet);
+
+  app.setGlobalPrefix('api/v1', { exclude: ['health', 'metrics'] });
   app.useGlobalFilters(new DocumentExceptionFilter());
   app.enableCors({ origin: ['https://citoyen.nina-aes.ml'], credentials: true });
+
+  // /metrics protégé par mTLS au niveau réseau (cf. §13.x) : exposé sur un
+  // listener séparé OU derrière un proxy qui exige un cert client Prometheus.
   setupSwagger(app);
   await app.listen(3004);
   app.get(Logger).log({ port: 3004 }, 'document-service ready');
 }
 bootstrap();
 ```
+
+> ⏳ **Réalité on-disk (à corriger Phase 2)** :
+> `grep -n "contentSecurityPolicy: false" services/document-service/src/main.ts` retourne **encore**
+> `main.ts:25`. La CSP est donc actuellement **désactivée sur toute l'application** ; HSTS n'est pas
+> émis ; aucun `swaggerHelmet`/`strictHelmet` n'existe. Une fois ce design appliqué, le grep ne
+> devra plus rien retourner — ce n'est PAS le cas aujourd'hui.
 
 ### 9.2 `app.module.ts`
 
@@ -901,44 +963,86 @@ export class AppModule {}
 
 ### 9.3 `config/env.schema.ts`
 
+> ⏳ **STATUT — DESIGN CIBLE, non livré.** Le schéma ci-dessous est la version **durcie visée**
+> (aucun secret en variable d'environnement). **Le `env.schema.ts` réellement livré contient
+> ENCORE** : `VAULT_TOKEN: z.string().min(1).default('dev-only-root-token')` (token root dev
+> long-lived — exactement ce que le CANON sécurité interdit, ligne 29),
+> `MINIO_ACCESS_KEY default 'minio'` (ligne 36), `MINIO_SECRET_KEY default 'minio12345'` (secret en
+> clair, ligne 37), ainsi que `DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL`. Le `SecretsLoader` (§9.3
+> bis) **n'existe pas encore** (`config/secrets-loader.ts` absent du dépôt). Migration vers Vault KV
+> v2 = **⏳ à implémenter Phase 2**.
+
 ```typescript
+// ⏳ DESIGN CIBLE — NON livré (cf. bannière ci-dessus). Le schéma on-disk garde
+//    encore VAULT_TOKEN/MINIO_ACCESS_KEY/MINIO_SECRET_KEY + DATABASE_URL/REDIS_URL/RABBITMQ_URL.
 // services/document-service/src/config/env.schema.ts
 import { z } from 'zod';
 
 /**
  * Schéma de configuration validé au démarrage (échec fast si manquant).
+ *
+ * ⚠️ DURCISSEMENT P1 (CIBLE) — PLUS AUCUN SECRET EN VARIABLE D'ENVIRONNEMENT.
+ * Le `.env` ne contient QUE :
+ *   - des coordonnées non sensibles (hôtes, ports, chemins de montage CSI),
+ *   - la configuration d'authentification Vault (AppRole / Kubernetes SA),
+ *     mais JAMAIS un `VAULT_TOKEN` long-lived (cf. CANON sécurité).
+ *
+ * Tous les secrets applicatifs — DATABASE_URL, REDIS_URL, RABBITMQ_URL,
+ * MINIO_ACCESS_KEY/SECRET_KEY — sont lus à chaud depuis **Vault KV v2**
+ * via `@nina-aes/vault-client` (cf. §3.x ci-dessous : SecretsLoader + renewal).
+ * Ils n'apparaissent donc PAS dans ce schéma : ils ne transitent jamais
+ * par l'environnement du process.
  */
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']),
   PORT: z.coerce.number().default(3004),
 
-  DATABASE_URL: z.string().url(),
+  // ── Authentification Vault (AppRole en VM, K8s SA en cluster) ───────────
+  // En prod : RoleID injecté en clair (non secret), SecretID livré via
+  // response-wrapping à usage unique OU jeton de SA monté par le CSI.
+  // JAMAIS de VAULT_TOKEN long-lived ici (cf. CANON sécurité, MEMORY).
+  VAULT_ADDR: z.string().url(),
+  VAULT_AUTH_METHOD: z.enum(['approle', 'kubernetes']).default('approle'),
+  VAULT_ROLE_ID: z.string().min(8).optional(), // approle — non secret
+  VAULT_SECRET_ID_PATH: z.string().optional(), // chemin fichier wrappé (approle)
+  VAULT_K8S_ROLE: z.string().optional(), // rôle Vault associé au SA (kubernetes)
+  VAULT_K8S_JWT_PATH: z.string().default('/var/run/secrets/kubernetes.io/serviceaccount/token'),
 
-  REDIS_URL: z.string().url(),
+  // ── Chemins des secrets dans Vault KV v2 (valeurs lues à chaud) ─────────
+  // Le service NE connaît que le CHEMIN ; le contenu reste dans Vault.
+  VAULT_KV_DB_PATH: z.string().default('secret/data/document-service/database'),
+  VAULT_KV_REDIS_PATH: z.string().default('secret/data/document-service/redis'),
+  VAULT_KV_RABBITMQ_PATH: z.string().default('secret/data/document-service/rabbitmq'),
+  VAULT_KV_MINIO_PATH: z.string().default('secret/data/document-service/minio'),
 
-  RABBITMQ_URL: z.string().url(),
+  // ── Vault Transit (signature QR — la clé ne quitte jamais Vault) ────────
+  VAULT_QR_SIGNING_KEY: z.string().default('nina-qr-signing'),
+
+  // ── mTLS inter-services (PKI Vault, cf. ADR-034) ───────────────────────
+  // Certificats client/serveur montés par le CSI Vault Agent ; rotation auto.
+  MTLS_CA_PATH: z.string().default('/etc/nina/mtls/ca.crt'),
+  MTLS_CERT_PATH: z.string().default('/etc/nina/mtls/tls.crt'),
+  MTLS_KEY_PATH: z.string().default('/etc/nina/mtls/tls.key'),
+
+  // ── Coordonnées non sensibles ──────────────────────────────────────────
   RABBITMQ_EVENTS_EXCHANGE: z.string().default('nina.events'),
   RABBITMQ_NOTIF_EXCHANGE: z.string().default('notification.events'),
 
-  // Vault Transit
-  VAULT_ADDR: z.string().url(),
-  VAULT_TOKEN: z.string().min(10),
-  VAULT_QR_SIGNING_KEY: z.string().default('nina-qr-signing'),
-
-  // MinIO
   MINIO_ENDPOINT: z.string(),
   MINIO_PORT: z.coerce.number().default(9000),
-  MINIO_USE_SSL: z.coerce.boolean().default(false),
-  MINIO_ACCESS_KEY: z.string(),
-  MINIO_SECRET_KEY: z.string(),
+  MINIO_USE_SSL: z.coerce.boolean().default(true), // ⚠️ TLS exigé en prod (mTLS S3)
   MINIO_BUCKET_FICHES: z.string().default('fiches'),
   MINIO_RETENTION_YEARS: z.coerce.number().default(10),
 
-  // identity-service gRPC
-  IDENTITY_GRPC_URL: z.string().default('localhost:50051'),
+  // identity-service gRPC (canal mTLS, cf. §9.x identity.client.ts)
+  IDENTITY_GRPC_URL: z.string().default('identity-service:50051'),
 
   // JWKS QR (URL publique exposée aux mobiles)
   JWKS_QR_URL: z.string().url(),
+
+  // /metrics — autorité de confiance (Prometheus) pour le mTLS de scraping
+  METRICS_MTLS_ENABLED: z.coerce.boolean().default(true),
+  METRICS_ALLOWED_CN: z.string().default('prometheus.monitoring'),
 
   // FDI
   FDI_TTL_DAYS: z.coerce.number().default(180),
@@ -948,9 +1052,113 @@ export const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 ```
 
-### 9.4 `documents/documents.controller.ts`
+> ⏳ **Disparition CIBLE de `VAULT_TOKEN`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `DATABASE_URL`,
+> `REDIS_URL`, `RABBITMQ_URL`** : dans le design durci ces clés sortent du schéma (ce sont des
+> secrets) et sont lues à chaud depuis Vault KV v2 (§9.3 bis). **Ce n'est PAS encore le cas** :
+> `grep -n "VAULT_TOKEN\|MINIO_SECRET_KEY" services/document-service/src/config/env.schema.ts`
+> retourne **encore** les lignes 29 (`VAULT_TOKEN ... default('dev-only-root-token')`) et 37
+> (`MINIO_SECRET_KEY ... default('minio12345')`). Le grep ne sera vide qu'**après** implémentation
+> Phase 2.
+
+### 9.3 bis `config/secrets-loader.ts` — KV v2 + renouvellement (⏳ à implémenter Phase 2)
 
 ```typescript
+// services/document-service/src/config/secrets-loader.ts
+/**
+ * @file        secrets-loader.ts
+ * @description Charge les secrets applicatifs depuis Vault KV v2 au boot, puis
+ *              lance le renouvellement périodique du lease Vault (token AppRole/K8s).
+ *
+ *              POURQUOI : un VAULT_TOKEN long-lived dans le .env est le pire
+ *              anti-pattern (vol = accès permanent). On s'authentifie via AppRole
+ *              (VM) ou Kubernetes SA (cluster), on obtient un token à TTL court,
+ *              et le client Vault le RENOUVELLE automatiquement avant expiration.
+ *              À l'échéance max du lease, on ré-authentifie (re-login).
+ */
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { VaultClient } from '@nina-aes/vault-client';
+import { ConfigService } from '@nestjs/config';
+
+export interface RuntimeSecrets {
+  databaseUrl: string;
+  redisUrl: string;
+  rabbitmqUrl: string;
+  minioAccessKey: string;
+  minioSecretKey: string;
+}
+
+@Injectable()
+export class SecretsLoader implements OnModuleDestroy {
+  private readonly log = new Logger(SecretsLoader.name);
+  private renewTimer?: NodeJS.Timeout;
+
+  constructor(
+    private readonly vault: VaultClient,
+    private readonly cfg: ConfigService,
+  ) {}
+
+  /** Login AppRole/K8s → token TTL court, puis lit les secrets KV v2. */
+  async load(): Promise<RuntimeSecrets> {
+    await this.vault.login(); // AppRole ou K8s selon VAULT_AUTH_METHOD
+    this.scheduleRenew(); // renouvellement auto du lease
+
+    const [db, redis, mq, minio] = await Promise.all([
+      this.vault.kvGet(this.cfg.get('VAULT_KV_DB_PATH')!),
+      this.vault.kvGet(this.cfg.get('VAULT_KV_REDIS_PATH')!),
+      this.vault.kvGet(this.cfg.get('VAULT_KV_RABBITMQ_PATH')!),
+      this.vault.kvGet(this.cfg.get('VAULT_KV_MINIO_PATH')!),
+    ]);
+
+    return {
+      databaseUrl: db.url,
+      redisUrl: redis.url,
+      rabbitmqUrl: mq.url,
+      minioAccessKey: minio.accessKey,
+      minioSecretKey: minio.secretKey,
+    };
+  }
+
+  /**
+   * Renouvelle le token Vault à ~⅔ de son TTL. Si le lease atteint son
+   * max_ttl, le client se ré-authentifie (re-login AppRole/K8s).
+   */
+  private scheduleRenew(): void {
+    const ttlMs = this.vault.tokenTtlSeconds() * 1000;
+    const delay = Math.max(30_000, Math.floor(ttlMs * 0.66));
+    this.renewTimer = setTimeout(async () => {
+      try {
+        await this.vault.renewSelfOrRelogin();
+      } catch (e) {
+        this.log.error({ err: (e as Error).message }, 'Vault token renew failed → relogin');
+        await this.vault.login();
+      }
+      this.scheduleRenew();
+    }, delay);
+  }
+
+  onModuleDestroy(): void {
+    if (this.renewTimer) clearTimeout(this.renewTimer);
+  }
+}
+```
+
+> Les identifiants MinIO ne sont plus statiques : en production on préfère des **identifiants S3
+> dynamiques** via le secret engine `minio`/STS (TTL court), mais à défaut, la paire
+> `accessKey/secretKey` reste dans Vault KV (rotée par un job, jamais en `.env`). Statut : **⏳ à
+> implémenter en Phase 2** — le code ci-dessus documente le design retenu.
+
+### 9.4 `documents/documents.controller.ts`
+
+> ⏳ **STATUT — le `downloadUrl()` ci-dessous (`this.storage.presign(id, req.user!.sub)`) est la
+> CIBLE, pas le code livré.** Le contrôleur réel fait
+> `prisma.document.findUnique({ where: { id } })` puis
+> `presignDownload(doc.minioObjectKey, doc.minioBucket)` **sans aucun contrôle d'ownership**
+> (n'importe quel CITIZEN authentifié peut pré-signer la FDI d'un autre en devinant l'UUID — **IDOR
+> / A01 ouvert**) et journalise `ipAddress: 'n/a'`. Correctif = **⏳ Phase 2**.
+
+```typescript
+// ⏳ DESIGN CIBLE (presign avec ownership) — NON livré : le code réel n'a pas de
+//    check d'ownership et logue ipAddress:'n/a'. Voir bannière ci-dessus.
 // services/document-service/src/documents/documents.controller.ts
 /**
  * @file        documents.controller.ts
@@ -1216,7 +1424,7 @@ export class FdiService {
     });
 
     // 9. Audit asynchrone (le service publie un événement, audit-service
-    //    le consomme et l'ajoute à sa chaîne Merkle — cf. document 09)
+    //    le consomme et l'ajoute à sa hash-chain SHA-256 — cf. document 09)
     await this.audit.publish('document.fdi.generated', {
       documentId,
       jti,
@@ -1569,42 +1777,125 @@ export class PdfGeneratorService implements OnModuleInit, OnApplicationShutdown 
 
 ### 9.13 `pdf/pdf-postprocess.service.ts`
 
+> ⚠️ **PDF/A-3b — exigences de conformité ISO 19005-3.** La version initiale de ce service posait
+> seulement les métadonnées « document info » de pdf-lib (`setTitle`, `setProducer`, …) et **se
+> déclarait PDF/A-3b à tort**. Un PDF/A-3b valide exige AU MINIMUM :
+>
+> 1. un **flux de métadonnées XMP** au niveau Catalog déclarant `pdfaid:part=3` et
+>    `pdfaid:conformance=B` (cohérent avec l'info dict) ;
+> 2. un **OutputIntent** avec un **profil ICC** embarqué (typiquement `sRGB IEC61966-2.1`) — c'est
+>    ce qui rend les couleurs reproductibles ;
+> 3. **toutes les polices embarquées** (Puppeteer `--font-render-hinting=none` aide mais ne garantit
+>    pas l'embedding ; vérifier dans le conteneur) ;
+> 4. pas de chiffrement, pas de JavaScript, transparence maîtrisée.
+>
+> `pdf-lib` **n'écrit pas** nativement le XMP PDF/A ni l'OutputIntent : il faut les injecter
+> manuellement (objets bas niveau) ou requalifier le livrable. Le code ci-dessous ajoute XMP +
+> OutputIntent ; tant qu'un validateur (veraPDF) n'a pas confirmé la conformité, le livrable est
+> **requalifié en « PDF/A-3b-ready »** (structure visée, conformité non encore prouvée).
+
 ```typescript
 // services/document-service/src/pdf/pdf-postprocess.service.ts
 /**
  * @file        pdf-postprocess.service.ts
- * @description Post-traite le PDF Puppeteer : ajoute métadonnées PDF/A-3b et
- *              attache le JWT brut comme fichier embarqué `qr.jwt`.
+ * @description Post-traite le PDF Puppeteer : XMP PDF/A-3b + OutputIntent ICC
+ *              (sRGB) + métadonnées + attachement du JWT brut `qr.jwt`.
+ *
+ *              ⚠️ Conformité PDF/A-3b à VALIDER avec veraPDF en CI (cf. §14).
+ *              Tant que non validé, parler de « PDF/A-3b-ready », pas de
+ *              « PDF/A-3b conforme ».
  */
 import { Injectable } from '@nestjs/common';
-import { PDFDocument, AFRelationship } from 'pdf-lib';
+import { readFileSync } from 'node:fs';
+import { PDFDocument, AFRelationship, PDFName, PDFHexString, PDFString } from 'pdf-lib';
 
 @Injectable()
 export class PdfPostprocessService {
+  // Profil ICC sRGB embarqué dans le binaire (assets/icc/sRGB-IEC61966-2.1.icc)
+  private readonly iccProfile = readFileSync(
+    new URL('../../assets/icc/sRGB-IEC61966-2.1.icc', import.meta.url),
+  );
+
   async toPdfA(raw: Buffer, opts: { jwtAttachment: string }): Promise<Buffer> {
     const pdf = await PDFDocument.load(raw);
 
+    const now = new Date();
     pdf.setProducer('NINA-AES document-service');
     pdf.setCreator('CTDEC Bamako');
     pdf.setTitle('Fiche Descriptive Individuelle');
     pdf.setSubject('Identité numérique souveraine AES');
     pdf.setKeywords(['NINA', 'AES', 'CTDEC', 'FDI']);
-    pdf.setCreationDate(new Date());
-    pdf.setModificationDate(new Date());
+    pdf.setCreationDate(now);
+    pdf.setModificationDate(now);
 
-    // Attache le JWT brut comme PDF Attachment (utile pour vérification sans scan)
+    // 1. Flux XMP PDF/A-3b (pdfaid:part=3, conformance=B) au niveau Catalog.
+    this.attachXmp(pdf, now);
+
+    // 2. OutputIntent avec profil ICC sRGB embarqué (couleurs reproductibles).
+    this.attachOutputIntent(pdf);
+
+    // 3. JWT brut comme PDF Attachment (vérification sans re-scan du QR).
     await pdf.attach(Buffer.from(opts.jwtAttachment, 'utf8'), 'qr.jwt', {
       mimeType: 'application/jwt',
       description: 'JWT QR code (RS256)',
-      creationDate: new Date(),
-      modificationDate: new Date(),
+      creationDate: now,
+      modificationDate: now,
       afRelationship: AFRelationship.Source,
     });
 
     return Buffer.from(await pdf.save({ useObjectStreams: false }));
   }
+
+  /** Injecte le paquet XMP requis par PDF/A (part 3, conformance B). */
+  private attachXmp(pdf: PDFDocument, now: Date): void {
+    const iso = now.toISOString();
+    const xmp = `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+        xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"
+        xmlns:dc="http://purl.org/dc/elements/1.1/"
+        xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+      <pdfaid:part>3</pdfaid:part>
+      <pdfaid:conformance>B</pdfaid:conformance>
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">Fiche Descriptive Individuelle</rdf:li></rdf:Alt></dc:title>
+      <xmp:CreateDate>${iso}</xmp:CreateDate>
+      <xmp:ModifyDate>${iso}</xmp:ModifyDate>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+    const stream = pdf.context.stream(Buffer.from(xmp, 'utf8'), {
+      Type: 'Metadata',
+      Subtype: 'XML',
+    });
+    const ref = pdf.context.register(stream);
+    pdf.catalog.set(PDFName.of('Metadata'), ref);
+  }
+
+  /** OutputIntent GTS_PDFA1 + flux ICC sRGB embarqué (N=3 composantes). */
+  private attachOutputIntent(pdf: PDFDocument): void {
+    const iccStream = pdf.context.stream(this.iccProfile, { N: 3 });
+    const iccRef = pdf.context.register(iccStream);
+    const outputIntent = pdf.context.obj({
+      Type: 'OutputIntent',
+      S: 'GTS_PDFA1',
+      OutputConditionIdentifier: PDFString.of('sRGB IEC61966-2.1'),
+      Info: PDFString.of('sRGB IEC61966-2.1'),
+      DestOutputProfile: iccRef,
+    });
+    const oiRef = pdf.context.register(outputIntent);
+    pdf.catalog.set(PDFName.of('OutputIntents'), pdf.context.obj([oiRef]));
+    // (PDFHexString importé pour usage XMP étendu éventuel — id de document.)
+    void PDFHexString;
+  }
 }
 ```
+
+> **Validation CI obligatoire** : ajouter une étape veraPDF
+> (`verapdf --flavour 3b expected-fiche-descriptive.pdf`) au pipeline (doc 16). Tant que veraPDF
+> n'est pas vert, le wording reste « PDF/A-3b-ready ». Statut : XMP + OutputIntent **conçus
+> ci-dessus** ; validation veraPDF + embedding fonts conteneur = **⏳ à implémenter Phase 2**.
 
 ### 9.14 `templates/template.service.ts`
 
@@ -1766,12 +2057,15 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
+    // VAULT_ADDR est en https:// (cf. §12.2.3) ; MinIO en https:// dès que
+    // MINIO_USE_SSL=true (défaut prod). Pas de secret lu ici, juste des sondes.
+    const minioScheme = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
     return this.hc.check([
       () => this.http.pingCheck('vault', `${process.env.VAULT_ADDR}/v1/sys/health`),
       () =>
         this.http.pingCheck(
           'minio',
-          `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/minio/health/ready`,
+          `${minioScheme}://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/minio/health/ready`,
         ),
     ]);
   }
@@ -1799,20 +2093,70 @@ mc retention set --default compliance "3650d" local/fiches
 > ⚠️ **Compliance vs Governance** : en mode `compliance`, **même** l'admin root ne peut pas
 > supprimer avant l'expiration. C'est ce qu'on veut pour un document d'identité.
 
+> ⚠️ **API de rétention dédiée, pas de métadonnée (CIBLE)** : dans le design durci, la rétention par
+> objet est posée côté code via `putObjectRetention` (PUT `?retention`), **pas** via des en-têtes
+> `x-amz-object-lock-*` au moment du `putObject` (cf. §10.2). ⏳ **Réalité on-disk** : le
+> `minio.service.ts` livré pose **encore** la rétention via les en-têtes
+> `x-amz-object-lock-mode`/`x-amz-object-lock-retain-until-date` passés en métadonnée `putObject`
+> (lignes 103-104), **sans** appel `putObjectRetention` ni `getObjectRetention`. L'immuabilité WORM
+> n'est donc **pas garantie** tant que la migration Phase 2 n'est pas faite. Le
+> `mc retention set --default` ci-dessus n'établit qu'un **défaut de bucket** — il ne verrouille pas
+> chaque objet à coup sûr.
+
+### 10.1 bis Chiffrement au repos (encryption-at-rest)
+
+Deux couches indépendantes, car PostgreSQL **ne fournit pas de TDE natif** (le chiffrement
+transparent côté moteur n'existe pas dans Postgres open-source) :
+
+| Donnée au repos               | Mécanisme de chiffrement                                                                                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PDF FDI dans MinIO            | **SSE-S3/SSE-KMS** côté MinIO, clé de bucket dérivée via **Vault Transit** (MinIO `KES` → Vault comme KMS racine). Souverain : pas d'AWS KMS.            |
+| Volume Postgres (bloc disque) | Chiffrement **au niveau volume** (LUKS/dm-crypt ou chiffrement du CSI), faute de TDE moteur. Protège contre le vol de disque, pas contre un accès SQL.   |
+| Champs PII sensibles en base  | **Chiffrement applicatif par champ** via **Vault Transit** (`encrypt/decrypt`) avant insertion — la donnée en clair ne touche jamais le disque Postgres. |
+| Secrets (DB/MinIO/RabbitMQ)   | **Vault KV v2** (chiffré au repos par le seal Vault, auto-unseal Transit).                                                                               |
+
+> **POURQUOI cette stratification ?** Le verrou WORM (Object Lock) garantit l'**immuabilité** mais
+> pas la **confidentialité** : un PDF FDI volé reste lisible. SSE-KMS adossé à Vault Transit chiffre
+> l'objet au repos avec une clé qui ne quitte jamais le coffre. Côté base, l'absence de TDE Postgres
+> impose soit le chiffrement de volume (grain gros), soit le chiffrement par champ via Transit pour
+> les PII (grain fin, recommandé pour NINA/état civil). Statut : chiffrement de volume = **conçu
+> (infra)** ; SSE-KMS MinIO+KES = **⏳ à implémenter Phase 2** ; chiffrement par champ Transit =
+> **⏳ à implémenter Phase 2** (document-service ne persiste aujourd'hui que des hash + métadonnées,
+> les PII restent dans identity-service).
+
 ### 10.2 `storage/minio.service.ts`
 
+> ⏳ **STATUT — DESIGN CIBLE, deux correctifs NON livrés.** Le bloc ci-dessous documente la version
+> durcie. **Le `minio.service.ts` réellement livré diffère sur deux points critiques** :
+>
+> 1. **Object Lock (WORM)** : le code on-disk pose la rétention via des **en-têtes de métadonnée
+>    `x-amz-object-lock-*`** dans `putObject` (lignes 103-104), **pas** via `putObjectRetention` ;
+>    il n'y a **aucun** readback `getObjectRetention`. Selon le client/version MinIO, ces en-têtes
+>    peuvent être ignorés ⇒ **WORM non garanti**. Migration `putObjectRetention` +
+>    `getObjectRetention` = ⏳ Phase 2.
+> 2. **IDOR / ownership (A01)** : la méthode `presign(documentId, caller)` ci-dessous **n'existe
+>    pas** ; le service expose seulement `presignDownload(objectKey, bucket)` **sans contrôle
+>    d'ownership**, et le contrôleur logue `ipAddress: 'n/a'` (cf. §9.4 réel). **Le TODO A01
+>    (anti-IDOR) est donc encore OUVERT.** ⏳ Phase 2.
+>
+> De plus, ce bloc importe `RuntimeSecrets` depuis `secrets-loader.ts` qui **n'existe pas encore**
+> (§9.3 bis) ; le service réel lit `MINIO_ACCESS_KEY/SECRET_KEY` depuis `env`.
+
 ```typescript
+// ⏳ DESIGN CIBLE — NON livré (cf. bannière ci-dessus : WORM via métadonnée, pas
+//    de presign() avec ownership, ipAddress 'n/a' dans le code réel).
 // services/document-service/src/storage/minio.service.ts
 /**
  * @file        minio.service.ts
  * @description Wrapper MinIO : put avec rétention 10 ans, URL pré-signée 1 h,
  *              récupération de version par jti.
  */
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client as MinioClient } from 'minio';
 import { addYears } from 'date-fns';
 import { PrismaClient } from '@nina-aes/database';
+import type { RuntimeSecrets } from '../config/secrets-loader';
 
 @Injectable()
 export class StorageService {
@@ -1823,13 +2167,16 @@ export class StorageService {
   constructor(
     cfg: ConfigService,
     private readonly prisma: PrismaClient,
+    // DURCISSEMENT P1 : les identifiants MinIO viennent de Vault KV (SecretsLoader),
+    // plus de MINIO_ACCESS_KEY/MINIO_SECRET_KEY en variable d'environnement.
+    secrets: RuntimeSecrets,
   ) {
     this.client = new MinioClient({
       endPoint: cfg.get<string>('MINIO_ENDPOINT')!,
       port: cfg.get<number>('MINIO_PORT')!,
-      useSSL: cfg.get<boolean>('MINIO_USE_SSL')!,
-      accessKey: cfg.get<string>('MINIO_ACCESS_KEY')!,
-      secretKey: cfg.get<string>('MINIO_SECRET_KEY')!,
+      useSSL: cfg.get<boolean>('MINIO_USE_SSL')!, // true en prod (mTLS S3)
+      accessKey: secrets.minioAccessKey,
+      secretKey: secrets.minioSecretKey,
     });
     this.bucket = cfg.get<string>('MINIO_BUCKET_FICHES')!;
     this.retentionYears = cfg.get<number>('MINIO_RETENTION_YEARS')!;
@@ -1838,6 +2185,14 @@ export class StorageService {
   async put(input: { nina: string; jti: string; buffer: Buffer }) {
     const objectKey = `${input.nina}/${input.jti}.pdf`;
     const retainUntilDate = addYears(new Date(), this.retentionYears);
+
+    // 1. Upload SANS poser la rétention via des en-têtes de métadonnée.
+    //    ⚠️ DURCISSEMENT P1 : poser `x-amz-object-lock-*` comme métadonnée
+    //    « utilisateur » N'EST PAS un Object Lock S3 fiable — selon le client
+    //    et la version MinIO, ces en-têtes peuvent être ignorés ou stockés
+    //    comme simples métadonnées sans verrou réel. La rétention WORM DOIT
+    //    passer par l'API dédiée `putObjectRetention` (PUT ?retention), qui
+    //    est la seule reconnue par le moteur Object Lock de MinIO.
     const result = await this.client.putObject(
       this.bucket,
       objectKey,
@@ -1846,26 +2201,112 @@ export class StorageService {
       {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="fdi-${input.jti}.pdf"`,
-        'x-amz-object-lock-mode': 'COMPLIANCE',
-        'x-amz-object-lock-retain-until-date': retainUntilDate.toISOString(),
       },
     );
+    const versionId = result.versionId ?? undefined;
+
+    // 2. Pose la rétention COMPLIANCE via l'API dédiée, ciblée sur la version
+    //    qui vient d'être créée (sinon une version future écraserait le verrou).
+    await this.client.putObjectRetention(this.bucket, objectKey, {
+      mode: 'COMPLIANCE', // même root admin ne peut pas supprimer avant l'échéance
+      retainUntilDate: retainUntilDate.toISOString(),
+      versionId,
+    });
+
+    // 3. (Optionnel) vérification défensive : relire la rétention effective.
+    //    En cas d'écart, on échoue fort plutôt que de croire à tort le doc protégé.
+    const applied = await this.client.getObjectRetention(this.bucket, objectKey, { versionId });
+    if (applied?.mode !== 'COMPLIANCE') {
+      throw new Error(`Object Lock non appliqué sur ${objectKey} (mode=${applied?.mode})`);
+    }
+
     const presignedUrl = await this.client.presignedGetObject(this.bucket, objectKey, 60 * 60);
-    return { objectKey, versionId: result.versionId ?? '', presignedUrl };
+    return { objectKey, versionId: versionId ?? '', presignedUrl };
   }
 
-  async presign(documentId: string, requesterId: string): Promise<{ url: string }> {
+  /**
+   * Génère une URL pré-signée APRÈS contrôle d'autorisation au niveau objet.
+   *
+   * DURCISSEMENT P1 — corrige le TODO A01 (Broken Access Control / OWASP) :
+   * le `RolesGuard` ne fait qu'un contrôle de RÔLE (CITIZEN/AGENT/ADMIN), il
+   * ne vérifie PAS que ce CITIZEN précis est bien le propriétaire du document.
+   * Sans ce check, un citoyen authentifié pouvait pré-signer la FDI d'un AUTRE
+   * citoyen en devinant un `documentId` (IDOR). On vérifie ici l'ownership.
+   *
+   * @param caller  contexte appelant : sub + rôles + IP réelle (extraite par le
+   *                contrôleur depuis req.ip / X-Forwarded-For de confiance).
+   */
+  async presign(
+    documentId: string,
+    caller: { sub: string; roles: string[]; ipAddress: string },
+  ): Promise<{ url: string }> {
     const doc = await this.prisma.document.findUnique({ where: { id: documentId } });
-    if (!doc) throw new Error('not found');
-    // TODO : vérifier que requesterId est owner OU agent/admin (déjà côté guard)
+    if (!doc) {
+      // On loggue l'échec avec l'IP réelle puis on renvoie 404 (pas 403) pour
+      // ne pas divulguer l'existence du document à un tiers non autorisé.
+      await this.logAccess(null, caller.ipAddress, 'FAILURE', 'NOT_FOUND');
+      throw new NotFoundException('document introuvable');
+    }
+
+    // ── Contrôle d'ownership effectif (A01) ──────────────────────────────
+    // AGENT/ADMIN : accès délégué légitime. CITIZEN : doit être le sujet.
+    // Le lien citoyen↔compte se fait via le NINA porté par le JWT (claim
+    // `nina`), pas via `sub` (= userId Keycloak). Le NINA est vérifié par
+    // auth-service à l'émission du token (cf. doc 08).
+    const isStaff = caller.roles.some((r) => r === 'AGENT' || r === 'ADMIN');
+    const isOwner = doc.nina === caller.sub || doc.issuedBy === caller.sub;
+    if (!isStaff && !isOwner) {
+      await this.logAccess(documentId, caller.ipAddress, 'FAILURE', 'FORBIDDEN');
+      throw new ForbiddenException("accès refusé : vous n'êtes pas titulaire de ce document");
+    }
+
     const url = await this.client.presignedGetObject(doc.minioBucket, doc.minioObjectKey, 60 * 60);
-    await this.prisma.documentAccessLog.create({
-      data: { documentId, action: 'DOWNLOAD', ipAddress: 'n/a', result: 'SUCCESS' },
-    });
+    await this.logAccess(documentId, caller.ipAddress, 'SUCCESS', 'VALID');
     return { url };
+  }
+
+  /** Journalise un accès download avec l'IP RÉELLE de l'appelant (anti-fraude). */
+  private async logAccess(
+    documentId: string | null,
+    ipAddress: string,
+    result: 'SUCCESS' | 'FAILURE',
+    reasonCode: string,
+  ): Promise<void> {
+    await this.prisma.documentAccessLog.create({
+      data: { documentId, action: 'DOWNLOAD', ipAddress, result, reasonCode },
+    });
   }
 }
 ```
+
+> **Pourquoi l'IP réelle ?** ⏳ **Non livré.** Le `downloadUrl()` réel écrit **encore**
+> `ipAddress: 'n/a'` (cf. §9.4, ligne 102 du contrôleur on-disk), ce qui rend le journal d'accès
+> inutilisable pour la traçabilité anti-fraude (A09). La version cible passe `req.ip` — qui n'est
+> fiable que si `trust proxy` est configuré sur le `X-Forwarded-For` du SEUL proxy de confiance (API
+> Gateway), jamais sur un en-tête client arbitraire (risque de spoofing). Implémentation = **⏳
+> Phase 2**.
+
+Le contrôleur (§9.4) **devra** transmettre le contexte complet (⏳ cible — le code réel appelle
+aujourd'hui `presignDownload(objectKey, bucket)` sans ownership) :
+
+```typescript
+// ⏳ DESIGN CIBLE — NON livré. Le contrôleur réel fait findUnique + presignDownload
+//    sans check d'ownership et logue ipAddress:'n/a' (A01/A09 encore ouverts).
+// services/document-service/src/documents/documents.controller.ts (extrait corrigé)
+@Get(':id/download-url')
+@Roles('CITIZEN', 'AGENT', 'ADMIN')
+@ApiOperation({ summary: 'URL pré-signée MinIO (1 h)' })
+async downloadUrl(@Param('id') id: string, @Req() req: Request) {
+  return this.storage.presign(id, {
+    sub: req.user!.sub,
+    roles: req.user!.roles ?? [],
+    ipAddress: req.ip!, // fiable car app.set('trust proxy', 1) borné au gateway
+  });
+}
+```
+
+> Imports à ajouter dans `minio.service.ts` :
+> `import { ForbiddenException, NotFoundException } from '@nestjs/common';`
 
 ---
 
@@ -1929,32 +2370,135 @@ curl -X POST http://localhost:3004/api/v1/public/documents/verify-qr \
 
 ## 12. Sécurité — protection PDF, anti-fraude, OWASP
 
-| Risque OWASP / spécifique          | Contre-mesure                                                        |
-| ---------------------------------- | -------------------------------------------------------------------- |
-| A01 Broken Access Control          | `JwtAuthGuard` + `RolesGuard` + check owner sur download             |
-| A02 Cryptographic Failures         | RS256 3072 bits, clé Vault Transit jamais exfiltrée                  |
-| A03 Injection (template)           | Handlebars `noEscape: false` partout sauf QR DataURL                 |
-| A04 Insecure Design                | Append-only DB + Object Lock 10 ans MinIO                            |
-| A05 Security Misconfiguration      | Helmet + CORS strict + Zod env validation au boot                    |
-| A06 Vulnerable Components          | Snyk + Trivy (cf. doc 16)                                            |
-| A07 Identification & Auth Failures | Keycloak + MFA (cf. doc 08)                                          |
-| A08 Software & Data Integrity      | `sha256Html` + `sha256Pdf` stockés, audit Merkle                     |
-| A09 Logging & Monitoring           | pino + Prometheus + alertes Grafana (cf. doc 17)                     |
-| A10 SSRF                           | Aucun fetch d'URL utilisateur dans Puppeteer (HTML local uniquement) |
-| **Copie photocopiée**              | Watermark dynamique (IP+UA+jti) imprimé en bas du PDF                |
-| **Faux PDF avec QR authentique**   | `fdi.hash` vérifié à la lecture → champs altérés détectés            |
-| **Réutilisation après révocation** | `jti` → Redis SET avec TTL aligné sur `exp`                          |
-| **Vol de clé privée**              | Clé jamais hors Vault, audit Vault des `transit/sign`                |
+| Risque OWASP / spécifique          | Contre-mesure                                                                                                                                                                                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A01 Broken Access Control          | `JwtAuthGuard` + `RolesGuard` (rôle seulement). ⏳ **TODO A01 ENCORE OUVERT** : `downloadUrl()` ne vérifie PAS l'ownership ⇒ IDOR (CITIZEN peut pré-signer la FDI d'un autre via l'UUID). Check ownership dans `presign()` = cible Phase 2 (cf. §10.2) |
+| A02 Cryptographic Failures         | RS256 3072 bits, clé Vault Transit jamais exfiltrée ; TLS interne. ⏳ **Secrets encore en `env`** (`VAULT_TOKEN` dev root, `MINIO_SECRET_KEY` en clair) — migration Vault KV v2 = Phase 2 ; mTLS interne = Phase 2                                     |
+| A03 Injection (template)           | Handlebars `noEscape: false` partout sauf QR DataURL                                                                                                                                                                                                   |
+| A04 Insecure Design                | Append-only DB + Object Lock 10 ans MinIO                                                                                                                                                                                                              |
+| A05 Security Misconfiguration      | CORS strict + Zod au boot. ⏳ **CSP actuellement DÉSACTIVÉE globalement** (`helmet({ contentSecurityPolicy: false })`, main.ts:25), **sans HSTS** — CSP stricte + HSTS + helmet assoupli sur `/api/docs` = cible Phase 2 (§9.1)                        |
+| A06 Vulnerable Components          | Snyk + Trivy (cf. doc 16)                                                                                                                                                                                                                              |
+| A07 Identification & Auth Failures | Keycloak + MFA (cf. doc 08)                                                                                                                                                                                                                            |
+| A08 Software & Data Integrity      | `sha256Html` + `sha256Pdf` stockés, audit hash-chain SHA-256 (ancrage tiers à implémenter)                                                                                                                                                             |
+| A09 Logging & Monitoring           | pino + Prometheus + alertes Grafana (cf. doc 17)                                                                                                                                                                                                       |
+| A10 SSRF                           | Aucun fetch d'URL utilisateur dans Puppeteer (HTML local uniquement)                                                                                                                                                                                   |
+| **Copie photocopiée**              | Watermark dynamique (IP+UA+jti) imprimé en bas du PDF                                                                                                                                                                                                  |
+| **Faux PDF avec QR authentique**   | `fdi.hash` vérifié à la lecture → champs altérés détectés                                                                                                                                                                                              |
+| **Réutilisation après révocation** | `jti` → Redis SET avec TTL aligné sur `exp`                                                                                                                                                                                                            |
+| **Vol de clé privée**              | Clé jamais hors Vault, audit Vault des `transit/sign`                                                                                                                                                                                                  |
 
 ### 12.1 Vault — politique minimale
 
 ```hcl
 # infrastructure/vault/policies/document-service.hcl
+
+# ── Transit : signature QR uniquement (clé jamais exfiltrée) ───────────────
 path "transit/sign/nina-qr-signing/sha2-256" { capabilities = ["update"] }
-path "transit/keys/nina-qr-signing"           { capabilities = ["read"]   }
+path "transit/keys/nina-qr-signing"          { capabilities = ["read"]   }
+
+# ── KV v2 : lecture des secrets applicatifs (DB/Redis/RabbitMQ/MinIO) ──────
+# Lecture seule, chemins nominatifs ; pas de list, pas de write.
+path "secret/data/document-service/*"     { capabilities = ["read"] }
+path "secret/metadata/document-service/*" { capabilities = ["read"] }
+
+# ── PKI : émission des certs mTLS du service (ADR-034) ─────────────────────
+path "pki/issue/document-service" { capabilities = ["update"] }
 ```
 
-Le service ne peut **que signer**, jamais lire la clé ni en créer de nouvelle.
+Et le rôle AppRole / K8s associé (extrait) :
+
+```hcl
+# Le SecretID est à TTL court et usage limité ; pas de token long-lived.
+# vault write auth/approle/role/document-service \
+#   token_ttl=20m token_max_ttl=1h secret_id_ttl=10m \
+#   secret_id_num_uses=1 token_policies=document-service
+```
+
+Le service ne peut **que signer** (Transit), **lire** ses propres secrets KV et **émettre** ses
+certs mTLS ; jamais lire la clé QR, ni écrire dans KV, ni créer de clé. Le token obtenu est **à TTL
+court et renouvelé** (cf. §9.3 bis).
+
+### 12.2 mTLS inter-services (gRPC identity, AMQP, Vault)
+
+**POURQUOI** : tous les liens internes transportent des données sensibles (PII citoyen en gRPC,
+secrets en Vault, événements d'audit en AMQP). Le chiffrement seul (TLS serveur) ne suffit pas : on
+veut aussi **authentifier le client** (mTLS) pour qu'un pod compromis ne puisse pas se faire passer
+pour document-service. La PKI est fournie par **Vault PKI** et la rotation des certs est automatique
+(cf. **ADR-034** — mTLS strict + PKI Vault + rotation). En cluster, **Linkerd** applique en plus un
+mTLS transparent au niveau mesh ; les réglages ci-dessous durcissent la couche applicative
+(defense-in-depth) et restent valables hors mesh (VM).
+
+#### 12.2.1 gRPC vers identity-service
+
+```typescript
+// services/document-service/src/identity-client/identity-client.module.ts (extrait)
+import { readFileSync } from 'node:fs';
+import { credentials } from '@grpc/grpc-js';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+
+ClientsModule.registerAsync([
+  {
+    name: 'IDENTITY_PACKAGE',
+    useFactory: (cfg) => ({
+      transport: Transport.GRPC,
+      options: {
+        url: cfg.get('IDENTITY_GRPC_URL'),
+        package: 'identity',
+        protoPath: 'identity.proto',
+        // mTLS : on présente NOTRE cert client + on valide le cert serveur
+        // contre la CA Vault. La connexion échoue si l'un manque.
+        credentials: credentials.createSsl(
+          readFileSync(cfg.get('MTLS_CA_PATH')),
+          readFileSync(cfg.get('MTLS_KEY_PATH')),
+          readFileSync(cfg.get('MTLS_CERT_PATH')),
+        ),
+      },
+    }),
+    inject: [ConfigService],
+  },
+]);
+```
+
+#### 12.2.2 AMQP vers RabbitMQ (audit + notifications)
+
+```typescript
+// services/document-service/src/audit/audit-publisher.module.ts (extrait)
+ClientsModule.registerAsync([
+  {
+    name: 'AUDIT_BUS',
+    useFactory: (cfg, secrets) => ({
+      transport: Transport.RMQ,
+      options: {
+        urls: [secrets.rabbitmqUrl], // amqps:// — TLS obligatoire
+        queue: 'document.audit',
+        // mTLS AMQP : cert client présenté au broker, CA Vault pour valider
+        // le cert du broker. RabbitMQ est configuré `verify=verify_peer
+        // fail_if_no_peer_cert=true` côté serveur.
+        socketOptions: {
+          ca: [readFileSync(cfg.get('MTLS_CA_PATH'))],
+          cert: readFileSync(cfg.get('MTLS_CERT_PATH')),
+          key: readFileSync(cfg.get('MTLS_KEY_PATH')),
+          rejectUnauthorized: true,
+        },
+      },
+    }),
+    inject: [ConfigService, SecretsLoader],
+  },
+]);
+```
+
+#### 12.2.3 Vault (HTTPS + cert client)
+
+`@nina-aes/vault-client` est instancié avec `VAULT_ADDR` en `https://` et le même bundle mTLS (CA +
+cert + key montés par le CSI). En complément du token AppRole/K8s (authentification applicative), le
+cert client authentifie le pod au niveau transport. `rejectUnauthorized: true` est imposé : aucune
+connexion Vault en clair ni avec CA non vérifiée.
+
+> **Rotation** : les trois bundles pointent vers les mêmes chemins (`MTLS_*_PATH`), réécrits en
+> place par le Vault Agent / CSI à chaque renouvellement. Les clients doivent **relire** le cert sur
+> reconnexion (pas de cache de fd) pour profiter de la rotation sans redémarrage. Statut : **⏳ à
+> implémenter en Phase 2** (les modules ci-dessus documentent le câblage cible ; aujourd'hui les
+> canaux sont en TLS simple/in-cluster).
 
 ---
 
@@ -1998,6 +2542,70 @@ document_revoked_total 47
 ```
 
 Dashboards Grafana fournis dans `infrastructure/grafana/dashboards/document-service.json` (doc 17).
+
+### 13.5 Protection réelle de `/metrics` (mTLS scrape only)
+
+**POURQUOI** : `/metrics` expose des compteurs (volumes de FDI, NINA en labels potentiels, taux
+d'échec) qui sont du renseignement opérationnel. La table Swagger annonçait « mTLS only » mais rien
+ne l'imposait réellement. On durcit à deux niveaux :
+
+1. **Réseau** : `/metrics` n'est PAS publié via l'API Gateway. Le scrape Prometheus passe par un
+   canal mTLS (Linkerd/PKI Vault) ; seul un client présentant un cert dont le CN ∈
+   `METRICS_ALLOWED_CN` est accepté.
+2. **Applicatif** : un guard rejette toute requête `/metrics` dont le certificat client (terminé en
+   amont, propagé via `X-Forwarded-Client-Cert` du proxy de confiance) n'a pas le bon CN.
+
+```typescript
+// services/document-service/src/metrics/metrics-mtls.guard.ts (⏳ Phase 2)
+/**
+ * @file metrics-mtls.guard.ts
+ * @description Autorise /metrics UNIQUEMENT pour un client mTLS dont le CN est
+ *              dans METRICS_ALLOWED_CN. Refuse tout le reste (403).
+ */
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { TLSSocket } from 'node:tls';
+
+@Injectable()
+export class MetricsMtlsGuard implements CanActivate {
+  constructor(private readonly cfg: ConfigService) {}
+
+  canActivate(ctx: ExecutionContext): boolean {
+    if (!this.cfg.get<boolean>('METRICS_MTLS_ENABLED')) return true; // dev local
+    const req = ctx.switchToHttp().getRequest();
+    const allowed = this.cfg.get<string>('METRICS_ALLOWED_CN');
+
+    // Cas mTLS terminé dans le process (TLS direct) :
+    const sock = req.socket as TLSSocket;
+    const peer = sock.authorized ? sock.getPeerCertificate?.() : null;
+    const cnDirect = peer?.subject?.CN;
+
+    // Cas mTLS terminé par le mesh/proxy de confiance (cert propagé en header) :
+    const cnHeader = req.headers['x-forwarded-client-cert-cn'];
+
+    const cn = cnDirect ?? cnHeader;
+    if (!cn || cn !== allowed) {
+      throw new ForbiddenException('metrics: mTLS client non autorisé');
+    }
+    return true;
+  }
+}
+```
+
+```typescript
+// services/document-service/src/metrics/metrics.controller.ts (extrait)
+@Controller('metrics') // hors préfixe api/v1 (exclu dans main.ts)
+@UseGuards(MetricsMtlsGuard)
+export class MetricsController {
+  @Get()
+  async scrape(@Res() res: Response) {
+    /* registry.metrics() */
+  }
+}
+```
+
+> Statut : **⏳ à implémenter en Phase 2**. En attendant, `/metrics` ne doit pas être routé
+> publiquement par le gateway (configuration réseau, doc 05/15).
 
 ---
 
@@ -2140,10 +2748,16 @@ pnpm --filter @nina-aes/document-service exec ts-node scripts/demo-fdi.ts \
 
 ---
 
-## 15. Swagger + OpenAPI 3.1
+## 15. Swagger + OpenAPI 3.2
 
 Accessible sur `http://localhost:3004/api/docs`. Les **6 endpoints** sont documentés avec exemples,
 codes d'erreur (400, 401, 403, 404, 409, 429) et schémas Zod.
+
+> **Version de spec** : on émet de l'**OpenAPI 3.2** (`openapi: "3.2.0"`). NestJS Swagger génère par
+> défaut une racine `3.0`/`3.1` ; on force la version dans `setupSwagger` (cf. `DocumentBuilder` /
+> post-traitement du document JSON) pour rester aligné sur la baseline d'API de la plateforme. Les
+> outils de validation (Spectral, swagger-cli) doivent supporter 3.2 ; à défaut, fixer un linter
+> compatible avant d'activer la CI de contrat.
 
 | Méthode | URL                                  | Auth       | Rôles                         |
 | ------- | ------------------------------------ | ---------- | ----------------------------- |
@@ -2231,14 +2845,33 @@ codes d'erreur (400, 401, 403, 404, 409, 429) et schémas Zod.
 - [ ] ✅ Audit publisher publie `document.fdi.generated`, `document.revoked`, `document.qr.verified`
 - [ ] ✅ Rate limiting 30/min IP sur endpoint public
 - [ ] ✅ Cache Redis PDF 5 min actif (vérifié avec 2 appels successifs même NINA/langue)
-- [ ] ✅ Métadonnées PDF/A-3b + attachment `qr.jwt` présents dans le PDF final
+- [ ] ✅ Métadonnées + XMP (pdfaid part=3/conf=B) + OutputIntent ICC + attachment `qr.jwt` présents
+      dans le PDF final
 - [ ] ✅ Visual regression passe avec `maxDiffPixelRatio: 0.02`
 - [ ] ✅ Couverture tests ≥ 85 %
 - [ ] ✅ Healthcheck `/health` vérifie MinIO + Vault + Postgres
+- [ ] ⏳ Secrets (DB/Redis/RabbitMQ/MinIO) lus depuis **Vault KV v2** ; AppRole/K8s SA, **aucun
+      `VAULT_TOKEN` long-lived** (Phase 2)
+- [ ] ⏳ mTLS effectif sur gRPC identity + AMQP + Vault (PKI Vault, ADR-034) avec rotation des certs
+      (Phase 2)
+- [ ] ⏳ `/metrics` derrière mTLS (CN Prometheus) + non routé publiquement (Phase 2)
+- [ ] ⏳ Helmet CSP stricte + HSTS ; CSP assouplie UNIQUEMENT sur `/api/docs` (Phase 2 — code réel :
+      `contentSecurityPolicy: false` global, main.ts:25)
+- [ ] ⏳ `presign()` vérifie l'**ownership** (anti-IDOR, A01) et journalise l'**IP réelle** (Phase 2
+      — code réel : pas de check ownership, `ipAddress: 'n/a'`)
+- [ ] ⏳ Object Lock posé via `putObjectRetention` (API dédiée), pas via métadonnée, puis relu pour
+      vérif (Phase 2 — code réel : en-têtes `x-amz-object-lock-*` en métadonnée, WORM non garanti)
+- [ ] ⏳ Chiffrement au repos : SSE-KMS MinIO (Vault Transit/KES) + chiffrement de volume Postgres
+      (pas de TDE natif) (Phase 2)
+- [ ] ⏳ PDF/A-3b validé par **veraPDF** en CI (sinon : « PDF/A-3b-ready ») — XMP + OutputIntent ICC
+      présents
+- [ ] ✅ OpenAPI **3.2** émis (`openapi: "3.2.0"`)
 - [ ] ✅ Commit : `feat(document): FDI PDF + QR JWT RS256 + Vault sign + MinIO WORM`
 - [ ] ✅ ADR-006 (addendum 2026-05-25) et ADR-026 (nouveau) mis à jour
 - [ ] ✅ `docs/CHANGELOG.md` : ligne d'arrivée du service ajoutée
-- [ ] ✅ Aucun secret en clair (tout dans Vault ou `.env` git-ignoré)
+- [ ] ⏳ Aucun secret en clair : tout dans Vault KV/Transit, jamais dans `.env` ni en variable
+      d'environnement (Phase 2 — code réel : `VAULT_TOKEN` dev root +
+      `MINIO_SECRET_KEY: 'minio12345'` encore dans `env.schema.ts`)
 
 ---
 
