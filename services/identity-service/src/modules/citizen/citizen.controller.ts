@@ -42,7 +42,7 @@ import {
   type AuthenticatedUser,
 } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { JwtAuthGuard, RolesGuard, NinaOwnershipGuard } from '../../auth/guards';
 import {
   CacheKey,
   CacheTtl,
@@ -51,18 +51,30 @@ import {
 import { CreateCitizenDto, SearchCitizenDto, UpdateCitizenDto } from './dto/citizen.dto';
 import { CitizenService } from './citizen.service';
 
+/**
+ * Toutes les routes sont AUTHENTIFIÉES (JwtAuthGuard, fail-closed) PUIS
+ * autorisées par rôle (RolesGuard). Aucune route citoyen n'est ouverte :
+ * lecture par NINA = anti-IDOR (NinaOwnershipGuard), lecture par UUID et
+ * recherche = rôles privilégiés uniquement (anti-énumération de la population).
+ * Cf. doc 07 §3.3 + THREAT-MODEL (trou d'autorisation P0 fermé).
+ */
 @ApiTags('citizens')
 @ApiBearerAuth('access-token')
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('citizens')
 export class CitizenController {
   constructor(private readonly citizenService: CitizenService) {}
 
-  // ─── GET /citizens/:nina ──────────────────────────────────────
+  // ─── GET /citizens/:nina (citoyen = SON NINA, sinon agent+) ───
+  // Anti-IDOR : un CITIZEN ne lit que son propre NINA (NinaOwnershipGuard) ;
+  // agent/supervisor/admin/auditor accèdent à tout dossier (besoin métier).
   @Get(':nina')
+  @Roles(UserRole.CITIZEN, UserRole.AGENT, UserRole.SUPERVISOR, UserRole.ADMIN, UserRole.AUDITOR)
+  @UseGuards(NinaOwnershipGuard)
   @ApiOperation({ summary: 'Récupère un citoyen par son NINA (cache 5 min)' })
   @ApiParam({ name: 'nina', example: '18903102015042V' })
   @ApiOkResponse({ description: 'Citoyen trouvé' })
+  @ApiResponse({ status: 403, description: 'NINA d’autrui (citoyen non propriétaire)' })
   @ApiResponse({ status: 404, description: 'NINA inconnu' })
   @UseInterceptors(RedisCacheInterceptor)
   @CacheKey('citizens:byNina')
@@ -71,16 +83,23 @@ export class CitizenController {
     return this.citizenService.findByNina(nina);
   }
 
-  // ─── GET /citizens/by-id/:id ──────────────────────────────────
+  // ─── GET /citizens/by-id/:id (rôles privilégiés uniquement) ───
+  // PAS ouvert au citoyen : la lecture par UUID interne contournerait
+  // l'ownership NINA (un citoyen ne connaît pas son UUID, mais on ferme
+  // explicitement la route — défense en profondeur).
   @Get('by-id/:id')
-  @ApiOperation({ summary: 'Récupère un citoyen par son UUID interne' })
+  @Roles(UserRole.AGENT, UserRole.SUPERVISOR, UserRole.ADMIN, UserRole.AUDITOR)
+  @ApiOperation({ summary: 'Récupère un citoyen par son UUID interne (agent+)' })
   async findById(@Param('id') id: string): Promise<unknown> {
     return this.citizenService.findById(id);
   }
 
-  // ─── GET /citizens?search=...&page=...&pageSize=... ──────────
+  // ─── GET /citizens?search=... (rôles privilégiés uniquement) ──
+  // 🔒 JAMAIS ouvert au citoyen : la recherche floue permettrait
+  // l'énumération de la population (OWASP A01).
   @Get()
-  @ApiOperation({ summary: 'Recherche paginée avec fuzzy search + filtres' })
+  @Roles(UserRole.AGENT, UserRole.SUPERVISOR, UserRole.ADMIN, UserRole.AUDITOR)
+  @ApiOperation({ summary: 'Recherche paginée avec fuzzy search + filtres (agent+)' })
   async search(@Query() dto: SearchCitizenDto): Promise<unknown> {
     return this.citizenService.search(dto);
   }

@@ -13,10 +13,19 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { Public } from '../../common/decorators/public.decorator';
 import { ListLocationsDto, SearchLocationDto } from './dto/location.dto';
 import { LocationService } from './location.service';
 
+/**
+ * Référentiel géographique Mali = donnée PUBLIQUE de référence (régions /
+ * cercles / communes), sans PII. Exposition publique = choix de conception
+ * EXPLICITE et documenté (`@Public()`) — et non un oubli d'autorisation.
+ * Si un `APP_GUARD` global d'auth est ajouté plus tard, `@Public()` garantit
+ * que ces routes restent accessibles.
+ */
 @ApiTags('locations')
+@Public()
 @Controller('locations')
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}

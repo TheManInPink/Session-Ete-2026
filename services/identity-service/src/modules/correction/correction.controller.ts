@@ -27,18 +27,17 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@nina-aes/shared-types';
 
-import {
-  CurrentUser,
-  type AuthenticatedUser,
-} from '../../common/decorators/current-user.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { JwtAuthGuard, RolesGuard, type RequestUser } from '../../auth/guards';
 import { ListCorrectionsDto, RejectCorrectionDto, SubmitCorrectionDto } from './dto/correction.dto';
 import { CorrectionService } from './correction.service';
 
+// Authentifié (JwtAuthGuard, fail-closed) puis autorisé par rôle (RolesGuard).
+// Toutes les routes portent déjà un @Roles() explicite (cf. ci-dessous).
 @ApiTags('corrections')
 @ApiBearerAuth('access-token')
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('corrections')
 export class CorrectionController {
   constructor(private readonly correctionService: CorrectionService) {}
@@ -51,9 +50,11 @@ export class CorrectionController {
   @ApiResponse({ status: 201, description: 'Correction soumise + analyse IA déclenchée' })
   async submit(
     @Body() dto: SubmitCorrectionDto,
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<unknown> {
-    return this.correctionService.submit(dto, user.id);
+    // 🔒 Anti-IDOR (write-side) : on transmet l'utilisateur COMPLET (rôle + nina)
+    // pour que le service lie une soumission citoyen à son propre dossier.
+    return this.correctionService.submit(dto, user);
   }
 
   // ─── GET /corrections ────────────────────────────────────────
@@ -76,7 +77,7 @@ export class CorrectionController {
   @Put(':id/approve')
   @Roles(UserRole.AGENT, UserRole.SUPERVISOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Approuve la correction et applique la modification au citoyen' })
-  async approve(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<unknown> {
+  async approve(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<unknown> {
     return this.correctionService.approve(id, user.id);
   }
 
@@ -87,7 +88,7 @@ export class CorrectionController {
   async reject(
     @Param('id') id: string,
     @Body() dto: RejectCorrectionDto,
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<unknown> {
     return this.correctionService.reject(id, dto, user.id);
   }

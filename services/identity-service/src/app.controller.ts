@@ -12,15 +12,23 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 
+import { Public } from './common/decorators/public.decorator';
+
 @Controller()
 export class AppController {
   /**
    * Page d'accueil minimale — info service + liens utiles.
    * Routée sur /api/v1/ (préfixe global).
    *
+   * 🔒 Défense en profondeur : `@Public()` explicite l'intention « aucune donnée
+   * personnelle ici ». Inoffensif aujourd'hui (aucun APP_GUARD global), mais si
+   * un guard global est introduit plus tard, cette route reste accessible sans
+   * exiger un token (et sans devenir une fuite : elle n'expose que des métadonnées).
+   *
    * @returns Objet info service avec liens vers docs, health et metrics
    */
   @Get()
+  @Public()
   @ApiExcludeEndpoint()
   root(): {
     service: string;
