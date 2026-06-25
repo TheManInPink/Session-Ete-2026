@@ -3,13 +3,42 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-18 (patch 0vicies — **réconciliation topologie RabbitMQ** :
-> document-service (`audit.events`) et identity-service (`nina-aes.events`) publient désormais sur
-> l'exchange canonique `nina.events`, capté par audit-service. Voir 0novemdecies pour le pipeline de
-> tokens)
+> **Dernière mise à jour** : 2026-06-25 (consolidation **Phase 1** — audit contenu + sécurité des 27
+> docs, 5 commits sur `feat/ai-training-pipeline` ; corrections crypto SIGAC + biométrie, 12 docs
+> thématiques créés, ADR-034 ; total **34 ADRs**. Voir 0unvicies. Précédent : 0vicies —
+> réconciliation topologie RabbitMQ)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0unvicies. Consolidation 2026-06-25 — Phase 1 : audit contenu + sécurité des 27 docs (5 vagues)
+
+Consolidation **PHASE 1** (audit de contenu et de sécurité des 27 documents) livrée le
+**2026-06-25** sur la branche **`feat/ai-training-pipeline`**, en **5 commits**. Méthode : pipeline
+**write → verify adversarial (crypto) → repair** ; gate pré-commit **`verify:repo`** vert à chaque
+commit ; les contrôles non encore implémentés dans le code sont marqués ⏳ « conçu, Phase 2 ».
+
+- **`e3c7335` — Wave 1** : doc 15 durci ; **correction crypto SIGAC** (doc 23 : Ed25519 **NE CHIFFRE
+  PAS** → sealed box X25519/XSalsa20-Poly1305 ou RSA-OAEP côté client) et **biométrie** (doc 25 +
+  ADR-025 : HMAC strict incompatible biométrie floue → _cancelable biometrics_ / _fuzzy extractor_
+  ISO/IEC 24745) ; création de `docs/security/THREAT-MODEL.md` + `SECURITY-RUNBOOK.md` +
+  `docs/adr/ADR-034-security-hardening-vault-mtls-owasp.md` ; archivage des 2 docs orphelins
+  (`01-fondations`, `02-infrastructure`) vers `docs/_archive/`.
+- **`c5e9723` — Wave 2a** : docs 06/07/11/13/14/22/24 (guards/IDOR honnête, RCE joblib
+  _fail-closed_, JWKS multi-kid mobile, HMAC-in-Vault gouvernance, auth machine bornée) + correctifs
+  code `services/ai-service` (`config.py` credential en clair retiré + _fail-closed_ ; `main.py`
+  `/score` guard + masquage NINA).
+- **`a2832e8` — Wave 2b** : docs 02/03/04/05/08/09/10/20 (secrets externalisés Vault, mTLS,
+  zero-trust K3s Calico/PSA, audit AppRole, OpenAPI 3.2).
+- **`ffbc3d8` — Wave 3** : docs 00/01/12/16/17/18/19/21/26 (matrice sécurité transversale + plan de
+  sortie souveraineté, TOTP/passkey, anti-replay interop, honnêteté soutenance).
+- **`ee31ee4` — Wave 4a** : 12 docs thématiques créés —
+  `docs/biometrics/{DPIA-NINA-AES-2026,INCIDENT-PROTOCOL,CONSENT-PROTOCOL}`,
+  `docs/sigac/{WHISTLEBLOWER-PROTOCOL,MODEL-CARDS,SCORING-RUNBOOK}`,
+  `docs/observability/{RUNBOOK,SLOs}`, `docs/deployment/{DRP-RUNBOOK,OPS-RUNBOOK}`,
+  `docs/governance/{SGOGT-PROTOCOL,ELECTIONS-EXPORT-CONTRACT}`.
+
+**Total ADRs : 34** (ADR-001..034).
 
 ### 0vicies. Patch 2026-06-18 — Réconciliation de la topologie RabbitMQ (audit non capté)
 

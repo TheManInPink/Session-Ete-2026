@@ -1,4 +1,9 @@
-# ADR-007 — Chaîne de hash Merkle pour l'audit immuable
+# ADR-007 — Chaîne de hash (hash-chain SHA-256 linéaire) pour l'audit immuable
+
+> **Note de nommage** : le fichier s'appelle historiquement `ADR-007-merkle-audit.md`, mais la
+> structure retenue est une **hash-chain SHA-256 linéaire**, **PAS un arbre de Merkle**. Chaque
+> entrée référence le hash de la précédente (`previous_hash`) ; la vérification est un parcours
+> **linéaire** O(n). C'est le CANON sécurité de la plateforme (cf. doc 09, OPS-RUNBOOK, ADR-034).
 
 ## Statut
 
@@ -21,8 +26,9 @@ hash(N) = SHA-256( hash(N-1) + serialize(entry(N)) )
 ```
 
 Le champ `previous_hash` de chaque entrée pointe vers le hash de l'entrée précédente, formant une
-chaîne de type Merkle. Un endpoint `/audit/verify` parcourt la chaîne et recalcule chaque hash pour
-vérifier l'intégrité.
+**chaîne de hash linéaire** (hash-chain) — **et non un arbre de Merkle** : il n'y a ni nœuds
+internes, ni racine d'arbre, ni preuve d'inclusion logarithmique. Un endpoint `/audit/verify`
+parcourt la chaîne **linéairement** (O(n)) et recalcule chaque hash pour vérifier l'intégrité.
 
 ## Conséquences positives
 
@@ -38,9 +44,16 @@ vérifier l'intégrité.
 
 - Vérification complète coûteuse sur de grandes tables (10 ans × milliers d'entrées/jour) — atténué
   par la vérification par segments (dernier mois, dernier trimestre)
-- Si le premier hash de la chaîne est compromis, toute la chaîne peut être reconstruite
-  frauduleusement — atténué par la publication périodique du hash racine dans un registre externe
-  (par exemple, un document signé remis au Bureau du Vérificateur Général)
+- **Intégrité conditionnée à un ancrage tiers (⏳ à implémenter)** : une hash-chain linéaire seule
+  n'offre **pas** d'intégrité forte. Un administrateur ayant accès en écriture à la base peut
+  **recalculer toute la chaîne** (réécrire les entrées, puis recalculer `hash(N)` de proche en
+  proche depuis le point altéré) sans jamais rompre la vérification interne `/audit/verify`. La
+  détection de falsification n'est donc garantie que **si la racine (le dernier hash) est ancrée
+  périodiquement chez un tiers indépendant** — par exemple un registre signé remis à l'OCLEI ou au
+  Bureau du Vérificateur Général. **Cet ancrage tiers périodique est REQUIS** pour atteindre
+  l'intégrité forte ; sans lui, la chaîne ne protège que contre une altération non coordonnée.
+  Statut : ⏳ à implémenter (le scellement Ed25519 horaire in-process — @noble/ed25519, doc 09 —
+  signe la racine localement mais ne constitue pas, à lui seul, l'ancrage externe).
 - Performance d'écriture légèrement réduite (calcul SHA-256 à chaque insertion) — négligeable (~0.1
   ms par opération)
 

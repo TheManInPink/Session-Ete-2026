@@ -2,7 +2,7 @@
 
 **Statut** : ✅ Accepté **Date** : 2026-04-16 **Décideurs** : Étudiant UQAR (solo) **Contexte
 document** : [09 — Backend Audit Service](../09-BACKEND-AUDIT-SERVICE.md) **Complète** :
-[ADR-007 — Chaîne Merkle d'audit](./ADR-007-merkle-audit.md)
+[ADR-007 — Chaîne de hash (hash-chain SHA-256 linéaire) d'audit](./ADR-007-merkle-audit.md)
 
 > **Mise à jour 2026-06-18 (noms d'exchanges)** — La topologie a évolué depuis la rédaction :
 > l'exchange unique `audit.events` (topic) a été scindé en **deux** — `nina.events` (topic,
@@ -16,8 +16,12 @@ document** : [09 — Backend Audit Service](../09-BACKEND-AUDIT-SERVICE.md) **Co
 ## Contexte
 
 Le [document 09](../09-BACKEND-AUDIT-SERVICE.md) décrit l'implémentation de l'`audit-service`.
-L'[ADR-007](./ADR-007-merkle-audit.md) a déjà retenu le principe d'une **chaîne Merkle SHA-256**
-avec scellement Ed25519 horaire pour garantir l'intégrité cryptographique du journal.
+L'[ADR-007](./ADR-007-merkle-audit.md) a déjà retenu le principe d'une **hash-chain SHA-256
+linéaire** (`hash(N) = SHA-256(hash(N-1) + entry(N))` — **pas** un arbre de Merkle) avec scellement
+Ed25519 horaire in-process (@noble/ed25519) pour aider à garantir l'intégrité cryptographique du
+journal. **Rappel CANON** : cette intégrité n'est **forte que si la racine est ancrée périodiquement
+chez un tiers** (registre signé OCLEI / Vérificateur Général) — sans cet ancrage, un administrateur
+DB peut recalculer toute la chaîne (ancrage tiers ⏳ requis, cf. ADR-007).
 
 Mais deux questions architecturales distinctes restaient ouvertes :
 
@@ -25,8 +29,9 @@ Mais deux questions architecturales distinctes restaient ouvertes :
    envoient-ils leurs événements à auditer ? Via appel HTTP synchrone ? Via file de messages
    asynchrone ? Via log applicatif scruté par un agent ?
 
-2. **Défense en profondeur** — La chaîne Merkle détecte _a posteriori_ une falsification, mais **ne
-   l'empêche pas**. Que faire si un attaquant disposant d'un accès DBA exécute
+2. **Défense en profondeur** — La hash-chain linéaire détecte _a posteriori_ une falsification
+   isolée (et seulement si la racine est ancrée chez un tiers — cf. ADR-007), mais **ne l'empêche
+   pas**. Que faire si un attaquant disposant d'un accès DBA exécute
    `DELETE FROM audit_logs WHERE id = 42` ? La chaîne sera rompue, oui, mais la ligne _disparaît_.
    Comment empêcher la suppression/modification au niveau de Postgres lui-même ?
 
@@ -64,7 +69,7 @@ l'audit.
 - ➖ **Perte possible** : si le service crash avant flush du fichier, événement perdu (unbuffered
   async)
 - ➖ **Format fragile** : tout changement de format JSON casse l'agent
-- ➖ **Ordering incertain** entre instances → risque de ruptures Merkle artificielles
+- ➖ **Ordering incertain** entre instances → risque de ruptures de hash-chain artificielles
 - ➖ **Sécurité** : le fichier log contient des données sensibles (NINA, IP) et traîne sur disque
 
 ### Option C — File de messages RabbitMQ (choix) ✅
@@ -161,8 +166,11 @@ Déléguer le stockage à un système nativement inviolable.
 - **Séparation superuser** : la suppression/modification d'un trigger requiert un `ALTER TRIGGER`
   superuser — opération journalisée dans `pg_audit` (extension) et surveillée par une alerte
   Prometheus/Loki.
-- **Compensation** : le scellement Ed25519 horaire (ADR-007) assure qu'un superuser _lui-même_ ne
-  peut pas réécrire l'histoire sans invalider la signature publiée en externe.
+- **Compensation** : le scellement Ed25519 horaire in-process (@noble/ed25519, ADR-007) signe la
+  racine de la hash-chain. Cette compensation n'empêche un superuser de réécrire l'histoire **que si
+  la racine signée est ancrée périodiquement chez un tiers** (registre signé OCLEI / Vérificateur
+  Général) — sinon le même superuser peut recalculer la chaîne **et** re-signer avec la clé
+  in-process. Cet ancrage tiers est ⏳ **requis** (cf. ADR-007, conséquences négatives).
 
 ---
 
@@ -194,7 +202,10 @@ L'`audit-service` ingère ses événements :
   — les événements s'accumulent dans RabbitMQ et seront rattrapés au redémarrage.
 - **Sécurité renforcée** : un attaquant doit compromettre simultanément Postgres (superuser),
   RabbitMQ (pour injecter des faux événements passés), **et** la clé privée Ed25519 dans Vault —
-  trois surfaces distinctes.
+  trois surfaces distinctes. ⚠️ Précision CANON : la clé Ed25519 étant in-process, un attaquant qui
+  contrôle déjà le runtime de l'`audit-service` peut la lire ; la garantie réelle contre la
+  réécriture de l'historique repose donc sur l'**ancrage périodique de la racine chez un tiers** (⏳
+  requis, cf. ADR-007), pas sur la seule signature in-process.
 - **Scalabilité** : l'audit scale selon sa propre charge (ingestion + vérifications) sans impacter
   les écritures métier.
 - **Observabilité** : la profondeur de `audit.log` devient une métrique de santé globale lisible
@@ -240,7 +251,7 @@ L'`audit-service` ingère ses événements :
 
 ## Références
 
-- [ADR-007 — Chaîne Merkle d'audit](./ADR-007-merkle-audit.md)
+- [ADR-007 — Chaîne de hash (hash-chain SHA-256 linéaire) d'audit](./ADR-007-merkle-audit.md)
 - [ADR-005 — PostgreSQL 18](./ADR-005-postgresql.md)
 - Chris Richardson, _Microservices Patterns_, ch. 4 — Transactional Outbox
 - [Postgres Documentation — Trigger Functions](https://www.postgresql.org/docs/18/plpgsql-trigger.html)

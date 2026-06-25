@@ -6,11 +6,14 @@
 >
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
-> **Dernière mise à jour** : 18 juin 2026 · **Status** : ✅ initialisé (27 docs + **33 ADRs** —
-> ADR-031 (data layer frontend mock/live/BFF), ADR-032 (design system) et ADR-033 (pipeline de
-> tokens Style Dictionary) ajoutés depuis ; ADR-030 couvre le module IA : pipeline d'entraînement
+> **Dernière mise à jour** : 25 juin 2026 · **Status** : ✅ initialisé (27 docs + 12 docs
+> thématiques + **34 ADRs** — ADR-031 (data layer frontend mock/live/BFF), ADR-032 (design system),
+> ADR-033 (pipeline de tokens Style Dictionary) et **ADR-034 (sécurité hardening — Vault, mTLS,
+> OWASP)** ajoutés depuis ; ADR-030 couvre le module IA : pipeline d'entraînement
 > `ai-models/training`, bundle joblib auto-suffisant anti-fuite, générateur de dataset restauré et
-> intégration `ai-service` — PROMPT 4.3).
+> intégration `ai-service` — PROMPT 4.3. **Consolidation PHASE 1 (audit contenu + sécurité des 27
+> docs) livrée le 2026-06-25** : 12 docs thématiques créés, correctifs crypto SIGAC/biométrie,
+> docs/security/ rempli, 2 orphelins archivés — cf. §11).
 
 ---
 
@@ -43,9 +46,9 @@
                               │
                               ▼ Justifie
 ┌──────────────────────────────────────────────────────────────────┐
-│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…029)   │
+│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…034)   │
 │  ─────────────────────────────────────────────────────────────   │
-│  29 ADRs (001 à 029) — décisions stratégiques avec :             │
+│  34 ADRs (001 à 034) — décisions stratégiques avec :             │
 │   • Contexte document (lien vers doc Tier 2 associée)            │
 │   • Décision + Conséquences positives / négatives                │
 │   • Note souveraineté + Alternatives rejetées                    │
@@ -153,40 +156,42 @@ Toutes les règles « si tu changes X, mets à jour Y » convergent vers `MAINTE
 
 ### 3.2 Docs transversaux thématiques
 
-| Dossier               | Fichiers                                                                              | Status                                                                            |
-| --------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `docs/data/`          | `mali-divisions.md` (470 l), `integration-guide.md`, `instat-data-request.md` (250 l) | ✅ Riche                                                                          |
-| `docs/design-system/` | `design-system.md`, `figma-prompts.md`, `screens.md`, `tokens.json`                   | ✅ Complet                                                                        |
-| `docs/diagrams/`      | 8 PlantUML + 2 archives narratives Mermaid/PlantUML                                   | ✅ 1557 lignes                                                                    |
-| `docs/figma/`         | `MAQUETTES-UI-UX-SPEC.md`                                                             | ✅ Présent                                                                        |
-| `docs/api/`           | `.gitkeep` seulement                                                                  | 🔴 Vide alors qu'on a livré OpenAPI BCID-AES doc 21                               |
-| `docs/security/`      | (vide)                                                                                | 🔴 Vide alors qu'on prévoit `SECURITY-RUNBOOK.md` et `THREAT-MODEL.md`            |
-| `docs/guides/`        | (vide)                                                                                | 🟡 Pas critique en V1                                                             |
-| `docs/observability/` | (non créé)                                                                            | 🔴 Manquant — prévu `RUNBOOK.md`, `SLOs.md`, `DRP-RUNBOOK.md`, `DRP-DRILL-LOG.md` |
-| `docs/testing/`       | (non créé)                                                                            | 🟡 Prévu `TEST-CHARTER.md`, `COVERAGE-MATRIX.md`                                  |
-| `docs/deployment/`    | (non créé)                                                                            | 🟡 Prévu `OPS-RUNBOOK.md`, `UPGRADE-GUIDE.md`, `KIOSK-INSTALL-GUIDE.md`           |
-| `docs/biometrics/`    | (non créé)                                                                            | 🟡 Prévu `DPIA-NINA-AES-2026.md`, `CONSENT-PROTOCOL.md`, `INCIDENT-PROTOCOL.md`   |
-| `docs/governance/`    | (non créé)                                                                            | 🟡 Prévu `SGOGT-PROTOCOL.md`, `ELECTIONS-EXPORT-CONTRACT.md`                      |
-| `docs/sigac/`         | (non créé)                                                                            | 🟡 Prévu `WHISTLEBLOWER-PROTOCOL.md`, `MODEL-CARDS.md`, `SCORING-RUNBOOK.md`      |
-| `docs/interop/`       | (non créé)                                                                            | 🟡 Prévu `PARTNER-ONBOARDING.md`                                                  |
-| `docs/soutenance/`    | (non créé)                                                                            | 🟡 Prévu `RAPPORT-FINAL.pdf`, `slides.pdf`, `demo-script.md`, etc.                |
+| Dossier               | Fichiers                                                                                 | Status                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `docs/data/`          | `mali-divisions.md` (470 l), `integration-guide.md`, `instat-data-request.md` (250 l)    | ✅ Riche                                                           |
+| `docs/design-system/` | `design-system.md`, `figma-prompts.md`, `screens.md`, `tokens.json`                      | ✅ Complet                                                         |
+| `docs/diagrams/`      | 8 PlantUML + 2 archives narratives Mermaid/PlantUML                                      | ✅ 1557 lignes                                                     |
+| `docs/figma/`         | `MAQUETTES-UI-UX-SPEC.md`                                                                | ✅ Présent                                                         |
+| `docs/api/`           | `.gitkeep` seulement                                                                     | 🔴 Vide alors qu'on a livré OpenAPI BCID-AES doc 21                |
+| `docs/security/`      | `THREAT-MODEL.md`, `SECURITY-RUNBOOK.md`, `vault-usage.md`                               | ✅ Rempli (PHASE 1, Wave 1 — `e3c7335`)                            |
+| `docs/guides/`        | (vide)                                                                                   | 🟡 Pas critique en V1                                              |
+| `docs/observability/` | `RUNBOOK.md`, `SLOs.md`                                                                  | ✅ Créé (PHASE 1, Wave 4a — `ee31ee4`)                             |
+| `docs/testing/`       | (non créé)                                                                               | 🟡 Prévu `TEST-CHARTER.md`, `COVERAGE-MATRIX.md`                   |
+| `docs/deployment/`    | `DRP-RUNBOOK.md`, `OPS-RUNBOOK.md`                                                       | ✅ Créé (PHASE 1, Wave 4a — `ee31ee4`)                             |
+| `docs/biometrics/`    | `DPIA-NINA-AES-2026.md`, `CONSENT-PROTOCOL.md`, `INCIDENT-PROTOCOL.md`                   | ✅ Créé (PHASE 1, Wave 4a — `ee31ee4`)                             |
+| `docs/governance/`    | `SGOGT-PROTOCOL.md`, `ELECTIONS-EXPORT-CONTRACT.md`                                      | ✅ Créé (PHASE 1, Wave 4a — `ee31ee4`)                             |
+| `docs/sigac/`         | `WHISTLEBLOWER-PROTOCOL.md`, `MODEL-CARDS.md`, `SCORING-RUNBOOK.md`                      | ✅ Créé (PHASE 1, Wave 4a — `ee31ee4`)                             |
+| `docs/interop/`       | (non créé)                                                                               | 🟡 Prévu `PARTNER-ONBOARDING.md`                                   |
+| `docs/soutenance/`    | (non créé)                                                                               | 🟡 Prévu `RAPPORT-FINAL.pdf`, `slides.pdf`, `demo-script.md`, etc. |
+| `docs/_archive/`      | `01-fondations-monorepo-outillage-dx.md`, `02-infrastructure-docker-services-donnees.md` | ✅ Archives orphelins (PHASE 1, Wave 1 — `e3c7335`)                |
 
-### 3.3 ⚠️ Orphelins critiques détectés
+### 3.3 ✅ Orphelins critiques — ARCHIVÉS (résolu 2026-06-25)
 
-Deux fichiers Tier 2 contiennent du contenu **dupliqué et obsolète** :
+Deux fichiers Tier 2 contenaient du contenu **dupliqué et obsolète** :
 
 ```
-🔴 docs/01-fondations-monorepo-outillage-dx.md  (1286 lignes)
-🔴 docs/02-infrastructure-docker-services-donnees.md  (1622 lignes)
+✅ docs/_archive/01-fondations-monorepo-outillage-dx.md  (1286 lignes) — déplacé
+✅ docs/_archive/02-infrastructure-docker-services-donnees.md  (1622 lignes) — déplacé
 ```
 
-Ces docs sont des **versions antérieures** superposées par :
+Ces docs étaient des **versions antérieures** superposées par :
 
 - `docs/01-CAHIER-DES-CHARGES.md` (canonique, dans 00-README-INDEX)
 - `docs/02-ARCHITECTURE-GLOBALE.md` (canonique, dans 00-README-INDEX)
 
-**Total : 2 908 lignes de contenu fantôme** susceptibles de tromper un assistant IA ou un lecteur
-humain. Recommandation P0 : archiver ou supprimer (cf. §7).
+**2 908 lignes de contenu fantôme** ont été **archivées vers `docs/_archive/`** lors de la
+consolidation PHASE 1 (Wave 1 — `e3c7335`, **résolu le 2026-06-25**). Drift P0 #4 du registre §6
+clôturé (cf. §7, Option A retenue).
 
 ### 3.4 ✅ Snapshot graphify rafraîchi (2026-05-17)
 
@@ -209,39 +214,44 @@ clôturé.
 
 ## 4. Tier 3 — ADRs (graphe de dépendances)
 
-### 4.1 Couverture 29 ADRs (001–029)
+### 4.1 Couverture 34 ADRs (001–034)
 
-| ADR | Sujet                                             | Doc parent | "Complète" refs                                              |
-| --: | ------------------------------------------------- | ---------- | ------------------------------------------------------------ |
-| 001 | Cahier des charges                                | doc 01     | — (premier)                                                  |
-| 002 | Microservices                                     | doc 02     | —                                                            |
-| 003 | NestJS                                            | doc 07     | —                                                            |
-| 004 | FastAPI                                           | doc 11     | —                                                            |
-| 005 | PostgreSQL                                        | doc 06     | —                                                            |
-| 006 | JWT RS256 + QR code                               | doc 10     | —                                                            |
-| 007 | Merkle audit                                      | doc 09     | —                                                            |
-| 008 | USSD Africa's Talking                             | doc 14     | —                                                            |
-| 009 | Monorepo Turborepo                                | doc 04     | —                                                            |
-| 010 | Infrastructure Docker Compose                     | doc 05     | —                                                            |
-| 011 | Database Schema Prisma                            | doc 06     | —                                                            |
-| 012 | NestJS Clean Architecture                         | doc 07-10  | —                                                            |
-| 013 | Keycloak Identity Provider                        | doc 08     | —                                                            |
-| 014 | Audit event-driven append-only                    | doc 09     | ADR-007                                                      |
-| 015 | Stack ML détection erreurs NINA                   | doc 11     | ADR-004                                                      |
-| 016 | CI/CD GitHub Actions                              | doc 16     | ADR-009, ADR-010                                             |
-| 017 | Observabilité LGTM                                | doc 17     | ADR-010, ADR-014, ADR-016                                    |
-| 018 | Stratégie tests pyramide                          | doc 18     | ADR-009, ADR-016, ADR-017                                    |
-| 019 | Backup & DRP                                      | doc 19     | ADR-005, ADR-010, ADR-014, ADR-017                           |
-| 020 | Déploiement K3s production                        | doc 20     | ADR-002, ADR-010, ADR-015 (faute), ADR-016, ADR-017, ADR-019 |
-| 021 | Protocole BCID-AES Interop                        | doc 21     | ADR-002, ADR-006, ADR-014                                    |
-| 022 | Modules gouvernementaux scope                     | doc 22     | ADR-002, ADR-014                                             |
-| 023 | SIGAC ML stack + lanceurs d'alerte                | doc 23     | ADR-004, ADR-014, ADR-015                                    |
-| 024 | Kiosk Electron vs PWA                             | doc 24     | **❌ ADR-013 mal référencé**                                 |
-| 025 | Biométrie phasée + hash                           | doc 25     | ADR-014, **❌ ADR-015 mal référencée**                       |
-| 026 | Vault Transit — signature QR FDI                  | doc 10     | ADR-006                                                      |
-| 027 | `auth-guards` type-only (DI)                      | doc 07-10  | — (fix duplication `@nestjs/core`)                           |
-| 028 | appointment-service : centres + file d'attente    | PROMPT 3.6 | ADR-011, ADR-027                                             |
-| 029 | api-gateway : auth au bord + `X-User-Context` JWS | PROMPT 3.7 | ADR-006, ADR-013, ADR-027, ADR-017                           |
+| ADR | Sujet                                               | Doc parent | "Complète" refs                                              |
+| --: | --------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| 001 | Cahier des charges                                  | doc 01     | — (premier)                                                  |
+| 002 | Microservices                                       | doc 02     | —                                                            |
+| 003 | NestJS                                              | doc 07     | —                                                            |
+| 004 | FastAPI                                             | doc 11     | —                                                            |
+| 005 | PostgreSQL                                          | doc 06     | —                                                            |
+| 006 | JWT RS256 + QR code                                 | doc 10     | —                                                            |
+| 007 | Merkle audit                                        | doc 09     | —                                                            |
+| 008 | USSD Africa's Talking                               | doc 14     | —                                                            |
+| 009 | Monorepo Turborepo                                  | doc 04     | —                                                            |
+| 010 | Infrastructure Docker Compose                       | doc 05     | —                                                            |
+| 011 | Database Schema Prisma                              | doc 06     | —                                                            |
+| 012 | NestJS Clean Architecture                           | doc 07-10  | —                                                            |
+| 013 | Keycloak Identity Provider                          | doc 08     | —                                                            |
+| 014 | Audit event-driven append-only                      | doc 09     | ADR-007                                                      |
+| 015 | Stack ML détection erreurs NINA                     | doc 11     | ADR-004                                                      |
+| 016 | CI/CD GitHub Actions                                | doc 16     | ADR-009, ADR-010                                             |
+| 017 | Observabilité LGTM                                  | doc 17     | ADR-010, ADR-014, ADR-016                                    |
+| 018 | Stratégie tests pyramide                            | doc 18     | ADR-009, ADR-016, ADR-017                                    |
+| 019 | Backup & DRP                                        | doc 19     | ADR-005, ADR-010, ADR-014, ADR-017                           |
+| 020 | Déploiement K3s production                          | doc 20     | ADR-002, ADR-010, ADR-015 (faute), ADR-016, ADR-017, ADR-019 |
+| 021 | Protocole BCID-AES Interop                          | doc 21     | ADR-002, ADR-006, ADR-014                                    |
+| 022 | Modules gouvernementaux scope                       | doc 22     | ADR-002, ADR-014                                             |
+| 023 | SIGAC ML stack + lanceurs d'alerte                  | doc 23     | ADR-004, ADR-014, ADR-015                                    |
+| 024 | Kiosk Electron vs PWA                               | doc 24     | **❌ ADR-013 mal référencé**                                 |
+| 025 | Biométrie phasée + hash                             | doc 25     | ADR-014, **❌ ADR-015 mal référencée**                       |
+| 026 | Vault Transit — signature QR FDI                    | doc 10     | ADR-006                                                      |
+| 027 | `auth-guards` type-only (DI)                        | doc 07-10  | — (fix duplication `@nestjs/core`)                           |
+| 028 | appointment-service : centres + file d'attente      | PROMPT 3.6 | ADR-011, ADR-027                                             |
+| 029 | api-gateway : auth au bord + `X-User-Context` JWS   | PROMPT 3.7 | ADR-006, ADR-013, ADR-027, ADR-017                           |
+| 030 | Module IA : pipeline d'entraînement + bundle joblib | doc 11     | ADR-004, ADR-015                                             |
+| 031 | Data layer frontend mock/live/BFF                   | doc 12     | ADR-029                                                      |
+| 032 | Design system                                       | doc 12     | ADR-031                                                      |
+| 033 | Pipeline de tokens Style Dictionary                 | doc 12     | ADR-032                                                      |
+| 034 | Sécurité hardening — Vault, mTLS, OWASP             | doc 15     | ADR-013, ADR-014, ADR-026 (comble l'ADR-015 fautif)          |
 
 ### 4.2 ⚠️ Refs ADR cassées (sévérité P0)
 
@@ -356,20 +366,20 @@ automatiquement → risque de drift silencieuse.
 
 ## 6. Synthèse des dérives (à jour 16 mai 2026)
 
-|   # | Drift                                                                                                                                | Sévérité | Fichier(s)                                                                                         | Action                             |
-| --: | ------------------------------------------------------------------------------------------------------------------------------------ | :------: | -------------------------------------------------------------------------------------------------- | ---------------------------------- |
-|   1 | ADR-024 réf cassée vers ADR-013 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-024-*.md` ligne 5                                                                    | Fix immédiat                       |
-|   2 | ADR-025 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-025-*.md` ligne 6                                                                    | Fix immédiat                       |
-|   3 | ADR-020 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-020-*.md` ligne 5-6                                                                  | Fix immédiat                       |
-|   4 | 2 docs orphelins (01-fondations + 02-infrastructure)                                                                                 |  🔴 P0   | `docs/01-fondations-monorepo-outillage-dx.md`, `docs/02-infrastructure-docker-services-donnees.md` | Archiver                           |
-|   5 | ~~graphify-out snapshot 5 mai = stale 11 jours~~ ✅ Résolu 17 mai 2026 (`graphify update` → 613 nodes / 598 edges / 183 communautés) |    ✅    | `graphify-out/`                                                                                    | —                                  |
-|   6 | AGENTS.md ne mentionne pas `verify:repo`                                                                                             |  🟡 P1   | `AGENTS.md`                                                                                        | Aligner sur copilot                |
-|   7 | README.md ne référence pas MAINTENANCE.md                                                                                            |  🟡 P1   | `README.md`                                                                                        | Enrichir                           |
-|   8 | ADR-013 (Mobile Expo) manquant                                                                                                       |  🟡 P1   | (à créer)                                                                                          | Reporté V2                         |
-|   9 | ADR-015 réelle (Security Hardening) manquante                                                                                        |  🟡 P1   | (à créer)                                                                                          | Reporté V2                         |
-|  10 | ADRs 001-013 sans header "Complète"                                                                                                  |  🟢 P2   | 13 ADRs                                                                                            | Backfill possible                  |
-|  11 | `docs/api/`, `docs/security/`, `docs/observability/` vides                                                                           |  🟢 P2   | dossiers                                                                                           | Remplir au fil des implémentations |
-|  12 | `docs-sync-check.mjs` enforce seulement 10 refs                                                                                      |  🟢 P2   | `scripts/docs-sync-check.mjs`                                                                      | Étendre progressivement            |
+|   # | Drift                                                                                                                                | Sévérité | Fichier(s)                                                                                                           | Action                             |
+| --: | ------------------------------------------------------------------------------------------------------------------------------------ | :------: | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+|   1 | ADR-024 réf cassée vers ADR-013 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-024-*.md` ligne 5                                                                                      | Fix immédiat                       |
+|   2 | ADR-025 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-025-*.md` ligne 6                                                                                      | Fix immédiat                       |
+|   3 | ADR-020 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-020-*.md` ligne 5-6                                                                                    | Fix immédiat                       |
+|   4 | ~~2 docs orphelins (01-fondations + 02-infrastructure)~~ ✅ Archivés vers `docs/_archive/` le 2026-06-25 (PHASE 1, Wave 1 `e3c7335`) |    ✅    | `docs/_archive/01-fondations-monorepo-outillage-dx.md`, `docs/_archive/02-infrastructure-docker-services-donnees.md` | —                                  |
+|   5 | ~~graphify-out snapshot 5 mai = stale 11 jours~~ ✅ Résolu 17 mai 2026 (`graphify update` → 613 nodes / 598 edges / 183 communautés) |    ✅    | `graphify-out/`                                                                                                      | —                                  |
+|   6 | AGENTS.md ne mentionne pas `verify:repo`                                                                                             |  🟡 P1   | `AGENTS.md`                                                                                                          | Aligner sur copilot                |
+|   7 | README.md ne référence pas MAINTENANCE.md                                                                                            |  🟡 P1   | `README.md`                                                                                                          | Enrichir                           |
+|   8 | ADR-013 (Mobile Expo) manquant                                                                                                       |  🟡 P1   | (à créer)                                                                                                            | Reporté V2                         |
+|   9 | ADR-015 réelle (Security Hardening) manquante                                                                                        |  🟡 P1   | (à créer)                                                                                                            | Reporté V2                         |
+|  10 | ADRs 001-013 sans header "Complète"                                                                                                  |  🟢 P2   | 13 ADRs                                                                                                              | Backfill possible                  |
+|  11 | `docs/api/`, `docs/security/`, `docs/observability/` vides                                                                           |  🟢 P2   | dossiers                                                                                                             | Remplir au fil des implémentations |
+|  12 | `docs-sync-check.mjs` enforce seulement 10 refs                                                                                      |  🟢 P2   | `scripts/docs-sync-check.mjs`                                                                                        | Étendre progressivement            |
 
 ---
 
@@ -529,10 +539,27 @@ Cadence recommandée : revue trimestrielle + à chaque release majeure (tag Git 
 2026-05-30  ADR-027 auth-guards type-only                           (auth-service boot fix)
 2026-06-04  ADR-028 appointment-service + modèle EnrollmentCenter   (PROMPT 3.6)
 2026-06-13  ADR-029 api-gateway auth au bord + X-User-Context JWS   (PROMPT 3.7)
+2026-06-25  Consolidation PHASE 1 (audit contenu + sécurité 27 docs) (feat/ai-training-pipeline, 5 commits)
+            ├─ e3c7335  Wave 1  : doc 15 durci ; crypto SIGAC (doc 23 : Ed25519 ne chiffre pas
+            │                     → sealed box X25519/XSalsa20-Poly1305 ou RSA-OAEP client) +
+            │                     biométrie (doc 25 + ADR-025 : HMAC strict → cancelable biometrics /
+            │                     fuzzy extractor ISO/IEC 24745) ; docs/security/{THREAT-MODEL,
+            │                     SECURITY-RUNBOOK} + ADR-034 ; archivage 2 orphelins → docs/_archive/
+            ├─ c5e9723  Wave 2a : docs 06/07/11/13/14/22/24 (guards/IDOR, RCE joblib fail-closed, JWKS
+            │                     multi-kid, HMAC-in-Vault, auth machine bornée) + correctifs ai-service
+            ├─ a2832e8  Wave 2b : docs 02/03/04/05/08/09/10/20 (secrets Vault, mTLS, zero-trust K3s
+            │                     Calico/PSA, audit AppRole, OpenAPI 3.2)
+            ├─ ffbc3d8  Wave 3  : docs 00/01/12/16/17/18/19/21/26 (matrice sécurité transversale,
+            │                     plan souveraineté, TOTP/passkey, anti-replay interop, honnêteté soutenance)
+            └─ ee31ee4  Wave 4a : 12 docs thématiques créés (biometrics/{DPIA,INCIDENT,CONSENT},
+                                  sigac/{WHISTLEBLOWER,MODEL-CARDS,SCORING-RUNBOOK}, observability/{RUNBOOK,SLOs},
+                                  deployment/{DRP-RUNBOOK,OPS-RUNBOOK}, governance/{SGOGT-PROTOCOL,ELECTIONS-EXPORT-CONTRACT})
 ```
 
-État final : **27/27 docs canoniques + 29 ADRs + 6 gouvernance + 7 catalogues transversaux + 1 carte
-(ce doc) = ~30 000 lignes de documentation cohérente.**
+État final : **27/27 docs canoniques + 12 docs thématiques + 34 ADRs + 6 gouvernance + 7 catalogues
+transversaux + 1 carte (ce doc) = ~30 000 lignes de documentation cohérente.** Contrôles non
+implémentés dans le code marqués ⏳ « conçu, Phase 2 » ; gate pré-commit `verify:repo` vert à chaque
+commit de la PHASE 1.
 
 ---
 
