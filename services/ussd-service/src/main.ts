@@ -17,7 +17,9 @@
 
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { getConfig } from '@nina-aes/config';
 import { AllExceptionsFilter, CorrelationMiddleware, LOGGER_TOKEN } from '@nina-aes/logger/nestjs';
 import type { StructuredLogger } from '@nina-aes/logger';
 
@@ -27,12 +29,35 @@ const PORT = Number(process.env.USSD_SERVICE_PORT ?? 3014);
 const SERVICE_VERSION = process.env.SERVICE_VERSION ?? '0.1.0';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn'],
     bufferLogs: true,
   });
 
   const logger = app.get<StructuredLogger>(LOGGER_TOKEN);
+
+  // ─── trust proxy : durcissement anti-usurpation de l'IP source ──────────────
+  // L'IP source est une frontière de sécurité (IP allowlist du webhook). On NE
+  // fait confiance aux en-têtes transférés (`X-Forwarded-For` / `X-Real-IP`)
+  // QUE pour le nombre EXACT de sauts de proxy déclaré (TRUST_PROXY_HOPS). Sans
+  // cela, Express ferait par défaut confiance à AUCUN proxy et `X-Real-IP` resté
+  // lisible par le guard pourrait être usurpé par un client direct. On borne au
+  // nombre de hops connus plutôt que `true` (qui ferait aveuglément confiance à
+  // tout XFF). Cf. AtAuthenticityGuard (couche 1) + doc 14 §4.2.
+  const isProduction = process.env.NODE_ENV === 'production';
+  const trustProxyHops = getConfig().TRUST_PROXY_HOPS;
+  if (isProduction && trustProxyHops < 1) {
+    // En prod, l'IP allowlist est inopérante (donc usurpable) sans un proxy de
+    // confiance qui RÉÉCRIT `X-Real-IP`. On refuse de démarrer : fail-closed.
+    throw new Error(
+      'TRUST_PROXY_HOPS doit être >= 1 en production (l’IP allowlist USSD ' +
+        'dépend d’un reverse-proxy de confiance qui réécrit X-Real-IP). ' +
+        'Sinon X-Real-IP est usurpable et la couche 1 du guard est contournée.',
+    );
+  }
+  // `trust proxy = N` : Express ne fait confiance qu'aux N derniers proxys de la
+  // chaîne pour résoudre `req.ip` / `req.ips`. `0` ⇒ aucun proxy de confiance.
+  app.set('trust proxy', trustProxyHops);
 
   // ─── Corrélation EN PREMIER ──────────────────────────────────
   app.use((req: unknown, res: unknown, next: unknown) =>

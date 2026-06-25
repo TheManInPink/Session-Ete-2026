@@ -31,7 +31,9 @@ export type UssdState =
   | 'LANG_SELECT' // Choix de la langue (premier écran)
   | 'MAIN_MENU' // Menu principal
   | 'VERIFY_NINA_INPUT' // Saisie du NINA pour vérification
+  | 'VERIFY_NINA_OTP' // 2ᵉ facteur SMS (binding phone↔NINA, doc 14 §4.5)
   | 'VERIFY_NINA_RESULT' // Résultat affiché, attend retour menu
+  | 'ALERT_INPUT' // Saisie description signalement SIGAC anonyme (§4.6.1)
   | 'GOODBYE'; // Session terminée
 
 export interface UssdSession {

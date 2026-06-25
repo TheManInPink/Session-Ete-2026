@@ -132,6 +132,37 @@ export const envSchema = z.object({
   AFRICAS_TALKING_API_KEY: z.string().default('sandbox-api-key'),
   AFRICAS_TALKING_USERNAME: z.string().default('sandbox'),
 
+  // ── Authenticité du webhook USSD Africa's Talking (P0 sécurité, doc 14 §4.2) ──
+  // Ces deux variables durcissent le webhook PUBLIC `POST /ussd/callback`.
+  // Défauts SÛRS : chaîne vide pour NE PAS casser le boot des autres services
+  // (le webhook n'existe que dans ussd-service). Le fail-closed réel est
+  // appliqué DANS `AtAuthenticityGuard` quand `NODE_ENV=production` :
+  //   - allowlist vide en prod  → tout appel rejeté (403) ;
+  //   - secret vide en prod     → tout appel rejeté (403).
+  // En dev (`NODE_ENV != production`), un défaut vide reste permissif pour
+  // permettre le simulateur local sans config supplémentaire.
+  //
+  /** CSV des IP sortantes autorisées des passerelles Africa's Talking / opérateur. */
+  AT_GATEWAY_IP_ALLOWLIST: z.string().default(''),
+  /**
+   * Secret partagé attendu dans l'en-tête `X-AT-Webhook-Secret` (comparé en
+   * TEMPS CONSTANT). Optionnel au boot (.default('')) ; REQUIS en production
+   * (fail-closed dans le guard). Vit dans Vault — jamais en clair dans le code.
+   */
+  AT_WEBHOOK_SHARED_SECRET: z.string().default(''),
+  /**
+   * Nombre de sauts (hops) de reverse-proxy DE CONFIANCE devant ussd-service
+   * (Express `trust proxy`). Tant que l'IP source est une frontière de sécurité
+   * (IP allowlist du webhook USSD), l'en-tête `X-Real-IP` / `X-Forwarded-For`
+   * ne doit être honoré QUE s'il provient d'un proxy de confiance — sinon un
+   * client Internet pourrait usurper `X-Real-IP: <IP-AT-allowlistée>` et
+   * contourner la couche 1. Mettre le nombre EXACT de proxys que la requête
+   * traverse (ex. `1` = un seul NGINX/ingress en amont). `0` = aucun proxy de
+   * confiance : on n'honore AUCUN en-tête transféré (on n'utilise que l'IP du
+   * pair TCP direct). En production, ce guard impose une valeur ≥ 1.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+
   // ── Certificats mTLS pour l'interopérabilité AES ──────────────────────
   AES_MLI_CERT_PATH: z.string().default('./secrets/aes/mli.pem'),
   AES_BFA_CERT_PATH: z.string().default('./secrets/aes/bfa.pem'),
