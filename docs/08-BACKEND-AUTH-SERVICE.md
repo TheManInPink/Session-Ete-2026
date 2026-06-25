@@ -16,23 +16,23 @@ explicitement.
 
 ### Endpoints livrés
 
-| Méthode + Path                           | Public | Throttle  | Notes                                      |
-| ---------------------------------------- | ------ | --------- | ------------------------------------------ |
-| `POST /api/v1/auth/register/request-otp` | ✅     | —         | Réponse uniforme (anti user-enum)          |
-| `POST /api/v1/auth/register/verify`      | ✅     | —         | Keycloak admin API → DB → tokens           |
-| `POST /api/v1/auth/login`                | ✅     | 5/900s/IP | Renvoie `MfaPending` ou `AuthSession`      |
-| `POST /api/v1/auth/refresh`              | ✅     | —         | Rotation famille + détection rejeu         |
-| `POST /api/v1/auth/logout`               | ✅     | —         | Idempotent (204)                           |
-| `POST /api/v1/auth/mfa/totp/setup`       | —      | —         | Auth requis ; QR otpauth                   |
-| `POST /api/v1/auth/mfa/totp/confirm`     | —      | —         | Auth requis ; chiffre secret Vault Transit |
-| `POST /api/v1/auth/mfa/totp/verify`      | ✅     | —         | Preuve = challenge JWT                     |
-| `POST /api/v1/auth/mfa/sms/challenge`    | ✅     | —         | Preuve = challenge JWT                     |
-| `POST /api/v1/auth/mfa/sms/verify`       | ✅     | —         | Preuve = challenge JWT                     |
-| `POST /api/v1/auth/password/forgot`      | ✅     | —         | Réponse uniforme 202 + envoi SMS           |
-| `POST /api/v1/auth/password/reset`       | ✅     | —         | Consume-once jti + PUT Keycloak            |
-| `GET  /api/v1/auth/me`                   | —      | —         | Projection `MeResponse` (anti-leak)        |
-| `GET  /health`                           | ✅     | —         | Probe Docker/K3s (hors prefix `api/v1`)    |
-| `GET  /.well-known/jwks.json`            | ✅     | —         | Proxy JWKS Keycloak (hors prefix)          |
+| Méthode + Path                           | Public | Throttle  | Notes                                                                |
+| ---------------------------------------- | ------ | --------- | -------------------------------------------------------------------- |
+| `POST /api/v1/auth/register/request-otp` | ✅     | —         | Réponse uniforme (anti user-enum)                                    |
+| `POST /api/v1/auth/register/verify`      | ✅     | —         | Keycloak admin API → DB → tokens                                     |
+| `POST /api/v1/auth/login`                | ✅     | 5/900s/IP | Renvoie `MfaPending` ou `AuthSession`                                |
+| `POST /api/v1/auth/refresh`              | ✅     | —         | Rotation famille + détection rejeu                                   |
+| `POST /api/v1/auth/logout`               | ✅     | —         | Idempotent (204)                                                     |
+| `POST /api/v1/auth/mfa/totp/setup`       | —      | —         | Auth requis ; QR otpauth                                             |
+| `POST /api/v1/auth/mfa/totp/confirm`     | —      | —         | Auth requis ; chiffre secret Vault Transit                           |
+| `POST /api/v1/auth/mfa/totp/verify`      | ✅     | —         | Preuve = challenge JWT                                               |
+| `POST /api/v1/auth/mfa/sms/challenge`    | ✅     | —         | Preuve = challenge JWT                                               |
+| `POST /api/v1/auth/mfa/sms/verify`       | ✅     | —         | Preuve = challenge JWT                                               |
+| `POST /api/v1/auth/password/forgot`      | ✅     | —         | Réponse uniforme 202 + envoi SMS                                     |
+| `POST /api/v1/auth/password/reset`       | ✅     | —         | Consume-once jti + PUT Keycloak                                      |
+| `GET  /api/v1/auth/me`                   | —      | —         | Projection `MeResponse` (anti-leak)                                  |
+| `GET  /health`                           | ✅     | —         | Probe Docker/K3s (hors prefix `api/v1`)                              |
+| `GET  /.well-known/jwks.json`            | ✅     | —         | JWKS **de signature** auth-service (clé publique Vault, hors prefix) |
 
 ### Écarts vs design initial
 
@@ -58,20 +58,42 @@ explicitement.
    nos type aliases).
 7. **Reset password : pas encore de force-logout des sessions actives** (différé — nécessite un
    index per-user des familles de refresh ; cf. roadmap Phase 11).
+8. **Contrat de token inter-service durci (Bloc A).** L'access token respecte désormais strictement
+   le contrat exigé par les vérificateurs JWKS aval
+   (`identity-service/src/auth/jwks-jwt.verifier.ts` et identiques) :
+   - `iss` = **`nina-aes-auth`** (string exacte, `JWT_ISSUER` — **plus une URL** ; un `z.url()`
+     aurait cassé le flux citoyen au premier guard). Surchargeable, mais doit rester aligné sur
+     `AUTH_JWT_ISSUER` côté avals.
+   - `aud` = **liste** (`JWT_AUDIENCE` en CSV) contenant l'identité de chaque aval cible
+     (`nina-identity-service`, `nina-appointment-service`, …) — chaque vérificateur exige SA propre
+     identité dans `aud`.
+   - **Claim `nina`** ajouté à l'access token **citoyen** (résolu par email via la table `citizens`,
+     cf. `UserRepository.findCitizenNinaByEmail`) — consommé par `NinaOwnershipGuard` (anti-IDOR).
+     Absent pour les rôles internes. Un citoyen non encore enrôlé côté identity ⇒ token émis
+     **sans** `nina` (les routes « propriétaire » restent inaccessibles, le reste de l'API
+     fonctionne).
+9. **`/.well-known/jwks.json` corrigé** : sert la clé **publique de SIGNATURE** d'auth-service (clé
+   Vault → JWK, `kid` aligné sur l'en-tête des tokens) et **non plus** un proxy du JWKS Keycloak.
+   Les tokens étant signés par auth-service (écart 1), servir le JWKS Keycloak ici rendait toute
+   vérification aval impossible (drift fermé).
+10. **En-têtes de sécurité** posés au bootstrap (`main.ts`) : CSP `default-src 'none'`,
+    `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, et `HSTS` en production. Implémentés en
+    middleware Express sans dépendance (auth-service n'embarque pas `helmet`). ⏳ Évolution :
+    aligner sur `helmet` comme les 5 autres services (ajout dep + `pnpm install`).
 
 ### Modules clés (`services/auth-service/src/`)
 
-| Module          | Rôle                                                                                                        |
-| --------------- | ----------------------------------------------------------------------------------------------------------- |
-| `config/`       | Validation Zod fail-fast de l'env                                                                           |
-| `vault/`        | Chargement strict des clés JWT + helpers MFA Transit                                                        |
-| `redis/`        | `ioredis` préfixé + helpers `setNxEx` / `incrEx` (Lua)                                                      |
-| `crypto/`       | `ArgonService` + `JwtCryptoService` (sign/verify access/refresh/reset/mfa-challenge)                        |
-| `keycloak/`     | `KeycloakAdminService` (create user, reset password) + `KeycloakAuthService` (password grant)               |
-| `sms/`          | Provider abstrait + `MockSmsProvider` (dev) + `AfricasTalkingSmsProvider`                                   |
-| `modules/auth/` | `AuthService` + `AuthController` + `MfaController` + `OtpService` + `RefreshService` + `LoginThrottleGuard` |
-| `modules/user/` | `UserRepository` (Prisma)                                                                                   |
-| `jwks/`         | Proxy JWKS Keycloak avec cache (existant pré-PROMPT 3.2)                                                    |
+| Module          | Rôle                                                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `config/`       | Validation Zod fail-fast de l'env                                                                                                       |
+| `vault/`        | Chargement strict des clés JWT + helpers MFA Transit                                                                                    |
+| `redis/`        | `ioredis` préfixé + helpers `setNxEx` / `incrEx` (Lua)                                                                                  |
+| `crypto/`       | `ArgonService` + `JwtCryptoService` (sign/verify access/refresh/reset/mfa-challenge)                                                    |
+| `keycloak/`     | `KeycloakAdminService` (create user, reset password) + `KeycloakAuthService` (password grant)                                           |
+| `sms/`          | Provider abstrait + `MockSmsProvider` (dev) + `AfricasTalkingSmsProvider`                                                               |
+| `modules/auth/` | `AuthService` + `AuthController` + `MfaController` + `OtpService` + `RefreshService` + `LoginThrottleGuard`                             |
+| `modules/user/` | `UserRepository` (Prisma)                                                                                                               |
+| `jwks/`         | JWKS de **signature** (clé publique Vault → JWK, `kid`) servi sur `/.well-known/jwks.json` ; proxy JWKS Keycloak conservé pour SSO/OIDC |
 
 ### Tests (Phase 10)
 
@@ -119,7 +141,8 @@ des tokens applicatifs NINA. Responsabilités :
 1. **Validation du mot de passe** déléguée à Keycloak (`password` grant), puis **émission de JWT
    propres** (access / refresh / reset / mfa-challenge) signés RS256 avec une paire de clés Vault et
    un en-tête `kid` (cf. § 4.6 — rotation des clés).
-2. **Enrichissement du token** avec des claims métier NINA (ex : `role`, `mfa`, `kcSub`).
+2. **Enrichissement du token** avec des claims métier NINA (`role`, `mfa`, `kcSub`, et `nina` pour
+   les citoyens — ce dernier consommé par `NinaOwnershipGuard` anti-IDOR).
 3. **Rotation + détection de rejeu** des refresh tokens via Redis (familles de tokens — OWASP). ⚠️
    Le refresh est **vérifié par signature** (`verifyRefresh`), jamais simplement décodé.
 4. **Décorateurs et guards** réutilisables (`@Roles()`, `@CurrentUser()`, `@Public()`,

@@ -383,12 +383,39 @@ export class AuthService {
     keycloakId: string;
     mfa: boolean;
   }): Promise<AuthSession> {
+    // 🔗 CONTRAT INTER-SERVICE (NinaOwnershipGuard) : un CITOYEN doit porter
+    // son NINA dans le claim `nina`. On le résout par email (jointure
+    // canonique users↔citizens — cf. UserRepository.findCitizenNinaByEmail).
+    // Les rôles internes (agent/admin/…) n'ont pas de NINA personnel → claim
+    // absent. Un échec de lookup (ex. citoyen pas encore enrôlé) n'empêche PAS
+    // l'émission : le token est juste émis sans `nina` (fail-open contrôlé).
+    let nina: string | undefined;
+    if (params.role === UserRole.CITIZEN) {
+      const resolved = await this.users
+        .findCitizenNinaByEmail(params.email)
+        .catch((err: unknown) => {
+          this.logger.warn(
+            `Lookup NINA échoué pour user ${params.userId}: ${(err as Error).message}`,
+          );
+          return null;
+        });
+      if (resolved) {
+        nina = resolved;
+      } else {
+        this.logger.warn(
+          `Aucun NINA citoyen rattaché à l'email du user ${params.userId} — ` +
+            'access token émis sans claim `nina` (routes propriétaire inaccessibles).',
+        );
+      }
+    }
+
     const access = this.jwt.signAccess({
       userId: params.userId,
       role: params.role,
       mfa: params.mfa,
       email: params.email,
       kcSub: params.keycloakId,
+      ...(nina !== undefined ? { nina } : {}),
     });
     const refresh = this.jwt.signRefresh({ userId: params.userId, role: params.role });
     await this.refreshSvc.persist(refresh.jti, params.userId, refresh.family);

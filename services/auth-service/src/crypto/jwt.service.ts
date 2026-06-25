@@ -33,7 +33,7 @@ import type {
   JwtResetPayload,
   UserRole,
 } from '../common/types.js';
-import type { AppEnv } from '../config/env.config.js';
+import { parseAudience, type AppEnv } from '../config/env.config.js';
 import { VaultService } from '../vault/vault.service.js';
 
 /** Données minimales pour émettre un access token (claims dérivés). */
@@ -43,6 +43,12 @@ export interface SignAccessInput {
   mfa: boolean;
   email?: string;
   kcSub?: string;
+  /**
+   * NINA du citoyen propriétaire — gravé dans le claim `nina` UNIQUEMENT pour
+   * les citoyens (anti-IDOR `NinaOwnershipGuard` côté identity-service).
+   * `undefined` pour agent/admin/auditor/etc. (pas de NINA personnel).
+   */
+  nina?: string;
 }
 
 /** Données minimales pour émettre un refresh token. */
@@ -76,7 +82,14 @@ export interface SignMfaChallengeInput {
 @Injectable()
 export class JwtCryptoService {
   private readonly issuer: string;
-  private readonly audience: string;
+  /**
+   * Audience(s) émise(s). Tuple NON VIDE (≥ 1 élément) afin qu'un même token
+   * soit accepté par tous les vérificateurs aval qui exigent leur propre
+   * identité dans `aud` (cf. {@link parseAudience} + doc 08 §4.x). Le type
+   * `[string, ...string[]]` satisfait à la fois la signature (`string[]`) et
+   * la vérification (`jsonwebtoken` exige un tuple non vide).
+   */
+  private readonly audience: [string, ...string[]];
   private readonly accessTtl: number;
   private readonly refreshTtl: number;
   private readonly resetTtl: number;
@@ -86,7 +99,13 @@ export class JwtCryptoService {
     config: ConfigService<AppEnv, true>,
   ) {
     this.issuer = config.get('JWT_ISSUER', { infer: true });
-    this.audience = config.get('JWT_AUDIENCE', { infer: true });
+    const audiences = parseAudience(config.get('JWT_AUDIENCE', { infer: true }));
+    if (audiences.length === 0) {
+      // Garde-fou : env validé par Zod (min 1), mais on protège l'invariant
+      // « au moins une audience » exigé par le contrat inter-service.
+      throw new Error('JWT_AUDIENCE doit contenir au moins une audience.');
+    }
+    this.audience = audiences as [string, ...string[]];
     this.accessTtl = config.get('JWT_ACCESS_TTL_SECONDS', { infer: true });
     this.refreshTtl = config.get('JWT_REFRESH_TTL_SECONDS', { infer: true });
     this.resetTtl = config.get('JWT_RESET_TTL_SECONDS', { infer: true });
@@ -94,15 +113,24 @@ export class JwtCryptoService {
 
   // ─── Signatures ───────────────────────────────────────────────────
 
-  /** Émet un access token RS256 (TTL 15 min). */
+  /**
+   * Émet un access token RS256 (TTL 15 min).
+   *
+   * Pour un CITOYEN, `input.nina` est gravé dans le claim `nina` — c'est ce
+   * claim que `NinaOwnershipGuard` (identity-service) compare au NINA de la
+   * ressource ciblée (anti-IDOR). Pour les rôles internes (agent/admin/…),
+   * `input.nina` est `undefined` et le claim est ABSENT (un agent n'est pas
+   * propriétaire d'un NINA personnel).
+   */
   signAccess(input: SignAccessInput): string {
     const { kid, privatePem } = this.vault.getJwtKeys();
-    const payload: Pick<JwtAccessPayload, 'sub' | 'role' | 'mfa' | 'email' | 'kcSub'> = {
+    const payload: Pick<JwtAccessPayload, 'sub' | 'role' | 'mfa' | 'email' | 'kcSub' | 'nina'> = {
       sub: input.userId,
       role: input.role,
       mfa: input.mfa,
       ...(input.email !== undefined ? { email: input.email } : {}),
       ...(input.kcSub !== undefined ? { kcSub: input.kcSub } : {}),
+      ...(input.nina !== undefined ? { nina: input.nina } : {}),
     };
     return jwt.sign(payload, privatePem, {
       algorithm: 'RS256',
