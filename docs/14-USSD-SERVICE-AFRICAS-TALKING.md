@@ -294,7 +294,13 @@ On combine **trois couches** (défense en profondeur — aucune n'est suffisante
 
 1. **IP allowlist** des passerelles Africa's Talking (ou de l'opérateur en prod souveraine). AT
    publie ses plages sortantes ; on rejette tout `X-Forwarded-For` / IP source hors liste. _Limite_
-   : l'IP est usurpable derrière un proxy mal configuré → jamais seule.
+   : l'IP est usurpable derrière un proxy mal configuré → jamais seule. **Durcissement (revue
+   sécurité — implémenté)** : l'IP source est résolue par Express via `app.set('trust proxy', N)`
+   piloté par `TRUST_PROXY_HOPS` (`main.ts`). `X-Real-IP` n'est honoré **que** si la requête a
+   réellement transité par un proxy de confiance (`req.ips` non vide) — un client direct qui injecte
+   `X-Real-IP: <IP-AT-allowlistée>` est ignoré (repli sur l'IP du pair TCP, hors allowlist → rejet).
+   En **production**, le service **refuse de démarrer** si `TRUST_PROXY_HOPS < 1` (fail-closed). Le
+   **secret partagé** (couche 2) reste la barrière réelle.
 2. **Secret partagé** : AT ajoute un segment secret à l'URL de callback (path) **et/ou** un header
    convenu. On compare en **temps constant** (`crypto.timingSafeEqual`) pour éviter une attaque
    temporelle. Le secret vit dans Vault (`@nina-aes/config`), **jamais** en clair.
@@ -894,6 +900,17 @@ rendez-vous (qui ajoute la file prioritaire) et signalement (qui ajoute SIGAC).
 > SMS** (OTP envoyé au numéro officiel du citoyen) — l'attaquant qui ne contrôle pas la ligne ne
 > peut pas poursuivre. Combiné au rate-limit par phone ET par NINA (§4.4 bis), cela casse
 > l'énumération automatisée.
+
+> 🔒 **Durcissement (revue sécurité — implémenté)** : renvoyer `not_found` (NINA inconnu) **≠**
+> `otp_sent` (NINA connu mais non lié) constituait un **oracle d'existence** — un appelant qui ne
+> contrôle pas la ligne pouvait sonder n'importe quel NINA et apprendre lesquels sont enregistrés.
+> Le code (`ussd.service.handleVerifyNina`) rend désormais les **deux** cas **strictement
+> indistinguables** : même état (`VERIFY_NINA_OTP`), même message **neutre** `otp_challenge` (qui NE
+> confirme PAS d'envoi). L'OTP réel n'est expédié que sur un vrai `phone_mismatch`, et **sous un
+> quota d'envoi dédié** (`RateLimitStore.allowOtpSend` : 1 SMS/fenêtre par NINA **et** par numéro
+> officiel destinataire), indépendant du compteur de consultation — ce qui coupe l'**amplification
+> SMS** / le harcèlement de la victime. L'audit conserve le vrai résultat (`not_found` vs
+> `phone_mismatch`) pour le SOC, sans qu'il transparaisse à l'écran.
 
 > ⚠️ **État actuel du code** : `handleLookupNina`, `SmsOtpClient`, `AuditClient` et `IdentityClient`
 > **ne sont PAS présents** dans le code livré. Le code réel (`ussd.service.handleVerifyNina`) valide
