@@ -12,10 +12,15 @@
 import { Global, Module } from '@nestjs/common';
 import { JWT_VERIFIER } from '@nina-aes/auth-guards';
 import { JwksJwtVerifier } from './jwks-jwt.verifier';
+import { DocumentOwnershipService } from './document-ownership.guard';
 
 @Global()
 @Module({
-  providers: [JwksJwtVerifier, { provide: JWT_VERIFIER, useExisting: JwksJwtVerifier }],
-  exports: [JWT_VERIFIER, JwksJwtVerifier],
+  providers: [
+    JwksJwtVerifier,
+    { provide: JWT_VERIFIER, useExisting: JwksJwtVerifier },
+    DocumentOwnershipService,
+  ],
+  exports: [JWT_VERIFIER, JwksJwtVerifier, DocumentOwnershipService],
 })
 export class AuthModule {}

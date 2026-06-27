@@ -4,6 +4,24 @@
  *              En P0, communication HTTP+axios ; gRPC reporté Bloc B.
  *              Le service réceptionne aussi la chaîne d'ancêtres d'une
  *              Location pour matérialiser la hiérarchie 8 niveaux de la FDI.
+ *
+ *              🔒 CONTRAT D'AUTHENTIFICATION SERVICE-À-SERVICE (anti-IDOR A01) :
+ *              ce client n'AGRÈGE PAS le Bearer du citoyen appelant — il
+ *              s'authentifie en tant que SERVICE sur un CANAL INTERNE DE
+ *              CONFIANCE (mTLS / PKI Vault + mesh Linkerd, cf. ADR-034 et
+ *              doc 10 §12.2). Conséquence : le `NinaOwnershipGuard`
+ *              d'identity-service (qui borne un citoyen à SON `:nina`) ne
+ *              s'applique PAS à l'identité de l'appelant final — il ne voit que
+ *              le service. La frontière d'autorisation par NINA est donc rendue
+ *              CÔTÉ document-service, EN AMONT de tout appel ici, via
+ *              `DocumentOwnershipService.assertCanAccess(user, nina)` :
+ *                - POST /documents/fdi   → contrôle d'ownership sur `body.nina` ;
+ *                - GET  /:id/download-url → contrôle d'ownership sur `doc.nina`.
+ *              ⚠️ NE PAS appeler `fetchCitizen`/`fetchLocation` sans avoir
+ *              d'abord garanti l'ownership : ce client renverrait la PII de
+ *              N'IMPORTE QUEL NINA (c'est un canal de confiance, pas un point
+ *              d'autorisation par utilisateur).
+ *
  * @module      document-service/identity-client
  */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
