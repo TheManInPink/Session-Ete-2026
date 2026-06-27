@@ -44,17 +44,17 @@ Service stateless — pas de BDD propre. Les corrections sont persistées via `i
 
 ## 3. Variables d'environnement
 
-| Variable                   | Défaut                                 | Rôle                                                      |
-| -------------------------- | -------------------------------------- | --------------------------------------------------------- |
-| `AI_SERVICE_PORT`          | `3003`                                 | Port d'écoute HTTP                                        |
-| `AI_XGBOOST_BUNDLE_PATH`   | `ai-models/exported/xgboost_v1.joblib` | Bundle modèle chargé au démarrage                         |
-| `AI_REQUIRE_SIGNED_BUNDLE` | `false`                                | Si `true`, refuse un bundle sans sidecar `.sha256`        |
-| `AI_JWKS_URL`              | _(vide)_                               | Si défini, RBAC Bearer RS256/JWKS sur endpoints sensibles |
-| `AI_JWT_AUDIENCE`          | _(vide)_                               | Audience JWT attendue (vide = non vérifiée)               |
-| `AI_ADMIN_TOKEN`           | _(vide)_                               | Repli (sans JWKS) : exige `X-Admin-Token` sur reload      |
-| `AI_CORS_ORIGINS`          | `["*"]`                                | Origines CORS (jamais `*` + credentials)                  |
-| `API_GATEWAY_URL`          | `http://localhost:3000`                | Endpoint pour rappel identity-service                     |
-| `VAULT_ADDR`               | (cf. `.env`)                           | Récupération secrets (clés modèles)                       |
+| Variable                   | Défaut                                 | Rôle                                                                          |
+| -------------------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
+| `AI_SERVICE_PORT`          | `3003`                                 | Port d'écoute HTTP                                                            |
+| `AI_XGBOOST_BUNDLE_PATH`   | `ai-models/exported/xgboost_v1.joblib` | Bundle modèle chargé au démarrage                                             |
+| `AI_REQUIRE_SIGNED_BUNDLE` | `true`                                 | Fail-closed : refuse un bundle sans sidecar `.sha256` (mettre `false` en dev) |
+| `AI_JWKS_URL`              | _(vide)_                               | Si défini, RBAC Bearer RS256/JWKS sur endpoints sensibles                     |
+| `AI_JWT_AUDIENCE`          | _(vide)_                               | Audience JWT attendue (vide = non vérifiée)                                   |
+| `AI_ADMIN_TOKEN`           | _(vide)_                               | Repli (sans JWKS) : exige `X-Admin-Token` sur reload                          |
+| `AI_CORS_ORIGINS`          | `["*"]`                                | Origines CORS (jamais `*` + credentials)                                      |
+| `API_GATEWAY_URL`          | `http://localhost:3000`                | Endpoint pour rappel identity-service                                         |
+| `VAULT_ADDR`               | (cf. `.env`)                           | Récupération secrets (clés modèles)                                           |
 
 ---
 

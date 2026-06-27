@@ -55,18 +55,31 @@ def _jwks_client():
 
 
 def verify_bearer(token: str, key: Any | None = None) -> dict[str, Any]:
-    """Vérifie un JWT RS256 et retourne ses revendications.
+    """Vérifie un JWT **RS256** et retourne ses revendications.
+
+    Durcissement supply-chain (cf. doc 11 §3 / ADR-034) — on utilise **PyJWT**
+    (et non ``python-jose``, banni : CVE-2024-33663 confusion d'algorithme,
+    CVE-2024-33664 DoS) avec :
+
+    - ``algorithms=["RS256"]`` **épinglé** : PyJWT rejette donc ``alg=none`` et
+      toute **confusion HS/RS** (un jeton signé HS256 avec la clé publique RSA
+      comme « secret » est refusé, l'algorithme déclaré n'étant pas autorisé).
+    - ``require=["exp"]`` : un jeton **sans expiration** est rejeté (on n'accepte
+      pas de jeton à durée de vie illimitée).
+    - vérification d'``aud`` activée dès que ``AI_JWT_AUDIENCE`` est défini.
 
     Args:
         token: Le JWT (sans le préfixe ``Bearer``).
         key: Clé publique de vérification. Si ``None`` (production), elle est
-            résolue via le JWKS de ``AI_JWKS_URL``. L'injection sert aux tests.
+            résolue via le JWKS de ``AI_JWKS_URL`` (clé indexée par ``kid``).
+            L'injection d'une clé sert aux tests hors-ligne.
 
     Returns:
         Les revendications décodées.
 
     Raises:
-        Exception: Toute erreur de signature / expiration / format (jwt.*).
+        Exception: Toute erreur de signature / expiration / algorithme / format
+            (sous-classes de ``jwt.PyJWTError``).
     """
     import jwt
 
@@ -76,9 +89,9 @@ def verify_bearer(token: str, key: Any | None = None) -> dict[str, Any]:
     return jwt.decode(
         token,
         key,
-        algorithms=["RS256"],
+        algorithms=["RS256"],  # interdit alg=none et la confusion HS/RS
         audience=audience,
-        options={"verify_aud": bool(audience)},
+        options={"verify_aud": bool(audience), "require": ["exp"]},
     )
 
 
