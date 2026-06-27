@@ -169,6 +169,29 @@ export const envSchema = z.object({
   AES_NER_CERT_PATH: z.string().default('./secrets/aes/ner.pem'),
   AES_CA_PATH: z.string().default('./secrets/aes/ca.pem'),
 
+  // ── interop-service BCID-AES (Bloc B, port 3006, doc 21 / ADR-021) ─────
+  // Défauts SÛRS : ne cassent le boot d'aucun autre service. Le détail (fenêtre
+  // anti-replay, quota, simulation dev) vit dans `services/interop-service/src/
+  // config/env.schema.ts` ; ces clés sont déclarées ici pour la cohérence du
+  // schéma racine + turbo.json globalEnv.
+  /** Pays opéré par le nœud interop local (ISO 3166-1 alpha-3). */
+  INTEROP_SELF_COUNTRY: z.enum(['MLI', 'BFA', 'NER']).default('MLI'),
+  /** `iss` placé par ce nœud dans les JWS signés. */
+  INTEROP_SELF_ISSUER: z.string().url().default('https://interop.nina-aes.ml'),
+  /** Quota de requêtes entrantes par pays (rate-limit contractuel). */
+  INTEROP_RATE_LIMIT_PER_COUNTRY: z.coerce.number().int().positive().default(1000),
+  /** Largeur de la fenêtre glissante du rate-limit (secondes). */
+  INTEROP_RATE_LIMIT_WINDOW_SEC: z.coerce.number().int().positive().default(3600),
+  /**
+   * Faire confiance aux en-têtes mTLS réécrits par l'ingress (`ssl-client-*`).
+   * `true` par défaut ; en dev local sans ingress, mettre `false` + INTEROP_DEV_PEER_*.
+   */
+  INTEROP_TRUST_INGRESS_HEADERS: z.coerce.boolean().default(true),
+  /** Chemin Vault KV (relatif au mount kv/data/) de la clé Ed25519 de signature. */
+  VAULT_INTEROP_KEY_PATH: z.string().default('interop/signing-key'),
+  /** Endpoints des passerelles partenaires, CSV `PAYS=URL`. Vide par défaut. */
+  INTEROP_PARTNER_ENDPOINTS: z.string().default(''),
+
   // ── Observabilité ─────────────────────────────────────────────────────
   PROMETHEUS_PORT: z.coerce.number().int().positive().default(9090),
   JAEGER_ENDPOINT: z.string().url().default('http://localhost:14268/api/traces'),

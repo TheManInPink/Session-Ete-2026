@@ -492,23 +492,54 @@ model Appointment {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Journal des vérifications transfrontalières BCID-AES (Niger, Burkina Faso).
+///
+/// ⚠️ Extension ADDITIVE Bloc B (interop-service, doc 21 §4.3) : les colonnes
+/// `requestId`, `responderCountry`, `purpose`, `responseExists`, `responseValid`,
+/// `jwsSignature` et `jti` ont été ajoutées pour la traçabilité BCID-AES. Elles
+/// sont TOUTES nullable (ou défautées) afin de NE PAS casser les colonnes
+/// historiques (`requestType`, `result`, `signature`, `correlationId`,
+/// `latencyMs`) déjà committées. La migration SQL réelle
+/// (`bcid_aes_interop`) reste un livrable Phase 2 (nécessite une DB).
+///
+/// ⚠️ PRIVACY by design (data-minimization) : AUCUN NINA n'est conservé EN
+/// CLAIR dans cette table. Seul `requestedNinaHash` (SHA-256) est persisté ; il
+/// suffit aux jointures/recherches/corrélation d'audit sans exposer la PII
+/// transfrontalière. Si un audit légal exige le NINA en clair, le pays
+/// demandeur le détient déjà dans sa requête signée (JWS).
 model AesVerificationLog {
   id                String   @id @default(uuid()) @db.Uuid
   /// Pays requêteur (ISO 3166-1 alpha-3 : MLI, BFA, NER).
   requesterCountry  String   @map("requester_country") @db.Char(3)
-  /// NINA cible — chiffré au repos par le service interop (cf. doc 21).
-  targetNina        String   @map("target_nina") @db.VarChar(15)
-  /// Hash SHA-256 du NINA demandé (évite la fuite si la table est compromise).
+  /// Pays répondeur (= MLI pour la gateway Mali). Optionnel (back-compat).
+  responderCountry  String?  @map("responder_country") @db.Char(3)
+  /// Hash SHA-256 du NINA demandé : SEUL support de recherche/jointure/audit, et
+  /// SEULE empreinte du NINA conservée ici. Le NINA n'est JAMAIS persisté en clair
+  /// (data-minimization, privacy by design) — le hash suffit à corréler les
+  /// vérifications transfrontalières sans exposer la PII. Si un audit légal exige
+  /// le NINA en clair, le pays demandeur le détient dans sa requête signée (JWS).
   requestedNinaHash String   @map("requested_nina_hash") @db.VarChar(64)
   /// Type : IDENTITY_CHECK, STATUS_CHECK, SIGNATURE_VERIFY.
   requestType       String   @map("request_type") @db.VarChar(40)
+  /// `requestId` (= `jti` du JWS) — idempotence + dernier filet anti-replay DB.
+  /// `@unique` : un même `requestId` ne peut jamais être journalisé deux fois.
+  requestId         String?  @unique @map("request_id") @db.VarChar(100)
+  /// Identifiant de jeton JWS (claim `jti`). En pratique égal à `requestId`.
+  jti               String?  @db.VarChar(100)
+  /// Finalité (purpose limitation RGPD) : border-control, bank-kyc, …
+  purpose           String?  @db.VarChar(40)
   /// Verdict : MATCH, NO_MATCH, EXPIRED, REVOKED, ERROR.
   result            String   @db.VarChar(20)
+  /// Champ `exists` de la réponse minimaliste BCID-AES (NINA connu ?).
+  responseExists    Boolean? @map("response_exists")
+  /// Champ `valid` de la réponse minimaliste BCID-AES (NINA actif/non révoqué ?).
+  responseValid     Boolean? @map("response_valid")
   /// Indice de confiance (0–100) — fuzzy matching pour translittérations.
   confidence        Decimal? @db.Decimal(5, 2)
   latencyMs         Int      @map("latency_ms")
   /// Signature Ed25519 de la réponse (pour non-répudiation).
   signature         String   @db.VarChar(128)
+  /// Copie du JWS compact retourné (preuve cryptographique opposable).
+  jwsSignature      String?  @map("jws_signature") @db.Text
   correlationId     String   @map("correlation_id") @db.VarChar(100)
   clientIp          String?  @map("client_ip") @db.Inet
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -516,7 +547,44 @@ model AesVerificationLog {
   @@index([requesterCountry])
   @@index([createdAt])
   @@index([result])
+  @@index([requesterCountry, createdAt])
   @@map("aes_verification_logs")
+}
+
+/// Partenaire AES enregistré (Mali ⇄ Burkina ⇄ Niger) : associe le fingerprint
+/// du certificat mTLS pair à un pays et à sa clé publique JWS Ed25519. Source de
+/// vérité pour `assertPeerKnown` (rejet si cert inconnu/révoqué) et
+/// `fetchPeerPublicKey` (vérification de la signature de requête).
+///
+/// ⚠️ Extension ADDITIVE Bloc B (interop-service, doc 21 §4.3 « aes_partner_keys »).
+/// La migration SQL réelle reste un livrable Phase 2.
+model AesPartner {
+  id              String    @id @default(uuid()) @db.Uuid
+  /// Pays partenaire (ISO 3166-1 alpha-3 : MLI, BFA, NER).
+  country         String    @db.Char(3)
+  /// SHA-256 (hex, 64 chars) du certificat X.509 client présenté en mTLS.
+  certFingerprint String    @unique @map("cert_fingerprint") @db.VarChar(64)
+  /// Clé publique JWK Ed25519 (kty=OKP, crv=Ed25519) du partenaire.
+  publicKeyJwk    Json      @map("public_key_jwk")
+  /// Identifiant de clé (ex. "bfa-2026-q2"), repris dans le header JWS `kid`.
+  kid             String    @unique @db.VarChar(60)
+  /// Émetteur (claim `iss`) attendu dans le JWS de requête du partenaire.
+  expectedIssuer  String    @map("expected_issuer") @db.VarChar(200)
+  /// Statut administratif : ACTIVE | SUSPENDED | REVOKED.
+  status          String    @default("ACTIVE") @db.VarChar(20)
+  validFrom       DateTime  @map("valid_from") @db.Timestamptz(6)
+  validUntil      DateTime  @map("valid_until") @db.Timestamptz(6)
+  /// Horodatage de révocation (null = non révoqué).
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokedReason   String?   @map("revoked_reason") @db.VarChar(300)
+  /// Identifiant de l'agent qui a enregistré la clé (audit).
+  createdBy       String    @map("created_by") @db.VarChar(100)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([country, validUntil])
+  @@index([status])
+  @@map("aes_partners")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

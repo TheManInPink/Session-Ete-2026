@@ -322,6 +322,7 @@ export type {
   AuditRoot,
   Appointment,
   AesVerificationLog,
+  AesPartner,
   CorruptionAlert,
   GovernanceDirective,
   DirectiveRecipient,

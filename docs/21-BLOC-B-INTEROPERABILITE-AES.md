@@ -536,13 +536,16 @@ KV à durée de vie courte (lease)**, jamais codée en dur, jamais un `VAULT_TOK
 > ⚠️ **DRIFT SCHÉMA À RÉSORBER (état committé ≠ cible ci-dessous)** : le `schema.prisma` actuel **ne
 > contient PAS** de modèle `AesPartnerKey`, et son `AesVerificationLog` réel **diffère** de la cible
 > ci-dessous — il n'a **ni** `requestId @unique`, **ni** `entryHash`, **ni** `prevHash` (il expose
-> `targetNina`, `requestedNinaHash`, `requestType`, `result`, `signature`, `correlationId`).
-> Conséquence : (1) le « @unique DB en dernier filet » invoqué en §4.2 / §4.2bis **n'existe pas
-> encore** (il n'y a pas de colonne `requestId` unique) — l'anti-replay Redis est donc, en l'état,
-> le **seul** rempart, ce qui renforce l'exigence fail-CLOSED ; (2) le **hash-chain** (`entryHash` /
-> `prevHash`) référencé comme « compatible ADR-007 » **n'est pas matérialisé** dans la table
-> actuelle. Cette migration `bcid_aes_interop` est un **livrable Phase 2**, pas un acquis. Tant
-> qu'elle n'est pas appliquée, présenter ces tables comme **« conçues »**.
+> `requestedNinaHash`, `requestType`, `result`, `signature`, `correlationId`). Le NINA n'est
+> **jamais** persisté en clair (data-minimization, privacy by design) : seul le hash SHA-256
+> `requestedNinaHash` est conservé pour la corrélation/audit ; l'ancienne colonne `targetNina` (NINA
+> en clair) a été **supprimée** suite à la revue sécurité Bloc B. Conséquence : (1) le « @unique DB
+> en dernier filet » invoqué en §4.2 / §4.2bis **n'existe pas encore** (il n'y a pas de colonne
+> `requestId` unique) — l'anti-replay Redis est donc, en l'état, le **seul** rempart, ce qui
+> renforce l'exigence fail-CLOSED ; (2) le **hash-chain** (`entryHash` / `prevHash`) référencé comme
+> « compatible ADR-007 » **n'est pas matérialisé** dans la table actuelle. Cette migration
+> `bcid_aes_interop` est un **livrable Phase 2**, pas un acquis. Tant qu'elle n'est pas appliquée,
+> présenter ces tables comme **« conçues »**.
 
 ```prisma
 // packages/database/prisma/schema.prisma — extensions Bloc B (CIBLE Phase 2 — non encore committée)

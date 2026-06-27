@@ -283,7 +283,7 @@ class AuditLog {
 class AESVerificationLog {
   + id : UUID
   + requesterCountry : char(3)
-  + targetNina : string(15)
+  + requestedNinaHash : string(64)
   + result : string
   + confidence : decimal(5,2)
   + latencyMs : int

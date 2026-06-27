@@ -1,24 +1,27 @@
 /**
  * @file        app.controller.ts
- * @description Contrôleur de santé du microservice interop-service
+ * @description Contrôleur racine (page d'accueil) du microservice interop-service.
+ *              Le healthcheck est désormais porté par `HealthController`
+ *              (Terminus, Postgres + Redis) ; on évite tout doublon sur /health.
+ *
  * @author      Étudiant UQAR
  * @date        2026
  * @module      interop-service
  */
-
 import { Controller, Get } from '@nestjs/common';
+import { ApiExcludeEndpoint } from '@nestjs/swagger';
+import { Public } from '@nina-aes/auth-guards';
 
 @Controller()
 export class AppController {
-  /**
-   * Endpoint de santé — permet à Docker/K3s de vérifier que le service est vivant.
-   * @returns Objet avec le statut, le nom du service et le timestamp
-   */
-  @Get('health')
-  getHealth() {
+  /** Racine du service — évite un 404 brut et confirme l'identité du nœud. */
+  @Get()
+  @Public()
+  @ApiExcludeEndpoint()
+  root(): { service: 'interop-service'; protocol: 'BCID-AES v1'; timestamp: string } {
     return {
-      status: 'ok',
       service: 'interop-service',
+      protocol: 'BCID-AES v1',
       timestamp: new Date().toISOString(),
     };
   }
