@@ -8,10 +8,22 @@
  *                { private_key_hex, public_key_hex, key_id }
  *
  *              Souveraineté : la clé est chargée en mémoire au boot, jamais
- *              codée en dur. En l'absence de Vault (dev sans bootstrap), une
- *              clé ÉPHÉMÈRE est générée + un warning loggé — le service reste
- *              fonctionnel mais les signatures ne survivent pas au restart
- *              (cf. `pnpm vault:bootstrap` pour persister une vraie clé).
+ *              codée en dur.
+ *
+ *              🔒 FAIL-FAST PRODUCTION (ADR-007 / THREAT-MODEL #13) — en
+ *              `NODE_ENV=production`, si la clé Vault est indisponible (Vault
+ *              down, secret absent/incomplet), le service REFUSE de démarrer :
+ *              une clé éphémère scellerait des racines invérifiables après
+ *              restart (signature sans valeur probante). En dev/test uniquement,
+ *              une clé ÉPHÉMÈRE est tolérée avec un warning explicite — le
+ *              service reste fonctionnel mais les signatures ne survivent pas au
+ *              restart (cf. `pnpm vault:bootstrap` pour persister une vraie clé).
+ *
+ *              Limite honnête (ADR-007 §5.2) : la clé Ed25519 vit EN RAM
+ *              applicative (Vault Transit ne supporte pas Ed25519). Une RCE peut
+ *              l'exfiltrer ; la non-répudiation n'est pleinement opposable
+ *              qu'avec un ANCRAGE TIERS de la racine (OCLEI / Vérificateur
+ *              Général) — ⏳ Phase 2 (`publishedExternal` dans `audit_roots`).
  *
  *              Algo Ed25519 (`@noble/ed25519`, JS pur, audité) : signatures de
  *              64 octets, vérification rapide, réutilisable dans le script
@@ -62,8 +74,15 @@ export class SigningService implements OnModuleInit {
   }
 
   /**
-   * Tente de charger la clé Ed25519 depuis Vault. En cas d'échec (Vault down,
-   * secret absent), génère une clé éphémère pour ne pas bloquer le service.
+   * Tente de charger la clé Ed25519 depuis Vault.
+   *
+   * 🔒 FAIL-FAST PRODUCTION : en `NODE_ENV=production`, tout échec de chargement
+   * (Vault down, secret absent/incomplet) interrompt le démarrage. Sceller avec
+   * une clé éphémère (qui disparaît au restart) produirait des signatures sans
+   * valeur probante et invaliderait toute la chaîne (THREAT-MODEL #13). En
+   * dev/test seulement, on retombe sur une clé éphémère + warning explicite.
+   *
+   * @throws Error en production si la clé Vault est indisponible.
    */
   private async loadKey(): Promise<void> {
     const path = this.cfg.get('VAULT_AUDIT_KEY_PATH', { infer: true });
@@ -77,6 +96,15 @@ export class SigningService implements OnModuleInit {
       this.keyId = secret.key_id ?? 'vault-ed25519';
       this.logger.log(`Clé Ed25519 chargée depuis Vault (keyId=${this.keyId})`);
     } catch (err) {
+      // En production : refuser de démarrer plutôt que de sceller avec une clé
+      // jetable invérifiable après restart (pas de fallback silencieux).
+      if (this.cfg.get('NODE_ENV', { infer: true }) === 'production') {
+        throw new Error(
+          `Clé de scellement audit indisponible en production (${(err as Error).message}). ` +
+            `Bootstrap Vault requis (AppRole/K8s, chemin '${path}'). Refus de démarrer.`,
+          { cause: err },
+        );
+      }
       this.logger.warn(
         `Clé Vault indisponible (${(err as Error).message}) — génération d'une clé éphémère (DEV uniquement).`,
       );

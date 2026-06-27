@@ -24,6 +24,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -35,7 +36,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { Roles, UserRole } from '@nina-aes/auth-guards';
+import { Roles, UserRole, type AuthSubject } from '@nina-aes/auth-guards';
 import { Prisma } from '@nina-aes/database';
 import type { Response } from 'express';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/index.js';
@@ -51,13 +52,29 @@ import { QueryAuditDto, VerifyRangeDto } from './dtos/query.dto.js';
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
 
-  /** POST /api/v1/audit — ingestion synchrone (services internes m2m). */
+  /**
+   * POST /api/v1/audit — ingestion synchrone (chemin M2M de CONFIANCE).
+   *
+   * ⚠️ §9.4 — Ce chemin accepte un `actorType`/`userId` DÉCLARÉ dans le corps :
+   * il est donc réservé aux appelants M2M de confiance (rôle ADMIN, JWT RS256
+   * vérifié, mTLS canal). Contrairement au chemin AMQP, il n'y a pas d'émetteur
+   * broker à résoudre ; on scelle à la place l'identité du SUJET JWT appelant
+   * (`req.user.userId`) dans `newValue._meta.origin` pour la TRAÇABILITÉ : une
+   * attribution mensongère (sujet appelant ≠ acteur déclaré) devient détectable
+   * a posteriori (le `_meta` est couvert par le `payloadHash`). Le sujet JWT
+   * n'est pas pour autant traité comme l'acteur métier déclaré.
+   */
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crée une entrée d audit (chaînée). Idempotent via sourceEventId.' })
+  @ApiOperation({
+    summary:
+      'Crée une entrée d audit (chaînée). M2M de confiance (ADMIN). Idempotent via sourceEventId.',
+  })
   @ApiCreatedResponse({ description: 'Entrée créée (ou existante si doublon).' })
-  async create(@Body() dto: IngestEventDto) {
+  async create(@Body() dto: IngestEventDto, @Req() req: { user?: AuthSubject }) {
+    // `req.user` est peuplé par `JwtAuthGuard` (sujet JWT RS256 vérifié).
+    const caller = req.user;
     const event: NormalizedAuditEvent = {
       userId: dto.userId ?? null,
       actorType: dto.actorType ?? 'SYSTEM',
@@ -65,7 +82,9 @@ export class AuditController {
       entityType: dto.entityType ?? 'event',
       entityId: dto.entityId ?? null,
       oldValue: dto.oldValue ?? null,
-      newValue: dto.newValue ?? null,
+      // §9.4 — scelle le sujet JWT appelant (origine M2M authentifiée par le
+      // JWT) à côté de l'acteur déclaré, sans écraser le `newValue` métier.
+      newValue: this.sealCallerOrigin(dto.newValue, caller, dto.actorType ?? null),
       ipAddress: dto.ipAddress ?? null,
       correlationId: dto.correlationId ?? null,
       sourceEventId: dto.sourceEventId ?? randomUUID(),
@@ -172,5 +191,43 @@ export class AuditController {
   private parseBigId(id: string): bigint {
     if (!/^\d+$/.test(id)) throw new BadRequestException('id invalide');
     return BigInt(id);
+  }
+
+  /**
+   * §9.4 — Scelle l'identité du sujet JWT appelant (origine M2M authentifiée par
+   * le JWT) dans `newValue._meta.origin`, à côté de l'acteur déclaré, sans
+   * écraser le `_meta` métier ni la valeur métier. Symétrique du scellement
+   * `_meta.origin` du chemin AMQP (cf. `audit.normalizer.ts#withOriginMeta`).
+   * Le résultat étant couvert par le `payloadHash`, l'origine réelle de l'appel
+   * est opposable a posteriori.
+   *
+   * @param value         Valeur métier déclarée (`newValue`), quelconque.
+   * @param caller        Sujet JWT appelant (issu de `req.user`) ou `undefined`.
+   * @param declaredActor `actorType` déclaré dans le corps (ou `null`).
+   */
+  private sealCallerOrigin(
+    value: unknown,
+    caller: AuthSubject | undefined,
+    declaredActor: string | null,
+  ): Record<string, unknown> {
+    const base: Record<string, unknown> =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? { ...(value as Record<string, unknown>) }
+        : { _value: value ?? null };
+    const existingMeta =
+      base['_meta'] && typeof base['_meta'] === 'object' && !Array.isArray(base['_meta'])
+        ? (base['_meta'] as Record<string, unknown>)
+        : {};
+    base['_meta'] = {
+      ...existingMeta,
+      origin: {
+        // Origine RÉELLE de l'appel : sujet JWT M2M (non falsifiable par le corps).
+        callerSub: caller?.userId ?? null,
+        callerRole: caller?.role ?? null,
+        declaredActor,
+        channel: 'rest-m2m',
+      },
+    };
+    return base;
   }
 }

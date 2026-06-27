@@ -96,14 +96,14 @@ moderne de gestion d'identité **ne peut pas se contenter** d'un simple log appl
 
 ### Réponse technique
 
-| Menace                 | Contre-mesure                                                                            |
-| ---------------------- | ---------------------------------------------------------------------------------------- |
-| Suppression            | Trigger Postgres `BEFORE DELETE` qui raise une exception                                 |
-| Modification           | Trigger Postgres `BEFORE UPDATE` qui raise une exception                                 |
-| Substitution           | Hash-chain : chaque ligne contient `hash(N-1)` + son propre `hash`                       |
-| Collusion DBA          | Scellement Ed25519 horaire de la racine + ancrage tiers (OCLEI)                          |
-| Perte réseau           | Réplication WORM (Write-Once-Read-Many) sur MinIO chaque nuit                            |
-| Falsification d'acteur | Origine des événements **authentifiée** (mTLS broker ou signature publisher) — voir §9.4 |
+| Menace                 | Contre-mesure                                                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Suppression            | Trigger Postgres `BEFORE DELETE` qui raise une exception                                                                     |
+| Modification           | Trigger Postgres `BEFORE UPDATE` qui raise une exception                                                                     |
+| Substitution           | Hash-chain : chaque ligne contient `hash(N-1)` + son propre `hash`                                                           |
+| Collusion DBA          | Scellement Ed25519 horaire de la racine + ancrage tiers (OCLEI)                                                              |
+| Perte réseau           | Réplication WORM (Write-Once-Read-Many) sur MinIO chaque nuit                                                                |
+| Falsification d'acteur | Origine **tracée + signature publisher vérifiée si déployée** (sinon confiance mTLS canal ; fail-closed en prod) — voir §9.4 |
 
 ### Propriétés garanties
 
@@ -111,8 +111,16 @@ moderne de gestion d'identité **ne peut pas se contenter** d'un simple log appl
 - **Non-répudiation** : la signature Ed25519 horaire prouve l'existence d'une ligne avant un instant
   T — **à condition** que la racine soit ancrée chez un tiers (sinon le détenteur de la clé pourrait
   re-signer une chaîne réécrite ; cf. §5.2 + §18). Ancrage tiers **à implémenter en Phase 2**.
-- **Authenticité de l'acteur** : l'origine de chaque événement est authentifiée (mTLS Linkerd ou
-  signature du publisher, cf. §9.4), empêchant un service compromis d'usurper l'identité d'un autre.
+- **Authenticité de l'acteur** _(garantie graduée, cf. §9.4)_ : l'origine de chaque événement est
+  **tracée** (émetteur broker réel scellé dans `_meta.origin`, couvert par le `payloadHash` → forge
+  détectable a posteriori). L'**authentification forte** de l'émetteur repose sur (1) le maillage
+  **mTLS Linkerd** au niveau canal (garantie « un service du mesh l'a émis », ⏳ INFRA) et (2) la
+  **signature publisher Ed25519** vérifiée au niveau message **quand une clé est enregistrée** pour
+  l'émetteur (`AUDIT_PUBLISHER_KEYS`) — alors une signature absente/invalide est rejetée. Tant que
+  la signature n'est pas généralisée à tous les publishers, la garantie par défaut reste « un
+  service du mesh l'a émis », pas « ce service précis » ; en **production**, le fail-open est
+  interdit (`AUDIT_REQUIRE_SIGNED_ORIGIN=true` forcé au boot). La trace `_meta.origin` ne constitue
+  pas, à elle seule, une authentification.
 - **Auditabilité** : un inspecteur peut vérifier la chaîne **sans** accès à la base (script
   offline + racines signées + clé publique Ed25519 publiée).
 
@@ -924,11 +932,13 @@ export class AuditService {
 > `AuditNormalizer` (tolérant aux formats hétérogènes : enveloppe `nina.audit` _ou_ ingestion
 > directe), puis empilé. Idempotence garantie par `source_event_id UNIQUE`. Extrait simplifié :
 >
-> ⚠️ **Écart as-built** : la garde `isOriginTrusted(msg)` ci-dessous illustre la **cible** (§9.4).
-> Le consumer réel (`src/audit/audit.consumer.ts`, méthode `handle()`) **ne l'implémente pas
-> encore** — il parse, normalise et empile sans contrôle d'origine applicatif. La confiance repose
-> aujourd'hui **uniquement** sur le maillage mTLS (ADR-034) ; la signature publisher +
-> `isOriginTrusted` sont **⏳ Phase 2** (cf. §9.4). À ne pas présenter comme livré.
+> ✅ **As-built** : le consumer réel (`src/audit/audit.consumer.ts`, méthode `handle()`) appelle
+> bien `isOriginTrusted()` AVANT tout `append`, et celle-ci **vérifie réellement** la signature
+> publisher Ed25519 (`x-nina-signature`) contre la clé publique enregistrée de l'émetteur
+> (`AUDIT_PUBLISHER_KEYS`). L'extrait ci-dessous est **simplifié** (la résolution de l'émetteur
+> réel, la map de clés et `ed.verifyAsync` sont élidés pour la lisibilité). Le verdict sans clé
+> enregistrée dépend de `AUDIT_REQUIRE_SIGNED_ORIGIN` (fail-closed forcé en production ; fail-open
+> borné en dev). Voir §9.4 pour le détail.
 
 ```typescript
 import { Injectable, Logger, OnModuleInit, OnApplicationShutdown } from '@nestjs/common';
@@ -1017,13 +1027,19 @@ export class AuditConsumer implements OnModuleInit, OnApplicationShutdown {
   }
 
   /**
-   * §9.4 — Origine de confiance. Implémentation as-built : confiance déléguée au
-   * maillage mTLS strict (Linkerd, ADR-034) — seuls les services du mesh peuvent
-   * publier. ⏳ Phase 2 : vérification d'une signature `x-nina-signature` (en-tête
-   * AMQP) par clé publique du publisher, pour défense en profondeur hors-mesh.
+   * §9.4 — Origine de confiance (extrait simplifié de l'as-built). On résout
+   * l'émetteur réel (`appId`/`x-nina-source`) puis, si une clé publique lui est
+   * enregistrée, on VÉRIFIE la signature détachée Ed25519 `x-nina-signature`
+   * (`ed.verifyAsync`) : signature absente/invalide ⇒ `false` (drop). Sans clé
+   * enregistrée, le verdict suit `AUDIT_REQUIRE_SIGNED_ORIGIN` (fail-closed forcé
+   * en production, fail-open borné en dev). La trace `_meta.origin` n'est pas une
+   * authentification (forge seulement détectable a posteriori).
    */
-  private isOriginTrusted(_msg: ConsumeMessage): boolean {
-    return true; // mTLS broker assumé ; signature publisher = Phase 2
+  private async isOriginTrusted(msg: ConsumeMessage): Promise<boolean> {
+    const emitter = this.extractEmitter(msg); // appId / x-nina-source
+    const key = emitter ? this.publisherKeys.get(emitter) : undefined;
+    if (key) return this.verifySignature(msg, key); // Ed25519 — rejet si KO
+    return !this.requireSignedOrigin; // sinon : fail-closed (prod) / fail-open (dev)
   }
 
   async onApplicationShutdown(): Promise<void> {
@@ -1276,18 +1292,24 @@ de façon… parfaitement intègre. L'intégrité ne suffit pas : il faut **auth
 
 **Deux lignes de défense (cf. ADR-034)** :
 
-| Niveau                 | Mécanisme                                                                                                                                                                                                                         | État                     |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Canal (transport)      | **mTLS strict Linkerd** entre services et broker : seuls les pods du mesh peuvent publier ; le broker exige un certificat client.                                                                                                 | ✅ Conçu (ADR-034)       |
-| Message (bout-en-bout) | **Signature du publisher** : en-tête AMQP `x-nina-signature` = signature détachée du corps par la clé du service émetteur ; le consumer la vérifie (`isOriginTrusted`) contre la clé publique connue du publisher avant `append`. | ⏳ À implémenter Phase 2 |
+| Niveau                 | Mécanisme                                                                                                                                                                                                                                                                                                                                                         | État                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Canal (transport)      | **mTLS strict Linkerd** entre services et broker : seuls les pods du mesh peuvent publier ; le broker exige un certificat client.                                                                                                                                                                                                                                 | ✅ Conçu (ADR-034)                                                          |
+| Message (bout-en-bout) | **Signature du publisher** : en-tête AMQP `x-nina-signature` = signature détachée du corps par la clé Ed25519 du service émetteur ; le consumer la **vérifie réellement** (`isOriginTrusted` → `ed.verifyAsync`) contre la clé publique connue du publisher (`AUDIT_PUBLISHER_KEYS`, indexée par `appId`) avant `append`. Signature absente/invalide ⇒ **rejet**. | ✅ Vérification implémentée ; ⏳ déploiement des clés publishers progressif |
 
-> **Honnêteté** : aujourd'hui, la confiance repose sur le **maillage mTLS** (le broker n'est pas
-> exposé hors-mesh) ; `isOriginTrusted()` renvoie `true` (cf. §8.5). La **signature par publisher**
-> (défense en profondeur contre un service interne compromis) est conçue mais **non implémentée**.
-> Tant qu'elle n'est pas en place, l'`actorType`/`userId` d'un message AMQP n'est garanti qu'au
-> niveau « un service du mesh l'a émis », pas « ce service précis l'a émis ». C'est pourquoi
-> l'ingestion AMQP force `userId = null` et conserve l'acteur **déclaré** dans `newValue` (couvert
-> par le `payloadHash`, donc non falsifiable a posteriori, mais non authentifié à l'émission).
+> **Honnêteté** : la **vérification** de la signature publisher est désormais **implémentée** dans
+> `isOriginTrusted()` (Ed25519, rejet si signature attendue absente/invalide). Mais elle ne mord que
+> **lorsqu'une clé publique est enregistrée** pour l'émetteur (`AUDIT_PUBLISHER_KEYS`) ; tant que
+> les publishers (document-service / identity-service) ne signent pas et que leur clé n'est pas
+> déployée, la confiance retombe sur le **maillage mTLS** (le broker n'est pas exposé hors-mesh). Le
+> comportement par défaut sans clé est régi par `AUDIT_REQUIRE_SIGNED_ORIGIN` : **fail-closed**
+> (drop) lorsqu'il vaut `true` — **forcé en production** par `validateEnv` —, sinon **fail-open
+> borné** (accepté avec WARN, dev/transition uniquement). Tant que la signature n'est pas
+> généralisée, l'`actorType`/`userId` d'un message AMQP n'est garanti qu'au niveau « un service du
+> mesh l'a émis », pas « ce service précis l'a émis ». C'est pourquoi l'ingestion AMQP force
+> `userId = null` et conserve l'acteur **déclaré** dans `newValue._meta.origin` à côté de
+> l'**émetteur réel** (couvert par le `payloadHash`, donc forge détectable a posteriori, mais non
+> authentifiée à l'émission tant que la signature n'est pas exigée).
 
 ---
 
