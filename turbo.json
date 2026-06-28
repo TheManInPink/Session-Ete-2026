@@ -96,6 +96,7 @@
     "AUDIT_PUBLIC_KEY_ED25519",
     "E2E_CITIZEN_URL",
     "E2E_ADMIN_URL",
+    "HTTP_BODY_LIMIT_BYTES",
     "CI"
   ],
   "tasks": {

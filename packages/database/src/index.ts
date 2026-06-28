@@ -334,5 +334,9 @@ export type {
   Notification,
   Location,
   EnrollmentCenter,
+  PriorityQueueEntry,
+  MobileAgent,
+  OfflineEnrollmentBatch,
+  OfflineEnrollmentRecord,
 } from '@prisma/client';
 export default prisma;

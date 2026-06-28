@@ -238,11 +238,13 @@ model Citizen {
   father     Parent?  @relation("FatherOf", fields: [fatherId], references: [id], onDelete: Restrict)
   mother     Parent?  @relation("MotherOf", fields: [motherId], references: [id], onDelete: Restrict)
 
-  correctionRequests CorrectionRequest[]
-  appointments       Appointment[]
-  vulnerabilities    VulnerabilityRecord[]
-  electoralRecord    ElectoralRecord?
-  notifications      Notification[]
+  correctionRequests       CorrectionRequest[]
+  appointments             Appointment[]
+  vulnerabilities          VulnerabilityRecord[]
+  electoralRecord          ElectoralRecord?
+  notifications            Notification[]
+  priorityQueueEntries     PriorityQueueEntry[]
+  offlineEnrollmentRecords OfflineEnrollmentRecord[]
 
   @@index([lastName])
   @@index([birthDate])
@@ -344,21 +346,24 @@ model User {
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  institution             Institution?          @relation(fields: [institutionId], references: [id], onDelete: Restrict)
-  requestedCorrections    CorrectionRequest[]   @relation("CorrectionRequestedBy")
-  reviewedCorrections     CorrectionRequest[]   @relation("CorrectionReviewedBy")
+  institution             Institution?             @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  requestedCorrections    CorrectionRequest[]      @relation("CorrectionRequestedBy")
+  reviewedCorrections     CorrectionRequest[]      @relation("CorrectionReviewedBy")
   assignedAppointments    Appointment[]
   auditLogs               AuditLog[]
-  issuedDirectives        GovernanceDirective[] @relation("DirectiveIssuer")
-  assignedDirectives      GovernanceDirective[] @relation("DirectiveAssignee")
-  sentMessages            GovernanceMessage[]   @relation("MessageSender")
-  receivedMessages        GovernanceMessage[]   @relation("MessageRecipient")
+  issuedDirectives        GovernanceDirective[]    @relation("DirectiveIssuer")
+  assignedDirectives      GovernanceDirective[]    @relation("DirectiveAssignee")
+  sentMessages            GovernanceMessage[]      @relation("MessageSender")
+  receivedMessages        GovernanceMessage[]      @relation("MessageRecipient")
   verifiedVulnerabilities VulnerabilityRecord[]
-  reportedAlerts          CorruptionAlert[]     @relation("AlertReporter")
-  agentAlerts             CorruptionAlert[]     @relation("AlertAgent")
-  assignedAlerts          CorruptionAlert[]     @relation("AlertAssignedTo")
+  reportedAlerts          CorruptionAlert[]        @relation("AlertReporter")
+  agentAlerts             CorruptionAlert[]        @relation("AlertAgent")
+  assignedAlerts          CorruptionAlert[]        @relation("AlertAssignedTo")
   notifications           Notification[]
   directiveRecipients     DirectiveRecipient[]
+  mobileAgentProfile      MobileAgent?
+  collectedOfflineBatches OfflineEnrollmentBatch[] @relation("BatchCollectedBy")
+  reviewedOfflineBatches  OfflineEnrollmentBatch[] @relation("BatchReviewedBy")
 
   @@index([role])
   @@index([institutionId])
@@ -1055,4 +1060,255 @@ model EnrollmentCenter {
 
   @@index([isActive])
   @@map("enrollment_centers")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  BLOC C1 — VULNERABILITY-SERVICE (port 3011) — extensions ADDITIVES (doc 22)
+//
+//  Trois sous-domaines, tous greffés sur les modèles existants (Citizen, User,
+//  VulnerabilityRecord) sans en altérer la sémantique :
+//    1. File prioritaire d'enrôlement  → PriorityQueueEntry
+//    2. Agents mobiles d'enrôlement     → MobileAgent
+//    3. Lots d'enrôlement hors-ligne    → OfflineEnrollmentBatch (+ Record)
+//
+//  Le PROFIL VULNÉRABLE (catégorie particulière, RGPD-like) réutilise l'enum
+//  `VulnerabilityCategory` et le modèle `VulnerabilityRecord` déjà présents.
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Statut opérationnel d'un agent mobile d'enrôlement.
+enum MobileAgentStatus {
+  /// Recruté mais pas encore activé sur le terrain.
+  PENDING
+  /// Actif, peut collecter des enrôlements / visites à domicile.
+  ACTIVE
+  /// Suspendu temporairement (enquête, congé, sanction).
+  SUSPENDED
+  /// Désactivé définitivement (fin de mission).
+  RETIRED
+
+  @@map("mobile_agent_status")
+}
+
+/// Statut de traitement d'un lot d'enrôlement collecté hors-ligne.
+enum OfflineBatchStatus {
+  /// Reçu, signature/horodatage validés, en attente de revue agent CTDEC.
+  RECEIVED
+  /// En cours de traitement (création des fiches citoyens).
+  PROCESSING
+  /// Intégralement traité (toutes les fiches importées).
+  COMPLETED
+  /// Rejeté (signature invalide, lot expiré au-delà du cache 5 jours, doublon).
+  REJECTED
+  /// Partiellement traité (certaines fiches en erreur, quarantaine).
+  PARTIAL
+
+  @@map("offline_batch_status")
+}
+
+/// Statut d'une fiche individuelle au sein d'un lot offline.
+enum OfflineRecordStatus {
+  PENDING
+  IMPORTED
+  DUPLICATE
+  INVALID
+
+  @@map("offline_record_status")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.1 — PRIORITY_QUEUE_ENTRIES — file prioritaire d'enrôlement (P1>P2>P3)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Entrée de file prioritaire pour l'enrôlement d'un citoyen vulnérable.
+///
+/// Le `priorityWeight` (1–5) est dérivé de la catégorie de vulnérabilité au
+/// moment du calcul (cf. doc 22 §3). Le `priorityScore` matérialise le rang :
+/// plus il est élevé, plus l'entrée passe tôt. La file est consommée par
+/// l'appointment-service (créneaux PRIORITAIRES) — pas de FK cross-service :
+/// `appointmentId` est un simple identifiant nullable (lecture seule partagée).
+model PriorityQueueEntry {
+  id             String                @id @default(uuid()) @db.Uuid
+  citizenId      String                @map("citizen_id") @db.Uuid
+  /// Catégorie ayant motivé la priorité (snapshot — la fiche peut expirer ensuite).
+  category       VulnerabilityCategory
+  /// Niveau P1/P2/P3 (aligné enum `PriorityLevel`).
+  priority       PriorityLevel         @default(P3)
+  /// Poids 1–5 dérivé de la catégorie (déterminisme du calcul).
+  priorityWeight Int                   @map("priority_weight")
+  /// Score de rang = priorityWeight * 1000 − âge(s) — recalculable, persisté pour tri.
+  priorityScore  Int                   @map("priority_score")
+  /// RDV éventuellement attaché (appointment-service) — pas de FK cross-domaine.
+  appointmentId  String?               @map("appointment_id") @db.Uuid
+  /// Centre d'enrôlement visé (Institution.id) — optionnel à l'inscription en file.
+  centerId       String?               @map("center_id") @db.Uuid
+  /// File active tant que non servie/expirée (cf. `servedAt`).
+  active         Boolean               @default(true)
+  enqueuedAt     DateTime              @default(now()) @map("enqueued_at") @db.Timestamptz(6)
+  servedAt       DateTime?             @map("served_at") @db.Timestamptz(6)
+  /// Acteur ayant inscrit le citoyen en file (User.id ou origine système).
+  enqueuedBy     String                @map("enqueued_by") @db.VarChar(100)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  /// Un citoyen ne peut avoir qu'UNE entrée active à la fois (anti-doublon de file).
+  @@unique([citizenId, active], name: "uniq_active_queue_entry")
+  @@index([active, priorityScore(sort: Desc)])
+  @@index([centerId, active])
+  @@index([category])
+  @@map("priority_queue_entries")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.2 — MOBILE_AGENTS — agents d'enrôlement mobiles (atteindre les isolés)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Agent mobile d'enrôlement : se déplace pour atteindre les personnes isolées
+/// (handicap, grand âge, zones rurales). Rattaché à un `User` (compte agent) et
+/// affecté à des zones administratives (codes Location libres : région/cercle/
+/// commune). Le statut pilote l'éligibilité opérationnelle.
+model MobileAgent {
+  id           String            @id @default(uuid()) @db.Uuid
+  /// Compte utilisateur (rôle AGENT) — 1:1, unique.
+  userId       String            @unique @map("user_id") @db.Uuid
+  /// Matricule terrain (badge), unique et lisible.
+  badgeNumber  String            @unique @map("badge_number") @db.VarChar(40)
+  status       MobileAgentStatus @default(PENDING)
+  /// Zones d'intervention (codes administratifs libres : "ML-7", "Kayes", …).
+  zones        String[]
+  /// Téléphone terrain (rappels/sync) — peut différer du compte User.
+  phoneNumber  String?           @map("phone_number") @db.VarChar(20)
+  /// Clé publique du kit (PEM SPKI) servant à VÉRIFIER la signature détachée des
+  /// lots offline collectés par cet agent (non-répudiation du canal hors-ligne).
+  /// `null` tant que le kit n'a pas été appairé : un lot reçu d'un agent sans clé
+  /// est REJETÉ (fail-closed), jamais scellé sans preuve cryptographique.
+  publicKeyPem String?           @map("public_key_pem") @db.Text
+  /// Algorithme de signature associé à `publicKeyPem` (défaut : RSA-SHA256).
+  signatureAlg String?           @map("signature_alg") @db.VarChar(40)
+  /// Dernière synchronisation réussie (cache offline 5 jours).
+  lastSyncAt   DateTime?         @map("last_sync_at") @db.Timestamptz(6)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  collectedBatches OfflineEnrollmentBatch[] @relation("BatchMobileAgent")
+
+  @@index([status])
+  @@index([zones])
+  @@map("mobile_agents")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.3 — OFFLINE_ENROLLMENT_BATCHES — kits hors-ligne (inclusion numérique)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Lot d'enrôlements collectés HORS-LIGNE par un agent mobile puis synchronisé.
+///
+/// IDEMPOTENCE : `batchId` (clé naturelle fournie par le kit) est UNIQUE — un
+/// renvoi du même lot (perte réseau, retry) ne crée pas de doublon. La charge
+/// est SIGNÉE et HORODATÉE côté kit ; `payloadHash` (SHA-256 du payload canon)
+/// et `signature` permettent de prouver l'intégrité avant import. Aucun NINA en
+/// clair n'est stocké au niveau du lot.
+model OfflineEnrollmentBatch {
+  id                String             @id @default(uuid()) @db.Uuid
+  /// Clé naturelle d'idempotence fournie par le kit (UNIQUE).
+  batchId           String             @unique @map("batch_id") @db.VarChar(100)
+  /// Agent mobile auteur de la collecte (MobileAgent.id).
+  mobileAgentId     String             @map("mobile_agent_id") @db.Uuid
+  /// Compte User collecteur (redondant pour audit rapide).
+  collectedByUserId String             @map("collected_by_user_id") @db.Uuid
+  status            OfflineBatchStatus @default(RECEIVED)
+  /// Nombre de fiches déclarées dans le lot (contrôle de cohérence).
+  recordCount       Int                @map("record_count")
+  /// SHA-256 (hex) du payload canonicalisé du lot — intégrité.
+  payloadHash       String             @map("payload_hash") @db.VarChar(64)
+  /// Signature détachée du payload (base64/hex) produite par le kit.
+  signature         String             @db.Text
+  /// Horodatage de collecte côté kit (peut précéder la sync de ≤ 5 jours).
+  collectedAt       DateTime           @map("collected_at") @db.Timestamptz(6)
+  /// Horodatage de réception serveur (sync).
+  receivedAt        DateTime           @default(now()) @map("received_at") @db.Timestamptz(6)
+  /// Agent CTDEC ayant revu le lot.
+  reviewedByUserId  String?            @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?          @map("reviewed_at") @db.Timestamptz(6)
+  /// Motif de rejet (signature invalide, lot expiré, doublon).
+  rejectionReason   String?            @map("rejection_reason") @db.Text
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  mobileAgent MobileAgent @relation("BatchMobileAgent", fields: [mobileAgentId], references: [id], onDelete: Restrict)
+  collectedBy User        @relation("BatchCollectedBy", fields: [collectedByUserId], references: [id], onDelete: Restrict)
+  reviewedBy  User?       @relation("BatchReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: Restrict)
+
+  records OfflineEnrollmentRecord[]
+
+  @@index([status])
+  @@index([mobileAgentId])
+  @@index([receivedAt])
+  @@map("offline_enrollment_batches")
+}
+
+/// Fiche individuelle d'un lot offline. La déduplication par citoyen est portée
+/// au niveau (lot, hash de la fiche) pour rejeter les doublons internes au lot.
+model OfflineEnrollmentRecord {
+  id         String              @id @default(uuid()) @db.Uuid
+  batchId    String              @map("batch_id") @db.Uuid
+  /// Citoyen créé/rattaché après import (nullable tant que PENDING).
+  citizenId  String?             @map("citizen_id") @db.Uuid
+  /// SHA-256 (hex) de la fiche canonicalisée — déduplication intra-lot.
+  recordHash String              @map("record_hash") @db.VarChar(64)
+  status     OfflineRecordStatus @default(PENDING)
+  /// Détail d'erreur si INVALID/DUPLICATE.
+  error      String?             @db.Text
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  batch   OfflineEnrollmentBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  citizen Citizen?               @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  /// Pas deux fois la même fiche dans le même lot (idempotence intra-lot).
+  @@unique([batchId, recordHash], name: "uniq_record_in_batch")
+  @@index([status])
+  @@map("offline_enrollment_records")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.4 — VULNERABILITY_ACCESS_LOGS — trace DURABLE des accès aux catégories
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Journal d'accès LOCAL et DURABLE aux profils de vulnérabilité (catégorie
+/// particulière RGPD-like). Garantit l'invariant « pas d'accès à une catégorie
+/// sans trace » : la trace est écrite EN BASE (source de vérité) AVANT de
+/// renvoyer la donnée au client, indépendamment de la disponibilité de RabbitMQ.
+/// La publication vers la hash-chain SHA-256 d'audit-service reste un relais
+/// asynchrone best-effort PAR-DESSUS cette trace durable (pattern outbox-like).
+///
+/// ⚠️ Aucun NINA en clair : le citoyen est identifié par son `citizenId` (UUID).
+model VulnerabilityAccessLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// Action (ex. `profile.accessed`, `profile.declared`).
+  action     String   @db.VarChar(100)
+  /// Type d'entité (ex. `VulnerabilityRecord`).
+  entityType String   @map("entity_type") @db.VarChar(80)
+  /// Identifiant d'entité ciblée (UUID citoyen ou clé de liste) — JAMAIS le NINA.
+  entityId   String   @map("entity_id") @db.VarChar(120)
+  /// Acteur authentifié (sub JWT / User.id) — `null` pour origine système.
+  actorId    String?  @map("actor_id") @db.VarChar(100)
+  /// Rôle/origine de l'acteur (`citizen`, `agent`, `supervisor`…).
+  actorType  String   @map("actor_type") @db.VarChar(40)
+  /// Adresse IP source.
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  /// Métadonnée métier (catégorie, compteur…) — SANS NINA en clair.
+  metadata   Json?
+  /// `true` une fois relayé avec succès vers RabbitMQ (audit-service).
+  relayed    Boolean  @default(false)
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([entityId])
+  @@index([actorId])
+  @@index([occurredAt])
+  @@index([relayed])
+  @@map("vulnerability_access_logs")
 }
