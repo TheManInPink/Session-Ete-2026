@@ -246,6 +246,8 @@ model Citizen {
   notifications            Notification[]
   priorityQueueEntries     PriorityQueueEntry[]
   offlineEnrollmentRecords OfflineEnrollmentRecord[]
+  biometricTemplates       BiometricTemplate[]
+  biometricConsents        BiometricConsent[]
 
   @@index([lastName])
   @@index([birthDate])
@@ -1607,4 +1609,141 @@ model ElectoralExportLog {
   @@index([accountId])
   @@index([createdAt])
   @@map("electoral_export_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  F — BIOMÉTRIE (Bloc F) — protection de template ISO/IEC 24745 (cancelable)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèles ADDITIFS (n'altèrent PAS l'existant — `Citizen.fingerprintHash` legacy
+//  conservé). Cf. docs/25-BLOC-F-BIOMETRIE.md §4.1, ADR-025, DPIA-NINA-AES-2026.
+//
+//  CANON : on ne stocke JAMAIS l'image brute ni le template en clair — uniquement
+//  un TEMPLATE PROTÉGÉ (cancelable, distance-préservant), comparé par DISTANCE +
+//  seuil τ (JAMAIS par égalité de hash, cf. doc 25 §0). Le paramètre cancelable
+//  (« sel » de projection) reste dans Vault, JAMAIS en base — seul son `kid` est
+//  référencé. La comparaison se fait par distance de Hamming sur le code signe.
+
+/// Type de biométrie (P3a empreinte, P3b face).
+enum BiometricKind {
+  FINGERPRINT
+  FACE
+
+  @@map("biometric_kind")
+}
+
+/// Un template biométrique PROTÉGÉ (ISO/IEC 24745, cancelable) — jamais d'image,
+/// jamais de template en clair. La comparaison se fait par distance + seuil τ
+/// (doc 25 §0.5), JAMAIS par égalité. Plusieurs templates ACTIFS peuvent coexister
+/// pour un même citoyen pendant une rotation en double-écriture (§4.5).
+model BiometricTemplate {
+  id                BigInt        @id @default(autoincrement())
+  citizenId         String        @map("citizen_id") @db.Uuid
+  kind              BiometricKind
+  /// Template PROTÉGÉ (transformation cancelable du template ISO). Octets opaques
+  /// (`bytea`), PAS un hash : il préserve approximativement la distance pour le
+  /// matching flou. NON unique (deux ré-enrôlements légitimes doivent coexister).
+  protectedTemplate Bytes         @map("protected_template")
+  /// Identifiant du paramètre de transformation cancelable dans Vault (rotation =
+  /// nouveau kid). Le paramètre LUI-MÊME n'est JAMAIS en base.
+  transformKid      String        @map("transform_kid") @db.VarChar(80)
+  /// Schéma de protection employé (traçabilité + migration).
+  protectionScheme  String        @map("protection_scheme") @db.VarChar(80)
+  /// Format du template source (ISO standard, pas de vendor lock-in).
+  templateFormat    String        @map("template_format") @db.VarChar(60)
+  /// Métrique + seuil τ figés à l'enrôlement (auditabilité du point d'opération).
+  matchMetric       String        @map("match_metric") @db.VarChar(30)
+  matchThreshold    Float         @map("match_threshold")
+  capturedAt        DateTime      @default(now()) @map("captured_at") @db.Timestamptz(6)
+  /// Agent ayant capturé (sub JWT / User.id) — jamais le NINA.
+  capturedBy        String        @map("captured_by") @db.VarChar(100)
+  /// Empreinte de la clé publique citoyen ayant signé le consentement (ancre §4.6).
+  consentSignerKid  String        @map("consent_signer_kid") @db.VarChar(160)
+  /// `jti` du JWS de consentement (corrélation preuve + anti-rejeu).
+  consentJti        String        @map("consent_jti") @db.VarChar(120)
+  /// URL MinIO chiffrée de la preuve de consentement (jamais le JWS brut ici).
+  consentDocUrl     String?       @map("consent_doc_url") @db.VarChar(500)
+  revokedAt         DateTime?     @map("revoked_at") @db.Timestamptz(6)
+  revokedReason     String?       @map("revoked_reason") @db.VarChar(200)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  // 1:1 = on retrouve les templates ACTIFS d'un citoyen puis on compare par
+  // distance EN MÉMOIRE. PAS d'index sur protectedTemplate : la recherche 1:N
+  // rapide passe par un index ANN externe (P3c), jamais un index SQL d'égalité.
+  @@index([citizenId, kind, revokedAt])
+  @@index([transformKid])
+  @@map("biometric_templates")
+}
+
+/// Registre de consentement biométrique (CONSENT-PROTOCOL). Le consentement est
+/// une preuve cryptographique portable (JWS Ed25519 ancré sur la clé publique du
+/// citoyen). On garde le `jti` pour l'anti-rejeu et l'état de révocation pour le
+/// droit de retrait (RGPD-like). On ne stocke PAS la clé privée (elle vit sur
+/// l'appareil du citoyen) — uniquement le signataire (`signerKid`) et le JWS.
+model BiometricConsent {
+  id              String    @id @default(uuid()) @db.Uuid
+  citizenId       String    @map("citizen_id") @db.Uuid
+  /// Nonce unique du JWS (anti-rejeu) — vu une seule fois dans sa fenêtre exp.
+  jti             String    @unique @db.VarChar(120)
+  /// `kid` de la clé publique citoyen ayant signé (ancre de confiance §4.6).
+  signerKid       String    @map("signer_kid") @db.VarChar(160)
+  /// Périmètre exact accordé (ex. `enroll:FINGERPRINT`).
+  scope           String    @db.VarChar(60)
+  /// Canal de recueil (web | kiosk | ussd | agent | offline-kit).
+  channel         String    @db.VarChar(30)
+  /// Langue effectivement présentée (preuve d'information éclairée).
+  lang            String    @db.VarChar(10)
+  /// JWS compact de consentement (preuve signée vérifiable a posteriori).
+  consentJws      String    @map("consent_jws") @db.Text
+  /// Bornes temporelles signées par le citoyen (epoch s → DateTime).
+  issuedAt        DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
+  /// Nombre d'enrôlements DÉJÀ autorisés par CE consentement (liaison per-opération).
+  /// Empêche qu'un seul JWS autorise des enrôlements illimités jusqu'à `exp` : la
+  /// garde d'enrôlement refuse quand `enrollmentsUsed >= maxEnrollments` (doc 25 §4.2).
+  enrollmentsUsed Int       @default(0) @map("enrollments_used")
+  /// Plafond d'enrôlements autorisés par CE consentement (par défaut single-use = 1).
+  maxEnrollments  Int       @default(1) @map("max_enrollments")
+  /// Retrait du consentement (déclenche le droit à l'effacement, §6).
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  @@index([citizenId])
+  @@index([revokedAt])
+  @@map("biometric_consents")
+}
+
+/// Trace LOCALE et DURABLE de chaque opération biométrique (en complément de la
+/// hash-chain SHA-256 d'audit-service). Invariant « pas d'opération biométrique
+/// sans trace ». JAMAIS de template (même protégé), JAMAIS de paramètre cancelable,
+/// JAMAIS de NINA en clair — uniquement des références (kid, citizenId UUID,
+/// compteurs).
+model BiometricAccessLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// Action (ex. `biometric.registered`, `biometric.verify_success`).
+  action     String   @db.VarChar(100)
+  /// Type d'entité (ex. `BiometricTemplate`).
+  entityType String   @map("entity_type") @db.VarChar(80)
+  /// Identifiant ciblé (UUID citoyen / id template) — JAMAIS le NINA.
+  entityId   String   @map("entity_id") @db.VarChar(120)
+  /// Acteur authentifié (sub JWT / User.id) — `null` pour origine système.
+  actorId    String?  @map("actor_id") @db.VarChar(100)
+  /// Rôle/origine de l'acteur (`biometric_operator`, `inspector`…).
+  actorType  String   @map("actor_type") @db.VarChar(40)
+  /// Adresse IP source.
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  /// Métadonnée métier (kind, transformKid, compteur…) — SANS NINA en clair.
+  metadata   Json?
+  /// `true` une fois relayé avec succès vers RabbitMQ (audit-service).
+  relayed    Boolean  @default(false)
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([entityId])
+  @@index([actorId])
+  @@index([occurredAt])
+  @@index([relayed])
+  @@map("biometric_access_logs")
 }

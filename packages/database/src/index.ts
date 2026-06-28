@@ -345,5 +345,9 @@ export type {
   MobileAgent,
   OfflineEnrollmentBatch,
   OfflineEnrollmentRecord,
+  BiometricTemplate,
+  BiometricConsent,
+  BiometricAccessLog,
 } from '@prisma/client';
+export { BiometricKind } from '@prisma/client';
 export default prisma;

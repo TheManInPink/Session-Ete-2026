@@ -225,6 +225,41 @@ export const envSchema = z.object({
   /** Limite du throttler nommé `dge` sur la fenêtre — PAR IP. */
   DGE_THROTTLE_LIMIT: z.coerce.number().int().positive().default(5),
 
+  // ── biometric-service (Bloc F, port 3012 — le module le plus sensible) ─
+  // Défauts SÛRS : ne cassent le boot d'aucun autre service. Le détail (seuil τ,
+  // dimension de projection, gate DPIA, anti-bruteforce) vit dans `services/
+  // biometric-service/src/config/env.schema.ts` ; ces clés sont déclarées ici
+  // pour la cohérence du schéma racine + turbo.json globalEnv. AUCUN secret : le
+  // paramètre cancelable vit dans Vault (jamais en base, jamais en clair ici).
+  /** Active la publication d'audit RabbitMQ du biometric-service. */
+  BIOMETRIC_AUDIT_ENABLED: z.coerce.boolean().default(true),
+  /** Active l'accès Vault au paramètre cancelable (désactivable en test/CI). */
+  BIOMETRIC_VAULT_ENABLED: z.coerce.boolean().default(true),
+  /** Chemin Vault du SECRET de transformation cancelable (« sel » de projection). */
+  BIOMETRIC_TRANSFORM_SECRET_PATH: z.string().default('kv/data/biometric/bio-transform'),
+  /** `transform_kid` ACTIF pour les nouveaux enrôlements (versionné, rotation). */
+  BIOMETRIC_ACTIVE_TRANSFORM_KID: z.string().default('bio-transform-v1'),
+  /** Dimension de la projection aléatoire (longueur du code signe binarisé). */
+  BIOMETRIC_PROJECTION_DIM: z.coerce.number().int().positive().default(512),
+  /** Seuil τ par défaut (distance de Hamming normalisée) — à mesurer en P3a (DET). */
+  BIOMETRIC_MATCH_THRESHOLD: z.coerce.number().min(0).max(1).default(0.32),
+  /** Métrique de comparaison figée à l'enrôlement (traçabilité du point DET). */
+  BIOMETRIC_MATCH_METRIC: z.string().default('hamming-normalized'),
+  /** Audience attendue dans le JWS de consentement (`aud`, anti-relais). */
+  BIOMETRIC_CONSENT_AUDIENCE: z.string().default('nina-biometric-service'),
+  /** Tolérance d'horloge (s) des bornes nbf/exp du consentement (capture offline). */
+  BIOMETRIC_CONSENT_CLOCK_TOLERANCE_SEC: z.coerce.number().int().min(0).default(60),
+  /** Échecs max de vérification par (agent, citoyen) avant verrouillage (anti-bruteforce). */
+  BIOMETRIC_VERIFY_MAX_FAILURES: z.coerce.number().int().positive().default(5),
+  /** Fenêtre (s) de comptage des échecs + durée du verrouillage anti-bruteforce. */
+  BIOMETRIC_VERIFY_LOCKOUT_SEC: z.coerce.number().int().positive().default(900),
+  /**
+   * GATE BLOQUANT : DPIA biométrie signée par le CISO/DPO CTDEC ? Défaut SÛR
+   * `false` (le module ne se déploie pas en prod sans signature — DPIA §10). Le
+   * fail-fast réel est appliqué DANS `DpiaGateService` quand `NODE_ENV=production`.
+   */
+  BIOMETRIC_DPIA_SIGNED: z.coerce.boolean().default(false),
+
   // ── Observabilité ─────────────────────────────────────────────────────
   PROMETHEUS_PORT: z.coerce.number().int().positive().default(9090),
   JAEGER_ENDPOINT: z.string().url().default('http://localhost:14268/api/traces'),
