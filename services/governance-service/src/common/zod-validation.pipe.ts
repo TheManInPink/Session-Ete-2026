@@ -1,0 +1,42 @@
+/**
+ * @file        zod-validation.pipe.ts
+ * @description Pipe de validation Zod réutilisable. Les DTO du
+ *              governance-service sont définis comme schémas Zod (`*.schema.ts`
+ *              des dossiers `dto/`) ; ce pipe les applique par paramètre
+ *              (`@Body(new ZodValidationPipe(schema))`) et lève une
+ *              `BadRequestException` 400 avec le détail des erreurs.
+ *
+ *              Complémentaire au `ValidationPipe` global (whitelist +
+ *              forbidNonWhitelisted) : Zod assure ici un parse strict (rejet des
+ *              clés inconnues via `.strict()` côté schéma) + coercition typée.
+ *
+ * @author      Étudiant UQAR
+ * @date        2026
+ * @module      governance-service/common
+ */
+import { BadRequestException, Injectable, type PipeTransform } from '@nestjs/common';
+import type { ZodType } from 'zod';
+
+@Injectable()
+export class ZodValidationPipe<T> implements PipeTransform<unknown, T> {
+  constructor(private readonly schema: ZodType<T>) {}
+
+  /**
+   * Valide la valeur entrante contre le schéma Zod.
+   *
+   * @param value Valeur brute (corps, query, param).
+   * @returns Valeur validée et typée.
+   * @throws BadRequestException 400 si la validation échoue.
+   */
+  transform(value: unknown): T {
+    const result = this.schema.safeParse(value);
+    if (!result.success) {
+      const details = result.error.issues.map((i) => ({
+        path: i.path.join('.') || '(root)',
+        message: i.message,
+      }));
+      throw new BadRequestException({ message: 'Validation échouée', errors: details });
+    }
+    return result.data;
+  }
+}

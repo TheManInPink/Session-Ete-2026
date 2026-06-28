@@ -192,6 +192,39 @@ export const envSchema = z.object({
   /** Endpoints des passerelles partenaires, CSV `PAYS=URL`. Vide par défaut. */
   INTEROP_PARTNER_ENDPOINTS: z.string().default(''),
 
+  // ── governance-service SGOGT + électoral (Bloc C2/C3, port 3010) ──────
+  // Défauts SÛRS : ne cassent le boot d'aucun autre service. Le détail (TTL
+  // d'escalade, quota DGE, fail-fast Vault) vit dans `services/governance-
+  // service/src/config/env.schema.ts` ; ces clés sont déclarées ici pour la
+  // cohérence du schéma racine + turbo.json globalEnv. AUCUN secret : seuls des
+  // NOMS de clés Vault Transit (clés non exportables, jamais lues côté service).
+  /** Active la publication d'audit RabbitMQ du governance-service. */
+  GOVERNANCE_AUDIT_ENABLED: z.coerce.boolean().default(true),
+  /** Active l'usage réel de Vault Transit (signature JWS / HMAC pseudonyme). */
+  GOVERNANCE_VAULT_ENABLED: z.coerce.boolean().default(true),
+  /** Clé Transit RS256 (non exportable) signant l'export DGE + l'escalade système. */
+  VAULT_ELECTIONS_EXPORT_KEY: z.string().default('elections-export'),
+  /** Clé HMAC Transit (non exportable) du pseudonyme électoral. */
+  VAULT_ELECTIONS_HMAC_KEY: z.string().default('elections-pseudonym'),
+  /** Préfixe des clés Transit RSA par-fonctionnaire signant les messages SGOGT. */
+  VAULT_SGOGT_KEY_PREFIX: z.string().default('sgogt-user-'),
+  /** Version de contexte HMAC (tag de séparation de domaine PUBLIC, pas un secret). */
+  ELECTIONS_SALT_VERSION: z.coerce.number().int().positive().default(1),
+  /** TTL d'escalade (heures) pour un message SGOGT NORMAL/HIGH non accusé. */
+  SGOGT_TTL_NORMAL_HOURS: z.coerce.number().int().positive().default(24),
+  /** TTL d'escalade (heures) pour un message SGOGT CRITICAL non accusé. */
+  SGOGT_TTL_CRITICAL_HOURS: z.coerce.number().int().positive().default(4),
+  /** Active le cron de balayage/escalade SGOGT. */
+  SGOGT_ESCALATION_CRON_ENABLED: z.coerce.boolean().default(true),
+  /** Active le cron d'inscription électorale auto à 18 ans. */
+  ELECTIONS_INSCRIPTION_CRON_ENABLED: z.coerce.boolean().default(true),
+  /** Plafond d'exports DGE PAR COMPTE et PAR JOUR (quota applicatif atomique). */
+  DGE_EXPORT_DAILY_QUOTA: z.coerce.number().int().positive().default(5),
+  /** Fenêtre du throttler nommé `dge` (ms) — défense en profondeur PAR IP. */
+  DGE_THROTTLE_TTL_MS: z.coerce.number().int().positive().default(3_600_000),
+  /** Limite du throttler nommé `dge` sur la fenêtre — PAR IP. */
+  DGE_THROTTLE_LIMIT: z.coerce.number().int().positive().default(5),
+
   // ── Observabilité ─────────────────────────────────────────────────────
   PROMETHEUS_PORT: z.coerce.number().int().positive().default(9090),
   JAEGER_ENDPOINT: z.string().url().default('http://localhost:14268/api/traces'),

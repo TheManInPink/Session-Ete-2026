@@ -8,6 +8,29 @@
 > algorithmiques), doc 09 (audit-service). **Statut** : spécification de protocole. Les marqueurs
 > **⏳** signalent ce qui est _conçu_ mais _non encore implémenté_ (Phase 2). Aucune affirmation de
 > ce document ne doit être présentée comme « déjà en production » sans le marqueur correspondant.
+>
+> **✅ AS-BUILT (mise à jour) — les briques suivantes, jadis marquées ⏳ Phase 2, sont DÉSORMAIS
+> IMPLÉMENTÉES** dans `governance-service` et **vérifiables** (les marqueurs ⏳ résiduels ci-dessous
+> sont conservés pour l'historique mais NE bloquent plus) :
+>
+> - **`JwsSigner`** (`src/crypto/jws.signer.ts`) — assemble l'en-tête, compose le JWS compact et
+>   convertit l'enveloppe Transit `vault:vN:<base64>` en 3ᵉ segment **base64url** (RFC 7515). En sus
+>   du contrat initial, l'en-tête porte un champ **`kv`** qui **ÉPINGLE la version de clé Transit**
+>   utilisée à la signature → la vérification résout EXACTEMENT cette version
+>   (`transitReadPublicKey(kid, kv)`) et reste valide **après rotation** (non-répudiation
+>   préservée).
+> - **`transitReadPublicKey(keyName, version?)`** (`@nina-aes/vault-client`) — extrait
+>   `keys[v].public_key` (PEM) ⇒ **vérification externe hors Vault** (DGE / Vérificateur Général).
+> - **`transitHmac(keyName, payloadBase64)`** (`@nina-aes/vault-client`) — pseudonyme électoral.
+> - **ACK signé** (`SgogtService.acknowledge`) + **stockage `readReceiptJws`** (schéma +
+>   repository).
+> - **Chaîne d'escalade signée** (`SgogtEscalationService` + `SgogtRepository.applyEscalation`,
+>   transaction idempotente) + **relations hiérarchiques** (`User.manager`) au schéma.
+> - **Endpoints** `ack` / `respond` / cron d'escalade + actions d'audit
+>   `SGOGT_MESSAGE_READ / _RESPONDED / _ESCALATED` — livrés.
+>
+> Restent **⏳ Phase 2** (réellement non livrés) : l'**ancrage racine chez un tiers** (OCLEI /
+> Vérificateur Général) et le palier d'escalade multi-niveaux au-delà du 1ᵉʳ cran.
 
 ---
 
@@ -182,7 +205,7 @@ Le résultat est un **JWS compact** à trois segments base64url séparés par de
 ```
    <header>.<payload>.<signature>
 
-   header  (décodé)  = { "alg": "RS256", "typ": "JWT", "kid": "sgogt-user-<id>" }
+   header  (décodé)  = { "alg": "RS256", "typ": "JWT", "kid": "sgogt-user-<id>", "kv": <keyVersion> }
    payload (décodé)  = signedClaims   (l'objet de §3.2)
    signature         = RSA-PKCS1v15( SHA-256( base64url(header) || "." || base64url(payload) ),
                                      clé privée Transit `sgogt-user-<id>` )
@@ -192,11 +215,17 @@ Le résultat est un **JWS compact** à trois segments base64url séparés par de
   algorithme symétrique (`HS*`) : c'est l'attaque classique de confusion d'algorithme.
 - `kid` identifie la clé Transit du signataire, ce qui permet au vérificateur de retrouver la **clé
   publique** correspondante.
+- `kv` ÉPINGLE la **version** de la clé Transit utilisée à la signature (renvoyée par
+  `transit/sign`). Le vérificateur lit la clé publique **à cette version précise**
+  (`transitReadPublicKey(kid, kv)`), jamais `latest_version` : une **rotation** ultérieure de la clé
+  ne casse donc PAS la vérification des signatures antérieures. `kv` étant dans l'en-tête, il est
+  **couvert par la signature** (toute altération invalide le JWS — comportement fail-closed).
 
-> **⏳ Conçu, Phase 2 — `JwsService`.** L'enveloppe `jwsService.sign(...)` s'appuie sur
-> `transitSign(keyName, payloadBase64, { signatureAlgorithm: 'pkcs1v15' })` du package
-> `@nina-aes/vault-client`. Le helper `transitSign` existe ; le wrapper `JwsService` qui assemble
-> l'en-tête, encode le payload et compose le JWS compact est **à livrer** (Phase 2).
+> **✅ Implémenté — `JwsSigner` (`src/crypto/jws.signer.ts`).** `signer.sign(claims, kid)` s'appuie
+> sur
+> `transitSign(keyName, payloadBase64, { signatureAlgorithm: 'pkcs1v15', hashAlgorithm: 'sha2-256' })`
+> du package `@nina-aes/vault-client` ; il assemble l'en-tête (avec `kv`), encode le payload et
+> compose le JWS compact.
 >
 > **Conversion enveloppe Transit → 3ᵉ segment JWS (RFC 7515) — OBLIGATOIRE.** `transitSign` renvoie
 > une signature au **format propriétaire Vault** `vault:vN:<base64>` (préfixe de version
@@ -222,14 +251,12 @@ Chaque fonctionnaire dispose d'une **clé RSA dédiée dans Vault Transit**, nom
   Le `governance-service` ne manipule **aucun** secret cryptographique en clair.
 - **Signature déléguée** : pour signer, le service envoie le payload à
   `POST transit/sign/sgogt-user-<id>` ; Vault renvoie la signature.
-- **Clé publique extractible** ⏳ (Phase 2) : pour les clés RSA, Vault expose bien la partie
-  publique sous `keys[<version>].public_key` via `GET transit/keys/sgogt-user-<id>`, ce qui
-  permettrait la vérification hors Vault (ou un JWKS exposé). **Mais le helper as-built**
-  `transitReadKey` de `@nina-aes/vault-client` ne renvoie aujourd'hui que des **métadonnées**
-  (`{ latestVersion, minDecryptionVersion, type }`) et **ne remonte pas** `public_key`. Tant qu'un
-  nouveau helper (p. ex. `transitReadPublicKey`) n'extrait pas `keys[v].public_key` de la réponse
-  Vault, la **vérification externe par clé publique n'est pas encore disponible** en l'état du
-  client : voir la réserve §4.2.
+- **Clé publique extractible** ✅ (implémenté) : pour les clés RSA, Vault expose la partie publique
+  sous `keys[<version>].public_key` via `GET transit/keys/sgogt-user-<id>`. Le helper
+  **`transitReadPublicKey(keyName, version?)`** de `@nina-aes/vault-client` extrait désormais
+  `keys[v].public_key` (PEM) **à la version demandée** ⇒ la **vérification hors Vault**
+  (Vérificateur Général) est disponible. La version est fournie par le champ `kv` de l'en-tête JWS
+  (§3.3), de sorte que la vérification reste robuste à la **rotation** de clé.
 
 Conséquence directe pour la **non-répudiation** : comme la clé privée ne quitte jamais Vault, seul
 le détenteur des droits Vault sur cette clé (le fonctionnaire authentifié, via son identité) a pu
@@ -265,12 +292,11 @@ async function verifySgogtMessage(msg: SgogtMessage): Promise<boolean> {
     throw new UnauthorizedException('kid ne correspond pas au senderId');
   }
 
-  // 4) Récupérer la clé PUBLIQUE Transit du signataire et vérifier la signature RSA.
-  //    Aucune clé privée n'est manipulée : on vérifie hors Vault avec la publique.
-  //    ⏳ Phase 2 : `transitReadPublicKey` doit extraire keys[v].public_key de
-  //    GET transit/keys/<kid> ; le helper actuel `transitReadKey` ne renvoie QUE des
-  //    métadonnées (latestVersion/minDecryptionVersion/type), pas la clé publique.
-  const publicKey = await vault.transitReadPublicKey(header.kid); // ⏳ helper à livrer
+  // 4) Récupérer la clé PUBLIQUE Transit du signataire À LA VERSION ÉPINGLÉE (kv)
+  //    et vérifier la signature RSA. Aucune clé privée n'est manipulée : on vérifie
+  //    hors Vault avec la publique. On passe header.kv → résolution déterministe,
+  //    robuste à la rotation (JAMAIS latest_version implicite).
+  const publicKey = await vault.transitReadPublicKey(header.kid, header.kv);
   const signatureValid = rsaPkcs1v15Verify(signingInput, signatureBytes, publicKey);
   if (!signatureValid) return false;
 
@@ -292,25 +318,22 @@ async function verifySgogtMessage(msg: SgogtMessage): Promise<boolean> {
 }
 ```
 
-> **⏳ Conçu, Phase 2.** `parseCompactJws`, `rsaPkcs1v15Verify` et l'extraction de la clé publique /
-> JWKS depuis `transit/keys/<kid>` sont à fournir dans le `JwsService`. **Précision honnête sur le
-> client as-built :** le helper existant `transitReadKey` de `@nina-aes/vault-client` ne renvoie que
-> des **métadonnées** (`{ latestVersion, minDecryptionVersion, type }`) et **n'expose PAS** la clé
-> publique. Un helper distinct `transitReadPublicKey` doit être ajouté pour lire
-> `keys[<version>].public_key` de la réponse `GET transit/keys/<name>` (que Vault fournit pour les
-> clés RSA). **La vérification externe par clé publique extraite (Vérificateur Général) n'est donc
-> pas encore disponible** tant que ce helper n'est pas livré ; en attendant, seule la voie déléguée
-> `transit/verify` (§4.3), nécessitant l'accès au Vault de l'État, est opérationnelle.
+> **✅ Implémenté.** `JwsSigner.parse`/`JwsSigner.verify` (`src/crypto/jws.signer.ts`) réalisent
+> `parseCompactJws` + la vérification RSA-PKCS1v15, et le helper
+> **`transitReadPublicKey(name, version)`** de `@nina-aes/vault-client` extrait
+> `keys[<version>].public_key` de `GET transit/keys/<name>`. **La vérification externe par clé
+> publique extraite (Vérificateur Général) est donc disponible**, à la **version épinglée** (`kv`) —
+> robuste à la rotation. La voie déléguée `transit/verify` (§4.3) reste une alternative équivalente
+> quand le vérificateur a déjà accès au Vault de l'État.
 
 ### 4.3 Vérification alternative côté Vault (`transit/verify`)
 
 Quand le vérificateur a déjà accès à Vault (contrôle interne), il peut **déléguer** la vérification
 à Vault via `POST transit/verify/sgogt-user-<id>` plutôt que d'extraire la clé publique. Les deux
-voies sont cryptographiquement équivalentes. **À ce jour, seule la voie déléguée `transit/verify`
-est opérationnelle** (elle suppose un accès au Vault de l'État). La voie « clé publique extraite »
-(§4.2) est **préférée à terme** pour le **contrôle externe indépendant** (Vérificateur Général), qui
-ne doit pas dépendre de l'accès au Vault de l'État — mais elle reste **⏳ Phase 2** tant que
-`transitReadPublicKey` n'est pas livré (cf. §4.1, §4.2).
+voies sont cryptographiquement équivalentes et **toutes deux opérationnelles**. La voie « clé
+publique extraite » (§4.2) est **préférée** pour le **contrôle externe indépendant** (Vérificateur
+Général), qui ne doit pas dépendre de l'accès au Vault de l'État : elle est **livrée** via
+`transitReadPublicKey(kid, kv)` (cf. §4.1, §4.2).
 
 ---
 
@@ -389,15 +412,14 @@ supérieur direct). Un message déjà escaladé (`escalatedTo != null`) n'est pa
 cron : c'est **une remontée d'un niveau**, idempotente. Une escalade multi-niveaux en cascade
 (supérieur du supérieur si toujours silence) est **⏳ conçue pour Phase 2**.
 
-### 6.4 ⏳ Prérequis schéma (Phase 2)
+### 6.4 ✅ Prérequis schéma (implémenté)
 
-> **⏳ Conçu, Phase 2 — relations hiérarchiques manquantes.** La résolution du supérieur suppose
-> deux relations Prisma qui **n'existent pas encore** (vérifié, cf. doc 22 §4.3) : une self-relation
-> `manager`/`managerId` sur le modèle `User`, et une relation `recipient` sur `SgogtMessage` (qui
-> n'a aujourd'hui qu'un scalaire `recipientId`). Tant qu'elles ne sont pas ajoutées,
-> `resolveManager` doit faire un **lookup séparé**
-> (`prisma.user.findUnique({ where: { id: msg.recipientId } })` puis lecture de `managerId`), et
-> l'`include: { recipient: { include: { manager: true } } }` **ne compile pas**.
+> **✅ Implémenté — relations hiérarchiques.** La self-relation `manager`/`managerId` sur `User` est
+> présente au schéma. As-built, `SgogtRepository.resolveManager` réalise un **lookup séparé**
+> (`prisma.user.findUnique({ where: { id: recipientId }, select: { managerId: true } })`) plutôt
+> qu'un `include` imbriqué — choix volontaire (le modèle `SgogtSignedMessage` n'expose qu'un
+> scalaire `recipientId` côté escalade, suffisant ici). L'escalade d'un cran est livrée
+> (`SgogtEscalationService.sweep` + `applyEscalation` transactionnel/idempotent).
 
 ---
 
@@ -443,10 +465,12 @@ async function buildSignedAck(msg: SgogtMessage, reader: AuthenticatedUser): Pro
 2. **inscrit dans l'audit** (`SGOGT_MESSAGE_READ`, §8) ;
 3. notifié à l'expéditeur.
 
-> **⏳ Conçu, Phase 2.** La colonne `readAt` existe déjà au schéma (doc 22 §4.1), mais le **stockage
-> du JWS d'ACK** (colonne dédiée `readReceiptJws`) et l'endpoint `POST /sgogt/messages/:id/ack` sont
-> **à ajouter** (Phase 2). En l'état, `readAt` marque la lecture mais l'ACK _signé_ n'est pas encore
-> persisté.
+> **✅ Implémenté.** Le **stockage du JWS d'ACK** (colonne `readReceiptJws` sur
+> `SgogtSignedMessage`) et l'endpoint `POST /sgogt/messages/:id/ack` sont livrés
+> (`SgogtService.acknowledge` + `SgogtRepository.markRead`). L'ACK vérifie d'abord la signature de
+> l'émetteur (refus 401 si invalide), est signé avec la clé du **lecteur** (en-tête `kv` épinglant
+> la version de SA clé), puis persisté avec `readAt`. Anti-IDOR : seul le destinataire peut
+> acquitter (403 sinon).
 
 ---
 
@@ -457,12 +481,12 @@ async function buildSignedAck(msg: SgogtMessage, reader: AuthenticatedUser): Pro
 Toute action significative émet une ligne dans l'**audit-service** (doc 09), qui la chaîne dans une
 **hash-chain SHA-256 linéaire** (ADR-007). Actions journalisées :
 
-| Action métier        | `action` (audit)             | Émise par                  |
-| -------------------- | ---------------------------- | -------------------------- |
-| Envoi d'un message   | `SGOGT_MESSAGE_SENT`         | `SgogtController.send`     |
-| Lecture / ACK        | `SGOGT_MESSAGE_READ` ⏳      | endpoint ACK (Phase 2)     |
-| Réponse              | `SGOGT_MESSAGE_RESPONDED` ⏳ | endpoint réponse (Phase 2) |
-| Escalade automatique | `SGOGT_MESSAGE_ESCALATED` ⏳ | cron escalade (Phase 2)    |
+| Action métier        | `action` (audit)             | Émise par                      |
+| -------------------- | ---------------------------- | ------------------------------ |
+| Envoi d'un message   | `SGOGT_MESSAGE_SENT`         | `SgogtController.send`         |
+| Lecture / ACK        | `SGOGT_MESSAGE_READ` ✅      | `SgogtService.acknowledge`     |
+| Réponse              | `SGOGT_MESSAGE_RESPONDED` ✅ | `SgogtService.respond`         |
+| Escalade automatique | `SGOGT_MESSAGE_ESCALATED` ✅ | `SgogtEscalationService.sweep` |
 
 ### 8.2 PAS un arbre de Merkle (CANON)
 
@@ -545,22 +569,23 @@ La non-répudiation SGOGT repose sur **trois piliers cumulés** ; aucun seul ne 
 **Conséquence opérationnelle.** Un fonctionnaire ne peut pas dire « je n'ai jamais envoyé cet ordre
 » (signature RSA non-exportable), ni « le message disait autre chose » (claims signés), ni « cette
 ligne a été fabriquée après coup » (audit chaîné + scellé). Le destinataire ne peut pas dire « je
-n'ai jamais reçu » dès lors que l'**ACK signé** (§7) est en place (⏳ Phase 2).
+n'ai jamais reçu » dès lors que l'**ACK signé** (§7) est en place (✅ implémenté).
 
 ---
 
 ## 10. Modèle de menace SGOGT (résumé)
 
-| Menace                                             | Acteur                  | Contrôle SGOGT                                      | Statut         |
-| -------------------------------------------------- | ----------------------- | --------------------------------------------------- | -------------- |
-| Usurpation d'identité hiérarchique                 | externe / interne       | Signature RS256 liée à `req.user.id` + `kid`        | en place       |
-| Altération d'un message en base                    | admin DB                | Claims signés vérifiés contre les colonnes (§4.2)   | en place       |
-| Abaissement de priorité / TTL pour tuer l'escalade | interne                 | `priority`/`ttlEscalateAt` dans les claims signés   | en place       |
-| Confusion d'algorithme (`alg: none`/`HS*`)         | externe                 | Refus strict de tout `alg != RS256` (§3.3, §4.2)    | en place       |
-| Rejeu d'un ancien ordre                            | interne                 | `iat` signé + `sourceEventId` idempotent côté audit | en place       |
-| Réécriture de l'historique d'audit                 | interne privilégié      | hash-chain + scellement Ed25519/h                   | partiel        |
-| Réécriture **+** vol de la clé de scellement       | interne très privilégié | **ancrage racine chez tiers (OCLEI / Vérif. Gén.)** | **⏳ Phase 2** |
-| Déni de réception                                  | destinataire            | ACK signé par le lecteur (§7)                       | **⏳ Phase 2** |
+| Menace                                             | Acteur                  | Contrôle SGOGT                                           | Statut          |
+| -------------------------------------------------- | ----------------------- | -------------------------------------------------------- | --------------- |
+| Usurpation d'identité hiérarchique                 | externe / interne       | Signature RS256 liée à `req.user.id` + `kid`             | en place        |
+| Altération d'un message en base                    | admin DB                | Claims signés vérifiés contre les colonnes (§4.2)        | en place        |
+| Abaissement de priorité / TTL pour tuer l'escalade | interne                 | `priority`/`ttlEscalateAt` dans les claims signés        | en place        |
+| Confusion d'algorithme (`alg: none`/`HS*`)         | externe                 | Refus strict de tout `alg != RS256` (§3.3, §4.2)         | en place        |
+| Rejeu d'un ancien ordre                            | interne                 | `iat` signé + `sourceEventId` idempotent côté audit      | en place        |
+| Réécriture de l'historique d'audit                 | interne privilégié      | hash-chain + scellement Ed25519/h                        | partiel         |
+| Réécriture **+** vol de la clé de scellement       | interne très privilégié | **ancrage racine chez tiers (OCLEI / Vérif. Gén.)**      | **⏳ Phase 2**  |
+| Déni de réception                                  | destinataire            | ACK signé par le lecteur (§7)                            | **✅ en place** |
+| Répudiation d'un ordre après **rotation** de clé   | interne privilégié      | Version de clé `kv` épinglée dans l'en-tête signé (§3.3) | **✅ en place** |
 
 ---
 
@@ -571,19 +596,22 @@ n'ai jamais reçu » dès lors que l'**ACK signé** (§7) est en place (⏳ Phas
       ttlEscalateAt, iat** (couverture complète de la décision).
 - [ ] `bodyHash = SHA-256(body)` signé ; `body` brut **non** signé (compacité du JWS).
 - [ ] Champs dérivés (`threadId`, `iat`, `ttlEscalateAt`) calculés **avant** signature.
-- [ ] Vérification : refus strict `alg != RS256` + cohérence `kid`↔`senderId` + claims↔colonnes +
-      `bodyHash`↔`body`.
-- [ ] Clé Transit `sgogt-user-<id>` **non-exportable** ; vérification interne déléguée via
-      `transit/verify` opérationnelle. ⏳ Vérification externe par clé publique extraite hors Vault
-      (`transitReadPublicKey` lisant `keys[v].public_key`) — Phase 2.
-- [ ] ⏳ `JwsService` convertit l'enveloppe Transit `vault:vN:<base64>` en 3ᵉ segment **base64url**
-      (signature RSA brute) pour un JWS conforme **RFC 7515** interopérable — Phase 2.
-- [ ] Escalade : TTL **4 h** (`CRITICAL`) / **24 h** (`NORMAL`/`HIGH`), cron 15 min, idempotente.
-- [ ] Audit `SGOGT_MESSAGE_SENT` (et READ/RESPONDED/ESCALATED ⏳) en **hash-chain SHA-256** (PAS
+- [ ] Vérification : refus strict `alg != RS256` + cohérence `kid`↔`senderId` + **présence de
+      `kv`** + claims↔colonnes + `bodyHash`↔`body`.
+- [x] Clé Transit `sgogt-user-<id>` **non-exportable** ; vérification interne déléguée via
+      `transit/verify` opérationnelle. ✅ Vérification externe par clé publique extraite hors Vault
+      (`transitReadPublicKey(kid, kv)` lisant `keys[v].public_key`) — livrée.
+- [x] ✅ `JwsSigner` convertit l'enveloppe Transit `vault:vN:<base64>` en 3ᵉ segment **base64url**
+      (signature RSA brute) pour un JWS conforme **RFC 7515** interopérable.
+- [x] ✅ **Version de clé `kv` épinglée** dans l'en-tête signé → vérification à version explicite,
+      robuste à la **rotation** Vault (non-répudiation préservée ; cache clé publique par
+      `kid#version`).
+- [ ] Escalade : TTL **4 h** (`CRITICAL`) / **24 h** (`NORMAL`/`HIGH`), cron, idempotente.
+- [x] Audit `SGOGT_MESSAGE_SENT` + ✅ `READ`/`RESPONDED`/`ESCALATED` en **hash-chain SHA-256** (PAS
       Merkle), DTO conforme à `ingest.dto.ts` (`newValue` + `userId` UUID, pas `payload`).
 - [ ] **Pas** de `body` en clair ni de PII sensible dans `newValue`.
-- [ ] ⏳ ACK signé (`POST /sgogt/messages/:id/ack`, colonne `readReceiptJws`) — Phase 2.
-- [ ] ⏳ Relations hiérarchiques `manager`/`managerId` + `recipient` au schéma — Phase 2.
+- [x] ✅ ACK signé (`POST /sgogt/messages/:id/ack`, colonne `readReceiptJws`) — livré.
+- [x] ✅ Relation hiérarchique `manager`/`managerId` au schéma — livrée.
 - [ ] ⏳ Ancrage racine d'audit chez tiers (OCLEI / Vérificateur Général) — Phase 2.
 - [ ] Aucune affirmation d'« audit inaltérable » sans la réserve §8.4.
 

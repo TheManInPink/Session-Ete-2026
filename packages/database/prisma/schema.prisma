@@ -242,6 +242,7 @@ model Citizen {
   appointments             Appointment[]
   vulnerabilities          VulnerabilityRecord[]
   electoralRecord          ElectoralRecord?
+  electoralPseudonym       ElectoralPseudonym?
   notifications            Notification[]
   priorityQueueEntries     PriorityQueueEntry[]
   offlineEnrollmentRecords OfflineEnrollmentRecord[]
@@ -335,6 +336,10 @@ model User {
   lastName          String    @map("last_name") @db.VarChar(100)
   role              UserRole
   institutionId     String?   @map("institution_id") @db.Uuid
+  /// Supérieur hiérarchique direct (self-relation) — utilisé par l'escalade
+  /// SGOGT (Bloc C2) : un message URGENT non accusé dans le TTL remonte au
+  /// `manager` du destinataire. `null` = sommet de la hiérarchie (pas d'escalade).
+  managerId         String?   @map("manager_id") @db.Uuid
   phoneNumber       String?   @map("phone_number") @db.VarChar(20)
   preferredLanguage Language  @default(FR) @map("preferred_language")
   mfaEnabled        Boolean   @default(false) @map("mfa_enabled")
@@ -347,6 +352,12 @@ model User {
   deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   institution             Institution?             @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  manager                 User?                    @relation("UserHierarchy", fields: [managerId], references: [id], onDelete: Restrict)
+  subordinates            User[]                   @relation("UserHierarchy")
+  sgogtSentMessages       SgogtSignedMessage[]     @relation("SgogtSender")
+  sgogtReceivedMessages   SgogtSignedMessage[]     @relation("SgogtRecipient")
+  governedTasks           GovernanceTask[]         @relation("TaskAssignee")
+  createdTasks            GovernanceTask[]         @relation("TaskCreator")
   requestedCorrections    CorrectionRequest[]      @relation("CorrectionRequestedBy")
   reviewedCorrections     CorrectionRequest[]      @relation("CorrectionReviewedBy")
   assignedAppointments    Appointment[]
@@ -367,6 +378,7 @@ model User {
 
   @@index([role])
   @@index([institutionId])
+  @@index([managerId])
   @@index([deletedAt])
   @@map("users")
 }
@@ -1311,4 +1323,288 @@ model VulnerabilityAccessLog {
   @@index([occurredAt])
   @@index([relayed])
   @@map("vulnerability_access_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C2.1 — SGOGT_SIGNED_MESSAGES — messagerie officielle signée (Bloc C2)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèle ADDITIF (n'altère PAS `governance_messages`, conservé pour le fil de
+//  discussion CRUD existant). Ici on porte la « décision administrative
+//  cryptographiquement engageante » : JWS RS256 (signé via Vault Transit, clé
+//  par-fonctionnaire NON exportable), claims signés couvrant TOUTE la décision
+//  (sender/recipient/subject/bodyHash/threadId/priority/ttl/iat) + chaînage
+//  d'intégrité SHA-256 par fil (hash-chain LINÉAIRE, PAS Merkle) + escalade.
+//  Cf. docs/governance/SGOGT-PROTOCOL.md (contrat normatif).
+
+/// Classification d'urgence d'un message SGOGT — pilote le délai d'escalade.
+enum SgogtPriority {
+  NORMAL
+  HIGH
+  CRITICAL
+
+  @@map("sgogt_priority")
+}
+
+/// Cycle de vie d'un message SGOGT signé.
+enum SgogtStatus {
+  SENT
+  READ
+  RESPONDED
+  ESCALATED
+  ARCHIVED
+
+  @@map("sgogt_status")
+}
+
+/// Message officiel SIGNÉ (JWS RS256 via Vault Transit) — non-répudiation.
+///
+/// Le `jwsSignature` couvre les `signedClaims` (sender/recipient/subject/
+/// bodyHash/threadId/priority/ttlEscalateAt/iat). On ne signe PAS le `body` brut
+/// mais son `bodyHash` (SHA-256) — JWS compact même pour un message long.
+/// `chainHash` = SHA-256(previousChainHash | bodyHash | jwsSignature | createdAt)
+/// chaîne les messages D'UN MÊME FIL (anti-altération / anti-suppression locale).
+/// L'intégrité long terme reste portée par la hash-chain SHA-256 d'audit-service.
+model SgogtSignedMessage {
+  id                String        @id @default(uuid()) @db.Uuid
+  /// Groupe de messages liés (fil de décision). Couvert par la signature.
+  threadId          String        @map("thread_id") @db.Uuid
+  /// Émetteur (FK User) — lié à `req.user.id` authentifié, jamais au client.
+  senderId          String        @map("sender_id") @db.Uuid
+  /// Destinataire direct (FK User).
+  recipientId       String        @map("recipient_id") @db.Uuid
+  subject           String        @db.VarChar(300)
+  body              String        @db.Text
+  /// SHA-256 (hex) du `body` — signé à la place du corps brut.
+  bodyHash          String        @map("body_hash") @db.VarChar(64)
+  /// JWS compact RS256 (signature déléguée Vault Transit). Format RFC 7515.
+  jwsSignature      String        @map("jws_signature") @db.Text
+  /// Claims couverts par la signature (anti-rejeu / anti-altération).
+  signedClaims      Json          @map("signed_claims")
+  /// `kid` Vault de la clé signataire (`sgogt-user-<senderId>`).
+  signingKid        String        @map("signing_kid") @db.VarChar(120)
+  priority          SgogtPriority @default(NORMAL)
+  status            SgogtStatus   @default(SENT)
+  /// Échéance d'escalade (dérivée AVANT signature → immuable). CRITICAL=4h, sinon 24h.
+  ttlEscalateAt     DateTime      @map("ttl_escalate_at") @db.Timestamptz(6)
+  /// Supérieur ayant pris le relais après escalade (FK User).
+  escalatedToId     String?       @map("escalated_to_id") @db.Uuid
+  escalatedAt       DateTime?     @map("escalated_at") @db.Timestamptz(6)
+  readAt            DateTime?     @map("read_at") @db.Timestamptz(6)
+  respondedAt       DateTime?     @map("responded_at") @db.Timestamptz(6)
+  /// ACK signé du destinataire (JWS RS256 du lecteur) — preuve de réception.
+  readReceiptJws    String?       @map("read_receipt_jws") @db.Text
+  /// Hash du message précédent du MÊME fil (ou GENESIS = 64 zéros).
+  previousChainHash String        @map("previous_chain_hash") @db.VarChar(64)
+  /// Hash chaîné de CE message (intégrité locale du fil).
+  chainHash         String        @unique @map("chain_hash") @db.VarChar(64)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sender      User                   @relation("SgogtSender", fields: [senderId], references: [id], onDelete: Restrict)
+  recipient   User                   @relation("SgogtRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+  escalations SgogtEscalationEvent[]
+
+  @@index([recipientId, status])
+  @@index([threadId])
+  @@index([status, ttlEscalateAt])
+  @@map("sgogt_signed_messages")
+}
+
+/// Historique d'escalade SIGNÉ (non falsifiable) d'un message SGOGT.
+///
+/// Chaque escalade automatique (TTL dépassé sans accusé) émet une ligne SIGNÉE
+/// par la clé `elections-export`/`sgogt-system` (clé système Vault) et chaînée
+/// (SHA-256) à l'événement précédent du même message → piste d'audit immuable.
+model SgogtEscalationEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  messageId    String   @map("message_id") @db.Uuid
+  /// Destinataire AVANT escalade (FK User).
+  fromUserId   String   @map("from_user_id") @db.Uuid
+  /// Destinataire APRÈS escalade — supérieur hiérarchique (FK User).
+  toUserId     String   @map("to_user_id") @db.Uuid
+  /// Niveau d'escalade atteint (1 = premier cran).
+  level        Int      @default(1)
+  /// Raison (`TTL_EXPIRED`).
+  reason       String   @default("TTL_EXPIRED") @db.VarChar(40)
+  /// JWS RS256 (clé système Vault) couvrant {messageId,from,to,level,at}.
+  signatureJws String   @map("signature_jws") @db.Text
+  /// Hash de l'événement d'escalade précédent (ou GENESIS).
+  previousHash String   @map("previous_hash") @db.VarChar(64)
+  /// Hash chaîné de CET événement.
+  chainHash    String   @unique @map("chain_hash") @db.VarChar(64)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  message SgogtSignedMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([toUserId])
+  @@map("sgogt_escalation_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C2.2 — GOVERNANCE_TASKS — directives Kanban (Bloc C2)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèle ADDITIF (n'altère PAS `governance_directives`). Tableau Kanban des
+//  directives avec cycle de vie strict + assignee + deadline + historique de
+//  transitions audité.
+
+/// Colonne Kanban / cycle de vie d'une directive (tâche de gouvernance).
+enum GovernanceTaskStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+
+  @@map("governance_task_status")
+}
+
+/// Directive opérationnelle suivie en Kanban (DRAFT→SENT→IN_PROGRESS→…).
+model GovernanceTask {
+  id              String               @id @default(uuid()) @db.Uuid
+  title           String               @db.VarChar(300)
+  description     String               @db.Text
+  status          GovernanceTaskStatus @default(DRAFT)
+  /// Créateur/émetteur (FK User).
+  createdById     String               @map("created_by_id") @db.Uuid
+  /// Responsable de l'exécution (FK User).
+  assigneeId      String?              @map("assignee_id") @db.Uuid
+  priority        SgogtPriority        @default(NORMAL)
+  deadline        DateTime?            @db.Timestamptz(6)
+  /// Niveau d'escalade (0 = initial).
+  escalationLevel Int                  @default(0) @map("escalation_level")
+  rejectionReason String?              @map("rejection_reason") @db.Text
+  completedAt     DateTime?            @map("completed_at") @db.Timestamptz(6)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy   User                  @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignee    User?                 @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  transitions GovernanceTaskEvent[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([createdById])
+  @@map("governance_tasks")
+}
+
+/// Transition de cycle de vie d'une `GovernanceTask` (audit local des changements).
+model GovernanceTaskEvent {
+  id         String                @id @default(uuid()) @db.Uuid
+  taskId     String                @map("task_id") @db.Uuid
+  fromStatus GovernanceTaskStatus? @map("from_status")
+  toStatus   GovernanceTaskStatus  @map("to_status")
+  /// Acteur de la transition (sub JWT) — chaîne libre (pas FK : peut être système).
+  actorId    String                @map("actor_id") @db.VarChar(100)
+  note       String?               @db.Text
+  createdAt  DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  task GovernanceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("governance_task_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C3.1 — ELECTORAL_PSEUDONYMS — registre électoral pseudonymisé (Bloc C3)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèle ADDITIF (n'altère PAS `electoral_records`). Porte le `pseudonymousId`
+//  HMAC-SHA256 calculé DANS Vault (clé non exportable, PAS un SHA-256(NINA+sel)
+//  bruteforçable) + `saltVersion` PUBLIC (séparation de domaine, rotation).
+//  Source de l'export delta DGE. Cf. docs/governance/ELECTIONS-EXPORT-CONTRACT.md.
+
+/// Type d'inscription au registre électoral.
+enum VoterInscriptionType {
+  AUTO_18
+  MANUAL
+  TRANSFER
+
+  @@map("voter_inscription_type")
+}
+
+/// Statut électoral (actif / radié avec motif).
+enum VoterStatus {
+  ACTIVE
+  REMOVED_DECEASED
+  REMOVED_RELOCATED
+  REMOVED_DISQUALIFIED
+
+  @@map("voter_status")
+}
+
+/// Ligne pseudonymisée du registre électoral (delta exporté vers la DGE).
+model ElectoralPseudonym {
+  id              String               @id @default(uuid()) @db.Uuid
+  /// Citoyen source (UUID) — JAMAIS exporté vers la DGE. Lien interne seulement.
+  citizenId       String               @unique @map("citizen_id") @db.Uuid
+  /// HMAC-SHA256(`v<salt>:<nina>`) calculé DANS Vault (clé non exportable).
+  /// STABLE entre exports (linkable par conception, cf. avertissement contrat §10).
+  pseudonymousId  String               @unique @map("pseudonymous_id") @db.VarChar(128)
+  /// Tag de séparation de domaine PUBLIC (PAS un secret) — version de contexte HMAC.
+  saltVersion     Int                  @map("salt_version")
+  region          String               @db.VarChar(100)
+  cercle          String               @db.VarChar(100)
+  commune         String?              @db.VarChar(100)
+  inscriptionType VoterInscriptionType @default(AUTO_18) @map("inscription_type")
+  status          VoterStatus          @default(ACTIVE)
+  registeredAt    DateTime             @default(now()) @map("registered_at") @db.Timestamptz(6)
+  removedAt       DateTime?            @map("removed_at") @db.Timestamptz(6)
+  removedReason   String?              @map("removed_reason") @db.VarChar(120)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  @@index([region, status])
+  @@index([pseudonymousId])
+  @@index([registeredAt])
+  @@index([removedAt])
+  @@map("electoral_pseudonyms")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C3.2 — DGE_EXPORT_QUOTA — quota atomique PAR COMPTE (anti-exfiltration)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Compteur quotidien d'exports DGE PAR COMPTE. Incrément ATOMIQUE (UPDATE
+/// conditionnel `count < limit`) AVANT le stream — pas de comptage TOCTOU dérivé
+/// d'`audit_logs`. Un compte DGE compromis est borné à `limit` exports/jour.
+model DgeExportQuota {
+  /// Compte DGE (sub JWT du DGE_OFFICIAL).
+  accountId String   @map("account_id") @db.VarChar(100)
+  /// Jour (UTC, format `YYYY-MM-DD`).
+  day       String   @db.VarChar(10)
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([accountId, day])
+  @@map("dge_export_quota")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C3.3 — ELECTORAL_EXPORT_LOGS — journal local des exports DGE
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Trace LOCALE et DURABLE de chaque export DGE (en complément de la hash-chain
+/// SHA-256 d'audit-service). Rend un compte DGE compromis détectable : qui /
+/// quand / fenêtre `since` / nb lignes / sha256 / IP.
+model ElectoralExportLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Compte DGE exportateur (sub JWT vérifié).
+  accountId   String   @map("account_id") @db.VarChar(100)
+  /// Fenêtre temporelle demandée (ISO-8601).
+  sinceIso    String   @map("since_iso") @db.VarChar(40)
+  /// Nombre de lignes du delta.
+  rowCount    Int      @map("row_count")
+  /// SHA-256 (hex) du corps CSV exporté.
+  sha256      String   @db.VarChar(64)
+  saltVersion Int      @map("salt_version")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([accountId])
+  @@index([createdAt])
+  @@map("electoral_export_logs")
 }

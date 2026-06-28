@@ -13,6 +13,21 @@
 > - ✅ **implémenté / spécifié dans le code de référence** (doc 22, services existants).
 > - ⏳ **conçu, Phase 2** — décidé mais pas encore livré dans le dépôt.
 > - ⛔ **prérequis bloquant** — sans cet élément, le flux ne fonctionne pas.
+>
+> **✅ AS-BUILT (mise à jour) — les prérequis jadis ⛔/⏳ sont DÉSORMAIS LIVRÉS** dans
+> `governance-service` + `@nina-aes/vault-client` (les marqueurs ⛔/⏳ résiduels ci-dessous sont
+> conservés pour l'historique mais NE bloquent plus) :
+>
+> - **`transitHmac(keyName, payloadBase64, { algorithm })`** — pseudonyme HMAC calculé DANS Vault
+>   (`PseudonymService`). ✅
+> - **`JwsSigner`** (`src/crypto/jws.signer.ts`) — signe le **manifeste** d'export (RS256/pkcs1v15)
+>   et compose un JWS RFC 7515 ; l'en-tête porte un champ **`kv`** épinglant la **version** de la
+>   clé `elections-export` → la vérification DGE résout la bonne clé publique **après rotation**. ✅
+> - **`transitReadPublicKey(keyName, version?)`** — extrait `keys[v].public_key` (PEM) ⇒ la **DGE
+>   vérifie le JWS hors Vault**, à la version épinglée. ✅
+>
+> Restent **⏳ Phase 2** : le **DPA** juridique, l'**ancrage tiers** de l'audit, l'option Parquet,
+> le chiffrement asymétrique de livraison, et les endpoints citoyens `/voter/me`.
 
 ---
 
@@ -31,10 +46,11 @@ contrat :
    pseudonyme falsifié) pourrait fausser une élection. La DGE DOIT pouvoir **prouver
    cryptographiquement** que le fichier reçu est exactement celui produit par le
    `governance-service` et n'a pas été modifié en transit. D'où **signature RS256 + SHA-256**
-   transmis dans de **vrais en-têtes HTTP**. Voir §5. **⏳ Réserve d'honnêteté :** le volet
-   **intégrité** (SHA-256) est disponible, mais le volet **authenticité par signature**
-   (vérification du JWS via clé publique) est **encore bloqué** côté client as-built (cf. §5.2) — la
-   preuve cryptographique **complète** est donc **conçue, pas encore opérationnelle**.
+   transmis dans de **vrais en-têtes HTTP**. Voir §5. **✅ Mise à jour :** le volet **intégrité**
+   (SHA-256) ET le volet **authenticité par signature** (vérification du JWS via clé publique
+   extraite par `transitReadPublicKey(kid, kv)`) sont **livrés** (cf. §5.2) — la preuve
+   cryptographique **complète** est **opérationnelle**, et **robuste à la rotation** de la clé
+   `elections-export` grâce à l'épinglage de version `kv`.
 
 3. **Anti-exfiltration.** Un compte `DGE_OFFICIAL` **compromis** est le pire scénario : il a un
    accès légitime à l'export. Il ne doit PAS pouvoir **siphonner tout le registre** (11 M de lignes)
@@ -96,7 +112,7 @@ GS -> Vault : 5. transit/sign(elections-export)\n{sha256, since, count, exported
 Vault --> GS : JWS compact RS256
 GS -> Audit : 6. append(DGE_EXPORT)\n{since, count, sha256} dans newValue
 GS -> DGE : 200 + corps CSV (chiffré Vault au repos)\nHeaders: X-Export-Signature / -SHA256 / -Count
-DGE -> DGE : 7. recalcul SHA-256 == header ? (✅)\n   ⏳ vérif JWS RS256 (clé publique) — bloquée, cf. §5.2
+DGE -> DGE : 7. recalcul SHA-256 == header ? (✅)\n   ✅ vérif JWS RS256 via transitReadPublicKey(kid, kv), cf. §5.2
 @enduml
 ```
 
@@ -178,11 +194,12 @@ private async generatePseudonymousId(nina: string, saltVersion: number): Promise
 }
 ```
 
-> **⛔ PRÉREQUIS BLOQUANT — `transitHmac()` n'existe pas encore dans le vault-client.** (Vérifié)
-> `packages/vault-client/src/index.ts` n'expose que
-> `transitSign / transitVerify / transitReadKey / transitEncrypt / transitDecrypt / rotateTransitKey`
-> — **aucun `hmac`**. La pseudonymisation est donc **BLOQUÉE** tant que le helper n'est pas ajouté
-> (squelette en doc 22 §4.4). Marqueur : ⛔.
+> **✅ Implémenté — `transitHmac()` est livré dans le vault-client.**
+> `packages/vault-client/src/index.ts` expose désormais
+> `transitHmac(keyName, payloadBase64, { algorithm })` (en sus de
+> `transitSign / transitVerify / transitReadPublicKey / transitEncrypt / transitDecrypt / rotateTransitKey`).
+> La pseudonymisation `PseudonymService` calcule le `pseudonymousId` DANS Vault (clé non-exportable
+> `elections-pseudonym`) — plus aucun blocage.
 
 ### 4.2 Le `saltVersion` (sel par-élection versionné, PUBLIC)
 
@@ -207,7 +224,7 @@ private async generatePseudonymousId(nina: string, saltVersion: number): Promise
 
 ## 5. Intégrité du flux — SIGNÉ (RS256) + SHA-256 via en-têtes réels
 
-### 5.1 Côté producteur (`governance-service`) — ⏳ Phase 2
+### 5.1 Côté producteur (`governance-service`) — ✅ implémenté
 
 ```ts
 // 1) Sérialisation CSV DÉTERMINISTE (ordre de colonnes fixe) + empreinte d'intégrité.
@@ -215,12 +232,20 @@ const csv = papaparse.unparse(delta);
 const buf = Buffer.from(csv, 'utf8');
 const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
 
-// 2) ⏳ Signature d'un MANIFESTE JSON incluant le SHA-256, via Vault Transit (RS256 / pkcs1v15).
+// 2) ✅ Signature d'un MANIFESTE JSON incluant le SHA-256, via Vault Transit (RS256 / pkcs1v15).
 //    Transit ne supporte PAS Ed25519 (ADR-026 / ADR-034) → RS256.
 //    La clé privée `elections-export` reste DANS Vault (non exportable) ;
-//    le service ne manipule jamais le secret.
-const jws = await this.jwsService.sign(
-  { sha256, since: sinceIso, count: delta.length, exportedBy: req.user.id },
+//    le service ne manipule jamais le secret. L'en-tête JWS porte `kv` (version de
+//    clé épinglée) → la DGE vérifie à la bonne version même après rotation.
+const jws = await this.signer.sign(
+  {
+    sha256,
+    since: sinceIso,
+    count: delta.length,
+    exportedBy: req.user.id,
+    saltVersion,
+    exportedAt,
+  },
   'elections-export',
 );
 
@@ -237,15 +262,13 @@ return new StreamableFile(buf, {
 });
 ```
 
-> **⏳ Conçu, Phase 2 — `JwsService` n'existe PAS encore dans le dépôt.** (Vérifié — aucun
-> `JwsService` dans `services/` ni `packages/`, identique au constat du doc frère
-> `SGOGT-PROTOCOL.md` lignes 201-204.) Seul **`transitSign`** est as-built dans
-> `@nina-aes/vault-client`. L'enveloppe `jwsService.sign(...)` ci-dessus s'appuiera sur
-> `transitSign(keyName, payloadBase64, { signatureAlgorithm: 'pkcs1v15' })`, mais le **wrapper qui
-> assemble le JWS compact** (en-tête `{ alg: RS256, kid }`, encodage base64url du payload,
-> conversion de l'enveloppe Transit `vault:vN:<base64>` → 3ᵉ segment JWS conforme RFC 7515) reste
-> **à livrer**. Tant que `JwsService` n'est pas implémenté, l'en-tête `X-Export-Signature` ne peut
-> pas être produit : la signature de l'export est **conçue, non opérationnelle**.
+> **✅ Implémenté — `JwsSigner` (`src/crypto/jws.signer.ts`).** L'enveloppe `signer.sign(...)`
+> ci-dessus s'appuie sur
+> `transitSign(keyName, payloadBase64, { signatureAlgorithm: 'pkcs1v15', hashAlgorithm: 'sha2-256' })`
+> et assemble le **JWS compact** (en-tête `{ alg: RS256, typ, kid, kv }`, encodage base64url du
+> payload, conversion de l'enveloppe Transit `vault:vN:<base64>` → 3ᵉ segment JWS conforme RFC
+> 7515). L'en-tête `X-Export-Signature` est **produit et opérationnel**. Le champ `kv` épingle la
+> version de la clé `elections-export` utilisée (robustesse à la rotation).
 
 > **Pourquoi signer un manifeste JSON et pas le corps entier.** Le delta peut peser plusieurs Mo ;
 > signer un **manifeste JSON court incluant le SHA-256** (`{ sha256, since, count, exportedBy }`)
@@ -265,32 +288,24 @@ return new StreamableFile(buf, {
 # 1) Recalculer le SHA-256 du fichier reçu et le comparer à l'en-tête.
 sha256sum voter-delta-2026-01-01T00:00:00Z.csv      # → doit == X-Export-SHA256
 
-# 2) ⏳ Récupérer la clé PUBLIQUE de la clé Transit `elections-export`
-#    (transit/keys/elections-export — ou un JWKS exposé par le governance-service).
-# 3) ⏳ Vérifier le JWS RS256 (X-Export-Signature) avec cette clé publique.
+# 2) ✅ Récupérer la clé PUBLIQUE de la clé Transit `elections-export` À LA VERSION `kv`
+#    de l'en-tête JWS (transit/keys/elections-export → keys[kv].public_key, via
+#    transitReadPublicKey). Épinglage de version → robuste à la rotation.
+# 3) ✅ Vérifier le JWS RS256 (X-Export-Signature) avec cette clé publique.
 #    Le `sha256` interne au JWS doit == le SHA-256 recalculé en (1).
 # 4) Contrôle de cohérence : nombre de lignes du CSV == X-Export-Count.
 ```
 
-> **⛔ PRÉREQUIS BLOQUANT — la vérification JWS par clé publique côté DGE n'est PAS encore
-> réalisable avec le client as-built.** (Vérifié, identique au constat du doc frère
-> `SGOGT-PROTOCOL.md` §4.1.) Les étapes **2 et 3** ci-dessus — **le cœur de la promesse §1.2 (« la
-> DGE DOIT pouvoir prouver cryptographiquement »)** — supposent que la DGE puisse récupérer la clé
-> publique RSA du signataire. Or le helper `transitReadKey` de `packages/vault-client/src/index.ts`
-> (lignes 247-264) ne remonte QUE des **métadonnées**
-> (`{ latestVersion, minDecryptionVersion, type }`) et **n'expose PAS `public_key`**. Pour les clés
-> RSA, Vault publie pourtant bien la partie publique sous `keys[<version>].public_key` via
-> `GET transit/keys/elections-export` : la vérification externe reste donc **BLOQUÉE** tant que
-> **l'UNE** de ces deux livraisons n'est pas faite —
+> **✅ Implémenté — la vérification JWS par clé publique côté DGE est réalisable.** Les étapes **2
+> et 3** ci-dessus — **le cœur de la promesse §1.2 (« la DGE DOIT pouvoir prouver
+> cryptographiquement »)** — sont livrées : le helper **`transitReadPublicKey(keyName, version?)`**
+> de `packages/vault-client/src/index.ts` extrait `keys[<version>].public_key` (PEM) de
+> `GET transit/keys/elections-export` ; la version à lire est fournie par le champ **`kv`** de
+> l'en-tête JWS (épinglage anti-rotation). La DGE vérifie ainsi **intégrité** (étapes 1 et 4,
+> SHA-256
 >
-> - un nouveau helper **`transitReadPublicKey`** qui extrait `keys[v].public_key`, **OU**
-> - un **endpoint JWKS** exposé par le `governance-service` (publication des clés publiques
->   `elections-export` au format JWK).
->
-> Tant que ce prérequis n'est pas livré, la DGE peut **vérifier l'intégrité** (étapes 1 et 4,
-> SHA-256 + count, ✅ disponibles) mais **PAS l'authenticité / la non-répudiation** par signature
-> (étapes 2 et 3, ⏳ Phase 2). Ne JAMAIS présenter la preuve cryptographique de bout en bout comme
-> opérationnelle avant cette livraison.
+> - count) **ET authenticité / non-répudiation** (étapes 2 et 3) — preuve cryptographique de bout en
+>   bout opérationnelle. Une publication JWKS reste une option de confort (non requise).
 
 | Écart constaté                          | Décision DGE                             |
 | --------------------------------------- | ---------------------------------------- |
@@ -540,29 +555,29 @@ for ($i=1; $i -le 6; $i++) { curl -s -o NUL -w "%{http_code}`n" `
   -H "Authorization: Bearer <dge-jwt>" }
 ```
 
-| Vérification                                                                                                  | Attendu                          |
-| ------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `since` sans heure                                                                                            | **400** (ISO-8601 complet exigé) |
-| Rôle ≠ `DGE_OFFICIAL`                                                                                         | **403**                          |
-| 6ᵉ export dans la fenêtre / quota dépassé                                                                     | **429**                          |
-| `SHA-256` local ≠ header                                                                                      | DGE **rejette**                  |
-| JWS invalide / clé publique fausse (⏳ test exécutable une fois `transitReadPublicKey`/JWKS livré — cf. §5.2) | DGE **rejette**                  |
-| Ligne `DGE_EXPORT` présente après chaque export réussi                                                        | **oui**, dans `audit_logs`       |
-| NINA / N°CNI / nom présent dans le CSV                                                                        | **JAMAIS** (échec de conformité) |
+| Vérification                                                                                           | Attendu                           |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| `since` sans heure                                                                                     | **400** (ISO-8601 complet exigé)  |
+| Rôle ≠ `DGE_OFFICIAL`                                                                                  | **403**                           |
+| 6ᵉ export dans la fenêtre / quota dépassé                                                              | **429**                           |
+| `SHA-256` local ≠ header                                                                               | DGE **rejette**                   |
+| JWS invalide / clé publique fausse (✅ vérifiable via `transitReadPublicKey(kid, kv)` — cf. §5.2)      | DGE **rejette**                   |
+| JWS d'un export antérieur après **rotation** de `elections-export` (vérif. à la version `kv` épinglée) | DGE **accepte** (toujours valide) |
+| Ligne `DGE_EXPORT` présente après chaque export réussi                                                 | **oui**, dans `audit_logs`        |
+| NINA / N°CNI / nom présent dans le CSV                                                                 | **JAMAIS** (échec de conformité)  |
 
 ---
 
 ## 13. Checklist de conformité du contrat
 
-- [ ] `pseudonymousId` = **`transit/hmac`** (clé non exportable) + `saltVersion` versionné PUBLIC —
-      ⛔ dépend de `transitHmac()`
+- [x] ✅ `pseudonymousId` = **`transit/hmac`** (clé non exportable) + `saltVersion` versionné PUBLIC
+      — `transitHmac()` livré
 - [ ] Aucune PII directe dans l'export (pas de NINA / N°CNI / nom / date de naissance / biométrie)
-- [ ] Signature **RS256** (Vault Transit) d'un **manifeste JSON incluant le SHA-256** +
-      `since`/`count`/`exportedBy` — ⏳ dépend de `JwsService` (inexistant ; s'appuiera sur
-      `transitSign` as-built)
-- [ ] **Vérification consommateur** par clé publique côté DGE — ⛔ BLOQUÉE tant que
-      `transitReadPublicKey` (extraction `keys[v].public_key`) **OU** un endpoint JWKS
-      `governance-service` n'est pas livré (cf. §5.2)
+- [x] ✅ Signature **RS256** (Vault Transit) d'un **manifeste JSON incluant le SHA-256** +
+      `since`/`count`/`exportedBy`/`saltVersion`/`exportedAt` — `JwsSigner` livré (en-tête `kv`
+      épinglant la version de clé)
+- [x] ✅ **Vérification consommateur** par clé publique côté DGE — `transitReadPublicKey(kid, kv)`
+      (extraction `keys[v].public_key` à la version épinglée) livré (cf. §5.2)
 - [ ] En-têtes **réels** `X-Export-Signature` / `X-Export-SHA256` / `X-Export-Count` via
       `res.setHeader` (PAS `setMetadata`)
 - [ ] RBAC `DGE_OFFICIAL` + acteur = `req.user.id` (anti-IDOR, A01)
@@ -592,7 +607,10 @@ for ($i=1; $i -le 6; $i++) { curl -s -o NUL -w "%{http_code}`n" `
 - `docs/adr/ADR-026-*`, `docs/adr/ADR-034-*` — Vault Transit sans Ed25519 → RS256 ; canon crypto.
 - `services/audit-service/src/audit/dtos/ingest.dto.ts` — contrat d'ingestion d'audit (champs
   autorisés).
-- `packages/vault-client/src/index.ts` — client Vault (⛔ `transitHmac()` à ajouter).
+- `packages/vault-client/src/index.ts` — client Vault (✅ `transitHmac()` + `transitReadPublicKey()`
+  livrés).
+- `services/governance-service/src/crypto/jws.signer.ts` — `JwsSigner` (signe/vérifie le manifeste,
+  en-tête `kv` épinglant la version de clé Transit).
 
 ---
 
