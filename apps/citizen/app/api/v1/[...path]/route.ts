@@ -76,5 +76,7 @@ export const PUT = forward;
 export const PATCH = forward;
 export const DELETE = forward;
 
-/** Ne jamais mettre en cache un proxy authentifié. */
-export const dynamic = 'force-dynamic';
+// Ne jamais mettre en cache un proxy authentifié : sous `cacheComponents`
+// (Next 16), les Route Handlers sont dynamiques par défaut et le segment
+// config `export const dynamic` est interdit au build — l'absence de
+// `'use cache'` suffit à garantir le non-cache.
