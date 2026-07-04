@@ -1,0 +1,215 @@
+{
+  "model_name": "xgboost_v1",
+  "model_type": "xgboost.XGBClassifier (multi:softprob)",
+  "task": "détection multi-classes du type d'erreur de saisie NINA",
+  "created_at": "2026-06-17T06:48:20.875601+00:00",
+  "dataset": "C:\\Users\\lonel\\Projet-En-Informatique\\Session-Ete-2026\\nina-aes-platform\\ai-models\\datasets\\nina_synthetic_v1.csv",
+  "dataset_sha256": "42ee6f306e5d5a4bfe63c56e8cf620092f38379343302f85cb7ac05708d46100",
+  "n_samples": 10000,
+  "random_state": 42,
+  "split": {
+    "train": 6000,
+    "val": 2000,
+    "test": 2000
+  },
+  "classes": [
+    "none",
+    "typo_substitution",
+    "typo_omission",
+    "typo_insertion",
+    "phonetic_spelling",
+    "field_inversion",
+    "geographic_mismatch",
+    "date_format_error",
+    "invalid_checksum"
+  ],
+  "feature_names": [
+    "fn_len",
+    "fn_vowel_ratio",
+    "fn_has_apostrophe",
+    "fn_double_letter",
+    "fn_max_consonant_run",
+    "fn_non_alpha_ratio",
+    "fn_has_digit",
+    "fn_token_count",
+    "ln_len",
+    "ln_vowel_ratio",
+    "ln_has_apostrophe",
+    "ln_double_letter",
+    "ln_max_consonant_run",
+    "ln_non_alpha_ratio",
+    "ln_has_digit",
+    "ln_token_count",
+    "fn_ref_known",
+    "fn_ref_jw",
+    "fn_phonetic_variant",
+    "ln_ref_known",
+    "ln_ref_jw",
+    "ln_phonetic_variant",
+    "nina_valid_format",
+    "nina_checksum_ok",
+    "nina_sex_match",
+    "nina_year_match",
+    "nina_month_match",
+    "nina_region_match",
+    "birth_date_parseable",
+    "birth_year_implausible",
+    "region_code_valid",
+    "region_name_match",
+    "cercle_present",
+    "commune_present",
+    "village_present",
+    "ocr_available",
+    "ocr_mean_conf",
+    "ocr_min_conf"
+  ],
+  "n_features": 38,
+  "best_params": {
+    "learning_rate": 0.3,
+    "max_depth": 6,
+    "n_estimators": 200
+  },
+  "cv": {
+    "folds": 5,
+    "scoring": "f1_weighted",
+    "best_score": 0.8709
+  },
+  "metrics": {
+    "val": {
+      "f1_weighted": 0.8686,
+      "auc_multiclass_ovr_weighted": 0.9625,
+      "auc_binary_has_error": 0.9873,
+      "per_class": {
+        "none": {
+          "precision": 0.976,
+          "recall": 0.9908,
+          "f1": 0.9833,
+          "support": 1192
+        },
+        "typo_substitution": {
+          "precision": 0.7867,
+          "recall": 0.9512,
+          "f1": 0.8612,
+          "support": 287
+        },
+        "typo_omission": {
+          "precision": 0.6972,
+          "recall": 0.6179,
+          "f1": 0.6552,
+          "support": 123
+        },
+        "typo_insertion": {
+          "precision": 0.6897,
+          "recall": 0.5128,
+          "f1": 0.5882,
+          "support": 78
+        },
+        "phonetic_spelling": {
+          "precision": 0.5595,
+          "recall": 0.5875,
+          "f1": 0.5732,
+          "support": 160
+        },
+        "field_inversion": {
+          "precision": 0.1,
+          "recall": 0.0161,
+          "f1": 0.0278,
+          "support": 62
+        },
+        "geographic_mismatch": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 61
+        },
+        "date_format_error": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 22
+        },
+        "invalid_checksum": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 15
+        }
+      }
+    },
+    "test": {
+      "f1_weighted": 0.8634,
+      "auc_multiclass_ovr_weighted": 0.9604,
+      "auc_binary_has_error": 0.9864,
+      "per_class": {
+        "none": {
+          "precision": 0.9793,
+          "recall": 0.9916,
+          "f1": 0.9854,
+          "support": 1192
+        },
+        "typo_substitution": {
+          "precision": 0.7672,
+          "recall": 0.9303,
+          "f1": 0.8409,
+          "support": 287
+        },
+        "typo_omission": {
+          "precision": 0.6607,
+          "recall": 0.6066,
+          "f1": 0.6325,
+          "support": 122
+        },
+        "typo_insertion": {
+          "precision": 0.6522,
+          "recall": 0.5769,
+          "f1": 0.6122,
+          "support": 78
+        },
+        "phonetic_spelling": {
+          "precision": 0.539,
+          "recall": 0.5188,
+          "f1": 0.5287,
+          "support": 160
+        },
+        "field_inversion": {
+          "precision": 0.1667,
+          "recall": 0.0317,
+          "f1": 0.0533,
+          "support": 63
+        },
+        "geographic_mismatch": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 60
+        },
+        "date_format_error": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 22
+        },
+        "invalid_checksum": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 16
+        }
+      }
+    }
+  },
+  "thresholds": {
+    "ai_auto": 85.0,
+    "ai_review": 60.0
+  },
+  "versions": {
+    "python": "3.14.0",
+    "scikit_learn": "1.8.0",
+    "xgboost": "3.2.0",
+    "numpy": "2.3.5",
+    "pandas": "2.3.3"
+  },
+  "bundle_keys": ["model", "feature_builder", "label_encoder", "classes", "feature_names"],
+  "notes": "Dataset synthétique : la séparabilité est élevée (les variables de cohérence NINA sont quasi-parfaites). Les performances en production sur des données réelles RAVEC seront nécessairement inférieures.",
+  "bundle_sha256": "87da399b1803c677743119b63a5a5ce533efb7431bd4c263a1e00aaf269bce82"
+}
