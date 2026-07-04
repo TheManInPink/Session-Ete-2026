@@ -198,7 +198,10 @@ def build_report(model_path: Path, dataset: Path | None, output: Path | None) ->
     meta = bundle.get("metadata", {})
     random_state = int(meta.get("random_state", 42))
 
-    ds_path = dataset or Path(meta.get("dataset", data_mod.DEFAULT_DATASET))
+    # Le champ `dataset` des métadonnées est relatif au repo (pas de chemin
+    # machine dans les artefacts) — le résoudre depuis REPO_ROOT.
+    meta_ds = Path(meta.get("dataset", data_mod.DEFAULT_DATASET))
+    ds_path = dataset or (meta_ds if meta_ds.is_absolute() else data_mod.REPO_ROOT / meta_ds)
     df = data_mod.load_dataset(ds_path)
     y = df[data_mod.LABEL_COL]
     _, _, test_idx = data_mod.make_splits(len(df), y, random_state=random_state)

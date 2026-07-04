@@ -44,8 +44,8 @@ de l'inférence — aucune logique de features dupliquée entre entraînement et
 ## 2. Installation
 
 ```powershell
-# Depuis ai-models/training
-cd C:\Users\lonel\Projet-En-Informatique\Session-Ete-2026\nina-aes-platform\ai-models\training
+# Depuis la racine du repo
+cd ai-models\training
 
 # (recommandé) environnement virtuel dédié
 python -m venv .venv

@@ -110,6 +110,16 @@ def _hash_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _portable_dataset_path(path: Path) -> str:
+    """Chemin POSIX relatif au repo si le dataset y vit — un chemin absolu
+    local (C:\\Users\\…) ne doit jamais fuiter dans un artefact versionné."""
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(data_mod.REPO_ROOT).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
 def _evaluate(
     model: xgb.XGBClassifier,
     x: pd.DataFrame,
@@ -311,7 +321,7 @@ def train(args: argparse.Namespace) -> dict:
         "model_type": "xgboost.XGBClassifier (multi:softprob)",
         "task": "détection multi-classes du type d'erreur de saisie NINA",
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "dataset": str(args.dataset),
+        "dataset": _portable_dataset_path(args.dataset),
         "dataset_sha256": _hash_file(args.dataset),
         "n_samples": int(len(df)),
         "random_state": args.random_state,

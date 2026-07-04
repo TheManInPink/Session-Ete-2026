@@ -3,7 +3,7 @@
   "model_type": "xgboost.XGBClassifier (multi:softprob)",
   "task": "détection multi-classes du type d'erreur de saisie NINA",
   "created_at": "2026-06-17T06:48:20.875601+00:00",
-  "dataset": "C:\\Users\\lonel\\Projet-En-Informatique\\Session-Ete-2026\\nina-aes-platform\\ai-models\\datasets\\nina_synthetic_v1.csv",
+  "dataset": "ai-models/datasets/nina_synthetic_v1.csv",
   "dataset_sha256": "42ee6f306e5d5a4bfe63c56e8cf620092f38379343302f85cb7ac05708d46100",
   "n_samples": 10000,
   "random_state": 42,
