@@ -24,8 +24,12 @@
 # workspace l'a déjà câblé dans son script test (`jest --passWithNoTests`
 # ou `vitest run --passWithNoTests`). Vitest 4 rejette le doublon
 # (« Expected a single value for option "--passWithNoTests" »).
+# `--concurrency=50%` : à pleine concurrence (29 tâches), la machine sature
+# (specs Jest jusqu'à ×70 plus lentes, timeouts aléatoires → hook flaky ;
+# constaté 2026-07-04 : interop puis biometric rouges sous charge, verts en
+# isolation). La moitié des cœurs fiabilise le feedback.
 echo "🧪 Tests Jest (workspaces affectés depuis HEAD~1)…"
-pnpm exec turbo run test --filter=...[HEAD~1] --cache-dir=.turbo || {
+pnpm exec turbo run test --filter=...[HEAD~1] --cache-dir=.turbo --concurrency=50% || {
   echo "❌ Au moins un test a échoué."
   echo "   → Inspectez l'output ci-dessus."
   echo "   → Pour relancer localement : pnpm test --filter=<workspace>"
