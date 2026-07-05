@@ -132,15 +132,20 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
         </Alert>
       )}
 
-      {/* Actions rapides */}
+      {/* Actions rapides — sans NINA en session, on retombe sur la recherche
+          NINA (/nina) plutôt que de générer des URLs invalides (/nina/…). */}
       <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ActionCard
-          href={`/${locale}/nina/${session.user.nina ?? ''}`}
+          href={session.user.nina ? `/${locale}/nina/${session.user.nina}` : `/${locale}/nina`}
           icon={FileText}
           label={t('actions.viewFile')}
         />
         <ActionCard
-          href={`/${locale}/nina/${session.user.nina ?? ''}/correction`}
+          href={
+            session.user.nina
+              ? `/${locale}/nina/${session.user.nina}/correction`
+              : `/${locale}/nina`
+          }
           icon={FileText}
           label={t('actions.requestCorrection')}
         />

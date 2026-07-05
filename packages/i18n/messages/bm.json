@@ -28,9 +28,13 @@
     },
     "search": {
       "title": "Ne ka NINA ɲinini",
+      "subtitle": "I ka NINA sɛbɛn walasa ka i ka sɛbɛn lajɛ.",
       "help": "I ka NINA Sɛbɛn (walawala 14 ni siginidɛn 1).",
       "ninaLabel": "NINA nimɔrɔ",
       "submit": "Ɲini",
+      "correctionTitle": "Latilenni ɲini",
+      "correctionSubtitle": "I ka NINA sɛbɛn fɔlɔ : o kɔ, i bɛ se ka latilenni ɲini i ka sɛbɛn kan.",
+      "correctionSubmit": "Taa ɲɛ",
       "examplePlaceholder": "18903102015042V"
     },
     "view": {

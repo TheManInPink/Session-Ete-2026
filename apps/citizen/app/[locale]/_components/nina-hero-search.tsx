@@ -1,7 +1,9 @@
 /**
  * @file        nina-hero-search.tsx
  * @description Composant client — formulaire de recherche NINA sur l'accueil PC-01.
- *              Valide le NINA puis navigue vers `/[locale]/nina/[nina]` (PC-02).
+ *              Valide le NINA puis navigue vers `/[locale]/nina/[nina]` (PC-02),
+ *              ou vers le wizard de correction `/[locale]/nina/[nina]/correction`
+ *              (PC-03) lorsque `intent="correction"`.
  *
  * @module      @nina-aes/citizen
  */
@@ -15,7 +17,10 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
-export function NinaHeroSearch() {
+/** Intention de recherche : consulter la fiche, ou démarrer une correction. */
+export type NinaSearchIntent = 'view' | 'correction';
+
+export function NinaHeroSearch({ intent = 'view' }: { intent?: NinaSearchIntent }) {
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations('citizen.search');
@@ -27,7 +32,8 @@ export function NinaHeroSearch() {
     e.preventDefault();
     if (!isValid) return;
     setSubmitting(true);
-    router.push(`/${locale}/nina/${nina}`);
+    const suffix = intent === 'correction' ? '/correction' : '';
+    router.push(`/${locale}/nina/${nina}${suffix}`);
   }
 
   return (
@@ -48,7 +54,7 @@ export function NinaHeroSearch() {
         loading={submitting}
         className="w-full sm:w-auto sm:min-w-32"
       >
-        {t('submit')}
+        {intent === 'correction' ? t('correctionSubmit') : t('submit')}
       </Button>
     </form>
   );

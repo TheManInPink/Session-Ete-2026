@@ -28,9 +28,13 @@
     },
     "search": {
       "title": "Rechercher mon NINA",
+      "subtitle": "Saisissez votre NINA pour afficher votre fiche d'identité.",
       "help": "Saisissez votre numéro d'identité (15 caractères : 14 chiffres + 1 lettre de contrôle).",
       "ninaLabel": "Numéro NINA",
       "submit": "Rechercher",
+      "correctionTitle": "Demander une correction",
+      "correctionSubtitle": "Identifiez-vous d'abord avec votre NINA : vous pourrez ensuite proposer une correction sur votre fiche.",
+      "correctionSubmit": "Continuer",
       "examplePlaceholder": "18903102015042V"
     },
     "view": {
@@ -583,58 +587,83 @@
       "conversationsLabel": "Conversations",
       "unread": "Non lu",
       "newMessage": "Nouveau message",
-      "classification": {
-        "ROUTINE": "Routine",
-        "URGENT": "Urgent",
-        "CRITIQUE": "Critique"
+      "loading": "Chargement des conversations…",
+      "loadError": "Impossible de charger la messagerie — réessayez dans un instant.",
+      "empty": "Aucune conversation",
+      "noSelection": "Sélectionnez une conversation pour consulter les messages signés.",
+      "priority": {
+        "NORMAL": "Normale",
+        "HIGH": "Haute",
+        "CRITICAL": "Critique"
       },
       "signature": {
-        "label": "Signature Ed25519",
-        "verified": "Vérifiée",
+        "check": "Vérifier la signature",
+        "verifying": "Vérification de la signature…",
+        "verified": "Signature électronique vérifiée (JWS)",
+        "invalid": "Signature invalide — intégrité non garantie",
         "signer": "Signataire",
         "timestamp": "Horodatage serveur",
         "hash": "Empreinte"
       },
       "readReceipt": "Accusé de réception",
       "notRead": "Non lu par le destinataire",
-      "attachments": "Pièces jointes",
+      "reply": {
+        "placeholder": "Répondre au dernier message reçu…",
+        "send": "Répondre",
+        "error": "L'envoi de la réponse a échoué — réessayez."
+      },
       "detail": {
         "title": "Détails de la conversation",
         "participants": "Participants",
-        "classification": "Classification",
+        "priority": "Priorité",
         "messages": "Messages",
         "archive": "Archivage immuable 10 ans (MinIO Object Lock)."
       },
       "compose": {
+        "title": "Nouveau message officiel",
+        "recipient": "Destinataire",
+        "recipientPlaceholder": "Choisir un destinataire…",
+        "subject": "Objet",
+        "priorityLabel": "Priorité",
+        "body": "Message",
         "placeholder": "Composez votre message officiel…",
-        "sign": "Signer numériquement (Ed25519)",
+        "sign": "Signature électronique apposée par le serveur à l'envoi (JWS).",
+        "cancel": "Annuler",
         "send": "Envoyer",
-        "demoNote": "Mode démo : message non envoyé (governance-service non connecté)."
+        "error": "L'envoi du message a échoué — réessayez."
       },
-      "demoBanner": "Données de démonstration — la signature Ed25519 et l'horodatage serveur réels seront produits par governance-service (port 3010)."
+      "demoBanner": "Données de démonstration — en production, la signature électronique (JWS) et l'horodatage sont produits côté serveur par governance-service (port 3010)."
     },
     "directives": {
       "title": "Suivi des directives",
-      "subtitle": "Glissez une carte d'une colonne à l'autre pour changer son état.",
+      "subtitle": "Glissez une carte vers une colonne autorisée pour changer son état.",
+      "loading": "Chargement des directives…",
+      "loadError": "Impossible de charger les directives — réessayez dans un instant.",
+      "transitionError": "Transition refusée — la carte a été remise dans sa colonne d'origine.",
       "columns": {
         "DRAFT": "Brouillon",
         "SENT": "Envoyée",
         "IN_PROGRESS": "En cours",
         "COMPLETED": "Terminée",
-        "ESCALATED": "Escaladée"
+        "REJECTED": "Rejetée"
       },
       "priority": {
         "P1": "Urgente",
         "P2": "Haute",
         "P3": "Normale"
       },
-      "issuer": "Émetteur",
-      "assignee": "Exécutant",
-      "deadline": "Échéance",
+      "unassigned": "Non assignée",
       "overdue": "En retard",
       "escalation": "Escalade N+{level}",
       "empty": "Aucune directive",
-      "demoBanner": "Données de démonstration — le glisser-déposer simule un changement d'état (governance-service non connecté)."
+      "reject": {
+        "title": "Rejeter la directive",
+        "label": "Motif du rejet (obligatoire)",
+        "placeholder": "Expliquez pourquoi cette directive est rejetée…",
+        "cancel": "Annuler",
+        "confirm": "Confirmer le rejet"
+      },
+      "demoBanner": "Données de démonstration — les changements d'état sont appliqués en mémoire, avec la même machine à états que governance-service (port 3010)."
     },
     "performance": {
       "title": "Performance institutionnelle",
