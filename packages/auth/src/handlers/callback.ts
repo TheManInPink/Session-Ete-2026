@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { z } from 'zod';
+import { resolveNextPath } from '../next-path';
 import type { AuthConfig } from '../types';
 
 const TokenResponseSchema = z.object({
@@ -26,12 +27,14 @@ export function buildCallbackHandler(config: AuthConfig) {
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
     const issuer = config.keycloakIssuer ?? process.env.KEYCLOAK_ISSUER ?? '';
+    // Locale de repli tant que le cookie oidc_state n'est pas décodé.
+    let locale = config.defaultLocale ?? 'fr';
 
-    if (!code || !state) return redirectToLogin(req, 'missing_code');
+    if (!code || !state) return redirectToLogin(req, 'missing_code', locale);
 
     const jar = await cookies();
     const stored = jar.get('oidc_state')?.value;
-    if (!stored) return redirectToLogin(req, 'no_session');
+    if (!stored) return redirectToLogin(req, 'no_session', locale);
 
     let parsedState: {
       codeVerifier: string;
@@ -43,9 +46,10 @@ export function buildCallbackHandler(config: AuthConfig) {
     try {
       parsedState = JSON.parse(stored);
     } catch {
-      return redirectToLogin(req, 'corrupted_state');
+      return redirectToLogin(req, 'corrupted_state', locale);
     }
-    if (parsedState.state !== state) return redirectToLogin(req, 'state_mismatch');
+    locale = parsedState.locale ?? locale;
+    if (parsedState.state !== state) return redirectToLogin(req, 'state_mismatch', locale);
 
     const tokenRes = await fetch(`${issuer}/protocol/openid-connect/token`, {
       method: 'POST',
@@ -58,10 +62,10 @@ export function buildCallbackHandler(config: AuthConfig) {
         code_verifier: parsedState.codeVerifier,
       }),
     });
-    if (!tokenRes.ok) return redirectToLogin(req, 'token_exchange_failed');
+    if (!tokenRes.ok) return redirectToLogin(req, 'token_exchange_failed', locale);
 
     const parsed = TokenResponseSchema.safeParse(await tokenRes.json());
-    if (!parsed.success) return redirectToLogin(req, 'invalid_token_response');
+    if (!parsed.success) return redirectToLogin(req, 'invalid_token_response', locale);
     const tokens = parsed.data;
 
     try {
@@ -70,13 +74,16 @@ export function buildCallbackHandler(config: AuthConfig) {
         issuer,
         audience: config.clientId,
       });
-      if (payload.nonce !== parsedState.nonce) return redirectToLogin(req, 'nonce_mismatch');
+      if (payload.nonce !== parsedState.nonce)
+        return redirectToLogin(req, 'nonce_mismatch', locale);
     } catch {
-      return redirectToLogin(req, 'id_token_invalid');
+      return redirectToLogin(req, 'id_token_invalid', locale);
     }
 
+    // `next` provient du cookie oidc_state (non signé) : re-validation avant
+    // usage tel quel — déjà préfixé locale par les producteurs, jamais re-préfixé.
     const res = NextResponse.redirect(
-      new URL(`/${parsedState.locale}${parsedState.next}`, req.url),
+      new URL(resolveNextPath(parsedState.next, locale, config.defaultNext), req.url),
     );
     const secure = process.env.NODE_ENV === 'production';
     res.cookies.set('access_token', tokens.access_token, {
@@ -105,8 +112,8 @@ export function buildCallbackHandler(config: AuthConfig) {
   };
 }
 
-function redirectToLogin(req: NextRequest, reason: string): NextResponse {
-  const url = new URL('/fr/login', req.url);
+function redirectToLogin(req: NextRequest, reason: string, locale: string): NextResponse {
+  const url = new URL(`/${locale}/login`, req.url);
   url.searchParams.set('error', reason);
   return NextResponse.redirect(url);
 }

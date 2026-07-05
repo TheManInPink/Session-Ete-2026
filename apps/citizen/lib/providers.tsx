@@ -11,6 +11,7 @@ import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react
 import { useState, type ReactNode } from 'react';
 import { ApiError } from '@nina-aes/api-client';
 import { ApiClientProvider } from '@nina-aes/api-client/react';
+import { defaultLocale, locales } from '@nina-aes/i18n';
 import { createBrowserApi } from './api/browser';
 import { resolveApiMode } from './api/config';
 
@@ -32,6 +33,15 @@ async function attemptRefresh(): Promise<boolean> {
   }
 }
 
+/**
+ * Dérive la locale du pathname courant (`/fr/dashboard` → `fr`), avec repli
+ * sur la locale par défaut si le premier segment n'est pas une locale connue.
+ */
+function localeFromPathname(pathname: string): string {
+  const seg = pathname.split('/')[1] ?? '';
+  return (locales as readonly string[]).includes(seg) ? seg : defaultLocale;
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   // Client API (mock|live) construit une seule fois — la bascule se décide ici.
   const [apiClient] = useState(() => createBrowserApi());
@@ -49,8 +59,9 @@ export function Providers({ children }: { children: ReactNode }) {
             if (error instanceof ApiError && error.status === 401) {
               const refreshed = await attemptRefresh();
               if (!refreshed && typeof window !== 'undefined') {
+                const locale = localeFromPathname(window.location.pathname);
                 window.location.href =
-                  '/fr/login?next=' + encodeURIComponent(window.location.pathname);
+                  `/${locale}/login?next=` + encodeURIComponent(window.location.pathname);
               }
             }
           },

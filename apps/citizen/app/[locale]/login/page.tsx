@@ -30,8 +30,12 @@ interface PageProps {
 
 export default async function LoginPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
-  const { next = '/dashboard', error } = await searchParams;
+  const { next: rawNext, error } = await searchParams;
   setRequestLocale(locale);
+
+  // Défaut localisé : le handler /api/auth/login utilise `next` tel quel
+  // (il ne re-préfixe plus la locale — cf. @nina-aes/auth resolveNextPath).
+  const next = rawNext ?? `/${locale}/dashboard`;
 
   const t = await getTranslations('login');
 

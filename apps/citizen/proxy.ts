@@ -26,12 +26,17 @@ import createIntlMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { defaultLocale, locales } from '@nina-aes/i18n';
 
-/** Pages publiques (préfixe locale optionnel). */
+/**
+ * Pages publiques — préfixe locale VRAIMENT optionnel : le garde d'auth tourne
+ * AVANT le routing i18n, donc un chemin non préfixé (`/signalement` tapé
+ * directement ou issu d'un lien relatif) doit matcher aussi, sinon le visiteur
+ * anonyme est renvoyé au login avant même la redirection de locale.
+ */
 const PUBLIC_PATTERNS: RegExp[] = [
   /^\/$/, // racine → next-intl redirigera vers /fr/
   /^\/(?:fr|bm|snk|ff|tmq|hau|mos|dje)\/?$/,
-  /^\/(?:fr|bm|snk|ff|tmq|hau|mos|dje)\/login\/?$/,
-  /^\/(?:fr|bm|snk|ff|tmq|hau|mos|dje)\/signalement(\/.*)?$/,
+  /^(?:\/(?:fr|bm|snk|ff|tmq|hau|mos|dje))?\/login\/?$/,
+  /^(?:\/(?:fr|bm|snk|ff|tmq|hau|mos|dje))?\/signalement(?:\/.*)?$/,
 ];
 
 const AUTH_MODE = (process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak';
