@@ -130,6 +130,62 @@
       },
       "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
       "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    },
+    {
+      "clientId": "nina-citizen",
+      "name": "NINA-AES Citizen (app frontend — PKCE public)",
+      "description": "Client PUBLIC (Authorization Code + PKCE S256) de l'app citizen Next.js (BFF). redirect_uri = /api/auth/callback.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true,
+      "frontchannelLogout": true,
+      "rootUrl": "http://localhost:4001",
+      "baseUrl": "http://localhost:4001",
+      "redirectUris": ["http://localhost:4001/api/auth/callback"],
+      "webOrigins": ["http://localhost:4001"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4001/*",
+        "use.refresh.tokens": "true",
+        "client.use.lightweight.access.token.enabled": "false"
+      },
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
+      "protocolMappers": [
+        {
+          "name": "nina-attribute",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "nina",
+            "claim.name": "nina",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "audience-nina-citizen",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "nina-citizen",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "users": [
@@ -147,6 +203,25 @@
           "manage-clients"
         ]
       }
+    },
+    {
+      "username": "citoyen.demo",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Fatoumata",
+      "lastName": "Diallo",
+      "email": "fatoumata.diallo@nina-aes.demo",
+      "attributes": {
+        "nina": ["18903102015042V"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Citizen-Dev-2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["citizen"]
     }
   ],
   "scopeMappings": [],
