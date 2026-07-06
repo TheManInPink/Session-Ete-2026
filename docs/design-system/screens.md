@@ -115,7 +115,7 @@ FDI ou de signaler une erreur.
 format=`grouped` · `Badge` ai-verified · 8-niveaux breadcrumb géographique (custom) · 2× `Button`
 solid + outline.
 
-**Données fictives** : Citizen seedé, ex. NINA `18903102015042Z` (Fatoumata Diallo).
+**Données fictives** : Citizen seedé, ex. NINA `18903102015042V` (Fatoumata Diallo).
 
 **Interactions** :
 

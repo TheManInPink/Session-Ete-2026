@@ -209,9 +209,9 @@ Comportement :
 
 ```tsx
 <NinaDisplay
-  nina="18903102015042Z"
+  nina="18903102015042V"
   format="grouped" // "grouped" (X YY ZZ Z ZZ ZZZ ZZZ A) ou "compact"
-  masked // affiche "18***********4Z"
+  masked // affiche "18***********4V"
   copyable // bouton copier dans le presse-papier
 />
 ```

@@ -6,7 +6,7 @@
  *              ```ts
  *              import { createApiClient } from '@nina-aes/api-client';
  *              const api = createApiClient({ baseUrl: process.env.API_BASE_URL! });
- *              const citizen = await api.identity.getByNina('18903102015042Z');
+ *              const citizen = await api.identity.getByNina('18903102015042V');
  *              ```
  *
  * @module      @nina-aes/api-client

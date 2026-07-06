@@ -2,7 +2,7 @@
  * @file        e2e/citizen/nina-flow.spec.ts
  * @description PC-02 → PC-03 : recherche NINA + accès au wizard de correction.
  *              Exécuté en mode mock (NINA_AUTH_MODE=mock → session Fatoumata
- *              Diallo, NINA 18903102015042Z). La fiche citoyen affichée
+ *              Diallo, NINA 18903102015042V). La fiche citoyen affichée
  *              correspond au mock parseNina côté frontend (back-end pas
  *              encore branché).
  */
@@ -10,10 +10,10 @@
 import { test, expect } from '@playwright/test';
 
 // NINA réellement valide selon `validateNina()` (lettre de contrôle V
-// dérivée des 14 chiffres). À noter : le NINA `18903102015042Z` cité
-// partout dans les mocks (i18n, examples) est INVALIDE — la lettre de
-// contrôle correcte est V. À aligner Session 6+ pour cohérence
-// (TODO : régénérer tous les mocks NINA avec validation).
+// dérivée des 14 chiffres). L'ancien `18903102015042Z` (lettre de contrôle
+// INVALIDE) a été aligné sur `...V` là où il servait d'exemple valide
+// (placeholder NinaInput, screens.md, design-system.md, api-client) ; les
+// tests de normalisation de `packages/utils` gardent `Z` à dessein.
 const MOCK_NINA = '18903102015042V';
 // formatNina() : `1 89 03 1 02 015 042 V`
 const MOCK_NINA_FORMATTED = '1 89 03 1 02 015 042 V';
