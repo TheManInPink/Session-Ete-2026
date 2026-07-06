@@ -111,11 +111,14 @@ Traitement du tier **HAUT** du backlog d'audit (typecheck `api-client` + `auth` 
   statut des corrections (`UNDER_REVIEW → APPROVED/REJECTED`) se met à jour sans action manuelle,
   sans extraire la liste server-rendered en composant client (zéro risque d'hydratation).
 
+Couverture de test : `correction.service.spec.ts` (identity-service, Prisma mocké) verrouille
+l'invariant anti-IDOR de `listForCitizen` — filtre sur le NINA **normalisé** du token + `deletedAt`
+null, `where` du `count` identique (identity-service 17/17).
+
 **Reste au backlog (P2)** : uploads réels MinIO (correction justificatif + evidence signalement —
 **infra requise**) ; i18n 7 langues nationales (**traductions natives requises** ; deepMerge
 fallback FR en attendant) ; NINA hors des chemins d'URL citizen (refonte routage — `Referrer-Policy`
-déjà en place) ; test unitaire dédié `/corrections/me` (harnais Prisma-mock à créer) ;
-`fine_classification`/`fine_severity` SIGAC encore en clair (limite backend).
+déjà en place) ; `fine_classification`/`fine_severity` SIGAC encore en clair (limite backend).
 
 ### 0trevicies. Patch 2026-07-06 — Durcissement sécurité frontend/backend + écran USSD-01
 
