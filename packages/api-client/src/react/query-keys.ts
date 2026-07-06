@@ -9,7 +9,13 @@
  * @module      @nina-aes/api-client/react
  */
 
-import type { CorrectionListParams, IdentitySearchParams, SlotsQuery } from '../core/client.types';
+import type {
+  CorrectionListParams,
+  DirectiveListParams,
+  IdentitySearchParams,
+  SgogtInboxParams,
+  SlotsQuery,
+} from '../core/client.types';
 
 /** Arborescence des clés de cache, regroupées par domaine. */
 export const queryKeys = {
@@ -31,6 +37,25 @@ export const queryKeys = {
   },
   sigac: {
     all: ['sigac'] as const,
+    publicKey: () => ['sigac', 'public-key'] as const,
     status: (token: string) => ['sigac', 'status', token] as const,
+    queue: () => ['sigac', 'queue'] as const,
+  },
+  governance: {
+    all: ['governance'] as const,
+    sgogt: {
+      all: ['governance', 'sgogt'] as const,
+      inbox: (params?: SgogtInboxParams) => ['governance', 'sgogt', 'inbox', params ?? {}] as const,
+      verify: (id: string) => ['governance', 'sgogt', 'verify', id] as const,
+    },
+    directives: {
+      all: ['governance', 'directives'] as const,
+      list: (params?: DirectiveListParams) =>
+        ['governance', 'directives', 'list', params ?? {}] as const,
+    },
+  },
+  adminDashboard: {
+    all: ['admin-dashboard'] as const,
+    stats: () => ['admin-dashboard', 'stats'] as const,
   },
 } as const;

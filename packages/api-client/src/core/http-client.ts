@@ -101,10 +101,15 @@ export class HttpClient {
     const perform = async (): Promise<Response> => {
       const headers: Record<string, string> = {
         Accept: 'application/json',
-        'X-Correlation-Id': correlationId,
         'User-Agent': this.opts.userAgent ?? 'nina-aes-client/0.1',
         ...options.headers,
       };
+      // 🔒 ANTI-CORRÉLATION : sur un transport anonyme (`skipAuth`, ex.
+      // signalement SIGAC), on N'ENVOIE PAS le `X-Correlation-Id` — il est
+      // horodaté (`c-<ts>-…`) et fournirait un vecteur de corrélation temporelle
+      // du lanceur d'alerte. Il reste généré localement pour tracer les erreurs
+      // client, mais ne quitte jamais le navigateur sur ce chemin.
+      if (!options.skipAuth) headers['X-Correlation-Id'] = correlationId;
       if (options.body !== undefined) headers['Content-Type'] = 'application/json';
       if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
       if (!options.skipAuth && this.opts.getAccessToken) {
