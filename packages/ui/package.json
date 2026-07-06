@@ -82,7 +82,7 @@
     "postcss": "^8.5.3",
     "style-dictionary": "^4.0.0",
     "tailwindcss": "^4.2.1",
-    "typescript": "6.0.2"
+    "typescript": "6.0.3"
   },
   "dependencies": {
     "@nina-aes/utils": "workspace:*",
