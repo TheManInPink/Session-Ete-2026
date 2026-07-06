@@ -30,6 +30,11 @@ describeIfDb('checkNina vs extension soft-delete RÉELLE (NINA révoqué → REV
   const NINA = '99999999999999Z';
   const LOC_CODE = 'ZZ-99';
 
+  // Cold-start Prisma (adapter pg + moteur de requêtes) + ~8 allers-retours DB
+  // sur un conteneur Postgres FROID en CI : le défaut Jest de 5 s est trop court
+  // (vert en local sur une connexion chaude, timeout en CI). 30 s de marge.
+  jest.setTimeout(30_000);
+
   afterAll(async () => {
     // Fermeture propre de la connexion Prisma ouverte par le singleton — évite
     // qu'un log async fuite après la fin de la suite (« Cannot log after tests
