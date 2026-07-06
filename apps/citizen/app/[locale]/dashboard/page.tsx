@@ -25,6 +25,7 @@ import {
   type TimelineNodeState,
 } from '@nina-aes/ui/components/business/correction-timeline';
 import { FileText, Calendar, ArrowRight, CheckCircle2, Check } from 'lucide-react';
+import { AutoRefresh } from './_components/auto-refresh';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -114,6 +115,9 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
+      {/* Suivi PC-05 : rafraîchit le statut des demandes toutes les 30 s
+          (suspendu quand l'onglet est masqué). */}
+      <AutoRefresh intervalMs={30_000} />
       <header className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">
           {t('greeting', { name: session.user.name })}

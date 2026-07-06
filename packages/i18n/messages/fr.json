@@ -74,7 +74,10 @@
       "downloadPdfHint": "Disponible une fois la fiche signée (document-service)",
       "bookAppointment": "Prendre un rendez-vous",
       "requestCorrection": "Signaler une erreur",
-      "notFound": "Identité introuvable"
+      "notFound": "Identité introuvable",
+      "forbiddenTitle": "Accès refusé",
+      "forbiddenBody": "Ce NINA n'est pas le vôtre. Vous ne pouvez consulter que votre propre fiche d'identité.",
+      "backHome": "Retour à l'accueil"
     }
   },
   "login": {

@@ -23,8 +23,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@nina-aes/ui/component
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
 import { Separator } from '@nina-aes/ui/components/separator';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
+import { ApiError } from '@nina-aes/api-client';
+import type { CitizenFiche } from '@nina-aes/api-client';
 import { fetchCitizenFiche } from '../../../../lib/api/server';
 
 interface PageProps {
@@ -41,8 +43,35 @@ export default async function CitizenPage({ params }: PageProps) {
   const tCommon = await getTranslations('common');
 
   // Couture données : mock (profil démo déterministe) ↔ live (identity-service).
-  // En live, un NINA introuvable renvoie `null` → 404.
-  const fiche = await fetchCitizenFiche(nina);
+  // En live, un NINA introuvable renvoie `null` → 404. Les erreurs d'autorisation
+  // sont traitées explicitement (fail-safe UX, pas de crash générique) :
+  //   401 → session expirée → relogin en conservant la cible (`?next=`) ;
+  //   403 → NINA d'autrui (NinaOwnershipGuard anti-IDOR) → refus clair sans
+  //         confirmer l'existence du dossier visé.
+  let fiche: CitizenFiche | null;
+  try {
+    fiche = await fetchCitizenFiche(nina);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      redirect(`/${locale}/login?next=/${locale}/nina/${nina}`);
+    }
+    if (err instanceof ApiError && err.status === 403) {
+      return (
+        <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+          <Alert variant="danger" role="alert">
+            <AlertTitle>{t('forbiddenTitle')}</AlertTitle>
+            <AlertDescription>{t('forbiddenBody')}</AlertDescription>
+          </Alert>
+          <div className="mt-6">
+            <Button asChild variant="outline">
+              <Link href={`/${locale}`}>{t('backHome')}</Link>
+            </Button>
+          </div>
+        </main>
+      );
+    }
+    throw err;
+  }
   if (!fiche) notFound();
 
   const parsed = parseNina(nina);

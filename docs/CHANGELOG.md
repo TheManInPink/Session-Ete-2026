@@ -101,10 +101,20 @@ Traitement du tier **HAUT** du backlog d'audit (typecheck `api-client` + `auth` 
   `null` en P0, valeur réelle en Bloc F) pour la vérification hors-ligne. Le retirer violerait un
   ADR ratifié (SHA-256 one-way sur un document physique = design délibéré, pas une faille) → à
   porter en révision d'ADR si le besoin se confirme, pas en modif de code unilatérale.
+- **PC-02 — erreurs d'autorisation traitées côté page (fail-safe UX)** : un `401` (session expirée
+  en cours de requête RSC) redirige vers `/login?next=…` ; un `403` (NINA d'autrui —
+  `NinaOwnershipGuard`, tentative d'IDOR) affiche un refus explicite (« Accès refusé, ce NINA n'est
+  pas le vôtre ») sans confirmer l'existence du dossier, au lieu d'un crash générique. Le `404`
+  reste géré via `notFound()`.
+- **PC-05 — auto-rafraîchissement 30 s** : composant client `AutoRefresh` (`router.refresh()`
+  visibility-aware — suspendu onglet masqué, rattrapage au retour) sur le tableau de bord ; le
+  statut des corrections (`UNDER_REVIEW → APPROVED/REJECTED`) se met à jour sans action manuelle,
+  sans extraire la liste server-rendered en composant client (zéro risque d'hydratation).
 
-**Reste au backlog (P2)** : uploads réels MinIO (correction justificatif + evidence signalement) ;
-auto-refresh 30 s PC-05 ; auto-vérif signatures GOV-01 ; `biometricHash` hors payload QR (préventif)
-; i18n 7 langues nationales ; test unitaire dédié `/corrections/me` (harnais Prisma-mock à créer) ;
+**Reste au backlog (P2)** : uploads réels MinIO (correction justificatif + evidence signalement —
+**infra requise**) ; i18n 7 langues nationales (**traductions natives requises** ; deepMerge
+fallback FR en attendant) ; NINA hors des chemins d'URL citizen (refonte routage — `Referrer-Policy`
+déjà en place) ; test unitaire dédié `/corrections/me` (harnais Prisma-mock à créer) ;
 `fine_classification`/`fine_severity` SIGAC encore en clair (limite backend).
 
 ### 0trevicies. Patch 2026-07-06 — Durcissement sécurité frontend/backend + écran USSD-01
