@@ -293,7 +293,7 @@ export interface GovernanceDirective {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-//  9. GovernanceMessage — message institutionnel signé Ed25519
+//  9. GovernanceMessage — message institutionnel signé (JWS RS256, côté serveur)
 // ──────────────────────────────────────────────────────────────────────────────
 
 /** Pièce jointe à un message gouvernance. */
@@ -311,9 +311,11 @@ export interface GovernanceAttachment {
 }
 
 /**
- * Message signé (Ed25519) entre acteurs institutionnels (SGOGT).
- * Remplace les appels téléphoniques non traçables par des échanges
- * écrits, signés et horodatés serveur.
+ * Message signé entre acteurs institutionnels (SGOGT). La signature est un
+ * **JWS compact RS256 apposé côté serveur** via Vault Transit (clé par
+ * fonctionnaire, non exportable — cf. ADR-026/034) : aucune signature n'est
+ * produite côté client. Remplace les appels téléphoniques non traçables par
+ * des échanges écrits, signés et horodatés serveur.
  */
 export interface GovernanceMessage {
   id: string;
@@ -323,10 +325,10 @@ export interface GovernanceMessage {
   body: string;
   /** Pièces jointes signées avec le message. */
   attachments: GovernanceAttachment[];
-  /** Signature detached Ed25519 (base64url). */
-  signatureEd25519: string;
-  /** Empreinte de la clé publique utilisée (base64). */
-  publicKeyFingerprint: string;
+  /** Signature JWS compacte (RS256), apposée côté serveur (`header.payload.signature`). */
+  jwsSignature: string;
+  /** Identifiant de la clé de signature Vault Transit utilisée (`kid`). */
+  signingKeyId: string;
   /** Statut de lecture côté destinataire. */
   readStatus: 'unread' | 'read';
   /** Horodatage serveur (ISO 8601). */

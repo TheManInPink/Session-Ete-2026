@@ -1,8 +1,10 @@
 /**
  * @file        signed-message-bubble.tsx
- * @description Bulle de message officiel signé Ed25519 (messagerie GOV-01).
- *              Props-driven ; badge de signature (vérifiée / absente). L'empreinte
- *              de clé est exposée via `title` natif (pas de dépendance Tooltip).
+ * @description Bulle de message officiel à signature électronique (messagerie
+ *              GOV-01). La signature est un JWS RS256 apposé côté serveur (Vault
+ *              Transit, ADR-026/034) — jamais côté client. Props-driven ; badge
+ *              de signature (vérifiée / absente). L'identifiant de clé (`kid`)
+ *              est exposé via `title` natif (pas de dépendance Tooltip).
  * @module      @nina-aes/ui
  */
 
@@ -19,7 +21,7 @@ export interface SignedMessageBubbleProps extends React.HTMLAttributes<HTMLDivEl
   variant?: 'sent' | 'received';
   /** Résultat de `verifySignature()`. */
   signatureValid?: boolean;
-  /** Empreinte de clé publique (ex. 8 derniers chars) — affichée en infobulle. */
+  /** Identifiant de clé de signature (`kid` Vault Transit) — affiché en infobulle. */
   fingerprint?: string;
   /** Accusé de lecture (côté émis). */
   readAtLabel?: string;
@@ -66,13 +68,13 @@ export const SignedMessageBubble = React.forwardRef<HTMLDivElement, SignedMessag
               <span
                 title={
                   fingerprint
-                    ? `Empreinte clé publique : ${fingerprint} — vérifiée`
-                    : 'Signature Ed25519 vérifiée'
+                    ? `Clé de signature : ${fingerprint} — vérifiée (JWS)`
+                    : 'Signature électronique vérifiée (JWS)'
                 }
                 className="inline-flex items-center gap-1 rounded-full bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success"
               >
                 <ShieldCheck className="size-3" aria-hidden="true" />
-                Ed25519 ✓
+                JWS ✓
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive">

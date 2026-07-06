@@ -257,7 +257,7 @@ class GovernanceMessage {
   + subject : string
   + body : string
   + attachments : json
-  + signatureEd25519 : string
+  + jwsSignature : string
   + readStatus : enum
   + serverTimestamp : timestamptz
   --

@@ -191,13 +191,13 @@ export const governanceAttachmentSchema = z.object({
   sha256: z.string().regex(/^[0-9a-f]{64}$/i),
 });
 
-/** Message institutionnel signé — ingestion. */
+/** Message institutionnel signé — ingestion. Signature = JWS RS256 serveur (ADR-026/034). */
 export const governanceMessageIngestSchema = z.object({
   subject: z.string().min(1).max(200),
   body: z.string().min(1).max(20000),
   attachments: z.array(governanceAttachmentSchema).max(20).default([]),
-  signatureEd25519: z.string().min(1),
-  publicKeyFingerprint: z.string().min(1),
+  jwsSignature: z.string().min(1),
+  signingKeyId: z.string().min(1),
   readStatus: z.enum(['unread', 'read']),
   serverTimestamp: z.string().min(1),
   fromUserId: z.string().min(1).max(128),
