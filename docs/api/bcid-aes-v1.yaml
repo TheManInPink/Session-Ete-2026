@@ -1,0 +1,185 @@
+openapi: 3.2.0
+info:
+  title: BCID-AES v1
+  description: >
+    Border Citizen Identity — Alliance des États du Sahel.
+    Protocole d'interopérabilité Mali ⇄ Burkina Faso ⇄ Niger pour la vérification
+    d'identité transfrontalière. Souverain, hors eIDAS, hors CEDEAO.
+
+
+    Implémenté par `services/interop-service` (NestJS, port 3006). Réponses
+    MINIMALISTES (privacy by design) : aucun nom/prénom/photo/biométrie.
+
+
+    Défense en profondeur : mTLS (identité par cert pair, terminé par l'ingress)
+    **ET** JWS Ed25519 (signature du payload) — les deux sont REQUIS ensemble.
+  version: 1.0.0
+  license:
+    name: AES-Internal-License
+
+servers:
+  - url: https://interop.nina-aes.ml/api/v1/interop
+    description: Gateway Mali (CTDEC)
+  - url: https://interop.dgec.bf/api/v1/interop
+    description: Gateway Burkina Faso (DGEC) — à provisionner
+  - url: https://interop.dge-cin.ne/api/v1/interop
+    description: Gateway Niger (DGE-CIN) — à provisionner
+
+# Sécurité = mTLS ET JWS (défense en profondeur, pas un OR).
+# Les DEUX schémas DANS LE MÊME objet de la liste = AND logique : le client doit
+# présenter un cert mTLS valide ET un body JWS Ed25519 valide.
+# ⚠️ Deux entrées de liste séparées = OR (l'un OU l'autre) → INTERDIT ici.
+security:
+  - mTLS: [] # ┐ même objet de liste
+    JWSSignature: [] # ┘ = mTLS AND JWS (les deux obligatoires)
+
+paths:
+  /verify:
+    post:
+      operationId: verifyNina
+      summary: Vérifie l'existence et la validité d'un NINA chez le pays émetteur
+      description: >
+        Corps = JWS compact Ed25519 (application/jose). Claims protégés exigés :
+        jti (= requestId, anti-replay), iat, nbf, exp (≤ 5 min), iss (pays
+        émetteur), aud (= aes:MLI). Réponse = JWS signé par le pays répondeur.
+      requestBody:
+        required: true
+        content:
+          application/jose: # JWS compact (Ed25519)
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Réponse standard (JWS signé par le pays émetteur).
+          content:
+            application/jose:
+              schema:
+                type: string
+        '400':
+          description: Payload invalide / hors schéma / timestamp hors fenêtre ±2 min (replay)
+        '401':
+          description: JWS invalide (signature, alg, iss/aud, nbf/exp)
+        '403':
+          description: Cert mTLS inconnu/révoqué, ou jti déjà vu (replay détecté)
+        '429':
+          description: Rate limit atteint (1000/h/pays)
+        '503':
+          description: Store anti-replay / rate-limit indisponible (fail-closed)
+
+  /outgoing/verify:
+    post:
+      operationId: outgoingVerify
+      summary: (Admin) Interroge un partenaire BCID-AES (appel sortant)
+      description: >
+        Route d'ADMINISTRATION protégée par le JWT interne (opérateur Mali) +
+        rôle. Signe la requête (JWS Ed25519), l'envoie en mTLS au partenaire, et
+        vérifie le JWS de réponse. N'est PAS exposée aux pairs.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutgoingVerifyRequest'
+      responses:
+        '200':
+          description: Réponse minimaliste vérifiée du partenaire.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyNinaResponse'
+        '404':
+          description: Partenaire/endpoint inconnu
+        '502':
+          description: Réponse partenaire non conforme (JWS invalide / hors schéma)
+        '503':
+          description: Partenaire injoignable
+
+  /stats:
+    get:
+      operationId: interopStats
+      summary: (Admin) Volumétrie BCID-AES par pays (24 h)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Volumétrie par pays sur 24 h (dashboard governance).
+
+components:
+  schemas:
+    VerifyNinaRequest:
+      type: object
+      # requestId ET timestamp sont OBLIGATOIRES : ils alimentent l'anti-replay.
+      required: [nina, requesterCountry, purpose, requestId, timestamp]
+      properties:
+        nina:
+          type: string
+          pattern: '^[0-9]{14}[A-Z]$'
+        requesterCountry:
+          type: string
+          enum: [MLI, BFA, NER]
+        purpose:
+          type: string
+          enum: [border-control, bank-kyc, school-enrollment, healthcare, marriage-registration]
+        requestId:
+          type: string
+          format: uuid # idempotence + anti-replay (= jti du JWS)
+        timestamp:
+          type: string
+          format: date-time # fenêtre ±2 min anti-replay
+    VerifyNinaResponse:
+      type: object
+      required: [exists, valid, lastUpdated]
+      properties:
+        exists:
+          type: boolean
+        valid:
+          type: boolean
+        vulnerable:
+          type: boolean
+          nullable: true
+        lastUpdated:
+          type: string
+          format: date
+          nullable: true
+      # PAS de nom, prénom, photo — privacy by design.
+    OutgoingVerifyRequest:
+      type: object
+      required: [targetCountry, nina, purpose]
+      properties:
+        targetCountry:
+          type: string
+          enum: [MLI, BFA, NER]
+        nina:
+          type: string
+          pattern: '^[0-9]{14}[A-Z]$'
+        purpose:
+          type: string
+          enum: [border-control, bank-kyc, school-enrollment, healthcare, marriage-registration]
+
+  securitySchemes:
+    mTLS:
+      type: mutualTLS
+      description: >
+        Cert client X.509 émis par la CA AES partagée. Le handshake est terminé
+        par l'Ingress NGINX, qui INJECTE le cert pair vérifié dans des en-têtes
+        serveur-only (ssl-client-*). Le fingerprint dérivé (SHA-256 du DER) est
+        confronté à `aes_partners`. JAMAIS dérivé d'un header fourni par le client.
+    JWSSignature:
+      # `http` + `scheme: jose` documente un JWS détaché-en-body. Le JWS de
+      # requête DOIT porter les claims protégés : jti (= requestId), iat, nbf,
+      # exp (≤ 5 min), iss, aud.
+      type: http
+      scheme: jose
+      bearerFormat: JWS-Ed25519-compact
+      description: >
+        JWS Ed25519 (EdDSA, alg figé) obligatoire sur le body. Claims protégés
+        exigés : jti (= requestId, anti-replay), iat, nbf, exp, iss (pays
+        émetteur), aud (= aes:MLI). Le serveur vérifie nbf/exp et rejette tout
+        jti déjà vu (anti-replay Redis SET NX + fenêtre ±2 min).
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT interne RS256 (opérateur Mali) — UNIQUEMENT pour les routes admin/sortantes.

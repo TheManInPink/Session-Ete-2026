@@ -3,7 +3,7 @@
  * @description Publisher RabbitMQ pour les événements `citizen.created`,
  *              `citizen.updated`, `correction.submitted`, etc.
  *
- *              Exchange topic `nina-aes.events`, routing keys hiérarchiques :
+ *              Exchange topic `nina.events`, routing keys hiérarchiques :
  *                citizen.created
  *                citizen.updated
  *                correction.submitted
@@ -38,7 +38,9 @@ export interface DomainEvent<T = unknown> {
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQService.name);
-  private readonly exchange = process.env.RABBITMQ_EXCHANGE ?? 'nina-aes.events';
+  // Exchange topic canonique du bus d'événements (cf. infrastructure/.../definitions.json
+  // et audit-service `RABBITMQ_EVENTS_EXCHANGE`). Réconcilié de l'ancien `nina-aes.events`.
+  private readonly exchange = process.env.RABBITMQ_EXCHANGE ?? 'nina.events';
   private connection: amqp.ChannelModel | null = null;
   private channel: amqp.Channel | null = null;
 

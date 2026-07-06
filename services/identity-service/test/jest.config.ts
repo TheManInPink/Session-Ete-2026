@@ -11,10 +11,12 @@ const config: Config = {
   coverageDirectory: './coverage',
   testEnvironment: 'node',
   moduleNameMapper: {
-    '@nina-aes/database': '<rootDir>/../../../packages/database/src/index.ts',
-    '@nina-aes/utils': '<rootDir>/../../../packages/utils/src/index.ts',
-    '@nina-aes/shared-types': '<rootDir>/../../../packages/shared-types/src/index.ts',
-    '@nina-aes/config': '<rootDir>/../../../packages/config/src/index.ts',
+    // `rootDir: '..'` ⇒ rootDir = services/identity-service. Pour atteindre
+    // <repo>/packages il faut remonter de DEUX niveaux (services/ puis la racine).
+    '@nina-aes/database': '<rootDir>/../../packages/database/src/index.ts',
+    '@nina-aes/utils': '<rootDir>/../../packages/utils/src/index.ts',
+    '@nina-aes/shared-types': '<rootDir>/../../packages/shared-types/src/index.ts',
+    '@nina-aes/config': '<rootDir>/../../packages/config/src/index.ts',
   },
 };
 

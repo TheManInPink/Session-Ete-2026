@@ -15,6 +15,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -27,18 +28,17 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@nina-aes/shared-types';
 
-import {
-  CurrentUser,
-  type AuthenticatedUser,
-} from '../../common/decorators/current-user.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { JwtAuthGuard, RolesGuard, type RequestUser } from '../../auth/guards';
 import { ListCorrectionsDto, RejectCorrectionDto, SubmitCorrectionDto } from './dto/correction.dto';
 import { CorrectionService } from './correction.service';
 
+// Authentifié (JwtAuthGuard, fail-closed) puis autorisé par rôle (RolesGuard).
+// Toutes les routes portent déjà un @Roles() explicite (cf. ci-dessous).
 @ApiTags('corrections')
 @ApiBearerAuth('access-token')
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('corrections')
 export class CorrectionController {
   constructor(private readonly correctionService: CorrectionService) {}
@@ -51,9 +51,11 @@ export class CorrectionController {
   @ApiResponse({ status: 201, description: 'Correction soumise + analyse IA déclenchée' })
   async submit(
     @Body() dto: SubmitCorrectionDto,
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<unknown> {
-    return this.correctionService.submit(dto, user.id);
+    // 🔒 Anti-IDOR (write-side) : on transmet l'utilisateur COMPLET (rôle + nina)
+    // pour que le service lie une soumission citoyen à son propre dossier.
+    return this.correctionService.submit(dto, user);
   }
 
   // ─── GET /corrections ────────────────────────────────────────
@@ -62,6 +64,24 @@ export class CorrectionController {
   @ApiOperation({ summary: 'Liste paginée des corrections filtrées' })
   async list(@Query() dto: ListCorrectionsDto): Promise<unknown> {
     return this.correctionService.list(dto);
+  }
+
+  // ─── GET /corrections/me (citoyen : SES corrections uniquement) ──
+  // ⚠️ ORDRE : DOIT précéder `@Get(':id')`, sinon "me" serait capturé comme un
+  // paramètre :id et routé vers findById (réservé agent) → jamais atteint.
+  // 🔒 Anti-IDOR (read-side) : AUCUN paramètre d'entrée — le NINA est dérivé du
+  // token (claim `nina`), un citoyen ne peut donc PAS lister le dossier d'autrui.
+  @Get('me')
+  @Roles(UserRole.CITIZEN)
+  @ApiOperation({ summary: 'Liste les corrections du citoyen authentifié (NINA du token)' })
+  @ApiResponse({ status: 200, description: 'Corrections du dossier du citoyen connecté' })
+  @ApiResponse({ status: 403, description: 'Token sans NINA (compte non citoyen)' })
+  async listMine(@CurrentUser() user: RequestUser): Promise<unknown> {
+    // Fail-closed : un token CITIZEN sans claim `nina` ne peut rien scoper.
+    if (!user.nina) {
+      throw new ForbiddenException('CORRECTION_ME_REQUIRES_NINA');
+    }
+    return this.correctionService.listForCitizen(user.nina);
   }
 
   // ─── GET /corrections/:id ────────────────────────────────────
@@ -76,7 +96,7 @@ export class CorrectionController {
   @Put(':id/approve')
   @Roles(UserRole.AGENT, UserRole.SUPERVISOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Approuve la correction et applique la modification au citoyen' })
-  async approve(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser): Promise<unknown> {
+  async approve(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<unknown> {
     return this.correctionService.approve(id, user.id);
   }
 
@@ -87,7 +107,7 @@ export class CorrectionController {
   async reject(
     @Param('id') id: string,
     @Body() dto: RejectCorrectionDto,
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<unknown> {
     return this.correctionService.reject(id, dto, user.id);
   }

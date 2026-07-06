@@ -1,21 +1,25 @@
 /**
  * @file        corrections-client.tsx
  * @description Client component orchestrant le DataGrid AD-02 :
+ *              - Données réelles via `useCorrections({ page: 1, pageSize: 50 })`
+ *                (@nina-aes/api-client/react — mock ou live selon le provider)
+ *                adaptées en `AdminCorrectionView` (lib/corrections/view-model)
  *              - TanStack Table 8 (sort, sélection multiple, pagination)
  *              - Filtres : recherche full-text NINA/nom, statut, région
- *              - Drawer détail (CorrectionDrawer)
- *              - Actions individuelles + en lot (mock pour Session 3)
+ *              - Drawer détail (CorrectionDrawer) + mutations approve/reject
+ *                (`useApproveCorrection` / `useRejectCorrection`)
  *
- *              Le data set vient en prop (généré côté serveur via
- *              `MOCK_CORRECTIONS`). En Session 4+, ce composant fera un
- *              fetch via `api.correction.listForAgent({ ... })`.
+ *              Aucune mise à jour optimiste : la ligne ne change d'état
+ *              qu'après succès de la mutation (invalidation TanStack Query →
+ *              re-fetch). En cas d'erreur, l'état affiché reste celui du
+ *              serveur et un toast d'erreur est montré.
  *
  * @module      @nina-aes/admin
  */
 
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -29,9 +33,16 @@ import {
   type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { useFormatter, useTranslations } from 'next-intl';
+import {
+  useApproveCorrection,
+  useCorrections,
+  useRejectCorrection,
+} from '@nina-aes/api-client/react';
+import type { CorrectionStatus } from '@nina-aes/api-client';
 import { Button } from '@nina-aes/ui/components/button';
 import { Card } from '@nina-aes/ui/components/card';
 import { Checkbox } from '@nina-aes/ui/components/checkbox';
+import { Skeleton } from '@nina-aes/ui/components/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +52,7 @@ import {
   DropdownMenuTrigger,
 } from '@nina-aes/ui/components/dropdown-menu';
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
@@ -49,41 +61,100 @@ import {
   ChevronRight,
   MoreHorizontal,
   Search,
+  SearchX,
   X,
 } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
-import type { AdminCorrection, AdminCorrectionStatus } from '../../../../../lib/mock-corrections';
+import {
+  regionOptions,
+  toAdminCorrectionView,
+  type AdminCorrectionView,
+} from '../../../../../lib/corrections/view-model';
 import { CorrectionDrawer } from './correction-drawer';
 import { StatusBadge } from './status-badge';
 
-const STATUS_FILTER: AdminCorrectionStatus[] = [
-  'UNDER_REVIEW',
-  'APPROVED',
-  'REJECTED',
-  'AWAITING_DOCUMENT',
-];
-const REGION_FILTER = ['Bamako', 'Sikasso', 'Kayes', 'Mopti'] as const;
-type RegionFilter = (typeof REGION_FILTER)[number];
+/** Statuts proposés au filtre (seuls états produits par le workflow agent). */
+const STATUS_FILTER: CorrectionStatus[] = ['UNDER_REVIEW', 'APPROVED', 'REJECTED'];
 
-export function CorrectionsClient({ initialData }: { initialData: AdminCorrection[] }) {
+/** Toast local (succès ou erreur de mutation). */
+interface ToastState {
+  tone: 'success' | 'danger';
+  title: string;
+  body: string;
+}
+
+export function CorrectionsClient() {
   const t = useTranslations('admin.corrections');
   const tField = useTranslations('admin.corrections.field');
   const tStatus = useTranslations('admin.corrections.status');
   const format = useFormatter();
 
-  // ── État local — en Session 4+ : remplacer `data` par useQuery
-  const [data, setData] = useState<AdminCorrection[]>(initialData);
+  // ── Données : page agent complète (50 = taille du magasin mock / 1re page live)
+  const corrections = useCorrections({ page: 1, pageSize: 50 });
+  const approve = useApproveCorrection();
+  const reject = useRejectCorrection();
+
+  const views = useMemo(
+    () => (corrections.data?.items ?? []).map(toAdminCorrectionView),
+    [corrections.data],
+  );
+  const regions = useMemo(() => regionOptions(views), [views]);
+
+  // ── État local UI
   const [sorting, setSorting] = useState<SortingState>([{ id: 'submittedAt', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [globalFilter, setGlobalFilter] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const [toast, setToast] = useState<{ title: string; body: string } | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const isDeciding = approve.isPending || reject.isPending || bulkBusy;
+
+  const showToast = (next: ToastState) => {
+    setToast(next);
+    setTimeout(() => setToast(null), 4_000);
+  };
+
+  /** Message d'erreur affichable (taxonomie ApiError → `message`). */
+  const errorBody = (error: unknown): string =>
+    error instanceof Error && error.message ? error.message : 'Réessayez ou contactez le support.';
+
+  // ── Décisions — mutations réelles, sans mise à jour optimiste (pas de
+  //    rollback nécessaire : l'UI ne change qu'après confirmation serveur).
+  const decideApprove = async (id: string): Promise<boolean> => {
+    try {
+      await approve.mutateAsync(id);
+      showToast({
+        tone: 'success',
+        title: t('toast.approvedTitle'),
+        body: t('toast.approvedBody'),
+      });
+      return true;
+    } catch (error) {
+      showToast({ tone: 'danger', title: "Échec de l'approbation", body: errorBody(error) });
+      return false;
+    }
+  };
+
+  const decideReject = async (id: string, reason: string): Promise<boolean> => {
+    try {
+      await reject.mutateAsync({ id, reason });
+      showToast({
+        tone: 'success',
+        title: t('toast.rejectedTitle'),
+        body: t('toast.rejectedBody'),
+      });
+      return true;
+    } catch (error) {
+      showToast({ tone: 'danger', title: 'Échec du rejet', body: errorBody(error) });
+      return false;
+    }
+  };
 
   // ── Colonnes TanStack Table
-  const columns = useMemo<ColumnDef<AdminCorrection>[]>(
+  const columns = useMemo<ColumnDef<AdminCorrectionView>[]>(
     () => [
       {
         id: 'select',
@@ -144,6 +215,10 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
         header: t('columns.score'),
         cell: ({ row }) => {
           const score = row.original.aiScore;
+          // Score absent = demande pas encore analysée par ai-service.
+          if (score === null) {
+            return <span className="font-mono text-sm text-fg-muted">—</span>;
+          }
           const verdict = row.original.aiVerdict;
           const tone =
             verdict === 'HIGH'
@@ -151,13 +226,15 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
               : verdict === 'MEDIUM'
                 ? 'text-warning-700'
                 : 'text-danger-700';
-          return <span className={cn('font-mono text-sm font-medium', tone)}>{score}</span>;
+          return (
+            <span className={cn('font-mono text-sm font-medium', tone)}>{Math.round(score)}</span>
+          );
         },
       },
       {
         accessorKey: 'status',
         header: t('columns.status'),
-        cell: ({ getValue }) => <StatusBadge status={getValue<AdminCorrectionStatus>()} />,
+        cell: ({ getValue }) => <StatusBadge status={getValue<CorrectionStatus>()} />,
         filterFn: (row, _id, value: string[]) => value.includes(row.original.status),
       },
       {
@@ -202,8 +279,8 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
                 {t('actions.viewDetail')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => decide(row.original.id, 'APPROVED')}
-                disabled={row.original.status === 'APPROVED' || row.original.status === 'REJECTED'}
+                onClick={() => void decideApprove(row.original.id)}
+                disabled={row.original.status !== 'UNDER_REVIEW' || isDeciding}
               >
                 {t('actions.approve')}
               </DropdownMenuItem>
@@ -212,7 +289,7 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
                   setSelectedId(row.original.id);
                   setDrawerOpen(true);
                 }}
-                disabled={row.original.status === 'APPROVED' || row.original.status === 'REJECTED'}
+                disabled={row.original.status !== 'UNDER_REVIEW'}
               >
                 {t('actions.reject')}
               </DropdownMenuItem>
@@ -224,12 +301,16 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, tField, format],
+    [t, tField, format, isDeciding],
   );
 
   // ── Table TanStack
+  // TanStack Table renvoie des fonctions non-mémoïsables : le React Compiler
+  // saute volontairement la mémoïsation de ce composant (comportement attendu,
+  // sans impact UI ici car l'état est piloté par useState + TanStack Query).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data,
+    data: views,
     columns,
     state: { sorting, columnFilters, rowSelection, globalFilter },
     onSortingChange: setSorting,
@@ -252,58 +333,85 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
     getRowId: (row) => row.id,
   });
 
-  // ── Décision mock (Session 3) — Session 4+ : mutation api.correction.decide
-  const decide = (id: string, decision: 'APPROVED' | 'REJECTED', _reason?: string) => {
-    startTransition(() => {
-      setData((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? {
-                ...c,
-                status: decision,
-                timeline: [
-                  ...c.timeline,
-                  {
-                    at: new Date().toISOString(),
-                    kind: decision,
-                    actor: 'Modibo Konaté',
-                    note: _reason,
-                  },
-                ],
-              }
-            : c,
-        ),
-      );
-      setToast({
-        title: decision === 'APPROVED' ? t('toast.approvedTitle') : t('toast.rejectedTitle'),
-        body: decision === 'APPROVED' ? t('toast.approvedBody') : t('toast.rejectedBody'),
-      });
-      setTimeout(() => setToast(null), 4_000);
-    });
-  };
-
   const selectedCount = Object.keys(rowSelection).length;
-  const bulkApprove = () => {
-    Object.keys(rowSelection).forEach((id) => decide(id, 'APPROVED'));
+
+  /** Approbation en lot — séquentielle, uniquement les lignes décidables. */
+  const bulkApprove = async () => {
+    const ids = Object.keys(rowSelection).filter(
+      (id) => views.find((v) => v.id === id)?.status === 'UNDER_REVIEW',
+    );
     setRowSelection({});
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    let done = 0;
+    let firstError: unknown = null;
+    try {
+      for (const id of ids) {
+        try {
+          await approve.mutateAsync(id);
+          done += 1;
+        } catch (error) {
+          firstError = firstError ?? error;
+        }
+      }
+    } finally {
+      setBulkBusy(false);
+    }
+    if (firstError !== null) {
+      showToast({ tone: 'danger', title: "Échec de l'approbation", body: errorBody(firstError) });
+    } else {
+      showToast({
+        tone: 'success',
+        title: t('toast.approvedTitle'),
+        body: t('toast.bulkSuccess', { count: done }),
+      });
+    }
   };
 
-  const selectedCorrection = data.find((c) => c.id === selectedId) ?? null;
+  const selectedCorrection = views.find((c) => c.id === selectedId) ?? null;
 
   // ── Filters helpers
   const statusFilterValue = (columnFilters.find((f) => f.id === 'status')?.value as string[]) ?? [];
   const regionFilterValue = (columnFilters.find((f) => f.id === 'region')?.value as string[]) ?? [];
-  const toggleStatusFilter = (s: AdminCorrectionStatus) => {
+  const toggleStatusFilter = (s: CorrectionStatus) => {
     const current = statusFilterValue;
     const next = current.includes(s) ? current.filter((x) => x !== s) : [...current, s];
     table.getColumn('status')?.setFilterValue(next.length ? next : undefined);
   };
-  const toggleRegionFilter = (r: RegionFilter) => {
+  const toggleRegionFilter = (r: string) => {
     const current = regionFilterValue;
     const next = current.includes(r) ? current.filter((x) => x !== r) : [...current, r];
     table.getColumn('region')?.setFilterValue(next.length ? next : undefined);
   };
   const activeFilterCount = columnFilters.length + (globalFilter ? 1 : 0);
+
+  // ── États chargement / erreur (rendus après les hooks — règle des hooks)
+  if (corrections.isLoading) {
+    return (
+      <div className="space-y-3" aria-busy="true">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (corrections.isError) {
+    return (
+      <Card className="flex flex-col items-center gap-3 p-8 text-center">
+        <span
+          className="flex size-12 items-center justify-center rounded-full bg-danger-50 text-danger-700"
+          aria-hidden="true"
+        >
+          <AlertTriangle className="size-6" />
+        </span>
+        <p className="text-sm font-medium text-fg">Impossible de charger les corrections</p>
+        <p className="max-w-sm text-sm text-fg-muted">{errorBody(corrections.error)}</p>
+        <Button variant="outline" size="sm" onClick={() => void corrections.refetch()}>
+          Réessayer
+        </Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -350,7 +458,7 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Filtre région */}
+        {/* Filtre région (options dérivées des NINA affichés) */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="md">
@@ -363,7 +471,7 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            {REGION_FILTER.map((r) => (
+            {regions.map((r) => (
               <DropdownMenuItem key={r} onClick={() => toggleRegionFilter(r)}>
                 <Checkbox
                   checked={regionFilterValue.includes(r)}
@@ -392,7 +500,12 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
 
         <div className="ml-auto flex items-center gap-2">
           {selectedCount > 0 && (
-            <Button variant="solid" size="md" onClick={bulkApprove} disabled={isPending}>
+            <Button
+              variant="solid"
+              size="md"
+              onClick={() => void bulkApprove()}
+              disabled={isDeciding}
+            >
               <Check className="size-4" aria-hidden="true" />
               {t('actions.bulkApprove', { count: selectedCount })}
             </Button>
@@ -448,11 +561,28 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
             <tbody>
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={columns.length}
-                    className="px-3 py-10 text-center text-sm text-fg-muted"
-                  >
-                    {t('empty')}
+                  <td colSpan={columns.length} className="px-3 py-12">
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <span className="flex size-12 items-center justify-center rounded-full bg-bg-muted text-fg-muted">
+                        <SearchX className="size-6" aria-hidden="true" />
+                      </span>
+                      <p className="text-sm font-medium text-fg">{t('emptyTitle')}</p>
+                      <p className="max-w-sm text-sm text-fg-muted">{t('emptyHint')}</p>
+                      {activeFilterCount > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1"
+                          onClick={() => {
+                            setColumnFilters([]);
+                            setGlobalFilter('');
+                          }}
+                        >
+                          <X className="size-4" aria-hidden="true" />
+                          {t('filters.reset')}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -520,15 +650,31 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
         </div>
       </Card>
 
-      {/* Toast post-décision */}
+      {/* Toast post-décision (succès ou erreur) */}
       {toast && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 max-w-sm rounded-base border border-success/30 bg-success-50 px-4 py-3 text-sm shadow-lg"
+          className={cn(
+            'fixed bottom-6 right-6 z-50 max-w-sm rounded-base border px-4 py-3 text-sm shadow-lg',
+            toast.tone === 'success'
+              ? 'border-success/30 bg-success-50'
+              : 'border-danger/30 bg-danger-50',
+          )}
         >
-          <p className="font-medium text-success-700">{toast.title}</p>
-          <p className="text-success-700/80">{toast.body}</p>
+          <p
+            className={cn(
+              'font-medium',
+              toast.tone === 'success' ? 'text-success-700' : 'text-danger-700',
+            )}
+          >
+            {toast.title}
+          </p>
+          <p
+            className={cn(toast.tone === 'success' ? 'text-success-700/80' : 'text-danger-700/80')}
+          >
+            {toast.body}
+          </p>
         </div>
       )}
 
@@ -537,7 +683,9 @@ export function CorrectionsClient({ initialData }: { initialData: AdminCorrectio
         correction={selectedCorrection}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        onDecision={decide}
+        onApprove={decideApprove}
+        onReject={decideReject}
+        isDeciding={isDeciding}
       />
     </div>
   );

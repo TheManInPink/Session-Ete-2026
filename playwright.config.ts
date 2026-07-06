@@ -23,13 +23,28 @@ import { defineConfig, devices } from '@playwright/test';
 /** Permet de lancer les tests contre un serveur déjà actif (utile en CI). */
 const CITIZEN_URL = process.env.E2E_CITIZEN_URL ?? 'http://localhost:4001';
 const ADMIN_URL = process.env.E2E_ADMIN_URL ?? 'http://localhost:4002';
+// eslint-disable-next-line turbo/no-undeclared-env-vars -- var de test Playwright (runtime), hors globalEnv turbo
+const GOVERNANCE_URL = process.env.E2E_GOVERNANCE_URL ?? 'http://localhost:4003';
 
 export default defineConfig({
   testDir: './e2e',
+  // Les specs de capture (`*.capture.spec.ts`) ne servent qu'à générer les
+  // screenshots du dossier de soutenance sous `CAPTURE=1`. On les exclut du run
+  // d'assertions par défaut, sinon elles apparaissent comme « skipped ».
+  // eslint-disable-next-line turbo/no-undeclared-env-vars -- var de test Playwright (runtime), hors globalEnv turbo
+  testIgnore: process.env.CAPTURE ? [] : ['**/capture.spec.ts'],
   fullyParallel: false, // séquentiel inter-projets (sinon les 2 webServers se marchent dessus)
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : 2,
+  // Démarrage à froid des serveurs Next (dev) : la 1re compilation App Router
+  // d'une route peut dépasser 30 s, et deux compilations concurrentes saturent
+  // la machine (d'où des ERR_CONNECTION_REFUSED observés à froid). On élargit
+  // donc les délais, on sérialise sur 1 worker (= vraiment « séquentiel
+  // inter-projets ») et on tolère 1 retry en local pour absorber les flakes
+  // d'hydratation (ex. LanguageSwitcher qui navigue avant la fin de l'hydratation).
+  timeout: 90_000,
+  expect: { timeout: 10_000 },
+  retries: process.env.CI ? 2 : 1,
+  workers: 1,
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
 
   use: {
@@ -55,6 +70,14 @@ export default defineConfig({
         baseURL: ADMIN_URL,
       },
     },
+    {
+      name: 'governance',
+      testMatch: /governance\/.*\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: GOVERNANCE_URL,
+      },
+    },
   ],
 
   // 2 web servers démarrés par Playwright (ou réutilisés si déjà actifs)
@@ -69,6 +92,13 @@ export default defineConfig({
     {
       command: 'pnpm --filter @nina-aes/admin dev',
       url: ADMIN_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: { NINA_AUTH_MODE: 'mock' },
+    },
+    {
+      command: 'pnpm --filter @nina-aes/governance dev',
+      url: GOVERNANCE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: { NINA_AUTH_MODE: 'mock' },

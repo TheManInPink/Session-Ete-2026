@@ -1,8 +1,9 @@
 /**
  * @file        dashboard/page.tsx
  * @description PC-05 — Tableau de bord citoyen avec suivi des demandes
- *              (corrections + rendez-vous). Affiche une timeline verticale
- *              animée des statuts successifs.
+ *              (corrections + rendez-vous). Chaque correction affiche une
+ *              timeline verticale animée des statuts successifs
+ *              (soumise → analyse IA → revue agent → décision → notification).
  *
  *              Mode démo : on génère des cards fictives en mémoire.
  *              En production, fetch via `api.correction.list({ nina })` +
@@ -14,14 +15,64 @@ import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '../../../lib/auth/session';
+import { fetchMyCorrections, fetchMyAppointments } from '../../../lib/api/server';
 import { Card, CardContent } from '@nina-aes/ui/components/card';
 import { Badge } from '@nina-aes/ui/components/badge';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
-import { FileText, Calendar, ArrowRight, CheckCircle2 } from 'lucide-react';
+import {
+  CorrectionTimeline,
+  type TimelineNode,
+  type TimelineNodeState,
+} from '@nina-aes/ui/components/business/correction-timeline';
+import { FileText, Calendar, ArrowRight, CheckCircle2, Check } from 'lucide-react';
+import { AutoRefresh } from './_components/auto-refresh';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ submitted?: string; appointment?: string }>;
+}
+
+/** Étapes de la timeline de suivi d'une correction. */
+const TIMELINE_STEPS = ['submitted', 'aiScored', 'agentReview', 'decision', 'notified'] as const;
+
+/** Mappe un statut de correction sur l'avancement de la timeline. */
+function progressFor(status: string): {
+  current: number;
+  outcome: 'approved' | 'rejected' | null;
+} {
+  switch (status) {
+    case 'APPROVED':
+      return { current: TIMELINE_STEPS.length, outcome: 'approved' };
+    case 'REJECTED':
+      return { current: TIMELINE_STEPS.length, outcome: 'rejected' };
+    case 'UNDER_REVIEW':
+    default:
+      return { current: 2, outcome: null };
+  }
+}
+
+/**
+ * Construit les nœuds de la {@link CorrectionTimeline} (design system) à partir
+ * du statut + du score IA. Les libellés sont déjà localisés côté serveur.
+ */
+function buildCorrectionNodes(
+  status: string,
+  score: number | null,
+  labels: Record<string, string>,
+): TimelineNode[] {
+  const { current, outcome } = progressFor(status);
+  return TIMELINE_STEPS.map((step, i) => {
+    const state: TimelineNodeState = i < current ? 'done' : i === current ? 'current' : 'todo';
+    let label = labels[step] ?? step;
+    if (step === 'aiScored' && state === 'done' && score !== null) {
+      label = `${labels.aiScored} · ${score}/100`;
+    } else if (step === 'decision' && outcome === 'approved') {
+      label = labels.approved ?? label;
+    } else if (step === 'decision' && outcome === 'rejected') {
+      label = labels.rejected ?? label;
+    }
+    return { label, state, icon: state === 'done' ? Check : undefined };
+  });
 }
 
 export default async function DashboardPage({ params, searchParams }: PageProps) {
@@ -34,37 +85,39 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
 
   const t = await getTranslations('dashboard');
 
-  // ── Données mockées (à remplacer par api.correction.list + api.appointment.listMine)
-  const corrections = [
-    {
-      id: 'corr-1',
-      field: 'birthPlace',
-      proposed: 'Sikasso',
-      status: 'UNDER_REVIEW',
-      createdAt: '2026-05-10',
-      aiScore: 87,
-    },
-    {
-      id: 'corr-2',
-      field: 'profession',
-      proposed: 'Couturière',
-      status: 'APPROVED',
-      createdAt: '2026-04-22',
-      aiScore: 95,
-    },
-  ];
-  const appointments = [
-    {
-      id: 'appt-1',
-      centerName: 'CTDEC Bamako',
-      scheduledAt: '2026-05-20T09:00:00Z',
-      priority: 'P3',
-      status: 'SCHEDULED',
-    },
-  ];
+  // Libellés résolus côté serveur (passés aux composants synchrones).
+  const timelineLabels: Record<string, string> = {
+    submitted: t('timeline.submitted'),
+    aiScored: t('timeline.aiScored'),
+    agentReview: t('timeline.agentReview'),
+    decision: t('timeline.decision'),
+    notified: t('timeline.notified'),
+    approved: t('timeline.approved'),
+    rejected: t('timeline.rejected'),
+    current: t('timeline.current'),
+    pending: t('timeline.pending'),
+  };
+  const statusLabel = (s: string) =>
+    ({
+      UNDER_REVIEW: t('status.UNDER_REVIEW'),
+      APPROVED: t('status.APPROVED'),
+      REJECTED: t('status.REJECTED'),
+      SCHEDULED: t('status.SCHEDULED'),
+      COMPLETED: t('status.COMPLETED'),
+    })[s] ?? s;
+
+  // Couture données (mock ↔ live) : corrections + RDV du citoyen connecté.
+  // `fetchMyCorrections` est self-scoped (NINA dérivé du token côté backend).
+  const [corrections, appointments] = await Promise.all([
+    fetchMyCorrections(),
+    fetchMyAppointments(),
+  ]);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
+      {/* Suivi PC-05 : rafraîchit le statut des demandes toutes les 30 s
+          (suspendu quand l'onglet est masqué). */}
+      <AutoRefresh intervalMs={30_000} />
       <header className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">
           {t('greeting', { name: session.user.name })}
@@ -84,15 +137,20 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
         </Alert>
       )}
 
-      {/* Actions rapides */}
+      {/* Actions rapides — sans NINA en session, on retombe sur la recherche
+          NINA (/nina) plutôt que de générer des URLs invalides (/nina/…). */}
       <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ActionCard
-          href={`/${locale}/nina/${session.user.nina ?? ''}`}
+          href={session.user.nina ? `/${locale}/nina/${session.user.nina}` : `/${locale}/nina`}
           icon={FileText}
           label={t('actions.viewFile')}
         />
         <ActionCard
-          href={`/${locale}/nina/${session.user.nina ?? ''}/correction`}
+          href={
+            session.user.nina
+              ? `/${locale}/nina/${session.user.nina}/correction`
+              : `/${locale}/nina`
+          }
           icon={FileText}
           label={t('actions.requestCorrection')}
         />
@@ -113,23 +171,23 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
             {corrections.map((c) => (
               <li key={c.id}>
                 <Card>
-                  <CardContent className="flex items-center justify-between gap-4 p-4">
-                    <div>
-                      <p className="text-sm text-fg-muted">{t(`fields.${c.field}` as never)}</p>
-                      <p className="font-medium">
-                        → <span className="font-mono">{c.proposed}</span>
-                      </p>
-                      <p className="mt-1 text-xs text-fg-muted">
-                        {t('corrections.submittedAt', { date: c.createdAt })}
-                        {c.aiScore !== null && (
-                          <>
-                            {' · '}
-                            {t('corrections.aiScore', { score: c.aiScore })}
-                          </>
-                        )}
-                      </p>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-fg-muted">{t(`fields.${c.field}` as never)}</p>
+                        <p className="font-medium">
+                          → <span className="font-mono">{c.proposedValue}</span>
+                        </p>
+                        <p className="mt-1 text-xs text-fg-muted">
+                          {t('corrections.submittedAt', { date: c.createdAt.slice(0, 10) })}
+                        </p>
+                      </div>
+                      <StatusBadge status={c.status} label={statusLabel(c.status)} />
                     </div>
-                    <StatusBadge status={c.status} />
+                    <CorrectionTimeline
+                      nodes={buildCorrectionNodes(c.status, c.aiScore, timelineLabels)}
+                      className="mt-4 border-t pt-4"
+                    />
                   </CardContent>
                 </Card>
               </li>
@@ -158,7 +216,7 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
                         })}
                       </p>
                     </div>
-                    <StatusBadge status={a.status} />
+                    <StatusBadge status={a.status} label={statusLabel(a.status)} />
                   </CardContent>
                 </Card>
               </li>
@@ -193,7 +251,7 @@ function ActionCard({
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, label }: { status: string; label: string }) {
   const styles: Record<string, string> = {
     UNDER_REVIEW: 'bg-warning-50 text-warning-700',
     APPROVED: 'bg-success-50 text-success-700',
@@ -201,7 +259,7 @@ function StatusBadge({ status }: { status: string }) {
     SCHEDULED: 'bg-info-50 text-info-700',
     COMPLETED: 'bg-success-50 text-success-700',
   };
-  return <Badge className={styles[status] ?? 'bg-bg-muted'}>{status}</Badge>;
+  return <Badge className={styles[status] ?? 'bg-bg-muted'}>{label}</Badge>;
 }
 
 function EmptyState({ label }: { label: string }) {

@@ -28,25 +28,56 @@
     },
     "search": {
       "title": "Rechercher mon NINA",
+      "subtitle": "Saisissez votre NINA pour afficher votre fiche d'identité.",
       "help": "Saisissez votre numéro d'identité (15 caractères : 14 chiffres + 1 lettre de contrôle).",
       "ninaLabel": "Numéro NINA",
       "submit": "Rechercher",
+      "correctionTitle": "Demander une correction",
+      "correctionSubtitle": "Identifiez-vous d'abord avec votre NINA : vous pourrez ensuite proposer une correction sur votre fiche.",
+      "correctionSubmit": "Continuer",
       "examplePlaceholder": "18903102015042V"
     },
     "view": {
       "photoOk": "Photo disponible",
       "noPhoto": "Sans photo",
+      "photoCaption": "Photo indisponible en mode démo",
+      "breadcrumbHome": "Accueil",
+      "breadcrumbCurrent": "Fiche citoyen",
+      "demoTitle": "Mode démonstration",
+      "demoBody": "Le backend identity-service n'est pas encore connecté (cf. doc 07). Les données ci-dessous sont dérivées de la structure du NINA.",
+      "ninaValid": "NINA valide",
+      "sectionIdentity": "Identité",
+      "sectionLocation": "Localisation (codes NINA)",
       "birthDate": "Date de naissance",
       "sex": "Sexe",
+      "sexM": "Masculin",
+      "sexF": "Féminin",
+      "estimated": "estimation depuis le NINA",
       "birthPlace": "Lieu de naissance",
       "residence": "Résidence",
       "father": "Père",
       "mother": "Mère",
       "profession": "Profession",
       "maritalStatus": "Situation matrimoniale",
+      "maritalSINGLE": "Célibataire",
+      "maritalMARRIED": "Marié(e)",
+      "maritalDIVORCED": "Divorcé(e)",
+      "maritalWIDOWED": "Veuf / Veuve",
+      "sectionFamily": "Filiation",
+      "syntheticBadge": "Données synthétiques",
+      "region": "Région",
+      "regionCode": "Code région",
+      "cercleCode": "Code cercle",
+      "communeCode": "Code commune",
+      "checksum": "Lettre de contrôle",
       "downloadPdf": "Télécharger ma fiche PDF",
+      "downloadPdfHint": "Disponible une fois la fiche signée (document-service)",
+      "bookAppointment": "Prendre un rendez-vous",
       "requestCorrection": "Signaler une erreur",
-      "notFound": "Identité introuvable"
+      "notFound": "Identité introuvable",
+      "forbiddenTitle": "Accès refusé",
+      "forbiddenBody": "Ce NINA n'est pas le vôtre. Vous ne pouvez consulter que votre propre fiche d'identité.",
+      "backHome": "Retour à l'accueil"
     }
   },
   "login": {
@@ -92,8 +123,15 @@
       "3": {
         "title": "Justificatif (facultatif)",
         "subtitle": "Téléversez une pièce justificative pour accélérer le traitement.",
-        "placeholderTitle": "Upload de fichiers à venir",
-        "placeholderBody": "Cette étape sera complète quand `document-service` (port 3004) sera livré (cf. doc 10). Vous pouvez sauter cette étape pour l'instant."
+        "dropPrompt": "Glissez votre justificatif ici, ou cliquez pour parcourir",
+        "formats": "PDF, JPG ou PNG — 5 Mo maximum",
+        "browse": "Parcourir un fichier",
+        "selectedLabel": "Fichier sélectionné",
+        "remove": "Retirer",
+        "demoNote": "Mode démo : le fichier reste sur votre appareil, il n'est pas envoyé (document-service non connecté).",
+        "errorFormat": "Format non supporté. Choisissez un PDF, JPG ou PNG.",
+        "errorSize": "Fichier trop volumineux (5 Mo maximum).",
+        "optional": "Vous pouvez passer cette étape."
       },
       "4": { "title": "Confirmez votre demande" }
     },
@@ -119,8 +157,12 @@
       "field": "Champ corrigé",
       "newValue": "Nouvelle valeur",
       "reason": "Motif",
+      "justification": "Justificatif",
+      "justificationNone": "Aucun",
       "processingTitle": "Traitement de votre demande",
       "processingBody": "Votre demande sera analysée par le module IA puis validée par un agent CTDEC. Délai habituel : 24-48 h.",
+      "certifyLabel": "Je certifie sur l'honneur l'exactitude des informations fournies. Toute fausse déclaration est passible de poursuites.",
+      "certifyRequired": "Vous devez certifier l'exactitude des informations avant de soumettre.",
       "error": "La soumission a échoué"
     },
     "nav": {
@@ -133,7 +175,7 @@
     "new": {
       "title": "Prendre un rendez-vous",
       "subtitle": "Choisissez un centre CTDEC ou une antenne mobile RAVEC.",
-      "priorityBadge": "🟢 File prioritaire activée (vulnérabilité)",
+      "priorityBadge": "File prioritaire activée (vulnérabilité)",
       "formTitle": "Détails du rendez-vous",
       "formHelp": "Sélectionnez un centre, un créneau et précisez le motif."
     },
@@ -143,7 +185,22 @@
       "reason": "Motif de la visite",
       "reasonPlaceholder": "Ex. : récupération de ma FDI signée, rectification d'erreur, …",
       "submit": "Confirmer le rendez-vous",
-      "error": "La création du rendez-vous a échoué"
+      "error": "La création du rendez-vous a échoué",
+      "loadingSlots": "Chargement des créneaux disponibles…",
+      "noSlots": "Aucun créneau disponible pour le moment. Réessayez plus tard."
+    },
+    "confirm": {
+      "title": "Rendez-vous confirmé",
+      "subtitle": "Présentez ce QR code à l'accueil du centre le jour J.",
+      "center": "Centre",
+      "date": "Date",
+      "slot": "Créneau",
+      "queue": "Numéro de file",
+      "nina": "NINA",
+      "reference": "Référence",
+      "qrCaption": "QR de rendez-vous",
+      "qrNote": "Aperçu démo — le code signé sera émis par document-service.",
+      "done": "Terminer"
     }
   },
   "dashboard": {
@@ -163,6 +220,25 @@
     "appointments": {
       "title": "Rendez-vous à venir",
       "empty": "Aucun rendez-vous planifié."
+    },
+    "timeline": {
+      "title": "Suivi de la demande",
+      "submitted": "Demande soumise",
+      "aiScored": "Analyse IA",
+      "agentReview": "Revue par un agent",
+      "decision": "Décision",
+      "notified": "Notification du citoyen",
+      "approved": "Demande approuvée",
+      "rejected": "Demande rejetée",
+      "current": "En cours",
+      "pending": "En attente"
+    },
+    "status": {
+      "UNDER_REVIEW": "En revue",
+      "APPROVED": "Approuvée",
+      "REJECTED": "Rejetée",
+      "SCHEDULED": "Planifié",
+      "COMPLETED": "Terminé"
     },
     "fields": {
       "firstName": "Prénom",
@@ -203,18 +279,24 @@
       },
       "description": "Description détaillée",
       "descriptionPlaceholder": "Décrivez ce qui s'est passé, où, quand, et comment vous en avez été témoin.",
-      "descriptionHelp": "Minimum 50 caractères. Ne mentionnez pas vos propres informations.",
+      "descriptionHelp": "Entre 200 et 2000 caractères. Ne mentionnez pas vos propres informations.",
       "region": "Région concernée (facultatif)",
       "cercle": "Cercle concerné (facultatif)",
       "consent": "Je certifie sur l'honneur que les faits décrits sont véridiques et que je ne cherche pas à nuire arbitrairement à un agent.",
       "submit": "Soumettre le signalement",
-      "error": "L'envoi a échoué"
+      "error": "L'envoi a échoué",
+      "encryptedNotice": "🔒 Chiffrement de bout en bout : votre signalement est chiffré dans votre navigateur avant l'envoi. Le serveur ne peut pas le lire — seul le procureur habilité le déchiffre, hors ligne.",
+      "encrypting": "Chiffrement en cours…",
+      "keyUnavailable": "Le service de chiffrement est momentanément indisponible. Par sécurité, aucun signalement n'est envoyé en clair. Veuillez réessayer plus tard.",
+      "schemeUnsupported": "Le schéma de chiffrement demandé par le serveur n'est pas pris en charge par ce navigateur pour un signalement long.",
+      "tooLong": "Le signalement chiffré dépasse la taille maximale autorisée. Veuillez raccourcir la description."
     },
     "receipt": {
       "title": "Signalement enregistré ✓",
       "body": "Votre signalement a bien été reçu. L'auditeur SIGAC en charge de l'instruction sera notifié.",
       "tokenLabel": "Token de suivi anonyme",
       "copy": "Copier le token",
+      "copied": "Copié !",
       "warningTitle": "⚠ Conservez ce token précieusement",
       "warningBody": "Il vous permet de suivre l'instruction sans révéler votre identité. Si vous le perdez, vous ne pourrez plus consulter le statut de votre signalement."
     },
@@ -252,6 +334,28 @@
         "settings": "Paramètres"
       }
     },
+    "appointments": {
+      "title": "Rendez-vous",
+      "subtitle": "Planification et suivi des rendez-vous CTDEC / RAVEC.",
+      "soonTitle": "Module en préparation",
+      "soonBody": "La gestion des rendez-vous côté agent se connectera à appointment-service (port 3008, doc 09). En attendant, les citoyens prennent leurs rendez-vous depuis le portail citoyen."
+    },
+    "settings": {
+      "title": "Paramètres",
+      "subtitle": "Profil de l'agent et préférences de la console.",
+      "profile": "Profil agent",
+      "name": "Nom",
+      "matricule": "Matricule",
+      "center": "Centre",
+      "preferences": "Préférences",
+      "language": "Langue de l'interface",
+      "notifEmail": "Alertes par e-mail",
+      "notifSms": "Alertes par SMS",
+      "on": "Activé",
+      "off": "Désactivé",
+      "comingSoonTitle": "Édition à venir",
+      "comingSoonBody": "La modification des paramètres sera activée avec auth-service (doc 08). Cette console est en lecture seule pour l'instant."
+    },
     "dashboard": {
       "greeting": "Bonjour {name}",
       "subtitle": "Console de validation des demandes citoyens.",
@@ -273,6 +377,7 @@
       "alertsFeedTitle": "Alertes récentes",
       "alertsFeedLive": "Flux temps réel",
       "alertsFeedEmpty": "Aucune alerte active.",
+      "alertsFeedNew": "Nouvelle alerte",
       "quickActionsTitle": "Accès rapides",
       "quickActions": {
         "corrections": {
@@ -324,7 +429,8 @@
         "title": "Top 10 agents — score d'intégrité",
         "subtitle": "Score IA basé sur 30 derniers jours d'activité",
         "centerLabel": "Centre",
-        "investigate": "Investiguer"
+        "investigate": "Investiguer",
+        "atRisk": "Agent à risque — score sous le seuil de vigilance"
       },
       "feed": {
         "title": "Flux d'alertes",
@@ -413,11 +519,14 @@
         },
         "justificatif": "Justificatif",
         "noJustificatif": "Aucun justificatif fourni.",
+        "viewJustificatif": "Consulter le justificatif",
+        "justificatifUnavailable": "Justificatif fourni, mais son aperçu est indisponible (format non pris en charge).",
         "timelineTitle": "Historique",
         "approve": "Approuver",
         "reject": "Rejeter",
         "rejectReason": "Motif de rejet (visible par le citoyen)",
-        "rejectReasonPlaceholder": "Expliquez brièvement la raison du rejet — le citoyen verra ce texte."
+        "rejectReasonPlaceholder": "Expliquez brièvement la raison du rejet — le citoyen verra ce texte.",
+        "rejectReasonError": "Le motif doit contenir au moins {min} caractères."
       },
       "timeline": {
         "label": "Historique de la demande",
@@ -430,6 +539,8 @@
         "rejected": "Rejetée"
       },
       "empty": "Aucune demande ne correspond à vos filtres.",
+      "emptyTitle": "Aucune correction ne correspond",
+      "emptyHint": "Ajustez ou réinitialisez les filtres pour élargir la recherche.",
       "pagination": {
         "showing": "Affichage de {from}–{to} sur {total}",
         "prev": "Précédent",
@@ -443,6 +554,141 @@
         "rejectedBody": "Le citoyen sera notifié du motif.",
         "bulkSuccess": "{count} correction(s) traitée(s)."
       }
+    }
+  },
+  "governance": {
+    "sidebar": {
+      "brand": "Portail gouvernance",
+      "subtitle": "SGOGT · AES",
+      "navLabel": "Navigation principale",
+      "official": "Haut fonctionnaire",
+      "matricule": "Mat.",
+      "logout": "Déconnexion",
+      "items": {
+        "messagerie": "Messagerie",
+        "directives": "Directives",
+        "performance": "Performance",
+        "rapports": "Rapports"
+      }
+    },
+    "login": {
+      "heading": "Portail gouvernance",
+      "subheading": "Accès réservé aux institutions habilitées de l'AES.",
+      "cta": {
+        "title": "Se connecter avec Keycloak",
+        "help": "Vous serez redirigé(e) vers le service d'authentification gouvernemental.",
+        "button": "Continuer vers Keycloak"
+      },
+      "footer": "Accès strictement réservé aux personnels habilités. Toute connexion est tracée et signée.",
+      "error": {
+        "title": "La connexion a échoué",
+        "codes": {
+          "missing_code": "Code d'autorisation manquant dans la réponse de Keycloak.",
+          "no_session": "Aucune session OIDC en cours — relancez la connexion.",
+          "state_mismatch": "Anomalie de sécurité détectée (state mismatch).",
+          "token_exchange_failed": "Échange du code contre les tokens refusé par Keycloak.",
+          "id_token_invalid": "ID token invalide — la signature ne correspond pas.",
+          "nonce_mismatch": "Anomalie de sécurité détectée (nonce mismatch)."
+        }
+      }
+    },
+    "messagerie": {
+      "title": "Messagerie officielle",
+      "subtitle": "Messages signés et horodatés entre institutions de l'AES.",
+      "searchPlaceholder": "Rechercher une conversation…",
+      "conversationsLabel": "Conversations",
+      "unread": "Non lu",
+      "newMessage": "Nouveau message",
+      "loading": "Chargement des conversations…",
+      "loadError": "Impossible de charger la messagerie — réessayez dans un instant.",
+      "empty": "Aucune conversation",
+      "noSelection": "Sélectionnez une conversation pour consulter les messages signés.",
+      "priority": {
+        "NORMAL": "Normale",
+        "HIGH": "Haute",
+        "CRITICAL": "Critique"
+      },
+      "signature": {
+        "check": "Vérifier la signature",
+        "verifying": "Vérification de la signature…",
+        "verified": "Signature électronique vérifiée (JWS)",
+        "invalid": "Signature invalide — intégrité non garantie",
+        "identityUnverified": "Identité du signataire non authentifiée : ne pas se fier à l'expéditeur affiché tant que la signature n'est pas vérifiée.",
+        "signer": "Signataire",
+        "timestamp": "Horodatage serveur",
+        "hash": "Empreinte"
+      },
+      "readReceipt": "Accusé de réception",
+      "notRead": "Non lu par le destinataire",
+      "reply": {
+        "placeholder": "Répondre au dernier message reçu…",
+        "send": "Répondre",
+        "error": "L'envoi de la réponse a échoué — réessayez."
+      },
+      "detail": {
+        "title": "Détails de la conversation",
+        "participants": "Participants",
+        "priority": "Priorité",
+        "messages": "Messages",
+        "archive": "Archivage immuable 10 ans (MinIO Object Lock)."
+      },
+      "compose": {
+        "title": "Nouveau message officiel",
+        "recipient": "Destinataire",
+        "recipientPlaceholder": "Choisir un destinataire…",
+        "subject": "Objet",
+        "priorityLabel": "Priorité",
+        "body": "Message",
+        "placeholder": "Composez votre message officiel…",
+        "sign": "Signature électronique apposée par le serveur à l'envoi (JWS).",
+        "cancel": "Annuler",
+        "send": "Envoyer",
+        "error": "L'envoi du message a échoué — réessayez."
+      },
+      "demoBanner": "Données de démonstration — en production, la signature électronique (JWS) et l'horodatage sont produits côté serveur par governance-service (port 3010)."
+    },
+    "directives": {
+      "title": "Suivi des directives",
+      "subtitle": "Glissez une carte vers une colonne autorisée pour changer son état.",
+      "loading": "Chargement des directives…",
+      "loadError": "Impossible de charger les directives — réessayez dans un instant.",
+      "transitionError": "Transition refusée — la carte a été remise dans sa colonne d'origine.",
+      "columns": {
+        "DRAFT": "Brouillon",
+        "SENT": "Envoyée",
+        "IN_PROGRESS": "En cours",
+        "COMPLETED": "Terminée",
+        "REJECTED": "Rejetée"
+      },
+      "priority": {
+        "P1": "Urgente",
+        "P2": "Haute",
+        "P3": "Normale"
+      },
+      "unassigned": "Non assignée",
+      "overdue": "En retard",
+      "escalation": "Escalade N+{level}",
+      "empty": "Aucune directive",
+      "reject": {
+        "title": "Rejeter la directive",
+        "label": "Motif du rejet (obligatoire)",
+        "placeholder": "Expliquez pourquoi cette directive est rejetée…",
+        "cancel": "Annuler",
+        "confirm": "Confirmer le rejet"
+      },
+      "demoBanner": "Données de démonstration — les changements d'état sont appliqués en mémoire, avec la même machine à états que governance-service (port 3010)."
+    },
+    "performance": {
+      "title": "Performance institutionnelle",
+      "subtitle": "Traçabilité et réactivité par institution.",
+      "soonTitle": "Module en préparation",
+      "soonBody": "Les métriques de performance se connecteront à governance-service (port 3010, doc 22)."
+    },
+    "rapports": {
+      "title": "Rapports",
+      "subtitle": "Synthèses mensuelles de gouvernance et d'exécution.",
+      "soonTitle": "Module en préparation",
+      "soonBody": "La génération de rapports mensuels (institutions les moins traçables) sera activée avec governance-service (port 3010)."
     }
   }
 }

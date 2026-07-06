@@ -398,7 +398,8 @@ classDiagram
 
 ### 5 — Diagramme de composants — Architecture globale NINA-AES
 
-Vue macro : 5 apps frontends + 11 microservices + infra + APIs externes.
+Vue macro : apps frontends + 12 microservices NestJS + 2 services IA FastAPI + infra + APIs
+externes.
 
 ```mermaid
 flowchart TB
@@ -414,27 +415,29 @@ flowchart TB
 
     subgraph Edge["Edge / Sécurité"]
         Traefik[Traefik v3 mTLS]
+        ApiGateway[api-gateway :3000]
         Keycloak[Keycloak 26.5 OIDC]
         Vault[HashiCorp Vault]
     end
 
-    subgraph Core["Core Services NestJS 11"]
-        AuthSvc[auth-service :3002]
+    subgraph Core["Core Services NestJS 12"]
         IdentitySvc[identity-service :3001]
-        CorrSvc[correction-service :3003]
-        AppSvc[appointment-service :3004]
-        GovSvc[governance-service :3005]
-        AuditSvc[audit-service :3006]
-        NotifSvc[notification-service :3007]
-        InteropSvc[interop-aes-service :3008]
-        ElectoralSvc[electoral-service :3009]
-        KioskSvc[kiosk-service :3010]
-        FileSvc[file-service :3011]
+        AuthSvc[auth-service :3002]
+        DocSvc[document-service :3004]
+        NotifSvc[notification-service :3005]
+        InteropSvc[interop-service :3006]
+        AuditSvc[audit-service :3007]
+        AppSvc[appointment-service :3008]
+        GovSvc[governance-service :3010]
+        VulnSvc[vulnerability-service :3011]
+        BioSvc[biometric-service :3012]
+        EnrollSvc[enrollment-service :3013]
+        UssdSvc[ussd-service :3014]
     end
 
     subgraph AI["IA Python FastAPI"]
-        AIService[ai-service :8001]
-        AntiCorr[anticorruption-service :8002]
+        AIService[ai-service :3003]
+        AntiCorr[anticorruption-service :3009]
     end
 
     subgraph Data["Stockage"]
@@ -461,29 +464,37 @@ flowchart TB
     USSD --> Traefik
 
     Traefik --> Keycloak
-    Traefik --> AuthSvc
-    Traefik --> IdentitySvc
-    Traefik --> CorrSvc
-    Traefik --> AppSvc
-    Traefik --> GovSvc
-    Traefik --> InteropSvc
+    Traefik --> ApiGateway
+    ApiGateway --> IdentitySvc
+    ApiGateway --> AuthSvc
+    ApiGateway --> AIService
+    ApiGateway --> DocSvc
+    ApiGateway --> NotifSvc
+    ApiGateway --> InteropSvc
+    ApiGateway --> AuditSvc
+    ApiGateway --> AppSvc
+    ApiGateway --> AntiCorr
+    ApiGateway --> GovSvc
+    ApiGateway --> VulnSvc
+    ApiGateway --> BioSvc
+    ApiGateway --> EnrollSvc
+    ApiGateway --> UssdSvc
 
     AuthSvc --> Keycloak
     AuthSvc --> Redis
     IdentitySvc --> Postgres
     IdentitySvc --> Elastic
-    CorrSvc --> AIService
-    CorrSvc --> Postgres
-    CorrSvc --> RabbitMQ
+    IdentitySvc --> AIService
+    IdentitySvc --> RabbitMQ
     AppSvc --> Postgres
     GovSvc --> Postgres
     AuditSvc --> Postgres
     AuditSvc --> RabbitMQ
     NotifSvc --> RabbitMQ
     InteropSvc --> Postgres
-    ElectoralSvc --> Postgres
-    KioskSvc --> Postgres
-    FileSvc --> MinIO
+    DocSvc --> MinIO
+    AIService --> Postgres
+    AIService --> Redis
     AntiCorr --> Postgres
     AntiCorr --> Elastic
 
@@ -586,13 +597,12 @@ flowchart TB
         subgraph NodeB["Node B — worker"]
             PodAuth[Pod auth-service x2]
             PodIdentity[Pod identity-service x3]
-            PodCorr[Pod correction-service x2]
             PodAI[Pod ai-service GPU x1]
         end
         subgraph NodeC["Node C — worker"]
             PodGov[Pod governance-service x1]
             PodAudit[Pod audit-service x2]
-            PodInterop[Pod interop-aes-service x2]
+            PodInterop[Pod interop-service x2]
             PodAntiCorr[Pod anticorruption-service x1]
         end
         subgraph Storage["PersistentVolumes"]
@@ -679,17 +689,19 @@ flowchart TB
             Ksk[kiosk-agent]
         end
         subgraph Svc["services/"]
-            Auth[auth-service]
+            ApiGw[api-gateway]
             Iden[identity-service]
-            Corr[correction-service]
+            Auth[auth-service]
+            Doc[document-service]
+            Not[notification-service]
+            Int[interop-service]
+            Aud[audit-service]
             App[appointment-service]
             Gov[governance-service]
-            Aud[audit-service]
-            Not[notification-service]
-            Int[interop-aes-service]
-            Ele[electoral-service]
-            Kio[kiosk-service]
-            Fil[file-service]
+            Vuln[vulnerability-service]
+            Bio[biometric-service]
+            Enr[enrollment-service]
+            Ussd[ussd-service]
             AI[ai-service]
             AntiC[anticorruption-service]
         end
@@ -840,7 +852,7 @@ flowchart LR
     UC6[Accéder via USSD multilingue]
     UC7[Recevoir notification SMS]
     UC8[Consulter statut dossier]
-    UC9[Signer électoralement]
+    UC9[Vérifier inscription électorale]
     UC10[S'authentifier Keycloak]
 
     Citoyen --- UC1
@@ -1042,7 +1054,7 @@ flowchart TD
     MenuDJE --> Choice
     Choice -- "1. Consulter" --> Query[Query identity-service]
     Choice -- "2. RDV" --> Book[Book appointment-service]
-    Choice -- "3. Statut" --> Status[Status correction-service]
+    Choice -- "3. Statut" --> Status[Status identity-service]
     Choice -- "4. Alerte" --> Alert[Alert corruption anon]
     Query --> Resp[Réponse USSD 182 chars]
     Book --> Resp
@@ -1241,27 +1253,27 @@ sequenceDiagram
 sequenceDiagram
     actor Citizen
     participant Web as web-citoyen
-    participant Corr as correction-service :3003
-    participant AI as ai-service :8001
+    participant Iden as identity-service :3001
+    participant AI as ai-service :3003
     participant Minio
     participant MQ as RabbitMQ
     participant AntiC as anticorruption-service
 
     Citizen->>Web: Soumet correction + photo CNI
-    Web->>Corr: POST /corrections {dto, file}
-    Corr->>Minio: PUT /corrections/{id}.jpg
-    Minio-->>Corr: object URL
-    Corr->>AI: POST /analyze {citizenId, objectUrl, proposed}
+    Web->>Iden: POST /corrections {dto, file}
+    Iden->>Minio: PUT /corrections/{id}.jpg
+    Minio-->>Iden: object URL
+    Iden->>AI: POST /analyze {citizenId, objectUrl, proposed}
     AI->>AI: OCR Tesseract
     AI->>AI: NLP spaCy + langdetect
     AI->>AI: Fuzzy match RapidFuzz
     AI->>AI: XGBoost confidence
-    AI-->>Corr: {score=87.3, anomalies=[]}
-    Corr->>Corr: auto-approve (≥85)
-    Corr->>MQ: publish correction.approved
+    AI-->>Iden: {score=87.3, anomalies=[]}
+    Iden->>Iden: auto-approve (≥85)
+    Iden->>MQ: publish correction.approved
     MQ->>AntiC: consume → check agent pattern
     AntiC->>AntiC: if suspicious → create alert
-    Corr-->>Web: {status=APPROVED, score=87.3}
+    Iden-->>Web: {status=APPROVED, score=87.3}
     Web-->>Citizen: "✓ Correction approuvée"
 ```
 
@@ -1274,7 +1286,7 @@ sequenceDiagram
     participant SysBFA as Système BFA
     participant GwM as Gateway Mali
     participant Auth as auth-service
-    participant Interop as interop-aes-service :3008
+    participant Interop as interop-service :3006
     participant Iden as identity-service
     participant Aud as audit-service
 
@@ -1332,11 +1344,11 @@ sequenceDiagram
 sequenceDiagram
     participant Svc as Any microservice
     participant MQ as RabbitMQ
-    participant Aud as audit-service :3006
+    participant Aud as audit-service :3007
     participant Pg as PostgreSQL audit_logs
 
     Svc->>MQ: publish event.audit {actor, action, payload}
-    MQ->>Aud: consume from audit.queue
+    MQ->>Aud: consume from audit.log
     Aud->>Pg: SELECT merkle_hash FROM audit_logs ORDER BY id DESC LIMIT 1
     Pg-->>Aud: previousHash
     Aud->>Aud: merkleHash = SHA256(previousHash + payload + timestamp)
@@ -1568,13 +1580,13 @@ gantt
     Infra Docker + K3s      :active, a2, after a1, 20d
     Auth Keycloak           :a3, after a2, 25d
     identity-service        :a4, after a2, 40d
-    correction-service + IA :a5, after a4, 45d
+    Module correction + IA  :a5, after a4, 45d
     Web citoyen/agent       :a6, after a4, 50d
     Mobile Expo             :a7, after a6, 30d
     USSD 8 langues          :a8, after a4, 35d
 
     section P1 Bloc B — Interop AES
-    interop-aes-service     :b1, after a5, 40d
+    interop-service         :b1, after a5, 40d
     mTLS + Ed25519 gateway  :b2, after b1, 20d
     Tests cross-border      :b3, after b2, 25d
 
@@ -1589,7 +1601,7 @@ gantt
     Alertes ML              :d3, after d2, 25d
 
     section P2 Bloc E — Kiosk
-    kiosk-service           :e1, after b3, 25d
+    kiosk-agent             :e1, after b3, 25d
     Electron app            :e2, after e1, 30d
 
     section P3 Bloc F — Biométrie
@@ -1700,8 +1712,8 @@ architecture-beta
 
     service auth(server)[auth-service] in core
     service identity(server)[identity-service] in core
-    service correction(server)[correction-service] in core
-    service interop(server)[interop-aes-service] in core
+    service document(server)[document-service] in core
+    service interop(server)[interop-service] in core
 
     service aisvc(server)[ai-service] in ai
     service anti(server)[anticorruption-service] in ai
@@ -1713,15 +1725,14 @@ architecture-beta
 
     traefik:B -- T:auth
     traefik:B -- T:identity
-    traefik:B -- T:correction
+    traefik:B -- T:document
     traefik:B -- T:interop
     auth:R -- L:keycloak
     auth:B -- T:redis
     identity:B -- T:pg
-    identity:B -- T:elastic
-    correction:B -- T:aisvc
-    correction:B -- T:pg
-    correction:B -- T:minio
+    identity:L -- R:aisvc
+    identity:T -- B:elastic
+    document:B -- T:minio
     anti:B -- T:pg
     anti:L -- R:elastic
 ```

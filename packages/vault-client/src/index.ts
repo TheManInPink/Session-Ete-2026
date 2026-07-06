@@ -264,6 +264,70 @@ export class VaultClient {
   }
 
   /**
+   * Calcule un HMAC dans Vault (engine Transit, endpoint `transit/hmac/<key>`).
+   *
+   * La clé HMAC est générée et conservée par Vault, **non exportable** : le
+   * service ne manipule jamais le secret. Le résultat est au format
+   * `vault:vN:<base64>` (la version `vN` permet la rotation sans casser
+   * l'historique). À utiliser pour le `pseudonymousId` électoral (cf. doc 22
+   * §4.4 et `ELECTIONS-EXPORT-CONTRACT.md` §4) : un `SHA-256(NINA+sel)` local
+   * serait bruteforçable (NINA de format public) si le sel fuyait ; ici la SEULE
+   * valeur secrète est la clé HMAC Transit non-exportable.
+   *
+   * @param keyName       Nom de la clé HMAC Transit (ex. `elections-pseudonym`).
+   * @param payloadBase64 Entrée à hasher, encodée base64.
+   * @param opts.algorithm Algorithme de hachage (`sha2-256` par défaut côté Vault).
+   * @returns Chaîne `vault:vN:<hmac-base64>`.
+   */
+  async transitHmac(
+    keyName: string,
+    payloadBase64: string,
+    opts: { algorithm?: 'sha2-256' | 'sha2-384' | 'sha2-512' } = {},
+  ): Promise<string> {
+    const body: Record<string, unknown> = { input: payloadBase64 };
+    if (opts.algorithm) body.algorithm = opts.algorithm;
+    const res = await this.request<{ data: { hmac: string } }>(
+      'POST',
+      `transit/hmac/${keyName}`,
+      body,
+    );
+    return res.data.hmac; // "vault:vN:<base64>"
+  }
+
+  /**
+   * Lit la **clé publique** d'une clé Transit asymétrique (RSA/EC) à la version
+   * demandée (ou la dernière). Vault expose la partie publique sous
+   * `keys[<version>].public_key` (PEM) via `GET transit/keys/<name>` pour les
+   * clés `rsa-*` / `ecdsa-*`. Permet la **vérification externe** d'un JWS RS256
+   * hors Vault (DGE / Vérificateur Général) sans accès au Vault de l'État.
+   *
+   * @param keyName Nom de la clé Transit (ex. `elections-export`, `sgogt-user-<id>`).
+   * @param version Version de clé ; par défaut `latest_version`.
+   * @returns Clé publique PEM + version effectivement lue.
+   * @throws Error si la clé n'a pas de partie publique (clé symétrique).
+   */
+  async transitReadPublicKey(
+    keyName: string,
+    version?: number,
+  ): Promise<{ publicKeyPem: string; version: number; type: string }> {
+    const res = await this.request<{
+      data: {
+        latest_version: number;
+        type: string;
+        keys: Record<string, { public_key?: string } | unknown>;
+      };
+    }>('GET', `transit/keys/${keyName}`);
+    const v = version ?? res.data.latest_version;
+    const entry = res.data.keys[String(v)] as { public_key?: string } | undefined;
+    if (!entry?.public_key) {
+      throw new Error(
+        `transitReadPublicKey: clé '${keyName}' v${v} sans public_key (clé symétrique ou version absente)`,
+      );
+    }
+    return { publicKeyPem: entry.public_key, version: v, type: res.data.type };
+  }
+
+  /**
    * Chiffre un payload avec une clé Transit. Le ciphertext retourné est
    * au format `vault:vN:<base64>` et inclut la version de clé utilisée —
    * il est auto-suffisant pour le déchiffrement même après rotation.

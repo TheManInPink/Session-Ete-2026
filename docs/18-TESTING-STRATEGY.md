@@ -19,10 +19,14 @@
 > - MSW 2.10 (Mock Service Worker) pour les tests frontend qui doivent simuler les APIs sans
 >   démarrer le backend
 > - Stratégie de tests data API : 1 pyramide unit-heavy, 1 layer intégration ciblé sur les contrats
->   critiques (NINA, audit Merkle, JWS Ed25519), minimum d'E2E
+>   critiques (NINA, hash-chain audit SHA-256 — ADR-007, _pas_ Merkle —, scellement Ed25519
+>   in-process), minimum d'E2E
 > - Tests de mutation Stryker 8 (optionnel, P2) sur `@nina-aes/utils`
+> - **Tests de sécurité** (Étape 4.11) : autorisation par endpoint (IDOR → 403), JWT altéré /
+>   `alg=none` → 401, rate-limit → 429, gate OWASP ZAP en CI, assertion d'intégrité de la hash-chain
+>   d'audit (détection de falsification) — valident les contrôles conçus en doc 15 / ADR-034
 > - Configuration CI bloquante sur couverture (cf. doc 16 §4.3)
-> - `docs/adr/ADR-018-strategie-tests-pyramide.md`
+> - `docs/adr/ADR-018-strategie-tests-pyramide.md` (ADR correct de ce doc — NE PAS renuméroter)
 
 ---
 
@@ -162,7 +166,7 @@ tests/load/                         ← k6 (NEW)
 │   ├── enrollment-peak.js
 │   ├── nina-search.js
 │   ├── ai-detection.js
-│   └── audit-merkle-write.js
+│   └── audit-chain-write.js     ← hash-chain SHA-256 (ADR-007), PAS Merkle
 └── k6.dockerfile
 
 services/<service>/tests/           ← Pytest (existant)
@@ -222,7 +226,9 @@ schéma se répercute dans 1 fichier au lieu de 200).
 ```ts
 // packages/test-fixtures/src/citizens.ts
 import { faker } from '@faker-js/faker/locale/fr';
-import { computeNinaCheckLetter } from '@nina-aes/utils';
+// ⚠ Nom RÉEL de l'export (cf. packages/utils/src/nina.ts) : computeControlLetter,
+//    PAS « computeNinaCheckLetter ». Vérifiable par Grep.
+import { computeControlLetter } from '@nina-aes/utils';
 import type { Citizen } from '@nina-aes/shared-types';
 
 /**
@@ -234,9 +240,11 @@ import type { Citizen } from '@nina-aes/shared-types';
  *   const c = makeCitizen();                       // 100% Faker
  */
 export function makeCitizen(overrides: Partial<Citizen> = {}): Citizen {
-  // NINA = 14 chiffres + lettre de contrôle
-  const digits = faker.string.numeric(14);
-  const checkLetter = computeNinaCheckLetter(digits);
+  // NINA = 14 chiffres + lettre de contrôle.
+  // Le 1er chiffre encode le sexe (1 = M, 2 = F) — NINA_REGEX exige ^[12].
+  const sexe = faker.helpers.arrayElement(['1', '2']);
+  const digits = sexe + faker.string.numeric(13);
+  const checkLetter = computeControlLetter(digits);
   const nina = digits + checkLetter;
 
   return {
@@ -274,13 +282,16 @@ export function makeCitizen(overrides: Partial<Citizen> = {}): Citizen {
 ```python
 from faker import Faker
 from app.models import Citizen
-from app.nina_utils import compute_nina_check_letter
+# Côté Python, le portage de computeControlLetter() vit dans app.nina_utils
+# (même algo : somme pondérée × position, modulo 23, alphabet sans I ni O).
+from app.nina_utils import compute_control_letter
 
 fake = Faker('fr_FR')
 
 def make_citizen(**overrides) -> Citizen:
-    digits = fake.numerify('##############')
-    nina = digits + compute_nina_check_letter(digits)
+    # 1er chiffre = sexe (1 ou 2), puis 13 chiffres aléatoires.
+    digits = fake.random_element(['1', '2']) + fake.numerify('#############')
+    nina = digits + compute_control_letter(digits)
     return Citizen(
         nina=nina,
         first_name=overrides.get('first_name', fake.first_name()),
@@ -544,18 +555,35 @@ export const options = {
     },
   },
   thresholds: {
-    http_req_duration: ['p(95)<500', 'p(99)<1500'], // SLO doc 17
+    // SLO chiffrés — doivent rester alignés avec docs/deployment/OPS-RUNBOOK.md (§SLO) et doc 17.
+    http_req_duration: ['p(95)<500', 'p(99)<1500'], // p95 < 500ms, p99 < 1.5s
     http_req_failed: ['rate<0.01'], // < 1 % erreurs
-    nina_created: ['count>20000'], // > 20k en 10 min
+    nina_created: ['count>20000'], // > 20k NINA créés en 10 min
   },
 };
 
 const BASE_URL = __ENV.API_URL || 'http://identity-service.staging.nina-aes.uqar.ca';
 
+// Alphabet de contrôle réel : 23 lettres, sans I ni O (cf. packages/utils/src/nina.ts).
+const CONTROL_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+// Réplique exacte de computeControlLetter() de @nina-aes/utils :
+// somme pondérée (chiffre × position 1-indexée) modulo 23, mappée sur CONTROL_ALPHABET.
+function controlLetter(digits) {
+  let sum = 0;
+  for (let i = 0; i < 14; i++) sum += Number(digits[i]) * (i + 1);
+  return CONTROL_ALPHABET[sum % 23];
+}
+
 function randomNina() {
-  // génère un NINA factice format-valide pour le test de charge
-  const digits = Array.from({ length: 14 }, () => Math.floor(Math.random() * 10)).join('');
-  return digits + 'V';
+  // Génère un NINA factice RÉELLEMENT valide pour le test de charge :
+  // 1er chiffre ∈ {1,2} (sexe), 13 chiffres aléatoires, puis lettre de contrôle CALCULÉE.
+  // ⚠ L'ancienne version suffixait toujours « V » → ~95 % des NINA étaient rejetés par
+  //    validateNina() côté identity-service, faussant le taux d'erreur du test de charge.
+  const sexe = Math.random() < 0.5 ? '1' : '2';
+  const rest = Array.from({ length: 13 }, () => Math.floor(Math.random() * 10)).join('');
+  const digits = sexe + rest;
+  return digits + controlLetter(digits);
 }
 
 export default function () {
@@ -597,14 +625,22 @@ docker run --rm -i --network host grafana/k6:0.55.0 \
   - < tests/load/scenarios/enrollment-peak.js
 ```
 
-**Scénarios à livrer (4)** :
+**Scénarios à livrer (4) — SLO chiffrés** :
 
-| Fichier                 | Cible            | Critère succès                             |
-| ----------------------- | ---------------- | ------------------------------------------ |
-| `enrollment-peak.js`    | identity-service | > 20 000 NINA créés en 10 min, p95 < 500ms |
-| `nina-search.js`        | identity-service | 1 000 req/s sustained, p99 < 200ms         |
-| `ai-detection.js`       | ai-service       | batch 100 records, p95 < 5s                |
-| `audit-merkle-write.js` | audit-service    | 500 writes/s, 0 rupture chaîne Merkle      |
+Les seuils ci-dessous sont les **SLO de référence** (objectifs de niveau de service). Ils doivent
+rester synchronisés avec `docs/deployment/OPS-RUNBOOK.md` (à venir, §SLO/SLA) et avec les seuils
+`thresholds` codés dans chaque scénario k6 ; toute divergence = drift à corriger.
+
+| Fichier                | Cible            | Charge injectée             | SLO latence                | SLO erreurs       | Critère succès                                                           |
+| ---------------------- | ---------------- | --------------------------- | -------------------------- | ----------------- | ------------------------------------------------------------------------ |
+| `enrollment-peak.js`   | identity-service | 80 req/s pic, 5 min soutenu | p95 < 500ms · p99 < 1500ms | < 1 % (rate<0.01) | > 20 000 NINA créés en 10 min                                            |
+| `nina-search.js`       | identity-service | 1 000 req/s soutenu         | p95 < 120ms · p99 < 200ms  | < 0,5 %           | débit tenu sans dégradation                                              |
+| `ai-detection.js`      | ai-service       | batch 100 records           | p95 < 5s · p99 < 8s        | < 2 %             | scores 0–100 cohérents sur tout le batch                                 |
+| `audit-chain-write.js` | audit-service    | 500 writes/s, 1 min         | p95 < 50ms (insert chaîné) | 0 %               | **0 rupture de hash-chain** (ADR-007), `previousHash` strictement chaîné |
+
+> 🔒 **Honnêteté soutenance** : `nina-search` à 1 000 req/s et `audit-chain-write` à 500 writes/s
+> sont des **cibles conçues**, à mesurer réellement contre staging avant de les présenter comme
+> acquises. Tant qu'aucun run n'est joint, marquer ces lignes « ⏳ Phase 2 — à mesurer ».
 
 ---
 
@@ -714,6 +750,257 @@ pnpm --filter @nina-aes/utils exec stryker run
 
 ---
 
+### Étape 4.11 — Tests de sécurité (autorisation, JWT, rate-limit, DAST, intégrité audit)
+
+**Pourquoi** : un service d'identité d'État est une cible. La couverture fonctionnelle ne dit RIEN
+sur la résistance aux abus. Cette étape transforme les contrôles **conçus** dans la doc 15
+(SECURITY-HARDENING) et l'ADR-034 en **assertions exécutables** — la seule façon honnête de cocher «
+contrôle vérifié » plutôt que « contrôle écrit dans un .md ». Les exemples ci-dessous sont des
+**spécifications de tests** ; tant qu'ils ne tournent pas en CI, les contrôles correspondants
+restent « ⏳ Phase 2 — conçus, non encore prouvés ».
+
+> 🔒 **Renvois canon** : autorisation/rate-limit/ZAP = doc 15 §4 + ADR-034 ; hash-chain audit = doc
+> 09 + ADR-007 (SHA-256 linéaire, **pas** Merkle). Cette étape ne réimplémente rien : elle
+> **valide** l'existant.
+
+#### 4.11.1 — Autorisation par endpoint (un citoyen ne lit que SON NINA → 403 sinon)
+
+**Risque OWASP** : A01 _Broken Access Control_ (IDOR). Le test le plus important du projet : prouver
+qu'un citoyen authentifié ne peut pas lire le NINA d'un autre citoyen en changeant l'identifiant
+dans l'URL.
+
+> ⏳ **Statut réel — contrôle conçu, Phase 2 (honnêteté soutenance)** : à ce jour, le vrai
+> `GET /citizens/:nina` (`services/identity-service/src/modules/citizen/citizen.controller.ts`) est
+> protégé par `RolesGuard` **seul**, **sans** `@Roles()` sur le GET ni **aucune** vérification de
+> propriété (_ownership_), et il documente **404** sur NINA inconnu
+> (`@ApiResponse({ status: 404, description: 'NINA inconnu' })`). Le contrôle d'_ownership_ et la
+> promesse « **403, PAS 404** » décrits ci-dessous sont donc une **cible de conception Phase 2**,
+> pas un acquis : le test « 403 : un citoyen NE PEUT PAS lire le NINA d'un autre » **échouerait**
+> contre le code actuel (il renverrait 200 si le NINA existe, 404 sinon). À implémenter avant de
+> cocher « contrôle vérifié » : un guard d'_ownership_ (comparaison `sub` du jeton ↔ NINA demandé)
+> renvoyant 403 sans divulguer l'existence de la ressource.
+
+```ts
+// services/identity-service/test/authz.e2e-spec.ts (intégration Supertest)
+// ⏳ Phase 2 — Hypothèse : un guard (JWT + ownership) protège GET /citizens/:nina.
+//    NON encore implémenté : le GET réel est RolesGuard-seul (404 sur NINA inconnu),
+//    sans contrôle d'ownership. Cette spec décrit la cible, pas le comportement actuel.
+// On forge deux jetons citoyens (sub = NINA propriétaire) via un helper de test.
+
+import * as request from 'supertest';
+
+describe('Autorisation GET /citizens/:nina (IDOR)', () => {
+  const alice = '18903102015042V'; // jeton sub = alice
+  const bob = '29107050120073C'; // jeton sub = bob (lettre de contrôle valide : C)
+
+  it('200 : un citoyen lit SON propre NINA', async () => {
+    await request(app.getHttpServer())
+      .get(`/citizens/${alice}`)
+      .set('Authorization', `Bearer ${tokenFor(alice)}`)
+      .expect(200);
+  });
+
+  it('403 : un citoyen NE PEUT PAS lire le NINA d’un autre', async () => {
+    await request(app.getHttpServer())
+      .get(`/citizens/${bob}`) // ressource d’autrui
+      .set('Authorization', `Bearer ${tokenFor(alice)}`) // jeton d’Alice
+      .expect(403); // ⏳ Phase 2 — cible : Forbidden, PAS 404 (ne pas divulguer l’existence).
+    // Code actuel : RolesGuard-seul → 200 si NINA existe, 404 sinon. Ce test rougit tant que
+    // le guard d’ownership n’est pas livré.
+  });
+
+  it('401 : aucune Authorization → accès refusé', async () => {
+    await request(app.getHttpServer()).get(`/citizens/${alice}`).expect(401);
+  });
+
+  it('403 : un rôle agent SANS scope citizens:read est refusé', async () => {
+    await request(app.getHttpServer())
+      .get(`/citizens/${alice}`)
+      .set('Authorization', `Bearer ${tokenForRole('agent', [])}`)
+      .expect(403);
+  });
+});
+```
+
+> 💡 **Matrice à couvrir** (1 test par cellule) : pour chaque endpoint sensible
+> (`GET /citizens/:nina`, `PATCH /citizens/:nina`, corrections, audit), croiser {propriétaire, autre
+> citoyen, agent autorisé, agent non autorisé, anonyme} × {200, 403, 401}. Documenter la matrice
+> dans `docs/testing/COVERAGE-MATRIX.md`.
+
+#### 4.11.2 — JWT altéré / `alg=none` → 401/403
+
+**Risque** : CWE-347 _Improper Verification of Cryptographic Signature_. Un vérificateur naïf qui
+fait confiance au header `alg` accepte un jeton **non signé** (`alg:"none"`) ou signé avec une
+mauvaise clé. La validation doit **imposer l'algorithme attendu** (RS256, clé du JWKS Keycloak —
+ADR-013/034) et rejeter tout le reste.
+
+```ts
+// services/identity-service/test/jwt-tampering.e2e-spec.ts
+import * as request from 'supertest';
+
+// Jeton « alg:none » : header {"alg":"none","typ":"JWT"}, payload citoyen, signature VIDE.
+function forgeAlgNoneToken(sub: string): string {
+  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const header = b64({ alg: 'none', typ: 'JWT' });
+  const payload = b64({ sub, scope: 'citizens:read', exp: 9_999_999_999 });
+  return `${header}.${payload}.`; // 3e segment vide = pas de signature
+}
+
+describe('Durcissement vérification JWT', () => {
+  it('401 : jeton alg=none rejeté (jamais traité comme valide)', async () => {
+    await request(app.getHttpServer())
+      .get('/citizens/18903102015042V')
+      .set('Authorization', `Bearer ${forgeAlgNoneToken('18903102015042V')}`)
+      .expect(401);
+  });
+
+  it('401 : signature falsifiée (1 caractère muté) rejetée', async () => {
+    const valid = tokenFor('18903102015042V');
+    const tampered = valid.slice(0, -1) + (valid.at(-1) === 'A' ? 'B' : 'A');
+    await request(app.getHttpServer())
+      .get('/citizens/18903102015042V')
+      .set('Authorization', `Bearer ${tampered}`)
+      .expect(401);
+  });
+
+  it('401 : jeton expiré rejeté', async () => {
+    await request(app.getHttpServer())
+      .get('/citizens/18903102015042V')
+      .set('Authorization', `Bearer ${tokenFor('18903102015042V', { expired: true })}`)
+      .expect(401);
+  });
+
+  it('401 : signé avec une clé inconnue (pas dans le JWKS) rejeté', async () => {
+    await request(app.getHttpServer())
+      .get('/citizens/18903102015042V')
+      .set('Authorization', `Bearer ${signWithRogueKey('18903102015042V')}`)
+      .expect(401);
+  });
+});
+```
+
+> ⚠ **Canon QR vs JWT d'accès** : le JWT d'accès API est **RS256 via le JWKS Keycloak**. À ne pas
+> confondre avec la **signature du QR code** (RS256 Vault Transit) ni avec le **scellement audit**
+> (Ed25519 in-process, @noble/ed25519). Vault Transit ne supporte pas Ed25519 (ADR-026/034).
+
+#### 4.11.3 — Rate-limit → 429
+
+**Risque** : A04 _Insecure Design_ / abus (énumération NINA, brute-force). Le `ThrottlerGuard`
+global du `SecurityModule` (doc 15 §4.4) plafonne à **100 requêtes / 60 s**
+(`RATE_LIMIT_CONFIG.medium`). Le test prouve qu'au-delà du seuil, le service renvoie **429 Too Many
+Requests** (et non 200).
+
+```ts
+// services/identity-service/test/rate-limit.e2e-spec.ts
+import * as request from 'supertest';
+
+it('429 après dépassement du seuil (100 req / 60 s)', async () => {
+  const server = app.getHttpServer();
+  const url = '/citizens/18903102015042V';
+  const auth = { Authorization: `Bearer ${tokenFor('18903102015042V')}` };
+
+  // 100 requêtes sous le seuil → 200
+  for (let i = 0; i < 100; i++) {
+    await request(server).get(url).set(auth).expect(200);
+  }
+  // La 101ᵉ franchit le seuil → 429 + en-tête Retry-After
+  const res = await request(server).get(url).set(auth).expect(429);
+  expect(res.headers['retry-after']).toBeDefined();
+});
+```
+
+> 💡 Aligné avec doc 15 §4.5 (« 200 requêtes en 1 minute → 429 après le 100ᵉ »). Le cas équivalent
+> en charge réelle est couvert par k6 via un seuil `http_req_failed` qui distingue 429 (attendu sous
+> abus) des 5xx (bugs) — ne PAS confondre les deux dans les `thresholds`.
+
+#### 4.11.4 — Gate OWASP ZAP en CI (DAST)
+
+**Pourquoi** : un scan dynamique (DAST) attrape ce que les tests unitaires ne voient pas (en-têtes
+manquants, CORS trop large, endpoints non protégés). Le scan baseline ZAP (doc 15 §4.7, ADR-034)
+devient une **gate CI** : la pipeline échoue si une alerte **HIGH** apparaît.
+
+```yaml
+# Extrait commenté — .github/workflows/security.yml (⏳ Phase 2 : à câbler en CI)
+# NE PAS éditer le workflow réel ici ; ceci documente l'intention (cf. doc 16 §4 + doc 15 §4.7).
+#
+# zap_baseline:
+#   runs-on: ubuntu-latest
+#   steps:
+#     - uses: zaproxy/action-baseline@v0.14.0   # OWASP ZAP 2.16
+#       with:
+#         target: 'https://staging.nina-aes.uqar.ca'
+#         rules_file_name: '.zap/rules.tsv'      # faux positifs documentés et justifiés
+#         fail_action: true                       # ← GATE : échoue la CI sur alerte HIGH
+#         cmd_options: '-a'                       # inclut les règles actives
+```
+
+> 🔒 **Honnêteté** : aujourd'hui OWASP ZAP est **⏳** (cf. doc 15 §checklist : « OWASP ZAP scan
+> baseline → 0 HIGH » non coché). À présenter en soutenance comme **conçu, Phase 2**, pas comme
+> acquis. La gate est bloquante **uniquement sur HIGH** au départ (MEDIUM en warning) pour éviter de
+> bloquer le MVP sur du bruit, puis durcie.
+
+#### 4.11.5 — Assertion d'intégrité de la hash-chain d'audit (détection de falsification)
+
+**Pourquoi** : l'audit (ADR-007, doc 09) est une **hash-chain SHA-256 linéaire** append-only — _pas_
+un arbre de Merkle. Sa promesse : **toute modification rétroactive d'une ligne rompt la chaîne** et
+devient prouvable. Ce test injecte une falsification et vérifie que le vérificateur la **détecte**.
+
+Rappel du chaînage (doc 09 §5) :
+`merkleHash_N = SHA256( previousHash_{N-1} | payloadHash_N | occurredAt_N(ISO) | sourceEventId_N )`
+
+```ts
+// services/audit-service/test/chain-integrity.e2e-spec.ts (intégration)
+import { createHash } from 'node:crypto';
+
+// Réplique exacte du chaînage côté service (doc 09). SHA-256, séparateur '|'.
+function rowHash(prev: string, payloadHash: string, occurredAt: string, srcId: string): string {
+  return createHash('sha256').update(`${prev}|${payloadHash}|${occurredAt}|${srcId}`).digest('hex');
+}
+
+// Vérificateur : recalcule la chaîne et retourne l'index de la 1ʳᵉ rupture (-1 = intègre).
+function verifyChain(rows: AuditRow[]): number {
+  let prev = GENESIS_HASH; // hash de genèse (doc 09)
+  for (let i = 0; i < rows.length; i++) {
+    const expected = rowHash(prev, rows[i].payloadHash, rows[i].occurredAt, rows[i].sourceEventId);
+    if (expected !== rows[i].merkleHash || rows[i].previousHash !== prev) return i; // rupture
+    prev = rows[i].merkleHash;
+  }
+  return -1;
+}
+
+describe('Intégrité hash-chain audit (ADR-007)', () => {
+  it('chaîne intacte : aucune rupture détectée', async () => {
+    const rows = await seedAuditRows(50); // 50 events réels chaînés par le service
+    expect(verifyChain(rows)).toBe(-1);
+  });
+
+  it('détecte une falsification : muter le payload d’une ligne rompt la chaîne', async () => {
+    const rows = await seedAuditRows(50);
+    // Falsification rétroactive : on change le payload de la ligne 20 SANS rehacher la suite.
+    rows[20] = { ...rows[20], payloadHash: 'deadbeef'.repeat(8) };
+
+    // La rupture est détectée AU PLUS TARD à la ligne 20 (sa ligne suivante pointe vers l’ancien hash).
+    const broken = verifyChain(rows);
+    expect(broken).toBeGreaterThanOrEqual(20);
+    expect(broken).not.toBe(-1);
+  });
+
+  it('détecte une suppression de ligne (trou dans previousHash)', async () => {
+    const rows = await seedAuditRows(50);
+    rows.splice(30, 1); // on retire la ligne 30
+    expect(verifyChain(rows)).not.toBe(-1);
+  });
+});
+```
+
+> 🔒 **Honnêteté (canon)** : la hash-chain prouve l'intégrité **interne** (séquence non altérée),
+> mais elle n'est **opposable devant un tribunal** que si la **racine périodique est ancrée chez un
+> tiers** (OCLEI / Vérificateur Général — ADR-007/014). Sans ancrage externe, un adversaire qui
+> contrôle toute la base peut recalculer une chaîne cohérente. Ce test valide la **détection de
+> falsification ponctuelle**, pas la non-répudiation globale — à présenter ainsi en soutenance.
+
+---
+
 ## 5. Validation locale
 
 ```powershell
@@ -743,6 +1030,17 @@ docker run --rm -i grafana/k6:0.55.0 run \
 # 6) Mutation (manuel, P2)
 pnpm --filter @nina-aes/utils exec stryker run
 # attendu : score mutation ≥ 80% sur logique métier
+
+# 7) Tests de sécurité (autorisation, JWT, rate-limit, intégrité audit)
+pnpm --filter @nina-aes/identity-service test:e2e -- authz jwt-tampering rate-limit
+pnpm --filter @nina-aes/audit-service   test:e2e -- chain-integrity
+# attendu : IDOR → 403 ✅ · alg=none/expiré/clé inconnue → 401 ✅ · 101ᵉ req → 429 ✅
+#           falsification d'une ligne d'audit → rupture de hash-chain DÉTECTÉE ✅
+
+# 8) DAST OWASP ZAP baseline (⏳ Phase 2 — à câbler en CI, cf. doc 15 §4.7)
+docker run --rm -t -v "$PWD/.zap:/zap/wrk" ghcr.io/zaproxy/zaproxy:2.16.0 \
+  zap-baseline.py -t https://staging.nina-aes.uqar.ca -c rules.tsv
+# attendu (cible) : 0 alerte HIGH → gate CI verte
 ```
 
 ---
@@ -772,10 +1070,15 @@ pnpm --filter @nina-aes/utils exec stryker run
 - `docs/testing/TEST-CHARTER.md` — engagement étudiant : règles d'écriture des tests, code review
   checklist.
 - `docs/testing/COVERAGE-MATRIX.md` — par package / service, couverture actuelle + objectif + ticket
-  si dette.
+  si dette ; **inclut la matrice d'autorisation** (Étape 4.11.1 : endpoint × rôle × code HTTP).
 - Mise à jour `docs/CHANGELOG.md` §16 : tableau des suites de tests livrées
   - scores couverture par package.
 - Mise à jour `docs/16-CICD-GITHUB-ACTIONS.md` §4.3 : seuils `--cov-fail-under=80` documentés.
+- `docs/deployment/OPS-RUNBOOK.md` (à venir) — **source de vérité des SLO chiffrés** (latence
+  p95/p99, débit, taux d'erreur) ; les `thresholds` k6 de l'Étape 4.7 doivent y rester synchronisés
+  (anti-drift).
+- Renvoi `docs/15-SECURITY-HARDENING.md` §4.7 + ADR-034 : les tests de l'Étape 4.11 **prouvent** les
+  contrôles de sécurité conçus là-bas (autorisation, JWT, rate-limit, ZAP).
 
 ---
 
@@ -790,7 +1093,9 @@ pnpm --filter @nina-aes/utils exec stryker run
 - **Tests d'intégration NestJS** : 150 ✅ — Testcontainers Postgres+Redis OK
 - **Tests Pytest** : 120 ✅ — ai-service + anticorruption-service
 - **Tests E2E Playwright** : 30 ✅ — 3 apps Next.js, mode mock
-- **Tests de charge k6** : 4 scénarios livrés, thresholds verts contre staging
+- **Tests de charge k6** : 4 scénarios livrés, thresholds (SLO chiffrés) verts contre staging
+- **Tests de sécurité** : autorisation/IDOR → 403 ✅ · JWT altéré + `alg=none` → 401 ✅ · rate-limit
+  → 429 ✅ · intégrité hash-chain audit (falsification détectée) ✅ · gate ZAP ⏳ Phase 2
 - **Factories Faker** : `@nina-aes/test-fixtures` publié (citizens + nina + fdi + appointment +
   signalement)
 - **MSW** : intégré dans apps/citizen + apps/admin
@@ -813,7 +1118,10 @@ pnpm --filter @nina-aes/utils exec stryker run
 - [ ] ≥ 100 tests unitaires Pytest (ai-service + anticorruption-service, cov ≥ 80%)
 - [ ] ≥ 150 tests d'intégration Supertest + Testcontainers sur Bloc A
 - [ ] ≥ 30 tests E2E Playwright (Session 5 + extensions correction + RDV + USSD mock)
-- [ ] 4 scénarios k6 livrés et exécutés contre staging
+- [ ] 4 scénarios k6 livrés, SLO chiffrés alignés avec `docs/deployment/OPS-RUNBOOK.md` (à venir)
+- [ ] Tests de sécurité (Étape 4.11) : autorisation/IDOR → 403, JWT altéré + `alg=none` → 401,
+      rate-limit → 429, intégrité hash-chain audit (détection falsification) — verts
+- [ ] Gate OWASP ZAP baseline câblée en CI (0 HIGH) — ⏳ Phase 2 si non encore active
 - [ ] MSW configuré dans apps/citizen + apps/admin pour tests frontend
 - [ ] `coverageThreshold` à 80 % activé dans tous les `jest.config.cjs`
 - [ ] `--cov-fail-under=80` actif dans pyproject.toml des 2 FastAPI services
@@ -842,8 +1150,10 @@ pnpm --filter @nina-aes/utils exec stryker run
   `@nina-aes/utils`.
 - **Snapshot tests JSON Schemas** : si un schema Mali Ajv change, vérifier qu'aucun consommateur
   n'est cassé via un snapshot du fichier.
-- **Tests de sécurité (OWASP ZAP automatisé)** : déjà couvert par doc 15 §4.5 mais peut être étendu
-  avec des assertions ZAP dans la suite k6.
+- **Tests de sécurité avancés** : le socle (autorisation/IDOR, JWT `alg=none`, rate-limit, intégrité
+  hash-chain, gate ZAP) est traité à l'**Étape 4.11**. Extensions Phase 2 : fuzzing d'API (RESTler /
+  Schemathesis sur le contrat OpenAPI), tests d'injection ciblés (sqlmap en staging isolé), et
+  assertions ZAP **actives** (au-delà du baseline passif) sur les endpoints d'écriture.
 - **Lectures recommandées** :
   - Martin Fowler — _Test Pyramid_ (<https://martinfowler.com/articles/practical-test-pyramid.html>)
   - Kent C. Dodds — _Static / Unit / Integration / E2E trade-offs_
@@ -852,4 +1162,5 @@ pnpm --filter @nina-aes/utils exec stryker run
 
 ---
 
-_Document 18 — Version 1.0 — Mai 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_
+_Document 18 — Version 1.1 (harden : randomNina valide + chapitre Tests de sécurité 4.11 + SLO
+chiffrés) — Juin 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_

@@ -86,7 +86,13 @@ export class FdiService {
   async generate(input: FdiGenerateInput): Promise<FdiGenerateResult> {
     // 1. Citoyen + chaînes de lieux
     const citizen = await this.identity.fetchCitizen(input.nina);
-    if (!citizen) throw new NotFoundException(`NINA ${input.nina} introuvable`);
+    if (!citizen) {
+      // 🔒 Ne jamais échoyer le NINA en clair dans un message d'erreur (il
+      // remonte dans les logs centralisés / réponses d'erreur). On expose une
+      // référence hachée non réversible qui reste corrélable côté ops.
+      const ninaRef = createHash('sha256').update(input.nina).digest('hex').slice(0, 8);
+      throw new NotFoundException(`NINA (réf. ${ninaRef}) introuvable`);
+    }
 
     const [birthPlace, residence] = await Promise.all([
       this.identity.fetchLocation(citizen.birthPlace.id),
@@ -200,7 +206,9 @@ export class FdiService {
       sha256Pdf,
     });
 
-    this.log.log({ jti, nina: citizen.nina, serialNumber }, 'FDI émise');
+    // 🔒 Journal applicatif sans PII : `jti` (UUIDv7) suffit à corréler. Le NINA
+    // reste tracé uniquement dans l'événement d'audit immuable ci-dessus.
+    this.log.log({ jti, serialNumber }, 'FDI émise');
 
     return {
       documentId,

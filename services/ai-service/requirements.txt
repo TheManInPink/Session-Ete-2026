@@ -23,6 +23,10 @@ Pillow>=12.2.0
 # Utilisé par src/vault.py pour récupérer les secrets dynamiques.
 hvac>=2.4.0
 
+# Sécurité — vérification RS256/JWKS des JWT (RBAC, cf. app/auth.py + doc 08).
+# L'extra [crypto] tire `cryptography` (RSA).
+pyjwt[crypto]>=2.10.0
+
 # Observabilité — métriques + tracing + logs structurés
 # Utilisé par src/observability.py (cf. ADR-017 + doc 17)
 prometheus-client>=0.21.0

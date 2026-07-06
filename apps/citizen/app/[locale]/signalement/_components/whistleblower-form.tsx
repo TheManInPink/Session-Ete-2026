@@ -12,14 +12,20 @@
 
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
-import { Send, Loader2, AlertCircle, Copy } from 'lucide-react';
+import { Send, Loader2, AlertCircle, Copy, Check, ShieldCheck } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
-import type { AlertCategory } from '@nina-aes/api-client';
+import type { AlertCategory, FineSeverity } from '@nina-aes/api-client';
+import {
+  UI_CATEGORY_TO_FINE_CLASSIFICATION,
+  MAX_SEALED_CIPHERTEXT_B64,
+} from '@nina-aes/api-client';
+import { useSigacPublicKey, useSubmitSealedReport } from '@nina-aes/api-client/react';
+import { sealReportSealedBoxX25519 } from '../../../../lib/sigac/seal';
 
 const CATEGORIES: AlertCategory[] = [
   'BRIBERY',
@@ -48,27 +54,86 @@ export function WhistleblowerForm() {
     consentGiven: false,
   });
   const [error, setError] = useState<string | null>(null);
-  const [receipt, setReceipt] = useState<{ token: string; alertId: string } | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [receipt, setReceipt] = useState<{ token: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [sealing, setSealing] = useState(false);
+  // Clé publique procureur (pour sceller côté navigateur) + mutation de dépôt.
+  // Transport anonyme : sans cookie ni correlation-id (cf. lib/api/browser.ts).
+  const publicKeyQuery = useSigacPublicKey();
+  const submitReport = useSubmitSealedReport();
+  const keyReady = !!publicKeyQuery.data?.public_key;
+  const keyUnavailable =
+    publicKeyQuery.isError || (!!publicKeyQuery.data && !publicKeyQuery.data.public_key);
+  const isPending = submitReport.isPending || sealing;
+
+  const handleCopy = (token: string) => {
+    void navigator.clipboard?.writeText(token);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const canSubmit =
-    state.category !== '' && state.description.trim().length >= 50 && state.consentGiven;
+    state.category !== '' &&
+    state.description.trim().length >= 200 &&
+    state.consentGiven &&
+    keyReady;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
+    const category = state.category;
+    if (category === '') return;
     setError(null);
-    startTransition(async () => {
-      try {
-        // En mode démo : on simule un succès et on génère un token fictif
-        await new Promise((r) => setTimeout(r, 700));
-        setReceipt({
-          token: `vault:v3:${cryptoRandom(20)}`,
-          alertId: cryptoRandom(8),
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+
+    const pk = publicKeyQuery.data;
+    // 🔒 FAIL-CLOSED : sans clé publique valide, on NE soumet PAS. Jamais de
+    // repli sur un envoi en clair (ce serait la faille critique qu'on ferme).
+    if (!pk || !pk.public_key) {
+      setError(t('form.keyUnavailable'));
+      return;
+    }
+    if (pk.scheme !== 'SEALED_BOX_X25519') {
+      // Le formulaire web autorise des descriptions longues (> 2000 car.) qui
+      // ne tiennent pas dans un bloc RSA-OAEP : seul le sealed box X25519 est
+      // supporté ici (chiffrement hybride implicite, longueur arbitraire).
+      setError(t('form.schemeUnsupported'));
+      return;
+    }
+
+    const fineClassification = UI_CATEGORY_TO_FINE_CLASSIFICATION[category];
+    // Sévérité fine : le procureur la ré-évalue hors-ligne après déchiffrement.
+    const fineSeverity: FineSeverity = 'MEDIUM';
+
+    // La localisation approximative est EMBARQUÉE dans le message chiffré (elle
+    // ne doit pas voyager en clair). Seules classification/sévérité restent en
+    // clair (limite backend documentée).
+    const locationParts = [state.region.trim(), state.cercle.trim()].filter(Boolean);
+    const message =
+      state.description.trim() +
+      (locationParts.length ? `\n\n[Localisation approximative] ${locationParts.join(' / ')}` : '');
+
+    setSealing(true);
+    try {
+      const ciphertextB64 = await sealReportSealedBoxX25519(
+        { message, classification: fineClassification, severity: fineSeverity },
+        pk.public_key,
+      );
+      if (ciphertextB64.length > MAX_SEALED_CIPHERTEXT_B64) {
+        setError(t('form.tooLong'));
+        return;
       }
-    });
+      const data = await submitReport.mutateAsync({
+        ciphertext_b64: ciphertextB64,
+        scheme: pk.scheme,
+        cipher_kid: pk.cipher_kid,
+        fine_classification: fineClassification,
+        fine_severity: fineSeverity,
+      });
+      setReceipt({ token: data.tracking_token });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('form.error'));
+    } finally {
+      setSealing(false);
+    }
   };
 
   // ── Reçu post-soumission : remplace le formulaire ───────────────────────
@@ -79,23 +144,30 @@ export function WhistleblowerForm() {
           <AlertTitle>{t('receipt.title')}</AlertTitle>
           <AlertDescription>{t('receipt.body')}</AlertDescription>
         </Alert>
-        <div className="rounded-base border border-dashed border-border bg-bg-muted p-4">
+        <div className="rounded-base border border-border bg-bg-muted p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-fg-muted">
             {t('receipt.tokenLabel')}
           </p>
-          <p className="mt-2 break-all font-mono text-sm">{receipt.token}</p>
+          <p className="mt-2 select-all break-all rounded-base border border-border bg-bg px-3 py-2 font-mono text-sm text-fg">
+            {receipt.token}
+          </p>
           <Button
             type="button"
-            variant="ghost"
+            variant={copied ? 'outline' : 'ghost'}
             size="sm"
-            className="mt-2"
-            onClick={() => navigator.clipboard?.writeText(receipt.token)}
+            className={cn('mt-2', copied && 'text-success-700')}
+            onClick={() => handleCopy(receipt.token)}
+            aria-live="polite"
           >
-            <Copy className="size-4" aria-hidden="true" />
-            {t('receipt.copy')}
+            {copied ? (
+              <Check className="size-4" aria-hidden="true" />
+            ) : (
+              <Copy className="size-4" aria-hidden="true" />
+            )}
+            {copied ? t('receipt.copied') : t('receipt.copy')}
           </Button>
         </div>
-        <Alert variant="danger">
+        <Alert variant="danger" role="alert">
           <AlertCircle className="size-4" aria-hidden="true" />
           <AlertTitle>{t('receipt.warningTitle')}</AlertTitle>
           <AlertDescription>{t('receipt.warningBody')}</AlertDescription>
@@ -107,6 +179,21 @@ export function WhistleblowerForm() {
   // ── Formulaire ──────────────────────────────────────────────────────────
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      {/* Réassurance : chiffrement de bout en bout côté navigateur (informatif). */}
+      <Alert variant="success" role="status">
+        <ShieldCheck className="size-4" aria-hidden="true" />
+        <AlertDescription>{t('form.encryptedNotice')}</AlertDescription>
+      </Alert>
+
+      {/* Clé publique indisponible → soumission bloquée (fail-closed, jamais de clair). */}
+      {keyUnavailable && (
+        <Alert variant="danger" role="alert">
+          <AlertCircle className="size-4" aria-hidden="true" />
+          <AlertTitle>{t('form.error')}</AlertTitle>
+          <AlertDescription>{t('form.keyUnavailable')}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Catégorie */}
       <fieldset>
         <legend className="mb-3 text-sm font-medium">{t('form.category')}</legend>
@@ -144,15 +231,16 @@ export function WhistleblowerForm() {
           value={state.description}
           onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
           rows={8}
-          minLength={50}
-          maxLength={8000}
+          minLength={200}
+          maxLength={2000}
           required
           placeholder={t('form.descriptionPlaceholder')}
           className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-describedby="description-help"
         />
         <p id="description-help" className="mt-1 text-xs text-fg-muted">
-          {t('form.descriptionHelp')} ({state.description.length}/8000)
+          {/* Bornes 200-2000 (maquette PC-06) : garantit aussi un ciphertext base64 ≤ 8192. */}
+          {t('form.descriptionHelp')} ({state.description.length}/2000)
         </p>
       </div>
 
@@ -195,7 +283,7 @@ export function WhistleblowerForm() {
       </label>
 
       {error && (
-        <Alert variant="danger">
+        <Alert variant="danger" role="alert">
           <AlertCircle className="size-4" aria-hidden="true" />
           <AlertTitle>{t('form.error')}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -214,15 +302,8 @@ export function WhistleblowerForm() {
         ) : (
           <Send className="size-4" aria-hidden="true" />
         )}
-        {t('form.submit')}
+        {sealing ? t('form.encrypting') : t('form.submit')}
       </Button>
     </form>
   );
-}
-
-/** Génère une chaîne aléatoire courte côté client (uniquement pour la démo). */
-function cryptoRandom(bytes: number): string {
-  const buf = new Uint8Array(bytes);
-  crypto.getRandomValues(buf);
-  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
 }

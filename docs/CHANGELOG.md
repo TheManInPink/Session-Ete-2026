@@ -3,12 +3,601 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-13 (patch 0duodecies — api-gateway : terminaison
-> d'authentification au bord, `X-User-Context` signé JWS, rate limiting Redis, Swagger agrégé —
-> PROMPT 3.7)
+> **Dernière mise à jour** : 2026-07-06 (**Fix hydratation CSP + drawer AD-02** — 2 bugs attrapés
+> par les tests e2e mock : CSP statique sans nonce cassait l'hydratation des 3 apps ; Tailwind v4 ne
+> scannait pas `packages/ui` → drawer mal positionné. Voir 0quinvicies. Précédent : 0quattuorvicies
+> — Autorisation objet + RBAC SIGAC)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quinvicies. Patch 2026-07-06 — Fix hydratation CSP à nonce + drawer AD-02 (2 bugs e2e)
+
+Le durcissement sécurité de `0trevicies` (CSP stricte via `next.config.ts headers()`) avait
+introduit **deux régressions invisibles à l'œil** mais **attrapées par les tests e2e mock** de
+PROMPT 5.1 (admin corrections 5/5 rouge → vert). Diagnostic empirique (probes Playwright
+`getComputedStyle`), pas de supposition :
+
+- **CSP statique sans nonce → hydratation cassée (les 3 apps citizen/admin/governance)** : une CSP
+  `script-src 'self' 'wasm-unsafe-eval'` posée **statiquement** dans `next.config.ts headers()`
+  bloque les `<script>` **INLINE** de Next.js App Router (flux RSC `self.__next_f`, bootstrap
+  `self.__next_r`) → **aucune hydratation**, la page reste une coque serveur figée (skeletons,
+  **zéro appel API**, jamais interactive ; console :
+  `Invariant: Expected a request ID … self.__next_r`). Une CSP statique **ne peut pas** porter de
+  nonce. **Fix** : CSP retirée de `next.config.ts` (n'y restent que les en-têtes statiques : HSTS,
+  X-Frame-Options, etc.) et **régénérée par requête** dans `proxy.ts` (le middleware Next 16) :
+  `script-src 'self' 'nonce-…' 'strict-dynamic' 'wasm-unsafe-eval'` (+ `'unsafe-eval'` en dev pour
+  le HMR). Le nonce est propagé au moteur de rendu via override d'en-tête de requête
+  (`x-middleware-request-content-security-policy`, le canal de `NextResponse.next({request})`) —
+  sinon Next ne nonce pas ses scripts. Posture **« sans unsafe-inline » conservée** (décision
+  utilisateur). `docs/12 §9bis.4` réécrit. Contrepartie : nonce par requête ⇒ coque HTML dynamique
+  (légère érosion du PPR `cacheComponents`).
+- **Tailwind v4 ne scanne pas `packages/ui` → drawer AD-02 « outside of viewport »** : Tailwind v4
+  (`@import 'tailwindcss'`) auto-détecte les fichiers de l'app mais **ignore `node_modules`** (où le
+  lien workspace `@nina-aes/ui` est résolu). Les utilitaires présents **uniquement** dans les
+  composants partagés — `inset-y-0`, `top-0`, `slide-in-from-*` du `Sheet` — n'étaient **pas
+  générés**. Le drawer `fixed inset-y-0 h-dvh` retombait donc à sa **position statique sous le pli**
+  (`top` calculé ≈ 720px au lieu de 0) → boutons Approuver/Rejeter injoignables (clic e2e en
+  timeout). **Fix** : `@source '../**/*.{ts,tsx}';` ajouté dans `packages/ui/src/styles/globals.css`
+  (importé par les 3 apps → corrige tout d'un coup ; un `@source` explicite prime sur l'exclusion
+  node_modules). Preuve : probe runtime `<div class="fixed inset-y-0">` → `top: 0px` après fix
+  (était `868px`).
+- **Assertions e2e affinées** : governance — `getByRole('alert').toHaveCount(0)` faux-positivait sur
+  une live-region `@dnd-kit` ; remplacé par l'absence du texte d'erreur précis
+  (`Transition refusée`).
+
+### 0quattuorvicies. Patch 2026-07-06 — Autorisation objet PC-02/PC-05 + cloisonnement RBAC SIGAC
+
+Traitement du tier **HAUT** du backlog d'audit (typecheck `api-client` + `auth` + apps
+`citizen/admin/governance` OK ; identity-service 14/14 ; anticorruption-service 8/8) :
+
+- **PC-02 / AD-01 / AD-02 — routing api-client identity cassé en live (le mock masquait le bug)** :
+  `IdentityClient` visait `/citizens/by-nina/:nina`, `/citizens/search`, `/citizens/:id` — or le
+  gateway **forwarde le chemin INCHANGÉ** (`proxy.routes.ts`) et le controller n'expose que
+  `@Get(':nina')` (NinaOwnershipGuard, anti-IDOR déjà en place), `@Get()` (recherche) et
+  `@Get('by-id/:id')`. Les 3 chemins sont réalignés sur le controller réel (cf. doc 07 §2146). Le
+  filtre `nina` ne servait qu'en mock ; en live la fiche par NINA renvoyait 404.
+- **PC-05 — corrections self-scoped (fuite latente fermée)** : `fetchMyCorrections` appelait
+  `correction.list({ nina })`, un endpoint **réservé aux agents** qui **ignore** tout filtre `nina`
+  (un citoyen recevait 403, ou potentiellement tout le périmètre). Nouvelle route backend
+  `GET /corrections/me` (identity-service) : le NINA est dérivé **exclusivement du token** (jamais
+  d'un paramètre client), `@Roles(CITIZEN)`, `listForCitizen(nina)` filtre `citizen.nina` normalisé.
+  Câblage complet : `CorrectionClient.listMine()` + `CorrectionApi` + mock (self-scoped sur
+  `DEFAULT_MOCK_NINA`) + `fetchMyCorrections()` sans argument. `@Get('me')` déclaré **avant**
+  `@Get(':id')` (sinon capturé comme `:id`).
+- **RBAC SIGAC — rôle `ANTICORRUPTION_INSPECTOR` + cloisonnement (need-to-know)** : le rôle existait
+  côté realm Keycloak (`anticorruption_inspector`) et docs (07/08/09) mais **pas** dans le contrat
+  applicatif `@nina-aes/auth`. Ajouté au type `Role` + `KNOWN_ROLES`. **Bug prod corrigé** :
+  `extractUserFromClaims` filtrait les rôles JWT en **casse exacte MAJUSCULE** alors que le realm
+  les émet en **minuscule** → en mode keycloak **tous** les rôles étaient silencieusement écartés
+  (403 pour tout le monde) ; on normalise désormais en MAJUSCULE avant filtrage (doc 08 §369). Côté
+  AD-03 : la page reste ouverte à SUPERVISOR/AUDITOR/ADMIN (agrégats régionaux non nominatifs) mais
+  la **file procureur scellée** (`<SigacClient />`) n'est rendue que pour `ANTICORRUPTION_INSPECTOR`
+  (sinon `UnavailableCard`) — défense en profondeur au-dessus de la garde backend. Backend
+  `anticorruption-service` : `require_role("inspector")` (rôle inexistant au realm, donc
+  **inaccessible à l'inspecteur réel**) → `require_role("anticorruption_inspector")` sur
+  `/whistleblower/queue` **et** `/integrity-scores`. Le mock agent admin (« Modibo Konaté ») cumule
+  volontairement le rôle inspecteur (super-utilisateur de démo) pour préserver la démo/e2e AD-03 ;
+  la compartimentation réelle est portée par le realm en prod.
+- **Gateway — anti-corrélation du canal anonyme (souveraineté)** : sur les 3 routes PUBLIQUES du
+  lanceur d'alerte (`/sigac/whistleblower/{public-key,reports,reports/:token/status}`), le proxy
+  retire désormais **tout en-tête identifiant** avant de forwarder à anticorruption-service —
+  `X-Forwarded-For`/`X-Real-IP` (IP relayée), `User-Agent`, `Cookie`, `Referer`, `Accept-Language`,
+  `X-Correlation-Id`/`X-Request-Id`, `traceparent`/`tracestate` — et n'injecte PLUS le
+  correlation-id de trace. Défense en profondeur au-dessus du client (déjà sans cookie ni
+  correlation-id) et du service (qui ne journalise pas l'IP) : les identifiants n'atteignent jamais
+  l'aval, même via un ingress amont. Helper pur `buildForwardedHeaders()` (piloté par
+  `isPublicEndpoint`) + suite de tests `proxy.headers.spec.ts` (gateway 50/50). Routes protégées :
+  comportement inchangé.
+- **GOV-01 — identité du signataire révélée seulement après vérification** : la messagerie SGOGT
+  affichait le bloc d'attestation cryptographique (« Signataire : X », empreinte, horodatage) dès
+  qu'un message était inspecté, **quel que soit le résultat de la vérification JWS**. Un message
+  usurpé aurait donc affiché le nom de l'officiel impersoné comme signataire « attesté ». Désormais
+  le bloc n'est rendu qu'après `valid === true` ; sur signature invalide, un avertissement explicite
+  (`signature.identityUnverified`) remplace l'identité. En mock (`verify` → toujours `valid:true`)
+  la démo/e2e est inchangée ; l'écart ne se manifeste que sur une vraie signature invalide.
+- **`biometricHash` hors payload QR — NON traité (conflit ADR-006)** : l'audit le proposait en
+  préventif, mais **ADR-006 mandate explicitement** `biometric_hash` dans le JWS QR (placeholder
+  `null` en P0, valeur réelle en Bloc F) pour la vérification hors-ligne. Le retirer violerait un
+  ADR ratifié (SHA-256 one-way sur un document physique = design délibéré, pas une faille) → à
+  porter en révision d'ADR si le besoin se confirme, pas en modif de code unilatérale.
+- **PC-02 — erreurs d'autorisation traitées côté page (fail-safe UX)** : un `401` (session expirée
+  en cours de requête RSC) redirige vers `/login?next=…` ; un `403` (NINA d'autrui —
+  `NinaOwnershipGuard`, tentative d'IDOR) affiche un refus explicite (« Accès refusé, ce NINA n'est
+  pas le vôtre ») sans confirmer l'existence du dossier, au lieu d'un crash générique. Le `404`
+  reste géré via `notFound()`.
+- **PC-05 — auto-rafraîchissement 30 s** : composant client `AutoRefresh` (`router.refresh()`
+  visibility-aware — suspendu onglet masqué, rattrapage au retour) sur le tableau de bord ; le
+  statut des corrections (`UNDER_REVIEW → APPROVED/REJECTED`) se met à jour sans action manuelle,
+  sans extraire la liste server-rendered en composant client (zéro risque d'hydratation).
+
+Couverture de test : `correction.service.spec.ts` (identity-service, Prisma mocké) verrouille
+l'invariant anti-IDOR de `listForCitizen` — filtre sur le NINA **normalisé** du token + `deletedAt`
+null, `where` du `count` identique (identity-service 17/17).
+
+**Reste au backlog (P2)** : uploads réels MinIO (correction justificatif + evidence signalement —
+**infra requise**) ; i18n 7 langues nationales (**traductions natives requises** ; deepMerge
+fallback FR en attendant) ; NINA hors des chemins d'URL citizen (refonte routage — `Referrer-Policy`
+déjà en place) ; `fine_classification`/`fine_severity` SIGAC encore en clair (limite backend).
+
+### 0trevicies. Patch 2026-07-06 — Durcissement sécurité frontend/backend + écran USSD-01
+
+Audit multi-agents des 12 écrans (PC-01→06, AD-01→03, GOV-01/02, USSD-01) + surfaces sécurité
+transverses (BFF, en-têtes, QR-JWT, pipeline anonyme, wiring api-client) → backlog priorisé.
+Première passe de durcissement (typecheck 6 packages OK ; 35/35 tests `document-service` ; lint
+`citizen` 0 warning) :
+
+- **En-têtes de sécurité (docs/12 §9bis.4)** : CSP stricte (`script-src 'self' 'wasm-unsafe-eval'`,
+  `frame-ancestors 'none'`, `object-src/base-uri/form-action 'self'`), **HSTS** (prod uniquement),
+  **COOP `same-origin`**, `X-Permitted-Cross-Domain-Policies: none` posés sur les 3 `next.config.ts`
+  (citizen `camera=(self)` pour le scanner QR §5.5 ; admin/governance `camera=()`). La CSP était
+  documentée (§4.2) mais **absente** du code — c'était le contrôle anti-XSS principal.
+- **document-service** : `ThrottlerGuard` réellement appliqué à `PublicDocumentsController`
+  (`POST public/documents/verify-qr` non authentifié n'était PAS rate-limité malgré sa docstring) ;
+  NINA retiré des logs applicatifs et messages d'exception (`fdi.service.ts`, `identity.client.ts` →
+  référence `sha256(nina)[0..8]`). Le NINA reste tracé **uniquement** dans l'audit immuable.
+- **XSS `javascript:` (console admin AD-02)** : `justificationDocUrl` durci — schéma Zod
+  `SafeDocUrlSchema` bannit `javascript:/data:/vbscript:/file:` + garde au rendu `isHttpUrl` (lien
+  cliquable http(s) uniquement ; React n'assainit pas ces `href`).
+- **Auth fail-open (`@nina-aes/auth`)** : nouveau `resolveAuthMode()` — **kill-switch prod** (refuse
+  `mock` si `NODE_ENV=production` sauf opt-in `NINA_ALLOW_MOCK_AUTH=true`), défaut `keycloak` en
+  prod. Câblé dans `login/logout/session` + les 3 `proxy.ts` (le bypass `hasToken || mock` devient
+  inerte en prod). Symétrique du `assertApiModeSafe` du mode données.
+- **BFF** : `AbortSignal.timeout(15 s)` (→ 504 `GATEWAY_TIMEOUT`) sur les 3 proxys
+  `app/api/v1/[...path]/route.ts` (anti-slowloris). Le streaming binaire (`req.body` duplex) reste à
+  câbler avec les uploads réels.
+- **USSD-01 (écran manquant → livré)** : `app/[locale]/ussd-sim/page.tsx` + client pilote + BFF
+  **dev** `app/api/ussd-sim/route.ts` relayant vers `ussd-service:3014` `/ussd/callback` (secret
+  partagé côté serveur ; désactivé hors dev sauf `NINA_ENABLE_USSD_SIM=true`). Pavé virtuel +
+  clavier physique, parcours réel en 8 langues.
+- **PC-03** : case d'attestation sur l'honneur **obligatoire** (bloque la soumission d'une demande à
+  portée légale) ; clé i18n `admin.corrections.drawer.rejectReasonError` corrigée (« 5 » → 20,
+  paramétrée et consommée par le drawer).
+- **PC-06 — chiffrement de bout en bout du signalement (CRITIQUE résolu)** : le corps + la
+  localisation partaient **en clair**. Désormais scellés **dans le navigateur** (libsodium sealed
+  box X25519, interopérable octet-pour-octet avec PyNaCl `SealedBox` côté procureur) avant tout
+  envoi — le serveur ne reçoit qu'un `ciphertext_b64` qu'il ne peut pas déchiffrer. Le pipeline
+  anonyme **cassé** est réconcilié avec le contrat FastAPI réel :
+  `GET .../whistleblower/public-key`, `POST .../whistleblower/reports`,
+  `GET .../whistleblower/reports/{token}/status` (les 3 seuls allowlistés public au gateway).
+  Schémas Zod reçus/statut alignés (`SealedReportRequest/Receipt`, `WhistleblowerStatusResponse`),
+  taxonomie UI→backend pontée (`UI_CATEGORY_TO_FINE_CLASSIFICATION`), bornes description 200-2000
+  (maquette + plafond ciphertext 8192). **Fail-closed** : sans clé publique valide, la soumission
+  est refusée (jamais de repli en clair). Anti-corrélation : le transport anonyme (`skipAuth`)
+  n'émet plus le `X-Correlation-Id` horodaté ; token de suivi mock rendu aléatoire
+  (`crypto.getRandomValues`). ⚠️ `fine_classification`/`fine_severity` restent en clair (limite
+  backend documentée — à sceller côté serveur ultérieurement). Dépendance ajoutée :
+  `libsodium-wrappers` (WASM, chargé uniquement sur PC-06 ; CSP `wasm-unsafe-eval` déjà posée).
+
+**Reste au backlog (non traité ici, à prioriser)** : ~~IDOR PC-02~~ + ~~`/corrections/me`
+self-scoped PC-05~~ + ~~cloisonnement RBAC de la file procureur SIGAC~~ → **traités en
+[0quattuorvicies](#0quattuorvicies-patch-2026-07-06--autorisation-objet-pc-02pc-05--cloisonnement-rbac-sigac)**
+(le rôle réel est `ANTICORRUPTION_INSPECTOR`, pas `INSPECTOR/PROSECUTOR` qui n'existent pas au
+realm) ; uploads réels vers MinIO ; auto-refresh 30 s PC-05 ; `biometricHash` hors payload QR
+(préventif Bloc F) ; couverture i18n des 7 langues nationales.
+
+### 0duovicies. Patch 2026-07-05 — Frontend tranche 2 : apps admin + governance branchées (PROMPT 5.1)
+
+Suite de la couture données mock↔live (tranche 1 = app citizen, cf.
+[0quaterdecies](#0quaterdecies-patch-2026-06-17--frontend--couture-api-mocklive--hooks-react--bff-prompt-51-tranche-1--app-citizen)
+
+- **ADR-031**). Les apps **admin** (AD-01/02/03) et **governance** (GOV-01/02) passent de mocks
+  locaux au contrat `@nina-aes/api-client`, en **répliquant le pattern citizen** (kill-switch
+  `assertApiModeSafe`, BFF `app/api/v1/[...path]` injectant le Bearer côté serveur,
+  `ApiClientProvider`
+- `MutationCache` sensible à `ApiError`). Méthode : orchestration multi-agents (contrats → apps en
+  parallèle) puis vérification centralisée.
+
+**Livré** :
+
+- **`@nina-aes/api-client`** (scope `api-client`) : `CorrectionApi.approve(id)` /
+  `reject(id, {reason ≥ 20})` ; `list()` **normalise** la réponse backend
+  `{data, total, page, pageSize}` (+ join `citizen` optionnel `{id, nina, firstName, lastName}`)
+  vers la vue publique `{items, …}` (les consommateurs citizen ne changent pas) + filtres
+  `agent`/`from`/`to`. `SigacApi.getQueue()` (file procureur en buckets, **authentifié** — les
+  `submit`/`getStatus` anonymes restent `skipAuth`). **Nouveau domaine `governance`** :
+  `sgogt.{send,inbox,verify,ack,respond}` + `directives.{create,list,transition}`, schémas Zod
+  calqués sur governance-service (`MessageView`, `DirectiveView`, statuts
+  `DRAFT/SENT/IN_PROGRESS/COMPLETED/REJECTED`, priorités `NORMAL/HIGH/CRITICAL`) +
+  `DIRECTIVE_LEGAL_TRANSITIONS`/`isDirectiveTransitionAllowed` (machine à états partagée UI↔mock).
+  **Nouveau domaine `adminDashboard.getStats()`** au contrat **honnête nullable** : en live seuls
+  `correctionsPending`/`correctionsToday` sont dérivés (compteurs paginés d'identity-service), tout
+  le reste (`activityByRegion`, `topAgents`, séries, feed) vaut `null` = « backend d'agrégation Bloc
+  D non implémenté ». Hooks RQ (`useApproveCorrection`, `useRejectCorrection`,
+  `useWhistleblowerQueue`, `useSgogtInbox`, `useSendSgogtMessage`, `useAckSgogtMessage`,
+  `useRespondSgogtMessage`, `useVerifySgogtMessage`, `useDirectives`, `useCreateDirective`,
+  `useTransitionDirective`, `useAdminDashboardStats`) + query-keys. **Mock stateful déterministe**
+  (`mock/{corrections,governance,admin-dashboard}.fixtures.ts`, `personas.ts`, `deterministic.ts`) :
+  50 corrections vue agent (dont les 2 fixtures citoyennes historiques du NINA `18903102015042V`
+  préservées), inbox 8 messages / 3 fils, 7 directives, file whistleblower ;
+  `approve/reject/send/respond/ack/transition` **mutent l'état en mémoire** (validé par les MÊMES
+  schémas Zod que le live).
+
+- **`api-gateway`** (scope `api-gateway`) : **table de routage réconciliée** — 18 préfixes → 14
+  services. Ajout `/api/v1/{sgogt,directives,elections}` → `GOVERNANCE_SERVICE_URL` (le préfixe mort
+  `/api/v1/governance` — qui ne matchait aucun controller aval, ceux-ci étant sous sgogt/directives/
+  elections — est **retiré**). `publicEndpoints` SIGAC corrigés : les 2 entrées mortes
+  (`/api/v1/sigac/alerts[/status]`, routes inexistantes) remplacées par les 3 vraies routes anonymes
+  du canal lanceur d'alerte (`whistleblower/public-key`, `whistleblower/reports`,
+  `whistleblower/reports/:token/status`) ; nouveau matching **segment-exact fail-closed** pour les
+  déclarations à paramètre `:token` (token vide/surnuméraire → JWT exigé). **54/54 tests** (36 +
+  18). README §2.1 mis à jour.
+
+- **`apps/admin`** (scope `admin`) : couture `lib/api/{config,server,browser}.ts` + BFF +
+  `instrumentation.ts` + `providers.tsx` (redirect 401 **dérivant la locale du pathname** via un
+  `localeFromPathname` local, pas de `/fr` en dur — amélioration vs citizen). **AD-02** :
+  `useCorrections` + adaptateur `lib/corrections/` (join citizen → `citizenName`, région dérivée du
+  NINA, timeline **synthétisée** des seuls champs réels), drawer `useApprove/useReject` (motif ≥
+  20). **AD-01** : `adminDashboard.getStats()` + `lib/dashboard/` view-model ; sections `null` →
+  `UnavailableCard` « Bloc D à venir » ; simulation d'arrivées d'alertes conservée **uniquement en
+  mode mock**. **AD-03** : `useWhistleblowerQueue` (buckets) ; heatmap/top-agents dégradés. Mocks
+  locaux `lib/mock-{corrections,dashboard}.ts` **supprimés**. E2E admin recalés (approbation/rejet
+  bout-en-bout, mock stateful).
+
+- **`apps/governance`** (scope `gov`) : couture identique. **GOV-01** : `useSgogtInbox` (**polling
+  30 s** — pas de WebSocket backend, escalade par cron), regroupement par `threadId`, annuaire
+  `lib/directory.ts` (via `MOCK_GOVERNANCE_DIRECTORY`, repli « Fonctionnaire {uuid.8} » en live),
+  composition/réponse activées, ack à l'ouverture, badge de vérif de signature par message. **GOV-02
+  Kanban** : **5 colonnes = statuts serveur** (l'ancienne colonne « Escaladée » devient un **badge
+  `escalationLevel`**), priorités `CRITICAL/HIGH/NORMAL` → affichage P1/P2/P3, drag **restreint aux
+  transitions légales** + update optimiste **auto-inerte** avec rollback, rejet exigeant une note.
+  **Drift crypto corrigé** : le canon (ADR-026/034, `governance-service/src/crypto/jws.signer.ts`)
+  est une signature **JWS RS256 côté serveur via Vault Transit** (clé non exportable, aucune
+  signature client possible) → tous les libellés « Ed25519 » de l'UI/i18n governance deviennent «
+  **Signature électronique vérifiée (JWS)** ». Clés `governance.*` de `messages/fr.json` refondues
+  (repli automatique pour les 7 autres langues via le `deepMerge` de
+  `packages/i18n/src/request.ts`).
+
+- **`turbo.json`** : `E2E_GOVERNANCE_URL` ajouté au `globalEnv` (était silencé par un eslint-disable
+  dans `playwright.config.ts`).
+
+- **Alignement vocabulaire crypto `shared-types` + `ui`** : le type spec obsolète
+  `GovernanceMessage` (non consommé par le code vivant — le live passe par `MessageView` de
+  governance-service) portait encore `signatureEd25519` / `publicKeyFingerprint`, en contradiction
+  avec le canon **JWS RS256 serveur** (la colonne Prisma réelle est `signature`, scheme-agnostique).
+  Renommés en **`jwsSignature` / `signingKeyId`** (`interfaces.ts` + `dtos.ts` +
+  `governanceMessageIngestSchema`) ; `packages/ui/signed-message-bubble.tsx` (badge « Ed25519 ✓ » →
+  « JWS ✓ », infobulles alignées) ; diagramme `docs/diagrams/02-classes.puml` synchronisé. Les
+  clés/types réexportés (`GovernanceMessage`, `GovernanceMessageIngestDto`) ne changent PAS de nom —
+  aucun consommateur cassé. Le **vrai** Ed25519 du repo (interop transfrontalier, scellement audit
+  Merkle, consentement biométrique) est **intact** : le renommage est ciblé sur le seul contexte
+  messagerie SGOGT.
+
+**Vérif** : `check-types` api-client + citizen (non-régression) + admin + governance + i18n +
+shared-types + ui ✅ (dist shared-types reconstruit) ; `eslint --max-warnings=0` sur les 4 zones ✅
+; `api-gateway` 54/54 ✅ ; `docs:sync:check` ✅. **Playwright e2e admin/gov NON lancés** (exécution
+CI ; le drag @dnd-kit gov est le point le plus sensible aux flakes — passe de run réelle à faire).
+
+**Reste (hors périmètre — code fait foi)** : mode live jamais testé contre backend réel ;
+whistleblower store/dispute d'anticorruption-service non persistés (mémoire, Bloc D) ; polling temps
+réel PC-05 citizen toujours non câblé ; le type spec `GovernanceMessage` de `shared-types` reste
+globalement divergent de `MessageView` (governance-service) au-delà du champ signature
+(`publicKeyFingerprint`→`signingKeyId` fait, mais `serverTimestamp`/`recipientIds`/`readStatus` non
+réconciliés) — réconciliation complète du type à faire si un consommateur l'adopte.
+
+**Incident (résolu)** : un switch de branche GitHub Desktop (`feat` → `main`) survenu pendant le
+workflow a mêlé le travail à des marqueurs de conflit et à du WIP d'autres chantiers ; récupération
+par snapshot + réapplication sur `feat`. Le diff de session inclut donc, **hors tranche 2 et à ne
+pas committer sans tri**, du WIP utilisateur préexistant (apps/citizen d'une session parallèle ;
+`packages/config` + services biometric/interop/vulnerability issus d'un stash `!!GitHub_Desktop`,
+toujours présent dans `git stash list`).
+
+### 0unvicies. Consolidation 2026-06-25 — Phase 1 : audit contenu + sécurité des 27 docs (5 vagues)
+
+Consolidation **PHASE 1** (audit de contenu et de sécurité des 27 documents) livrée le
+**2026-06-25** sur la branche **`feat/ai-training-pipeline`**, en **5 commits**. Méthode : pipeline
+**write → verify adversarial (crypto) → repair** ; gate pré-commit **`verify:repo`** vert à chaque
+commit ; les contrôles non encore implémentés dans le code sont marqués ⏳ « conçu, Phase 2 ».
+
+- **`e3c7335` — Wave 1** : doc 15 durci ; **correction crypto SIGAC** (doc 23 : Ed25519 **NE CHIFFRE
+  PAS** → sealed box X25519/XSalsa20-Poly1305 ou RSA-OAEP côté client) et **biométrie** (doc 25 +
+  ADR-025 : HMAC strict incompatible biométrie floue → _cancelable biometrics_ / _fuzzy extractor_
+  ISO/IEC 24745) ; création de `docs/security/THREAT-MODEL.md` + `SECURITY-RUNBOOK.md` +
+  `docs/adr/ADR-034-security-hardening-vault-mtls-owasp.md` ; archivage des 2 docs orphelins
+  (`01-fondations`, `02-infrastructure`) vers `docs/_archive/`.
+- **`c5e9723` — Wave 2a** : docs 06/07/11/13/14/22/24 (guards/IDOR honnête, RCE joblib
+  _fail-closed_, JWKS multi-kid mobile, HMAC-in-Vault gouvernance, auth machine bornée) + correctifs
+  code `services/ai-service` (`config.py` credential en clair retiré + _fail-closed_ ; `main.py`
+  `/score` guard + masquage NINA).
+- **`a2832e8` — Wave 2b** : docs 02/03/04/05/08/09/10/20 (secrets externalisés Vault, mTLS,
+  zero-trust K3s Calico/PSA, audit AppRole, OpenAPI 3.2).
+- **`ffbc3d8` — Wave 3** : docs 00/01/12/16/17/18/19/21/26 (matrice sécurité transversale + plan de
+  sortie souveraineté, TOTP/passkey, anti-replay interop, honnêteté soutenance).
+- **`ee31ee4` — Wave 4a** : 12 docs thématiques créés —
+  `docs/biometrics/{DPIA-NINA-AES-2026,INCIDENT-PROTOCOL,CONSENT-PROTOCOL}`,
+  `docs/sigac/{WHISTLEBLOWER-PROTOCOL,MODEL-CARDS,SCORING-RUNBOOK}`,
+  `docs/observability/{RUNBOOK,SLOs}`, `docs/deployment/{DRP-RUNBOOK,OPS-RUNBOOK}`,
+  `docs/governance/{SGOGT-PROTOCOL,ELECTIONS-EXPORT-CONTRACT}`.
+
+**Total ADRs : 34** (ADR-001..034).
+
+### 0vicies. Patch 2026-06-18 — Réconciliation de la topologie RabbitMQ (audit non capté)
+
+audit-service consomme l'exchange topic **`nina.events`** (+ fanout `nina.audit`), patterns
+`citizen.#,correction.#,document.#,identity.#,…` — conforme à
+`infrastructure/docker/rabbitmq/ definitions.json`. Mais **deux publishers émettaient ailleurs**,
+donc leurs événements **n'étaient jamais audités** :
+
+- **document-service** publiait sur `audit.events` (un exchange orphelin auto-créé, non consommé) ;
+- **identity-service** publiait sur `nina-aes.events` (coquille avec tiret) au lieu de
+  `nina.events`.
+
+Invisible pour `tsc`/lint (chaînes runtime) et pour les tests (pas de broker e2e).
+
+**Correctif (côté publishers)** :
+
+- `identity-service` : défaut de l'exchange `nina-aes.events` → **`nina.events`** (code +
+  `.env.example` ; var `RABBITMQ_EXCHANGE`).
+- `document-service` : variable `RABBITMQ_AUDIT_EXCHANGE` (défaut `audit.events`) **renommée
+  `RABBITMQ_EVENTS_EXCHANGE`** (défaut `nina.events`), alignée sur la convention d'audit-service.
+- Notes de drift mises à jour (audit-service `audit.consumer.ts` + README).
+
+**Vérif** : `tsc` OK sur document/identity/audit-service. ⚠️ **Action requise en local** : si votre
+`services/identity-service/.env` (non versionné) fixe `RABBITMQ_EXCHANGE=nina-aes.events`, le passer
+à `nina.events`.
+
+**Réconciliation doc** (faite) : ADR-014, docs 09/10/11 et les diagrammes 99 (Mermaid + PlantUML)
+nommaient encore l'exchange/file historiques `audit.events` / `audit.queue` — désormais alignés sur
+`nina.events` (topic) / `nina.audit` (fanout) / `audit.log`. ADR-014 conserve sa décision de fond +
+une note de mise à jour ; doc 09 §9 décrit la topologie réelle (deux exchanges, publishers par
+service, ACK+drop des messages non normalisables, DLQ recommandée). Le code + `definitions.json`
+font foi.
+
+### 0novemdecies. Patch 2026-06-18 — Pipeline de tokens : `tokens.json` autoritatif → Style Dictionary → `tokens.css`
+
+Industrialisation du correctif `0octodecies`. **ADR :
+[ADR-033](./adr/ADR-033-design-tokens-style-dictionary-pipeline.md).**
+
+`tokens.json` (DTCG / Style Dictionary 4) était documenté comme source de vérité mais n'était
+branché à rien — `tokens.css` était maintenu à la main (d'où le bug de classes mortes). Désormais
+**`tokens.json` est autoritatif** et `tokens.css` est **généré**.
+
+**Livré** :
+
+- **`tokens.json` complété** : `neutral.0`, `success.100`, `warning.800` (utilisés mais absents) +
+  sections `semantic` (rôles mode clair) et `semanticDark` (surcharges sombres), en références.
+- **Pipeline** : `packages/ui/style-dictionary/build.mjs` + script `tokens:build`. Format CSS custom
+  (`nina/tokens-css`) : échelles → `@theme` (valeurs hsl résolues, aucun transform de couleur) ;
+  rôles → `:root` en `var(--color-…)` ; mode sombre → `:root[data-theme='dark']`. Sortie JS
+  (`javascript/esm`) pour RN/JS (artefact non versionné).
+- **`src/styles/tokens.css` est maintenant GÉNÉRÉ** (en-tête « ne pas éditer à la main »). Toute
+  valeur passe par `tokens.json` puis `tokens:build`.
+- **pnpm 11** : `style-dictionary` + `@bundled-es-modules/glob` en `allowBuilds: false` (JS pur, pas
+  de script de build requis) ; `style-dictionary` ajouté en devDependency de `@nina-aes/ui`.
+
+**Vérif (empirique)** : `tokens.css` généré compilé via `@tailwindcss/postcss@4.3.0` — 27 classes
+témoins (échelles + jetons sémantiques + opacité) **toutes générées, 0 manquante** ; `build.mjs`
+lint OK ; `tokens.json` JSON valide.
+
+**Reste** (cf. ADR-032 § limites) : dedupe d'apps (drawer admin, appointment-form, LanguageSwitcher
+citoyen — bloqué sur vérif e2e fiable dans cet environnement).
+
+### 0octodecies. Patch 2026-06-18 — Correctif tokens : échelles de couleur enregistrées dans `@theme`
+
+**Root-cause d'un bug systémique de rendu.** `packages/ui/src/styles/tokens.css` définissait les
+échelles de couleur (`--color-primary-50…950`, `--color-success-50/500/700`, `--color-danger-*`, …)
+dans un simple `@layer theme { :root { … } }`. En Tailwind v4, **seul le bloc `@theme` génère des
+utilitaires** : ces variables n'étaient donc que des variables CSS sans classes associées. Toutes
+les classes d'échelle (`bg-success-50`, `text-danger-700`, `bg-primary-50`, `text-warning-800`,
+`stroke-success-500`, …) — utilisées **massivement** dans `Alert`, `Badge`, `IntegrityGauge`,
+`Input` et **~40 fichiers d'app** (badges de statut, fils d'alertes, panneaux de score IA, états de
+créneaux, surbrillances) — étaient **mortes** : aucun fond ni couleur de texte rendus. Invisible
+pour `tsc`/ESLint (les noms de classes Tailwind ne sont pas validés) et pour les e2e (qui
+n'assertent pas les couleurs).
+
+**Correctif** : déplacement des échelles de couleur dans un bloc `@theme` (les rôles sémantiques
+`--bg`/`--primary`/… et le mode sombre restent dans `:root`, qu'un `@theme` statique ne permettrait
+pas). Ajout de `--color-success-100` et `--color-warning-800` (utilisés mais jamais définis). Les
+neutres chauds surchargent désormais correctement la palette par défaut de Tailwind.
+
+**Pourquoi ce choix** (vs réécrire ~45 fichiers en jetons sémantiques + opacité) : **un seul
+changement** de la source de vérité des tokens corrige tout l'existant **en préservant le design
+voulu** (fonds `-50` clairs + texte `-700` foncé), sans toucher au moindre composant/app.
+
+**Vérif (empirique)** : compilation réelle via `@tailwindcss/postcss@4.3.0` avant/après — avant :
+les classes d'échelle absentes du CSS généré ; après : `bg-success-50`, `text-danger-700`,
+`bg-primary-50`, `stroke-success-500`, … **toutes générées**, les jetons sémantiques + modificateurs
+d'opacité (`bg-success/10`, `text-primary-fg/70`, …) restant générés. CSS 78,4 Ko → 81,2 Ko.
+
+### 0septdecies. Patch 2026-06-18 — Design system (lot 3) : 11 composants restants + drift tokens découvert
+
+Achèvement des composants `@nina-aes/ui` spécifiés (design-system.md §3-4), **sans aucune nouvelle
+dépendance** (tout fait main ou composé sur les primitives existantes). **ADR :
+[ADR-032](./adr/ADR-032-design-system-component-buildout.md).** Méthode : orchestration multi-agents
+(22 agents — construction parallèle + **revue adversariale** par composant), corrections appliquées,
+puis vérification centralisée.
+
+**Livré** :
+
+- **Atomes** : `Combobox` (sélecteur recherchable accessible — Popover + listbox filtré, motif
+  WAI-ARIA, insensible aux accents) ; `Calendar` (grille mensuelle pure React + Intl, navigation
+  clavier complète, **sans `react-day-picker`**) ; `DatePicker` (Popover + Calendar).
+- **Conteneurs** : `Toast` (`ToastProvider` + `useToast`, file + portail SSR-safe, auto-dismiss,
+  `role=status`/`alert` selon variant) ; `DataGrid` (générique `<T>`, **contrôlé** — tri/sélection/
+  pagination via callbacks — bâti sur `Table`/`Checkbox`/`Select`) ; `ErrorBoundary` (class
+  component, repli par défaut avec ID de corrélation + boutons recharger/accueil).
+- **Métier** : `UploadZone` (drag-drop + états uploading/success/error) ; `MaliMap` (carte SVG des
+  régions, **présentationnelle / props-driven** — projection GeoJSON laissée à la couche app pour
+  rester souverain) ; `WhistleblowerForm` (signalement **anonyme** — aucun champ identifiant,
+  `autoComplete="off"`, aucun cookie/empreinte ; compose Alert/RadioGroup/Textarea/UploadZone) ;
+  `KioskKeyboard` (variantes numeric/azerty/nina, cibles ≥ 64px WCAG 2.5.5) ; `UssdSimulator`
+  (maquette feature phone + écran LCD + `KioskKeyboard`).
+- **11 sous-chemins `exports`** ajoutés à `packages/ui/package.json`. **0 nouvelle dépendance.**
+
+**Vérif** : `@nina-aes/ui` typecheck (tsc) **0 erreur** + lint `--max-warnings=0` **0 warning** ;
+`package.json` JSON valide. Lot **purement additif** (aucune app recâblée). Corrections post-revue
+appliquées : annotation `FormEvent` retirée (handler inline, WhistleblowerForm) ; collision
+`onInput`/`onKeyPress` natifs résolue via `Omit` (UssdSimulator/KioskKeyboard) ; cibles `nina`
+portées à 64px ; entité non échappée (ErrorBoundary).
+
+**⚠ Drift découvert (hors lot)** : `alert.tsx`/`input.tsx` — et en réalité tout le code (≈45
+fichiers) — utilisent des classes d'échelle Tailwind (`bg-info-50`, `text-info-700`,
+`bg-danger-50/30`, …) qui **ne sont pas générées** (échelles dans `@layer theme`, et non `@theme`).
+**✅ Résolu en
+[0octodecies](#0octodecies-patch-2026-06-18--correctif-tokens--échelles-de-couleur-enregistrées-dans-theme)**
+par enregistrement des échelles dans `@theme` (correction à la source, sans réécrire les
+composants). Les composants du lot 3 n'utilisent que des jetons sémantiques + opacité.
+
+**Reste** (cf. ADR-032 § limites) : pipeline Style Dictionary ; dedupe d'apps (drawer admin,
+appointment-form, LanguageSwitcher citoyen — bloqué sur vérif e2e fiable dans cet environnement).
+
+### 0sexdecies. Patch 2026-06-18 — Design system (lot 2) : icônes maliennes + Select/Slider + cartes gouvernance
+
+Suite de l'industrialisation du DS, toujours par **lots additifs vérifiés** (typecheck + lint
+`@nina-aes/ui` à chaque lot, sans réécriture d'UX d'app). **ADR :
+[ADR-032](./adr/ADR-032-design-system-component-buildout.md).**
+
+**Livré** :
+
+- **5 icônes maliennes custom** (`src/icons/`, commit `17f5fa3`) : BlackStar (étoile de l'AES,
+  `fill=currentColor`), Baobab, KolaNut, Hornbill, Mask — toutes sur `IconBase`
+  (`React.SVGProps<SVGSVGElement>` + prop `size`), exportées via `@nina-aes/ui/icons`.
+- **2 atomes Radix** (commit `8f5fc07`) : Select (Trigger/Content/Item/Label/Separator, déclencheur
+  calqué sur Input) et Slider (valeur unique, a11y native flèches/Home/End).
+- **2 cartes métier gouvernance** (`components/business/`, commit `8f5fc07`) : DirectiveCard (carte
+  Kanban SGOGT — priorité P1/P2/P3, bordure rouge si en retard, niveau d'escalade) et
+  SignedMessageBubble (bulle de messagerie officielle — badge signature Ed25519 vérifiée/absente,
+  empreinte de clé via `title` natif).
+- **Dépendances** : `@radix-ui/react-select`, `@radix-ui/react-slider` + 4 sous-chemins `exports`
+  dans `packages/ui/package.json`.
+
+**Vérif** : `@nina-aes/ui` typecheck (11/11 turbo) + lint OK ; `verify:repo` + `docs:sync:check` OK.
+Lot **purement additif** (aucune app recâblée) — pas de risque e2e.
+
+**Reste** (cf. ADR-032 § limites) : atomes combobox/datepicker ; conteneurs
+toast/data-grid/error-boundary ; métier UploadZone/MaliMap/WhistleblowerForm/KioskKeyboard/
+UssdSimulator ; pipeline Style Dictionary ; dedupe d'apps (drawer admin, appointment-form,
+LanguageSwitcher citoyen).
+
+### 0quindecies. Patch 2026-06-17 — Design system : 24 composants `@nina-aes/ui` + déprécations React 19 + dedupe
+
+Industrialisation du design system par **lots vérifiés** (typecheck + lint à chaque lot). **ADR :
+[ADR-032](./adr/ADR-032-design-system-component-buildout.md).**
+
+> Style maison unifié : primitives **Radix** + **class-variance-authority** + **tokens sémantiques**
+> Tailwind v4 (uniquement les classes du `@theme inline`, robustes) + `React.ComponentRef` + a11y
+> native. Composants métier **découplés** du domaine (unions locales, pas de dépendance
+> shared-types).
+
+**Livré** :
+
+- **8 atomes** : switch, radio-group, textarea, avatar, spinner, tooltip, tabs, progress.
+- **8 conteneurs / navigation** : dialog (4 tailles), popover, accordion, breadcrumb, pagination,
+  table, stepper, empty-state.
+- **8 composants métier** (`components/business/`) : NinaDisplay, CitizenCard, AiScorePanel (jauge
+  SVG `role="meter"`), CorrectionTimeline, AlertSeverityBadge, PrioritySlot, LanguageSelector (8
+  langues), AESCountrySwitcher.
+- **Déprécations React 19** corrigées (`FormEvent`→`SyntheticEvent`, `ElementRef`→`ComponentRef`)
+  dans ui + citizen + admin.
+- **Déduplication** : le dashboard citoyen (PC-05) consomme désormais la `CorrectionTimeline` du
+  design system au lieu d'une copie inline (~75 lignes supprimées ; étape courante en `warning`
+  conforme à design-system.md §3.6).
+- **Doc** : `figma-prompts.md` aligné (NINA d'exemple valide `…V`, plan 43h).
+
+**Vérif** : `@nina-aes/ui` typecheck + lint OK à chaque lot ; citizen typecheck + lint + **e2e
+13/13** après dedupe ; `verify:repo` OK.
+
+**Reste** (cf. ADR-032 § limites) : atomes select/slider ; conteneurs toast/data-grid/error-boundary
+; métier UploadZone/MaliMap/DirectiveCard/SignedMessageBubble/WhistleblowerForm/KioskKeyboard/
+UssdSimulator ; 5 icônes maliennes ; pipeline Style Dictionary ; dedupe restante (drawer admin,
+appointment-form, LanguageSwitcher citoyen).
+
+### 0quaterdecies. Patch 2026-06-17 — Frontend : couture API mock↔live + hooks `@react` + BFF (PROMPT 5.1, tranche 1 — app citizen)
+
+Passage des écrans citoyen d'un rendu **sur mocks locaux** à une **couture de données** branchée sur
+`@nina-aes/api-client`, avec bascule mock↔live et garanties de sécurité. **ADR :
+[ADR-031](./adr/ADR-031-frontend-data-layer-mock-live-bff.md).**
+
+> Constat de départ : `api-client`, `i18n`, `auth` et les providers React Query **existaient déjà**
+> ; le vrai manque était la couture UI ↔ client (aucun hook, aucun écran branché). Décision validée
+> (chemin « 1/1/1 ») : **garder le client fait-main**, y ajouter une couche de hooks, **pas** de
+> codegen orval au runtime (l'agrégateur du gateway supprime silencieusement les services éteints).
+
+**Livré** :
+
+- **`@nina-aes/api-client`** : interfaces de sous-clients (permettent un mock structurel),
+  **`createMockApiClient()`** (fixtures déterministes **validées par les mêmes schémas Zod** =
+  fail-closed même en démo), mappers `ficheFromCitizen`/`ficheFromDemo` (modèle de vue
+  `CitizenFiche`), option `credentials` sur le `HttpClient` (anonymat). Nouveau sous-chemin
+  **`@nina-aes/api-client/react`** : `ApiClientProvider`/`useApiClient` + fabrique de query-keys +
+  12 hooks RQ ; `react`/`@tanstack/react-query` en **peerDependencies optionnelles** (`jsx` activé).
+- **`apps/citizen`** : `lib/api/{config,server,browser}.ts` (résolution mode + **kill-switch prod**
+  `assertApiModeSafe`, couche RSC cookie→Bearer, client navigateur) ; **BFF**
+  `app/api/v1/[...path]/route.ts` (Bearer injecté **côté serveur** depuis le cookie httpOnly, jamais
+  en JS ; rejet de traversée de chemin) ; `instrumentation.ts` (kill-switch au boot) ;
+  `ApiClientProvider` câblé dans `providers.tsx`. **Écrans citoyen PC-02 → PC-06 branchés** : PC-02
+  (lecture `fetchCitizenFiche`), PC-03 (`useSubmitCorrection`), PC-04 (`useAvailableSlots` +
+  `useCreateAppointment`, créneaux porteurs de leur centre), PC-05 (dashboard via
+  `fetchMyCorrections`/`fetchMyAppointments`), PC-06 (**signalement anonyme** `useSubmitAlert` —
+  transport sans cookie vers le gateway public, `meta.anonymous` ⇒ pas de redirection /login sur
+  401).
+- **Bascule** : `NEXT_PUBLIC_NINA_API_MODE` (`mock`|`live`, repli `NEXT_PUBLIC_DEMO_MODE`) ;
+  `NEXT_PUBLIC_APP_URL` + `NEXT_PUBLIC_GATEWAY_URL` ajoutés à `apps/citizen/.env.local.example`.
+
+**Vérif** : typecheck (api-client + citizen) ✅, lint citizen (0 warning) ✅, **e2e citizen 13/13**
+(mode mock, dont flux PC-03 soumission→suivi, PC-04 réservation→confirmation, PC-06
+signalement→token) ✅, `verify:repo` ✅.
+
+**Revue** : revue adversariale (workflow 16 agents) — 8 findings confirmés → 3 correctifs (BFF
+anti-traversée, 401 anonyme via `MutationCache`+`meta`, kill-switch refusant `localhost` en prod) +
+3 clarifications de commentaires ; 2 rejetés (dont « NINA mock checksum » — l'e2e prouve `…V`
+valide).
+
+**Reste** : polling temps réel PC-05 (hook `useCorrection({ refetchInterval })` prêt, non câblé) ;
+apps **admin** & **governance** = tranches suivantes. Mode live câblé mais non testé contre backend
+réel (stack non démarrée).
+
+**Drift pré-existant repéré (hors périmètre)** : `.env.example` racine `CITIZEN_PORT=4000` alors que
+les apps tournent en 4001/4002/4003 (apps lancées hors docker → pas d'impact runtime).
+
+### 0terdecies. Patch 2026-06-17 — Module IA : pipeline d'entraînement + générateur restauré + intégration `ai-service` (PROMPT 4.3)
+
+Passage de l'IA d'un **scaffold sans modèle** à un pipeline d'entraînement reproductible avec
+artefact exporté, évaluation, et `ai-service` qui **charge et score** réellement. **ADR :
+[ADR-030](./adr/ADR-030-ai-training-pipeline-bundle-dataset-generator.md).**
+
+**Livré** :
+
+- **`ai-models/training/`** (paquet `training`, Python 3.14, src-layout) : `nina.py` (décodage NINA,
+  parité vérifiée avec `packages/utils/nina.ts`), `data.py` (chargement + découpe stratifiée
+  60/20/20 reproductible, taxonomie canonique tolérante aux 2 schémas CSV), `features.py`
+  (`FeatureBuilder` fit/transform, **38 variables**, référentiels appris sur **train seul** =
+  anti-fuite), `train_xgboost.py` (GridSearchCV 5-fold, **bundle joblib auto-suffisant** +
+  `metadata.json`, MLflow optionnel → repli JSON, **porte qualité** `--min-f1/--min-auc`),
+  `train_anomaly.py` (Isolation Forest SIGAC, amorce Bloc D), `evaluate.py` (rapport HTML **SVG sans
+  dépendance**). **44 tests pytest** (33 training + 7 générateur + 4 ai-service réutilisés). Perfs
+  de référence (synthétique) : **TEST f1 ≈ 0.87, AUC binaire ≈ 0.99**.
+- **`ai-models/dataset-generator/`** : **RESTAURÉ** (source perdue par troncature ENOSPC — cf. §
+  incidents). Ré-écrit fidèlement (paquet `dataset_generator`), référentiel embarqué `catalog.json`
+  (régions NINA héritées 1-9) amorcé depuis le 1ᵉʳ dataset. Entrypoint réel
+  `python -m dataset_generator.generate --rows --output` ; `validate` + `export_reference` CLIs.
+- **Intégration `ai-service`** (`app/inference.py` + `app/main.py` + `app/config.py`) : chargement
+  du bundle au démarrage **non bloquant**, `GET /api/v1/ai/model-info`,
+  `POST /api/v1/ai/reload-models` (**gardé `X-Admin-Token`** si `AI_ADMIN_TOKEN`),
+  `POST /api/v1/ai/score` (503 si modèle absent). CORS piloté par config (jamais `*`+credentials).
+  `ModelRegistry` thread-safe + validation de forme.
+- **CI** : `.github/workflows/train-models.yml` (génération → tests → entraînement avec porte
+  qualité → Isolation Forest → rapport → publication d'artefacts). Python 3.14 (pas de spaCy ⇒
+  wheels cp314 OK).
+- **`.gitignore`** : `ai-models/exported/*.joblib` + `*.run.json` ignorés (régénérables) ;
+  `metadata.json` suivi ; `ai-models/datasets/*.csv` et rapports HTML ignorés ; `mlruns/`.
+
+**Revue** : double passe adversariale (2 workflows, 8 relecteurs) — 24 findings 1ʳᵉ passe + 5 de
+régression, tous traités ou explicitement hors-périmètre (Dockerfile, RBAC Keycloak, signature
+modèle — cf. ADR-030 § limites).
+
+**Incident** : la troncature à 0 octet du `dataset-generator` (et du
+`services/ai-service/src/main.py` mort) est cohérente avec la saturation disque `.turbo` (ENOSPC) —
+l'app vivante reste `app/main.py`.
+
+**Durcissement (même session)** : intégrité du bundle (sidecar `.sha256` vérifié AVANT
+désérialisation, `AI_REQUIRE_SIGNED_BUNDLE`) ; RBAC service (`app/auth.py` — Bearer RS256/JWKS +
+rôle, repli `X-Admin-Token`, `AI_JWKS_URL`) ; `services/ai-service/Dockerfile` corrigé (3.13-slim,
+`app.main:app`, `training` sur PYTHONPATH) + route `/health` non préfixée. +10 tests ai-service.
+
+**Limites résiduelles** : séparabilité synthétique élevée (perfs réelles RAVEC inférieures) ;
+provisioning du bundle en production (volume/MinIO) → doc 20 ; signature cryptographique forte
+(Vault/cosign au-delà du SHA-256) → doc 15.
 
 ### 0duodecies. Patch 2026-06-13 — `api-gateway` : auth au bord + rate limit Redis + Swagger agrégé (PROMPT 3.7)
 
@@ -210,9 +799,9 @@ Passage du **squelette** à un service complet (`services/audit-service/`, port 
   Ed25519 en en-têtes), `/:id`, `/:id/proof`, `/roots/latest`. Guards JWKS locaux (ADR-027).
 - **Vérif offline** `pnpm --filter @nina-aes/audit-service verify:chain`.
 
-**Drift signalé (non corrigé ici)** : `document-service` publie sur l'exchange `audit.events`,
-`identity-service` sur `nina-aes.events` — ni l'un ni l'autre ne correspond à `nina.events` consommé
-par audit-service. Réconciliation à faire côté publishers (cf. README audit-service §2).
+**Drift signalé** : `document-service` publiait sur `audit.events`, `identity-service` sur
+`nina-aes.events` — ni l'un ni l'autre ne correspondait à `nina.events` consommé par audit-service.
+**✅ Résolu en 0vicies** (réconciliation côté publishers).
 
 **Versions** : `@noble/hashes@^1.8.0` (la 1.9.0 n'existe pas ; la v2 déplace les sous-chemins) ;
 `canonicalize` retiré du service.

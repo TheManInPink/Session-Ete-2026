@@ -8,7 +8,10 @@
     // pas publié comme ESM standalone — on utilise donc la résolution
     // « bundler » qui n'exige pas d'extensions `.js` explicites.
     "module": "ESNext",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    // Le sous-chemin `./react` contient des composants/hook (.tsx) — JSX requis
+    // pour `tsc --noEmit`. React/TanStack Query sont des peerDependencies.
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

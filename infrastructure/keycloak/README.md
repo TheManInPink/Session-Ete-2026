@@ -19,6 +19,23 @@ Configuration du realm `nina-aes` consommé par `auth-service` (PROMPT 3.2).
   - Service account doté de `realm-management` (`manage-users`, `view-users`, `query-users`,
     `view-realm`, `view-clients`, `manage-clients`)
   - `secret` initial : `keycloak-client-dev-secret` (override en prod via Vault)
+- **Client `nina-citizen`** (PUBLIC — PKCE S256) :
+  - Consommé par l'app frontend `apps/citizen` (Next.js BFF) pour le flow OIDC Authorization Code +
+    PKCE — c'est ce que déclenche le bouton « Continuer vers Keycloak ».
+  - `standardFlowEnabled` ✅, `publicClient` ✅ (aucun secret), redirect_uri
+    `http://localhost:4001/api/auth/callback`, webOrigins `http://localhost:4001`.
+  - 2 protocol mappers : attribut utilisateur `nina` → claim `nina` (access + id token, lu par
+    `getSession`) ; **audience mapper** ajoutant `nina-citizen` à l'`aud` de l'access token (sinon
+    la vérif `audience` de `@nina-aes/auth` rejette le token).
+  - `directAccessGrantsEnabled` ✅ — dev/tests uniquement (l'app utilise le code flow) ; à
+    désactiver en prod.
+  - ⚠️ L'app citizen n'emprunte réellement ce flow que si `NINA_AUTH_MODE=keycloak`
+    (`apps/citizen/.env.local`) ; défaut dev = `mock` (session factice instantanée).
+- **Utilisateur de démo `citoyen.demo`** (dev uniquement) :
+  - Mot de passe `Citizen-Dev-2026!`, rôle `citizen`, attribut `nina=18903102015042V` (Fatoumata
+    Diallo — cohérent avec le mock frontend). Permet un vrai login navigateur.
+  - ⚠️ Identifiants de développement committés (comme le secret ci-dessus) — ne JAMAIS reproduire en
+    production.
 - **Refresh token rotation** activée côté Keycloak (`revokeRefreshToken: true`,
   `refreshTokenMaxReuse: 0`) — cohérent avec la rotation auth-service.
 - **Access token lifespan** 900 s (15 min) — aligné `JWT_ACCESS_TTL_SECONDS`.

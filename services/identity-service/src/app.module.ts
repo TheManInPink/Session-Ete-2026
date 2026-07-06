@@ -24,6 +24,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ObservabilityModule } from '@nina-aes/observability';
 
 import { AppController } from './app.controller';
+import { AuthModule } from './auth/auth.module';
 import { CitizenModule } from './modules/citizen/citizen.module';
 import { CorrectionModule } from './modules/correction/correction.module';
 import { LocationModule } from './modules/location/location.module';
@@ -57,6 +58,11 @@ import { RabbitMQModule } from './infrastructure/rabbitmq/rabbitmq.module';
       serviceVersion: process.env.SERVICE_VERSION ?? '0.1.0',
       env: (process.env.ENV ?? 'dev') as 'dev' | 'staging' | 'prod',
     }),
+
+    // ─── Sécurité (auth global : verifier RS256/JWKS + guards) ─────
+    // Module @Global() : expose JWT_VERIFIER + JwtAuthGuard/RolesGuard/
+    // NinaOwnershipGuard à tous les contrôleurs (ADR-027 / ADR-029, doc 07 §6.5bis).
+    AuthModule,
 
     RedisModule,
     RabbitMQModule,

@@ -64,7 +64,23 @@ export type MessageKey =
   | 'nina_not_found'
   | 'session_expired'
   | 'internal_error'
-  | 'goodbye';
+  | 'goodbye'
+  // ── Binding phone↔NINA (2ᵉ facteur SMS) ──
+  // `otp_challenge` est NEUTRE : affiché À L'IDENTIQUE que le NINA existe ou
+  // non (fermeture de l'oracle d'énumération). Il ne confirme JAMAIS qu'un
+  // code a réellement été envoyé. `otp_sent` (legacy, leak d'existence) est
+  // CONSERVÉ pour rétro-compat mais N'EST PLUS UTILISÉ par le handler.
+  | 'otp_challenge'
+  | 'otp_sent'
+  | 'enter_otp'
+  | 'otp_invalid'
+  // ── Anti-énumération (message NEUTRE, ne confirme jamais un NINA) ──
+  | 'rate_limited'
+  // ── Signalement SIGAC anonyme ──
+  | 'alert_notice'
+  | 'alert_prompt'
+  | 'alert_too_short'
+  | 'alert_received';
 
 /**
  * Catalogue traductions. Garder chaque chaîne < 160 caractères pour respecter
@@ -150,6 +166,105 @@ export const MESSAGES: Record<MessageKey, Record<SupportedLanguage, string>> = {
     hau: 'Na gode.',
     mos: 'Y pẽ-y maan.',
     dje: 'Foofo.',
+  },
+
+  // ── Binding phone↔NINA (2ᵉ facteur SMS) ────────────────────────────
+  // Message NEUTRE servi À L'IDENTIQUE pour « NINA inconnu » et « numéro non
+  // lié » : un attaquant ne peut PAS distinguer les deux cas (fermeture de
+  // l'oracle d'existence, doc 14 §4.2.2 + §4.5). Ne confirme jamais un envoi.
+  otp_challenge: {
+    fr: 'Verification requise. Saisissez le code recu par SMS au numero officiel lie a ce NINA.',
+    bm: 'Sɛgɛsɛgɛli. SMS code sɛbɛn.',
+    snk: 'Suganfin. SMS code (6).',
+    ff: 'Ƴeewtaade. Naatnu code SMS.',
+    tmq: 'Asensu. Aru code SMS.',
+    hau: 'Tabbatarwa. Shigar code SMS.',
+    mos: 'Vɛɛnem. SMS code gʋlsi.',
+    dje: 'Naanay. SMS code hantum.',
+  },
+  otp_sent: {
+    fr: "Ce numero n'est pas lie a ce NINA. Un code a ete envoye au numero officiel.",
+    bm: 'Code cini numero officiel ma.',
+    snk: 'Code yi numero officiel.',
+    ff: 'Code neldaama numero officiel.',
+    tmq: 'Code itwazan i numero officiel.',
+    hau: 'An aika code zuwa lambar hukuma.',
+    mos: 'Code tʋmsa numero officiel.',
+    dje: 'Code samba numero officiel ga.',
+  },
+  enter_otp: {
+    fr: 'Entrez le code recu par SMS :',
+    bm: 'SMS code sɛbɛn :',
+    snk: 'SMS code (6) :',
+    ff: 'Naatnu code SMS :',
+    tmq: 'Aru code SMS :',
+    hau: 'Shigar code SMS :',
+    mos: 'SMS code gʋlsi :',
+    dje: 'SMS code hantum :',
+  },
+  otp_invalid: {
+    fr: 'Code incorrect ou expire.',
+    bm: 'Code tɛ ɲɛ.',
+    snk: 'Code ñaxa.',
+    ff: 'Code moƴƴaaki.',
+    tmq: 'Code wer iben.',
+    hau: 'Code ba daidai ba.',
+    mos: 'Code pa zems ye.',
+    dje: 'Code si tonton.',
+  },
+
+  // ── Anti-énumération : message NEUTRE (ne confirme jamais un NINA) ──
+  rate_limited: {
+    fr: 'Trop de requetes. Reessayez plus tard.',
+    bm: 'Sɛgɛsɛgɛli ka ca. I segin kɔfɛ.',
+    snk: 'Yidi gabe. Tugu.',
+    ff: 'Naamnde keewi. Fuɗɗo.',
+    tmq: 'Aɣiwen aggen. Ales.',
+    hau: 'Bukatu sun yawaita. Sake gwadawa.',
+    mos: 'Sokr waooga. Lebg n yik.',
+    dje: 'Hayyaŋ boobo. Ye ceeci.',
+  },
+
+  // ── Signalement SIGAC anonyme ──────────────────────────────────────
+  alert_notice: {
+    fr: 'Anonyme. Pour plus de surete, utilisez une cabine ou une SIM non nominative.',
+    bm: 'Tɔgɔ tɛ. SIM wɛrɛ ka fisa.',
+    snk: 'Tɔɔ duun. SIM doɲa.',
+    ff: 'Innde alaa. Huutoro SIM goɗɗo.',
+    tmq: 'War isem. Sxedem SIM iyyan.',
+    hau: 'Babu suna. Yi amfani SIM dabam.',
+    mos: 'Yʋʋr ka be ye. Tʋm SIM a to.',
+    dje: 'Maa si. SIM fo ka boori.',
+  },
+  alert_prompt: {
+    fr: 'Decrivez le probleme (160 car. max) :',
+    bm: 'Gɛlɛya fɔ (160) :',
+    snk: 'Yidi sefe (160) :',
+    ff: 'Sifo caɗeele (160) :',
+    tmq: 'Mel taluft (160) :',
+    hau: 'Bayyana matsala (160) :',
+    mos: 'Togs yɛlle (160) :',
+    dje: 'Ci hari (160) :',
+  },
+  alert_too_short: {
+    fr: 'Description trop courte (10 car. min).',
+    bm: 'Sɛbɛn ka surun.',
+    snk: 'Sefe doronto.',
+    ff: 'Sifo raɓɓiɗi.',
+    tmq: 'Taluft tedrest.',
+    hau: 'Bayani ya yi gajere.',
+    mos: 'Gomd yaa bilfu.',
+    dje: 'Ciine kayna.',
+  },
+  alert_received: {
+    fr: 'Signalement recu. Code de suivi : {token}',
+    bm: 'Sɛbɛn sɔrɔla. Code : {token}',
+    snk: 'Yidi sondi. Code : {token}',
+    ff: 'Habrude jaɓaama. Code : {token}',
+    tmq: 'Esebd itwasla. Code : {token}',
+    hau: 'An karbi rahoto. Code : {token}',
+    mos: 'Wagsg paama. Code : {token}',
+    dje: 'Ci ta. Code : {token}',
   },
 };
 

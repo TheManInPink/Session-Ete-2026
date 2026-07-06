@@ -65,6 +65,33 @@ export class UserRepository implements OnModuleDestroy {
     return prisma.user.findUnique({ where: { keycloakId } });
   }
 
+  /**
+   * Résout le NINA d'un citoyen à partir de son email (clé de liaison
+   * `User.email` → `Citizen.email`).
+   *
+   * 🔗 Point d'intégration Bloc A : la table `users` (auth) et la table
+   * `citizens` (identité NINA) ne partagent PAS de clé étrangère — la jointure
+   * canonique est l'email vérifié à l'inscription. On lit donc le NINA à
+   * l'émission du token plutôt que de dupliquer la colonne dans `users`
+   * (source de vérité unique = `citizens.nina`).
+   *
+   * Renvoie `null` si aucun citoyen n'est rattaché à cet email (compte interne,
+   * ou citoyen pas encore enrôlé côté identity-service) — l'appelant émet alors
+   * un token SANS claim `nina` (comportement fail-open volontaire : un token
+   * sans `nina` est simplement refusé par `NinaOwnershipGuard` sur les routes
+   * « propriétaire », sans bloquer le reste de l'API).
+   *
+   * @param email Email du compte (déjà vérifié à l'inscription).
+   * @returns Le NINA (14 chiffres + 1 lettre) ou `null`.
+   */
+  async findCitizenNinaByEmail(email: string): Promise<string | null> {
+    const citizen = await prisma.citizen.findFirst({
+      where: { email },
+      select: { nina: true },
+    });
+    return citizen?.nina ?? null;
+  }
+
   updateLastLogin(id: string): Promise<User> {
     return prisma.user.update({
       where: { id },

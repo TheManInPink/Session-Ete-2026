@@ -16,23 +16,23 @@ explicitement.
 
 ### Endpoints livrés
 
-| Méthode + Path                           | Public | Throttle  | Notes                                      |
-| ---------------------------------------- | ------ | --------- | ------------------------------------------ |
-| `POST /api/v1/auth/register/request-otp` | ✅     | —         | Réponse uniforme (anti user-enum)          |
-| `POST /api/v1/auth/register/verify`      | ✅     | —         | Keycloak admin API → DB → tokens           |
-| `POST /api/v1/auth/login`                | ✅     | 5/900s/IP | Renvoie `MfaPending` ou `AuthSession`      |
-| `POST /api/v1/auth/refresh`              | ✅     | —         | Rotation famille + détection rejeu         |
-| `POST /api/v1/auth/logout`               | ✅     | —         | Idempotent (204)                           |
-| `POST /api/v1/auth/mfa/totp/setup`       | —      | —         | Auth requis ; QR otpauth                   |
-| `POST /api/v1/auth/mfa/totp/confirm`     | —      | —         | Auth requis ; chiffre secret Vault Transit |
-| `POST /api/v1/auth/mfa/totp/verify`      | ✅     | —         | Preuve = challenge JWT                     |
-| `POST /api/v1/auth/mfa/sms/challenge`    | ✅     | —         | Preuve = challenge JWT                     |
-| `POST /api/v1/auth/mfa/sms/verify`       | ✅     | —         | Preuve = challenge JWT                     |
-| `POST /api/v1/auth/password/forgot`      | ✅     | —         | Réponse uniforme 202 + envoi SMS           |
-| `POST /api/v1/auth/password/reset`       | ✅     | —         | Consume-once jti + PUT Keycloak            |
-| `GET  /api/v1/auth/me`                   | —      | —         | Projection `MeResponse` (anti-leak)        |
-| `GET  /health`                           | ✅     | —         | Probe Docker/K3s (hors prefix `api/v1`)    |
-| `GET  /.well-known/jwks.json`            | ✅     | —         | Proxy JWKS Keycloak (hors prefix)          |
+| Méthode + Path                           | Public | Throttle  | Notes                                                                |
+| ---------------------------------------- | ------ | --------- | -------------------------------------------------------------------- |
+| `POST /api/v1/auth/register/request-otp` | ✅     | —         | Réponse uniforme (anti user-enum)                                    |
+| `POST /api/v1/auth/register/verify`      | ✅     | —         | Keycloak admin API → DB → tokens                                     |
+| `POST /api/v1/auth/login`                | ✅     | 5/900s/IP | Renvoie `MfaPending` ou `AuthSession`                                |
+| `POST /api/v1/auth/refresh`              | ✅     | —         | Rotation famille + détection rejeu                                   |
+| `POST /api/v1/auth/logout`               | ✅     | —         | Idempotent (204)                                                     |
+| `POST /api/v1/auth/mfa/totp/setup`       | —      | —         | Auth requis ; QR otpauth                                             |
+| `POST /api/v1/auth/mfa/totp/confirm`     | —      | —         | Auth requis ; chiffre secret Vault Transit                           |
+| `POST /api/v1/auth/mfa/totp/verify`      | ✅     | —         | Preuve = challenge JWT                                               |
+| `POST /api/v1/auth/mfa/sms/challenge`    | ✅     | —         | Preuve = challenge JWT                                               |
+| `POST /api/v1/auth/mfa/sms/verify`       | ✅     | —         | Preuve = challenge JWT                                               |
+| `POST /api/v1/auth/password/forgot`      | ✅     | —         | Réponse uniforme 202 + envoi SMS                                     |
+| `POST /api/v1/auth/password/reset`       | ✅     | —         | Consume-once jti + PUT Keycloak                                      |
+| `GET  /api/v1/auth/me`                   | —      | —         | Projection `MeResponse` (anti-leak)                                  |
+| `GET  /health`                           | ✅     | —         | Probe Docker/K3s (hors prefix `api/v1`)                              |
+| `GET  /.well-known/jwks.json`            | ✅     | —         | JWKS **de signature** auth-service (clé publique Vault, hors prefix) |
 
 ### Écarts vs design initial
 
@@ -58,20 +58,42 @@ explicitement.
    nos type aliases).
 7. **Reset password : pas encore de force-logout des sessions actives** (différé — nécessite un
    index per-user des familles de refresh ; cf. roadmap Phase 11).
+8. **Contrat de token inter-service durci (Bloc A).** L'access token respecte désormais strictement
+   le contrat exigé par les vérificateurs JWKS aval
+   (`identity-service/src/auth/jwks-jwt.verifier.ts` et identiques) :
+   - `iss` = **`nina-aes-auth`** (string exacte, `JWT_ISSUER` — **plus une URL** ; un `z.url()`
+     aurait cassé le flux citoyen au premier guard). Surchargeable, mais doit rester aligné sur
+     `AUTH_JWT_ISSUER` côté avals.
+   - `aud` = **liste** (`JWT_AUDIENCE` en CSV) contenant l'identité de chaque aval cible
+     (`nina-identity-service`, `nina-appointment-service`, …) — chaque vérificateur exige SA propre
+     identité dans `aud`.
+   - **Claim `nina`** ajouté à l'access token **citoyen** (résolu par email via la table `citizens`,
+     cf. `UserRepository.findCitizenNinaByEmail`) — consommé par `NinaOwnershipGuard` (anti-IDOR).
+     Absent pour les rôles internes. Un citoyen non encore enrôlé côté identity ⇒ token émis
+     **sans** `nina` (les routes « propriétaire » restent inaccessibles, le reste de l'API
+     fonctionne).
+9. **`/.well-known/jwks.json` corrigé** : sert la clé **publique de SIGNATURE** d'auth-service (clé
+   Vault → JWK, `kid` aligné sur l'en-tête des tokens) et **non plus** un proxy du JWKS Keycloak.
+   Les tokens étant signés par auth-service (écart 1), servir le JWKS Keycloak ici rendait toute
+   vérification aval impossible (drift fermé).
+10. **En-têtes de sécurité** posés au bootstrap (`main.ts`) : CSP `default-src 'none'`,
+    `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, et `HSTS` en production. Implémentés en
+    middleware Express sans dépendance (auth-service n'embarque pas `helmet`). ⏳ Évolution :
+    aligner sur `helmet` comme les 5 autres services (ajout dep + `pnpm install`).
 
 ### Modules clés (`services/auth-service/src/`)
 
-| Module          | Rôle                                                                                                        |
-| --------------- | ----------------------------------------------------------------------------------------------------------- |
-| `config/`       | Validation Zod fail-fast de l'env                                                                           |
-| `vault/`        | Chargement strict des clés JWT + helpers MFA Transit                                                        |
-| `redis/`        | `ioredis` préfixé + helpers `setNxEx` / `incrEx` (Lua)                                                      |
-| `crypto/`       | `ArgonService` + `JwtCryptoService` (sign/verify access/refresh/reset/mfa-challenge)                        |
-| `keycloak/`     | `KeycloakAdminService` (create user, reset password) + `KeycloakAuthService` (password grant)               |
-| `sms/`          | Provider abstrait + `MockSmsProvider` (dev) + `AfricasTalkingSmsProvider`                                   |
-| `modules/auth/` | `AuthService` + `AuthController` + `MfaController` + `OtpService` + `RefreshService` + `LoginThrottleGuard` |
-| `modules/user/` | `UserRepository` (Prisma)                                                                                   |
-| `jwks/`         | Proxy JWKS Keycloak avec cache (existant pré-PROMPT 3.2)                                                    |
+| Module          | Rôle                                                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `config/`       | Validation Zod fail-fast de l'env                                                                                                       |
+| `vault/`        | Chargement strict des clés JWT + helpers MFA Transit                                                                                    |
+| `redis/`        | `ioredis` préfixé + helpers `setNxEx` / `incrEx` (Lua)                                                                                  |
+| `crypto/`       | `ArgonService` + `JwtCryptoService` (sign/verify access/refresh/reset/mfa-challenge)                                                    |
+| `keycloak/`     | `KeycloakAdminService` (create user, reset password) + `KeycloakAuthService` (password grant)                                           |
+| `sms/`          | Provider abstrait + `MockSmsProvider` (dev) + `AfricasTalkingSmsProvider`                                                               |
+| `modules/auth/` | `AuthService` + `AuthController` + `MfaController` + `OtpService` + `RefreshService` + `LoginThrottleGuard`                             |
+| `modules/user/` | `UserRepository` (Prisma)                                                                                                               |
+| `jwks/`         | JWKS de **signature** (clé publique Vault → JWK, `kid`) servi sur `/.well-known/jwks.json` ; proxy JWKS Keycloak conservé pour SSO/OIDC |
 
 ### Tests (Phase 10)
 
@@ -93,7 +115,7 @@ explicitement.
 1. [Objectif pédagogique](#1-objectif-pédagogique)
 2. [Technologies utilisées (avec versions à jour — avril 2026)](#2-technologies-utilisées-avec-versions-à-jour--avril-2026)
 3. [Architecture du microservice auth-service](#3-architecture-du-microservice-auth-service)
-4. [Keycloak 26.1 — Configuration du realm NINA-AES](#4-keycloak-261--configuration-du-realm-nina-aes)
+4. [Keycloak 26.6.2 — Configuration du realm NINA-AES](#4-keycloak-2662--configuration-du-realm-nina-aes)
 5. [Structure de dossiers](#5-structure-de-dossiers)
 6. [Implémentation NestJS — Code commenté](#6-implémentation-nestjs--code-commenté)
 7. [Guards, rôles & refresh tokens (Redis)](#7-guards-rôles--refresh-tokens-redis)
@@ -110,55 +132,76 @@ Construire le **service d'authentification central** de la plateforme NINA-AES :
 responsable de l'émission, de la validation et de la révocation des tokens JWT pour l'ensemble des
 microservices et des applications frontend.
 
-Ce service **s'appuie sur Keycloak 26.1** comme Identity Provider (IdP) et **n'implémente pas
-lui-même** la logique bas-niveau d'authentification (hachage de mots de passe, OAuth2/OIDC). Il agit
-comme une **façade NestJS** au-dessus de Keycloak, avec les responsabilités suivantes :
+Ce service **s'appuie sur Keycloak 26.6.2** comme Identity Provider (IdP) pour la **validation du
+mot de passe** (password grant) et le SSO, mais **émet ses propres JWT** signés RS256 via des clés
+chargées depuis **Vault** au boot (cf. § 0 « Écarts vs design initial » et `crypto/jwt.service.ts`).
+Il **n'est donc PAS un simple proxy** qui re-sert les tokens Keycloak : c'est l'autorité d'émission
+des tokens applicatifs NINA. Responsabilités :
 
-1. **Proxy REST** vers Keycloak (endpoints `/auth/login`, `/auth/refresh`, `/auth/logout`)
-2. **Enrichissement du token** avec des claims métier NINA (ex: `ninaId`, `codeRegion`)
-3. **Gestion de la révocation** via Redis (blacklist des refresh tokens)
-4. **Décorateurs et guards** réutilisables (`@Roles()`, `@CurrentUser()`, `@Public()`)
-5. **Inscription citoyenne** (signup auto avec vérification du NINA via `identity-service`)
+1. **Validation du mot de passe** déléguée à Keycloak (`password` grant), puis **émission de JWT
+   propres** (access / refresh / reset / mfa-challenge) signés RS256 avec une paire de clés Vault et
+   un en-tête `kid` (cf. § 4.6 — rotation des clés).
+2. **Enrichissement du token** avec des claims métier NINA (`role`, `mfa`, `kcSub`, et `nina` pour
+   les citoyens — ce dernier consommé par `NinaOwnershipGuard` anti-IDOR).
+3. **Rotation + détection de rejeu** des refresh tokens via Redis (familles de tokens — OWASP). ⚠️
+   Le refresh est **vérifié par signature** (`verifyRefresh`), jamais simplement décodé.
+4. **Décorateurs et guards** réutilisables (`@Roles()`, `@CurrentUser()`, `@Public()`,
+   `@RequireMfa()`) — contrat exposé par `@nina-aes/auth-guards` (type-only, ADR-027).
+5. **Inscription citoyenne** (OTP SMS → vérification du NINA via `identity-service` → création
+   Keycloak + DB).
+
+> **POURQUOI émettre ses propres JWT plutôt que re-servir ceux de Keycloak ?** Cela découple le
+> contrat de token des microservices internes de la configuration Keycloak (claims, durées, format),
+> permet une rotation de clés pilotée par Vault et indépendante de l'IdP, et évite que tous les
+> services aient à connaître l'issuer/JWKS Keycloak. Keycloak reste la source de vérité du
+> **secret** (mot de passe), pas du **format de token applicatif**.
 
 ### Ce que tu vas apprendre
 
 | Compétence               | Niveau        | Application au projet                                        |
 | ------------------------ | ------------- | ------------------------------------------------------------ |
 | **OIDC / OAuth2**        | Avancé        | Flow Authorization Code, Password Grant, Client Credentials  |
-| **JWT RS256**            | Expert        | Signature asymétrique, rotation de clés via JWKS             |
+| **JWT RS256**            | Expert        | Signature asymétrique via clés Vault, `kid`, rotation/JWKS   |
 | **Keycloak 26**          | Avancé        | Realm, clients, users, rôles, groupes, claims custom         |
 | **Passport (NestJS)**    | Avancé        | Stratégies `jwt`, `local`, extraction token, validation JWKS |
 | **RBAC**                 | Avancé        | Guards, rôles hiérarchiques, décorateurs custom              |
 | **Refresh tokens Redis** | Avancé        | Rotation, révocation, TTL                                    |
-| **Rate limiting**        | Intermédiaire | `@nestjs/throttler` sur endpoints sensibles                  |
+| **Rate limiting**        | Intermédiaire | `LoginThrottleGuard` custom (Redis `incrEx` Lua, par IP)     |
 | **Tests sécurité**       | Avancé        | Mock JWKS, tokens expirés, tokens falsifiés                  |
 
 ### Livrable à la fin de ce document
 
 Un service `auth-service` entièrement fonctionnel :
 
-- **6 endpoints REST** sur `http://localhost:3002/api/v1/auth/*`
-- **Connexion Keycloak** fonctionnelle (realm `nina-aes`, 3 clients, 4 rôles)
-- **JWT RS256** vérifié via JWKS auto-rafraîchi toutes les 10 minutes
-- **Rotation des refresh tokens** avec révocation Redis
-- **3 guards réutilisables** : `JwtAuthGuard`, `RolesGuard`, `ThrottlerGuard`
-- **3 décorateurs** : `@Public()`, `@Roles()`, `@CurrentUser()`
-- **≥ 85 % de couverture de tests**
-- **Healthcheck** vérifiant Keycloak + Redis
+- **~14 endpoints REST** (register/login/refresh/logout/MFA TOTP+SMS/password forgot+reset/me +
+  `/health` + `/.well-known/jwks.json`) — voir le décompte exact en § 0 « Endpoints livrés ».
+- **Connexion Keycloak** fonctionnelle (realm `nina-aes`) pour la **validation du mot de passe**.
+- **JWT RS256 émis et vérifiés par auth-service** (clés Vault, en-tête `kid`) — la vérification de
+  signature s'applique aussi au **refresh** (`verifyRefresh`).
+- **Rotation des refresh tokens** avec **détection de rejeu par famille** (Redis).
+- **Guards réutilisables** : `LoginThrottleGuard` (custom Redis, pas `@nestjs/throttler`),
+  `JwtAuthGuard`, `RolesGuard`, `MfaGuard` (dupliqués localement — ADR-027).
+- **Décorateurs** : `@Public()`, `@Roles()`, `@CurrentUser()`, `@RequireMfa()`.
+- **17 tests unitaires + 2 e2e smoke** (cf. § 0 ; couverture e2e métier complète différée doc 18).
+- **Healthcheck** vérifiant Keycloak + Redis.
 
 ### Contexte sécurité : pourquoi Keycloak et pas une implémentation maison ?
 
 Pour un projet académique solo, coder soi-même un système d'authentification complet serait à la
 fois **risqué** (failles cryptographiques difficiles à détecter) et **improductif** (6 mois pour
-reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
+reproduire ce que Keycloak offre en 1h). Keycloak 26.6.2 apporte gratuitement :
 
 - OIDC + OAuth2 + SAML certifiés
 - Interface admin web pour gérer les utilisateurs
 - MFA (TOTP, WebAuthn) si nécessaire
 - Audit intégré des connexions
 - Support de la fédération d'identités (LDAP, AD, Google, Facebook…)
-- Rotation automatique des clés RS256
+- Validation robuste des mots de passe (politique realm, brute-force protection)
 - Thèmes personnalisables pour les écrans de login
+
+> **Note as-built** : la **rotation automatique des clés RS256 de Keycloak** n'est PAS utilisée pour
+> signer nos tokens applicatifs — auth-service signe avec sa **propre** paire de clés Vault (cf. §
+> 4.6). Keycloak n'intervient que pour valider le mot de passe.
 
 **Coût** : un container Docker (~300 Mo RAM), ce qui est négligeable.
 
@@ -182,12 +225,10 @@ reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
 | `passport-local`           | `1.0.0`       | Stratégie user/password                                   |
 | `jwks-rsa`                 | `3.2.0`       | Fetch + cache des clés publiques Keycloak                 |
 | `jsonwebtoken`             | `9.0.2`       | Sign/verify bas niveau                                    |
-| `ioredis`                  | `5.7.0`       | Client Redis (refresh tokens, blacklist)                  |
+| `ioredis`                  | `5.7.0`       | Client Redis (refresh tokens, throttle, MFA)              |
 | `axios`                    | `1.7.12`      | HTTP client (appel Keycloak Admin API + identity-service) |
-| `class-validator`          | `0.15.1`      | Validation DTO                                            |
-| `class-transformer`        | `0.5.1`       | Sérialisation                                             |
-| `zod`                      | `4.3.6`       | Validation `.env`                                         |
-| `bcryptjs`                 | `2.4.3`       | (Fallback) hachage local si Keycloak down                 |
+| `zod`                      | `4.3.6`       | Validation `.env` **et DTOs** (`ZodValidationPipe`)       |
+| `argon2`                   | `0.43.0`      | Hash mémoire-hard des OTP/secrets (pas de bcryptjs)       |
 | `@nina-aes/shared-types`   | `workspace:*` | Types `JwtPayload`, `Roles`                               |
 | `@nina-aes/utils`          | `workspace:*` | `validateNina()` (pour signup)                            |
 | **Dev**                    |               |                                                           |
@@ -198,13 +239,24 @@ reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
 | `@types/passport-jwt`      | `4.0.1`       | Typings                                                   |
 | `@types/passport-local`    | `1.0.38`      | Typings                                                   |
 | `@types/jsonwebtoken`      | `9.0.7`       | Typings                                                   |
-| `@types/bcryptjs`          | `2.4.6`       | Typings                                                   |
 | `typescript-eslint`        | `9.2.0`       | Lint TS pour ESLint 10                                    |
 
-| Infrastructure externe | Version  | Source                                                                  |
-| ---------------------- | -------- | ----------------------------------------------------------------------- |
-| **Keycloak**           | `26.6.2` | `quay.io/keycloak/keycloak:26.6.2` (déjà dans `docker-compose.dev.yml`) |
-| **Redis**              | `8.6.3`  | `redis:8.6.3-alpine` (déjà présent)                                     |
+| Infrastructure externe | Version      | Source                                                                  |
+| ---------------------- | ------------ | ----------------------------------------------------------------------- |
+| **Keycloak**           | `26.6.2`     | `quay.io/keycloak/keycloak:26.6.2` (déjà dans `docker-compose.dev.yml`) |
+| **Redis**              | `8.6.3`      | `redis:8.6.3-alpine` (déjà présent)                                     |
+| **Vault**              | (cf. doc 15) | Source des **clés JWT RS256** + Transit MFA (`auth-mfa-secret`)         |
+
+> **⚠️ As-built — `bcryptjs` retiré.** Le design initial prévoyait un _fallback_ `bcryptjs` pour
+> hacher localement les mots de passe « si Keycloak est down ». Cette idée a été **abandonnée** et
+> la dépendance n'est PAS présente dans le `package.json` réel : (1) Keycloak est la **seule**
+> autorité de validation du mot de passe — un fallback créerait deux chemins d'authentification
+> divergents et un risque de désynchronisation des hashs ; (2) si Keycloak est indisponible, le
+> login doit **échouer franchement** (fail-closed), pas se rabattre sur un magasin local. Le seul
+> hachage local est `argon2id` pour les **OTP/codes SMS éphémères** (jamais des mots de passe). Idem
+> : `class-validator`/`class-transformer` ne valident **plus** les DTOs (remplacés par Zod +
+> `ZodValidationPipe`) ; ils ne figurent dans les exemples ci-dessous que par héritage du design
+> initial — voir § 0.
 
 ---
 
@@ -212,12 +264,19 @@ reproduire ce que Keycloak offre en 1h). Keycloak 26.1 apporte gratuitement :
 
 ### 3.1 Diagramme Mermaid — Flow OIDC
 
+> **⚠️ Diagramme = design initial (proxy Keycloak).** Le séquencement ci-dessous montre l'ancien
+> modèle où le client recevait directement le JWT Keycloak. **As-built** : Keycloak ne sert qu'à
+> valider le mot de passe (password grant) ; auth-service **décode l'access Keycloak pour récupérer
+> le `sub`/rôles, puis signe ses PROPRES access + refresh RS256** (clés Vault, `kid`) avant de les
+> renvoyer au client. Le refresh présenté au `/refresh` est **vérifié par signature** (pas un simple
+> `decode`). Voir § 0 et `crypto/jwt.service.ts` / `modules/auth/refresh.service.ts`.
+
 ```mermaid
 sequenceDiagram
     autonumber
     participant C as Citizen App<br/>:4001
     participant A as auth-service<br/>:3002
-    participant K as Keycloak 26.1<br/>:8080
+    participant K as Keycloak 26.6.2<br/>:8080
     participant R as Redis 7<br/>:6379
     participant I as identity-service<br/>:3001
 
@@ -273,6 +332,14 @@ sequenceDiagram
 
 ### 3.3 Endpoints REST exposés
 
+> **As-built** : la liste **réellement livrée** (~14 routes, noms définitifs) est en § 0 « Endpoints
+> livrés ». Le tableau ci-dessous est conservé comme **design de référence** ; certains noms
+> diffèrent (`register/otp/send` → `register/request-otp`, `register/citizen` → `register/verify`,
+> `mfa/enable`→`mfa/totp/setup`, `mfa/verify`→`mfa/totp/confirm`, ajout de `mfa/totp/verify` et
+> `mfa/sms/challenge`+`mfa/sms/verify`). Le rate-limit n'est appliqué qu'au `/login`
+> (`LoginThrottleGuard`) — les colonnes « rate limit » des autres routes sont **prévues, non
+> implémentées** (⏳ Phase 2).
+
 | Méthode | Route                            | Rate limit      | Rôle         | Description                                              |
 | ------- | -------------------------------- | --------------- | ------------ | -------------------------------------------------------- |
 | `POST`  | `/api/v1/auth/login`             | 5 req/15 min/IP | public       | Authentification par username + password                 |
@@ -292,15 +359,15 @@ sequenceDiagram
 
 ### 3.4 Rôles RBAC définis
 
-| Rôle Keycloak                | Mapping interne `UserRole` | Portée                                          | Exemples d'opérations autorisées          |
-| ---------------------------- | -------------------------- | ----------------------------------------------- | ----------------------------------------- |
-| `citizen`                    | `CITIZEN`                  | Consultation propre NINA, corrections signalées | `GET /nina/:ownNina`, `POST /corrections` |
-| `agent`                      | `AGENT`                    | Gestion des corrections, recherche floue        | `PATCH /nina/:id`, `POST /nina/search`    |
-| `supervisor`                 | `SUPERVISOR`               | Validation des corrections agents, escalades    | `POST /corrections/:id/approve`           |
-| `admin`                      | `ADMIN`                    | CRUD complet NINA, gestion utilisateurs         | `POST /nina`, `DELETE /users/:id`         |
-| `auditor`                    | `AUDITOR`                  | Lecture immuable des logs Merkle + dashboards   | `GET /audit/*`, `GET /governance/*`       |
-| `anticorruption_inspector`   | `ANTICORRUPTION_INSPECTOR` | Module SIGAC : signalements + investigations    | `GET /sigac/*`, `POST /sigac/cases`       |
-| `governance_viewer` (legacy) | (mappé sur `AUDITOR`)      | Conservé pour compat. — sera retiré au doc 22   | `GET /governance/dashboards/*`            |
+| Rôle Keycloak                | Mapping interne `UserRole` | Portée                                                        | Exemples d'opérations autorisées          |
+| ---------------------------- | -------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
+| `citizen`                    | `CITIZEN`                  | Consultation propre NINA, corrections signalées               | `GET /nina/:ownNina`, `POST /corrections` |
+| `agent`                      | `AGENT`                    | Gestion des corrections, recherche floue                      | `PATCH /nina/:id`, `POST /nina/search`    |
+| `supervisor`                 | `SUPERVISOR`               | Validation des corrections agents, escalades                  | `POST /corrections/:id/approve`           |
+| `admin`                      | `ADMIN`                    | CRUD complet NINA, gestion utilisateurs                       | `POST /nina`, `DELETE /users/:id`         |
+| `auditor`                    | `AUDITOR`                  | Lecture immuable des logs hash-chaînés (ADR-007) + dashboards | `GET /audit/*`, `GET /governance/*`       |
+| `anticorruption_inspector`   | `ANTICORRUPTION_INSPECTOR` | Module SIGAC : signalements + investigations                  | `GET /sigac/*`, `POST /sigac/cases`       |
+| `governance_viewer` (legacy) | (mappé sur `AUDITOR`)      | Conservé pour compat. — sera retiré au doc 22                 | `GET /governance/dashboards/*`            |
 
 **Hiérarchie composite** : `admin > supervisor > agent > citizen` (héritage descendant — un admin
 hérite de tous les droits des rôles inférieurs). `auditor` et `anticorruption_inspector` sont
@@ -320,7 +387,15 @@ autres rôles).
 
 ---
 
-## 4. Keycloak 26.6 — Configuration du realm NINA-AES
+## 4. Keycloak 26.6.2 — Configuration du realm NINA-AES
+
+> **🔒 Tous les secrets de cette section sont « dev only ».** Les valeurs en clair ci-dessous (mots
+> de passe admin, `client_secret`, mots de passe DB, credentials des utilisateurs de test) sont
+> **réservées à l'environnement de développement local**. En **production**, elles sont **injectées
+> via Vault** (AppRole / K8s SA + lease court — JAMAIS de `VAULT_TOKEN` long-lived ni de secret en
+> clair dans un fichier versionné) ; cf. doc 15 § Vault et le canon sécurité du projet (souveraineté
+> : pas d'AWS KMS / Cloudflare sur le cœur). Ne **jamais** committer ces valeurs dans un `.env`
+> non-dev.
 
 ### 4.1 Démarrage Keycloak (déjà dans `docker-compose.dev.yml`)
 
@@ -331,12 +406,13 @@ keycloak:
   container_name: nina-keycloak
   command: start-dev --import-realm
   environment:
+    # ⚠️ dev only — en prod, injecté via Vault (AppRole/K8s SA + lease).
     KC_BOOTSTRAP_ADMIN_USERNAME: admin
-    KC_BOOTSTRAP_ADMIN_PASSWORD: keycloak_admin_2026!
+    KC_BOOTSTRAP_ADMIN_PASSWORD: keycloak_admin_2026! # dev only — Vault en prod
     KC_DB: postgres
     KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
     KC_DB_USERNAME: keycloak
-    KC_DB_PASSWORD: keycloak_dev
+    KC_DB_PASSWORD: keycloak_dev # dev only — Vault en prod
     KC_HOSTNAME: localhost
     KC_HTTP_ENABLED: 'true'
     KC_HEALTH_ENABLED: 'true'
@@ -355,6 +431,7 @@ Ajouter dans `scripts/init-db.sql` :
 
 ```sql
 -- Base de données dédiée à Keycloak (isolation)
+-- ⚠️ Mot de passe 'keycloak_dev' = DEV ONLY — en prod, généré et injecté via Vault.
 CREATE DATABASE keycloak;
 CREATE USER keycloak WITH PASSWORD 'keycloak_dev';
 GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
@@ -411,7 +488,7 @@ complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
       },
       {
         "name": "auditor",
-        "description": "Auditeur — lecture immuable des logs Merkle + dashboards gouvernance (silo)"
+        "description": "Auditeur — lecture immuable des logs hash-chaînés SHA-256 (ADR-007) + dashboards gouvernance (silo)"
       },
       {
         "name": "anticorruption_inspector",
@@ -447,6 +524,7 @@ complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
       "clientId": "nina-aes-backend",
       "name": "NINA-AES Backend Services",
       "secret": "backend_secret_dev_2026",
+      "_comment_secret": "⚠️ dev only — en prod, ce client_secret est injecté via Vault (jamais versionné en clair)",
       "publicClient": false,
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": true,
@@ -457,7 +535,7 @@ complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
 
   "users": [
     {
-      "username": "keycloak_admin_2026!",
+      "username": "admin_dev",
       "enabled": true,
       "emailVerified": true,
       "email": "admin@nina-aes.local",
@@ -467,6 +545,7 @@ complète du realm NINA-AES : clients, rôles, utilisateurs de test, claims.
         {
           "type": "password",
           "value": "Admin@2026!",
+          "_comment": "dev only — credential de test, jamais en prod",
           "temporary": false
         }
       ],
@@ -561,11 +640,13 @@ Tu dois obtenir un JSON avec :
 - `jwks_uri`: `http://localhost:8080/realms/nina-aes/protocol/openid-connect/certs`
 - `token_endpoint`: `http://localhost:8080/realms/nina-aes/protocol/openid-connect/token`
 
-**Console Admin** : http://localhost:8080/admin (login : `admin` / `keycloak_admin_2026!`)
+**Console Admin** : http://localhost:8080/admin (login dev : `admin` / `keycloak_admin_2026!` — ⚠️
+**dev only**, identifiants bootstrap injectés via Vault en prod).
 
 ### 4.5 Test du flow Password Grant (depuis curl)
 
 ```powershell
+# ⚠️ client_secret + password = dev only (Vault en prod)
 curl -X POST http://localhost:8080/realms/nina-aes/protocol/openid-connect/token `
   -H "Content-Type: application/x-www-form-urlencoded" `
   -d "grant_type=password" `
@@ -578,6 +659,42 @@ curl -X POST http://localhost:8080/realms/nina-aes/protocol/openid-connect/token
 Tu dois recevoir un JSON avec `access_token`, `refresh_token`, `expires_in: 900`, etc. Décode le
 `access_token` sur https://jwt.io — tu verras les claims `realm_access.roles = ["citizen"]` et
 `ninaId = "198071504270422K"`.
+
+> **Important** : ce token Keycloak n'est **PAS** celui renvoyé au client final. auth-service en
+> extrait le `sub`/rôles puis **réémet ses propres** access/refresh signés avec les clés Vault (cf.
+> § 4.6).
+
+### 4.6 Clés de signature JWT auth-service & rotation (`kid` / JWKS) — as-built
+
+POURQUOI — auth-service **signe ses propres tokens** (access/refresh/reset/mfa-challenge) en RS256
+avec une paire de clés **chargée depuis Vault au boot** (`kv` path `auth/jwt`, cf.
+`VAULT_JWT_KEYS_PATH`, `vault/vault.service.ts` → `getJwtKeys()`). Chaque token porte un en-tête
+**`kid`** aligné sur la version du secret Vault (`jwt.sign(..., { keyid: kid })`,
+`crypto/jwt.service.ts`). Cela permet :
+
+1. **Rotation des clés sans invalider les tokens en vol** : pendant la fenêtre de chevauchement, le
+   vérificateur sélectionne la clé publique par `kid`. La nouvelle clé est publiée dans Vault, le
+   service la recharge (redéploiement ou rechargement à chaud — ⏳ rechargement à chaud à
+   implémenter), et les anciens tokens restent vérifiables tant que l'ancienne clé publique est
+   encore exposée.
+2. **Distribution via JWKS** : les autres microservices valident la signature **sans hardcoder de
+   PEM**, en récupérant la clé publique par `kid` depuis un endpoint JWKS.
+
+| Aspect                             | État as-built                                                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signature des tokens NINA          | ✅ RS256, clé privée Vault, en-tête `kid` (`crypto/jwt.service.ts`)                                                                                   |
+| Vérification (access/refresh)      | ✅ `jwt.verify` avec clé publique Vault + `issuer`/`audience` (`verifyAccess`/`verifyRefresh`)                                                        |
+| Endpoint `/.well-known/jwks.json`  | ⚠️ **proxy le JWKS _Keycloak_** (`well-known.controller.ts` → `jwks.service.ts`), PAS encore la clé publique **Vault** d'auth-service                 |
+| Exposition de la clé Vault en JWKS | ⏳ **à implémenter (Phase 2)** : construire un document JWKS à partir de la clé publique Vault + `kid` pour que les consommateurs valident nos tokens |
+| Rotation pilotée par Vault         | ⏳ à implémenter : publication de la nouvelle version de clé + fenêtre de chevauchement multi-`kid`                                                   |
+
+> **⚠️ Drift connu à corriger** : le JWKS exposé pointe sur les certs **Keycloak**, alors que nos
+> tokens sont signés avec la **clé Vault**. Tant que ce drift n'est pas résolu, un service qui
+> récupère le JWKS proxy ne pourra **pas** vérifier un token émis par auth-service. Le contournement
+> actuel : seuls auth-service (qui a la clé Vault) et les services consommant
+> `@nina-aes/auth-guards` avec la **même** clé publique Vault peuvent vérifier. La cible (§ 4.6
+> ligne « ⏳ ») est d'exposer la clé publique Vault d'auth-service dans `/.well-known/jwks.json`
+> indexée par `kid`.
 
 ---
 
@@ -742,18 +859,28 @@ export const envSchema = z.object({
   CORS_ORIGINS: z.string().default('http://localhost:4001,http://localhost:4002'),
 
   // ─── Keycloak ─────────────────────────────────────────────
+  // ⚠️ Les .default() de secrets ci-dessous ne valent que pour le DEV. En prod,
+  //    aucun défaut : la valeur DOIT venir de Vault (sinon fail-fast au boot).
+  //    L'as-built (config/env.config.ts) n'a d'ailleurs PAS de default sur les secrets.
   KEYCLOAK_URL: z.string().url().default('http://localhost:8080'),
   KEYCLOAK_REALM: z.string().default('nina-aes'),
   KEYCLOAK_CLIENT_ID: z.string().default('nina-aes-backend'),
-  KEYCLOAK_CLIENT_SECRET: z.string().default('backend_secret_dev_2026'),
+  KEYCLOAK_CLIENT_SECRET: z.string().default('backend_secret_dev_2026'), // dev only — Vault en prod
   KEYCLOAK_ADMIN_USERNAME: z.string().default('admin'),
-  KEYCLOAK_ADMIN_PASSWORD: z.string().default('keycloak_admin_2026!'),
+  KEYCLOAK_ADMIN_PASSWORD: z.string().default('keycloak_admin_2026!'), // dev only — Vault en prod
 
-  // ─── JWT (pour vérification via JWKS) ────────────────────
-  JWT_ISSUER: z.string().url().default('http://localhost:8080/realms/nina-aes'),
-  JWT_AUDIENCE: z.string().default('account'),
+  // ─── JWT (émis ET vérifiés par auth-service ; clés Vault) ──
+  // JWT_ISSUER = l'émetteur auth-service (PAS l'issuer Keycloak en as-built).
+  JWT_ISSUER: z.string().url().default('http://localhost:3002'),
+  // ⚠️ SÉCURITÉ — `aud` restreint à l'API NINA, JAMAIS la valeur Keycloak `account`.
+  // Restreindre l'audience empêche qu'un token émis pour un autre public (ex.
+  // l'audience par défaut `account` de Keycloak) soit accepté par nos services.
+  JWT_AUDIENCE: z.string().min(1).default('nina-aes-api'),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  JWT_REFRESH_TTL_SECONDS: z.coerce.number().int().positive().default(604_800), // 7 j
+  JWT_RESET_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  VAULT_JWT_KEYS_PATH: z.string().min(1).default('auth/jwt'),
   JWKS_CACHE_TTL_MS: z.coerce.number().default(600000), // 10 min
-  JWKS_RATE_LIMIT: z.coerce.number().default(10), // 10 req/min max vers jwks_uri
 
   // ─── Redis (refresh tokens + blacklist) ───────────────────
   REDIS_HOST: z.string().default('localhost'),
@@ -875,6 +1002,35 @@ bootstrap().catch((err) => {
 });
 ```
 
+> **🔒 Durcissement HTTP — Helmet / CSP / HSTS / cookies (⏳ à implémenter Phase 2).** Le `main.ts`
+> as-built configure CORS (liste blanche depuis `CORS_ORIGINS`, `credentials: true`) mais **n'active
+> pas encore Helmet**. Cible de durcissement (à câbler) :
+>
+> ```ts
+> // ⏳ Phase 2 — services/auth-service/src/main.ts (extrait cible, NON encore implémenté)
+> import helmet from 'helmet';
+> import cookieParser from 'cookie-parser';
+>
+> app.use(
+>   helmet({
+>     // CSP stricte : pas de scripts inline ; ajuster pour Swagger UI en dev seulement.
+>     contentSecurityPolicy: {
+>       directives: { defaultSrc: ["'self'"], objectSrc: ["'none'"], frameAncestors: ["'none'"] },
+>     },
+>     hsts: { maxAge: 63_072_000, includeSubDomains: true, preload: true }, // 2 ans (prod/HTTPS)
+>     referrerPolicy: { policy: 'no-referrer' },
+>   }),
+> );
+> app.use(cookieParser());
+> ```
+>
+> **Refresh token en cookie** (recommandé pour les apps web) : si le refresh est posé en cookie
+> plutôt qu'en body JSON, il DOIT être `httpOnly: true`, `secure: true` (prod), `sameSite: 'strict'`
+> (ou `'lax'` selon le flux OAuth), `path: '/api/v1/auth/refresh'`. Cela protège contre le vol XSS
+> (inaccessible au JS) et limite le CSRF. En as-built, le refresh transite par le **body** (DTO Zod
+> `RefreshDto`) ; le passage en cookie httpOnly est une amélioration Phase 2. `helmet` et
+> `cookie-parser` ne sont **pas** dans le `package.json` réel (vérifiable par Read) — marqués ⏳.
+
 ### 6.5 `src/config/swagger.config.ts`
 
 ```ts
@@ -889,9 +1045,9 @@ export function buildSwaggerConfig() {
     .setTitle('NINA-AES • Auth Service')
     .setDescription(
       `Service d'authentification centralisé de la plateforme NINA-AES.
-       Façade NestJS au-dessus de Keycloak 26.1 avec enrichissement des
-       JWT par claims métier (ninaId, codeRegion) et gestion de la
-       rotation des refresh tokens via Redis.`,
+       Émet ses propres JWT RS256 (clés Vault, kid) après validation du mot
+       de passe par Keycloak 26.6.2 ; rotation + détection de rejeu des
+       refresh tokens via Redis.`,
     )
     .setVersion('0.1.0')
     .addServer('http://localhost:3002', 'Dev local')
@@ -1237,6 +1393,22 @@ export class KeycloakModule {}
 
 ### 6.8 DTOs — `src/auth/dto/*.ts`
 
+> **⚠️ AS-BUILT — DTOs en Zod, pas class-validator.** Les DTOs réels sont des **schémas Zod** +
+> `type X = z.infer<typeof Schema>`, validés par un `ZodValidationPipe` appliqué route par route (le
+> `ValidationPipe` global a été retiré — cf. § 0 et `main.ts`). Exemple réel
+> (`modules/auth/dto/login.dto.ts`) :
+>
+> ```ts
+> import { z } from 'zod';
+> export const LoginSchema = z.object({
+>   identifier: z.string().min(3).max(200), // email OU username
+>   password: z.string().min(1).max(256),
+> });
+> export type LoginDto = z.infer<typeof LoginSchema>;
+> ```
+>
+> Les exemples class-validator ci-dessous sont conservés comme **référence design** uniquement.
+
 ```ts
 /**
  * @file        services/auth-service/src/auth/dto/login.dto.ts
@@ -1268,8 +1440,8 @@ import { IsJWT, IsNotEmpty } from 'class-validator';
 
 export class RefreshTokenDto {
   @ApiProperty({
-    description: 'Refresh token obtenu lors du login',
-    example: 'eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiS...',
+    description: 'Refresh token obtenu lors du login (JWT RS256 émis par auth-service)',
+    example: 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiS...',
   })
   @IsNotEmpty()
   @IsJWT()
@@ -1369,11 +1541,20 @@ export class TokenResponseDto {
 
 ### 6.9 `src/auth/strategies/jwt.strategy.ts`
 
+> **⚠️ AS-BUILT — vérification via clé Vault, PAS via JWKS Keycloak.** Le pseudo-code ci-dessous
+> (Passport + `jwks-rsa` pointant sur les certs Keycloak, `issuer` Keycloak, `audience: 'account'`)
+> décrit le **design initial proxy**. En réalité, les tokens entrants sont vérifiés par
+> `JwtCryptoService.verifyAccess()` avec la **clé publique Vault** d'auth-service,
+> `issuer = JWT_ISSUER` (auth-service) et `audience = JWT_AUDIENCE` (= `nina-aes-api`, **pas**
+> `account`). Conservé comme référence du pattern Passport ; le `secretOrKeyProvider` cible ✅
+> devrait être la clé publique Vault (ou le JWKS auth-service une fois exposé — § 4.6), **jamais**
+> `account` comme audience.
+
 ```ts
 /**
  * @file        services/auth-service/src/auth/strategies/jwt.strategy.ts
- * @description Stratégie Passport JWT avec vérification RS256 via JWKS
- *              (clés publiques auto-rafraîchies depuis Keycloak).
+ * @description (DESIGN INITIAL) Stratégie Passport JWT — voir note as-built ci-dessus :
+ *              la vérification réelle se fait via clé publique Vault, audience = nina-aes-api.
  */
 
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -1673,10 +1854,17 @@ export class AuthService {
 
   /**
    * Rotation du refresh token avec révocation de l'ancien.
+   *
+   * ⚠️ AS-BUILT — ce pseudo-code « decode sans vérifier la signature » est
+   * DANGEREUX et a été REMPLACÉ. Le code réel (`modules/auth/refresh.service.ts`
+   * → `rotate()`) appelle `this.jwt.verifyRefresh(refreshToken)` qui VÉRIFIE la
+   * signature RS256 (clé publique Vault) + `issuer`/`audience` AVANT toute
+   * lecture de claims. Faire confiance à un refresh non signé permettrait à un
+   * attaquant de forger un `jti`/`sub` arbitraire. Voir § 0 et § 7.2.
    */
   async refresh(refreshToken: string): Promise<TokenResponseDto> {
-    // Décode sans vérifier la signature (juste pour extraire jti)
-    const oldPayload = this.decodeJwt(refreshToken);
+    // ✅ AS-BUILT : vérification de signature obligatoire (pas un simple decode).
+    const oldPayload = this.jwt.verifyRefresh(refreshToken); // throw 401 si signature invalide
 
     // Vérifie que l'ancien refresh est toujours actif dans Redis
     const isValid = await this.redis.isRefreshTokenValid(oldPayload.jti);
@@ -1716,7 +1904,11 @@ export class AuthService {
     }
 
     if (refreshToken) {
-      const payload = this.decodeJwt(refreshToken);
+      // ✅ AS-BUILT : la révocation passe par RefreshService.revoke() qui
+      // VÉRIFIE la signature (verifyRefresh) avant de supprimer la clé Redis.
+      // Un refresh invalide => logout idempotent (pas de 401), mais on ne lit
+      // jamais un jti issu d'un token non vérifié.
+      const payload = this.jwt.verifyRefresh(refreshToken);
       await this.redis.revokeRefreshToken(payload.jti);
       await this.keycloak.logout(refreshToken);
     }
@@ -1794,11 +1986,17 @@ export class AuthService {
   }
 
   /**
-   * Décode un JWT sans vérifier la signature.
-   * Utilisé uniquement pour extraire les claims (jti, sub, exp).
-   * La vérification se fait ailleurs (JwtStrategy ou Keycloak lui-même).
+   * Décode un JWT SANS vérifier la signature.
+   *
+   * ⚠️ AS-BUILT — à n'utiliser QUE sur des chemins NON-sécurité (ex. lecture
+   * du `kid` côté proxy JWKS — cf. `JwtCryptoService.decodeUnsafe`). Le code
+   * réel n'appelle JAMAIS un decode non vérifié sur un refresh/access reçu
+   * d'un client : tout token entrant passe par `verifyRefresh` / `verifyAccess`
+   * (`crypto/jwt.service.ts`), qui valident signature + iss + aud. Le bloc
+   * ci-dessous est conservé comme contre-exemple à NE PAS reproduire pour
+   * extraire des claims de confiance.
    */
-  private decodeJwt(token: string): KeycloakJwtPayload {
+  private decodeUnsafeForKidOnly(token: string): KeycloakJwtPayload {
     const decoded = decode(token);
     if (!decoded || typeof decoded === 'string') {
       throw new UnauthorizedException('Token malformé');
@@ -1833,9 +2031,14 @@ export class AuthService {
 
 ### 6.13 `src/auth/auth.controller.ts`
 
+> **⚠️ AS-BUILT — `@nestjs/throttler` non utilisé.** Le contrôleur réel n'applique **pas**
+> `ThrottlerGuard`/`@Throttle()`. Seul `/login` est protégé, par `@UseGuards(LoginThrottleGuard)`
+> (custom Redis). Les décorateurs `@Throttle(...)` ci-dessous sont du **design de référence** ; les
+> remplacer par le guard custom (ou l'étendre par route) est une tâche ⏳ Phase 2 (cf. § 7.3).
+
 ```ts
 /**
- * @file        services/auth-service/src/auth/auth.controller.ts
+ * @file        services/auth-service/src/auth/auth.controller.ts (DESIGN INITIAL — voir note as-built)
  */
 
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
@@ -2380,21 +2583,24 @@ politiques ACL, rotation auto).
 
 ```ts
 /**
- * @file        packages/auth-guards/src/mfa.guard.ts (prévu — doc 15)
- * @description Exige que le JWT porte le claim `amr` contenant 'mfa' OU 'otp'.
- *              Combiné avec @Roles() pour appliquer la politique : MFA obligatoire pour
- *              AGENT/SUPERVISOR/ADMIN/AUDITOR/ANTICORRUPTION_INSPECTOR, optionnel pour CITIZEN.
+ * @file        services/auth-service/src/auth/guards/mfa.guard.ts (dupliqué localement — ADR-027)
+ * @description AS-BUILT — exige que NOTRE access token (signé Vault, `JwtAccessPayload`) porte
+ *              le claim **booléen `mfa: true`**. ⚠️ Ce N'EST PAS le claim standard `amr`
+ *              (RFC 8176) de Keycloak : nos tokens applicatifs ne le portent pas (cf. § 7.1bis).
+ *              Le guard est activé par `@RequireMfa()` ; combiné avec `@Roles()` il applique la
+ *              politique MFA obligatoire pour AGENT/SUPERVISOR/ADMIN/AUDITOR/
+ *              ANTICORRUPTION_INSPECTOR (optionnel pour CITIZEN).
+ *              L'échec renvoie **403** (`ForbiddenException`, code `AUTH_MFA_REQUIRED`), PAS 401.
  */
 @Injectable()
 export class MfaGuard implements CanActivate {
   canActivate(ctx: ExecutionContext): boolean {
-    const { user } = ctx.switchToHttp().getRequest();
-    const requireMfa = (user.roles as string[]).some((r) => r !== 'citizen');
-    if (!requireMfa) return true;
-
-    const amr = (user.amr ?? []) as string[];
-    if (!amr.includes('mfa') && !amr.includes('otp')) {
-      throw new UnauthorizedException('MFA requis pour ce rôle');
+    const request = ctx.switchToHttp().getRequest();
+    // `request.user` = JwtAccessPayload posé par JwtAuthGuard ; `mfa` est positionné à `true`
+    // lors d'un flow MFA TOTP/SMS validé. As-built : lecture du booléen, pas d'un tableau `amr`.
+    if (request.user?.mfa !== true) {
+      // 403 (et non 401) : l'utilisateur est authentifié mais n'a pas franchi le MFA requis.
+      throw new ForbiddenException('AUTH_MFA_REQUIRED');
     }
     return true;
   }
@@ -2543,16 +2749,24 @@ export class HealthController {
 
 ### 7.1 Utilisation des décorateurs dans d'autres services
 
-Une fois `auth-service` en place, tous les autres microservices NestJS (identity, audit, document…)
-peuvent réutiliser `JwtStrategy`, `JwtAuthGuard` et `RolesGuard` en les important depuis
-`@nina-aes/shared-types` ou via un package partagé `@nina-aes/auth-lib` (à créer au doc 15).
+> **⚠️ AS-BUILT — package = `@nina-aes/auth-guards` (type-only, ADR-027), PAS
+> `@nina-aes/auth-lib`.** Le package partagé réellement publié est **`@nina-aes/auth-guards`** : il
+> n'expose que le **contrat** (`JwtVerifier`, `AuthSubject`, token DI `JWT_VERIFIER`) et les
+> **décorateurs** (`@Public`, `@Roles`, `@RequireMfa`). Les classes Guards (`JwtAuthGuard`,
+> `RolesGuard`, `MfaGuard`) sont **dupliquées localement** dans chaque service (sous
+> `src/auth/guards/`) — voir § 0 et ADR-027 (l'identité du `Reflector` casse si le Guard est partagé
+> via pnpm store). Il n'existe **pas** de `@nina-aes/auth-lib`, et les guards ne sont **pas**
+> importés depuis `@nina-aes/shared-types`. L'exemple ci-dessous est conservé comme **illustration
+> du pattern** uniquement — les imports réels visent `@nina-aes/auth-guards` (décorateurs) + les
+> guards locaux du service consommateur.
 
 Exemple d'usage dans `identity-service/src/nina/nina.controller.ts` (mise à jour post doc 08) :
 
 ```ts
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '@nina-aes/auth-lib';
-import { Roles, RolesGuard } from '@nina-aes/auth-lib';
+// As-built : décorateurs depuis @nina-aes/auth-guards ; guards dupliqués localement (ADR-027).
+import { Roles } from '@nina-aes/auth-guards';
+import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('nina')
@@ -2589,15 +2803,20 @@ n'apportent que leurs droits silos.
 Le `MfaGuard` (§ 6.13bis · f — implémentation locale au service depuis ADR-027, sous
 `services/auth-service/src/auth/guards/mfa.guard.ts`) applique la règle suivante :
 
-- **CITIZEN** : MFA **optionnel**. L'utilisateur peut l'activer via `POST /auth/mfa/enable`. Sans
-  MFA, le `JwtAuthGuard` seul suffit.
+- **CITIZEN** : MFA **optionnel**. L'utilisateur peut l'activer via `POST /auth/mfa/totp/setup`.
+  Sans MFA, le `JwtAuthGuard` seul suffit.
 - **AGENT, SUPERVISOR, ADMIN, AUDITOR, ANTICORRUPTION_INSPECTOR** : MFA **obligatoire**. Le
-  `MfaGuard` exige le claim `amr` contenant `mfa` ou `otp` dans le JWT, sinon `401 Unauthorized`.
+  `MfaGuard` (activé par `@RequireMfa()`) exige le claim **booléen `mfa: true`** dans l'access
+  token, sinon `403 Forbidden` (`AUTH_MFA_REQUIRED`).
 
-Cette exigence est portée par le claim standard **`amr`** (Authentication Methods References,
-RFC 8176) injecté par Keycloak après une étape TOTP ou SMS validée. La promotion d'un utilisateur
-vers un rôle non-citoyen sans MFA activé est **refusée côté Keycloak** par un _required action_
-`CONFIGURE_TOTP` ajouté automatiquement par un _event listener_ (cf. doc 15 § 6.2).
+> **⚠️ AS-BUILT — c'est le claim `mfa` (booléen) de NOTRE access token, PAS `amr` de Keycloak.** Les
+> tokens applicatifs sont signés par auth-service (clés Vault) et **ne portent pas** le claim
+> standard `amr` de Keycloak : `MfaGuard` lit `request.user.mfa === true`
+> (`auth/guards/mfa.guard.ts`, `JwtAccessPayload.mfa`), positionné lors du flow MFA TOTP/SMS validé.
+> L'échec renvoie **403** (`ForbiddenException`), pas 401. La référence à un `amr`/`otp` injecté par
+> Keycloak est un reliquat du design proxy initial. La promotion d'un utilisateur vers un rôle
+> non-citoyen sans MFA activé reste durcie côté Keycloak via un _required action_ `CONFIGURE_TOTP`
+> (cf. doc 15 § 6.2).
 
 Exemple d'application combinée :
 
@@ -2638,11 +2857,15 @@ Keycloak applique également cette rotation via l'option `revokeRefreshToken: tr
 | `POST /auth/password/forgot`  | 3600 s | 3      | Limiter l'envoi d'e-mails de reset par IP   |
 | `POST /auth/password/reset`   | 900 s  | 5      | Empêcher le brute force sur le token reset  |
 
-Ces limites sont appliquées **par IP** (via `@nestjs/throttler`). Dans le code (§ 6.13), chaque
-route porte un décorateur `@Throttle({ default: { limit, ttl } })` aligné sur ce tableau (`ttl` en
-millisecondes). Les clés `THROTTLE_*` du `.env` documentent les mêmes valeurs pour référence et pour
-le `ThrottlerModule` par défaut (`THROTTLE_LIMIT_ME` + `THROTTLE_TTL_SECONDS`). En production, on
-rajoutera un throttler **par utilisateur authentifié** (clé = `jti`).
+> **⚠️ AS-BUILT — un seul throttle réellement câblé.** Le tableau ci-dessus est la **cible de
+> design**. En réalité, seul **`POST /auth/login`** est rate-limité, via un guard **custom**
+> `LoginThrottleGuard` (`modules/auth/login-throttle.guard.ts`) qui utilise `RedisService.incrEx`
+> (compteur atomique Lua, fenêtre fixe, **par IP**) — paramétré par `THROTTLE_LOGIN_LIMIT` (5) et
+> `THROTTLE_LOGIN_TTL_SECONDS` (900). Le projet **n'utilise PAS `@nestjs/throttler`** ni de
+> décorateur `@Throttle()`. Le throttling des autres routes (refresh, register, MFA, password) est
+> **⏳ à implémenter (Phase 2)** — même mécanique `incrEx`, clés Redis par route. En production, on
+> ajoutera un throttle **par utilisateur authentifié** (clé = `sub`/`jti`) et un `trust proxy`
+> Express pour fiabiliser l'IP derrière le reverse-proxy (cf. `extractIp` + `X-Forwarded-For`).
 
 ### 7.4 Blacklist des access tokens (logout immédiat)
 
@@ -3005,18 +3228,25 @@ PORT=3002
 CORS_ORIGINS=http://localhost:4001,http://localhost:4002,http://localhost:4003
 
 # ─── Keycloak ─────────────────────────────────────────────
+# ⚠️ Secrets ci-dessous = DEV ONLY. En prod : injectés via Vault (AppRole/K8s SA + lease),
+#    jamais committés en clair dans un .env.
 KEYCLOAK_URL=http://localhost:8080
 KEYCLOAK_REALM=nina-aes
 KEYCLOAK_CLIENT_ID=nina-aes-backend
-KEYCLOAK_CLIENT_SECRET=backend_secret_dev_2026
+KEYCLOAK_CLIENT_SECRET=backend_secret_dev_2026   # dev only — Vault en prod
 KEYCLOAK_ADMIN_USERNAME=admin
-KEYCLOAK_ADMIN_PASSWORD=keycloak_admin_2026!
+KEYCLOAK_ADMIN_PASSWORD=keycloak_admin_2026!     # dev only — Vault en prod
 
-# ─── JWT ──────────────────────────────────────────────────
-JWT_ISSUER=http://localhost:8080/realms/nina-aes
-JWT_AUDIENCE=account
+# ─── JWT (émis ET vérifiés par auth-service ; clés Vault) ──
+# JWT_ISSUER = auth-service lui-même (PAS l'issuer Keycloak).
+JWT_ISSUER=http://localhost:3002
+# ⚠️ aud restreint à l'API NINA — JAMAIS 'account' (audience Keycloak par défaut).
+JWT_AUDIENCE=nina-aes-api
+JWT_ACCESS_TTL_SECONDS=900
+JWT_REFRESH_TTL_SECONDS=604800
+JWT_RESET_TTL_SECONDS=900
+VAULT_JWT_KEYS_PATH=auth/jwt
 JWKS_CACHE_TTL_MS=600000
-JWKS_RATE_LIMIT=10
 
 # ─── Redis ────────────────────────────────────────────────
 REDIS_HOST=localhost
@@ -3054,9 +3284,10 @@ Une fois l'infrastructure réelle en place (`pnpm run docker:up`) :
 
 ```powershell
 # Test manuel du flow complet avec curl
+# As-built : le DTO Zod LoginSchema attend `identifier` (email OU username), pas `username`.
 curl -X POST http://localhost:3002/api/v1/auth/login `
   -H "Content-Type: application/json" `
-  -d '{\"username\":\"citoyen_dev\",\"password\":\"Citoyen@2026!\"}'
+  -d '{\"identifier\":\"citoyen_dev\",\"password\":\"Citoyen@2026!\"}'
 ```
 
 ---
@@ -3072,25 +3303,25 @@ curl -X POST http://localhost:3002/api/v1/auth/login `
 
 Construire le service d'authentification NINA-AES :
 
-- Façade NestJS au-dessus de Keycloak 26.1
-- JWT RS256 avec validation JWKS
-- Refresh token rotation + blacklist via Redis
-- Guards et décorateurs RBAC réutilisables
-- ≥ 85 % de couverture de tests
+- NestJS au-dessus de Keycloak 26.6.2 (validation du mot de passe) + émission de JWT propres
+- JWT RS256 signés/vérifiés via clés Vault (`kid`) — refresh vérifié par signature
+- Refresh token rotation + détection de rejeu (familles Redis)
+- Guards et décorateurs RBAC réutilisables (+ `LoginThrottleGuard` custom)
+- Tests : 17 unitaires + 2 e2e smoke (couverture e2e métier différée doc 18)
 
 ## ✅ Réalisations
 
-- [ ] Keycloak bootstrappé avec realm `nina-aes` (3 clients, 4 rôles, 3 users)
-- [ ] `KeycloakService` (login, refresh, logout, createUser)
-- [ ] `RedisService` (refresh tokens, blacklist)
-- [ ] `JwtStrategy` avec JWKS cache 10 min
-- [ ] `JwtAuthGuard` global + `@Public()`
-- [ ] `RolesGuard` + `@Roles()` + `@CurrentUser()`
-- [ ] 6 endpoints REST documentés Swagger
-- [ ] Tests unitaires (X tests, X % couverture)
-- [ ] Tests e2e avec nock (X tests)
+- [ ] Keycloak bootstrappé avec realm `nina-aes` (validation mot de passe + SSO)
+- [ ] `KeycloakAuthService` (password grant) + `KeycloakAdminService` (createUser, resetPassword)
+- [ ] `JwtCryptoService` (sign/verify access/refresh/reset/mfa via clés Vault, `kid`)
+- [ ] `RefreshService` (rotation + détection de rejeu par famille, Redis)
+- [ ] `JwtAuthGuard` / `RolesGuard` / `MfaGuard` (dupliqués localement, ADR-027) + décorateurs
+- [ ] `LoginThrottleGuard` custom (Redis `incrEx`) sur `/login`
+- [ ] ~14 endpoints REST documentés Swagger
+- [ ] 17 tests unitaires + 2 e2e smoke
 - [ ] Healthcheck Keycloak + Redis
 - [ ] `.env.example` et ESLint flat config
+- [ ] ⏳ JWKS auth-service (clé Vault) + Helmet/CSP/HSTS + cookies httpOnly (Phase 2)
 
 ## 🐛 Problèmes rencontrés
 
@@ -3113,7 +3344,7 @@ Construire le service d'authentification NINA-AES :
 
 ## ⏭️ Prochaine étape
 
-Document 09 — Audit Service (Merkle hash chain).
+Document 09 — Audit Service (hash-chain SHA-256 linéaire, ADR-007 ; ancrage tiers à implémenter).
 ```
 
 ---
@@ -3123,12 +3354,13 @@ Document 09 — Audit Service (Merkle hash chain).
 - [ ] `infrastructure/keycloak/realm-export.json` créé et monté dans Docker Compose
 - [ ] `docker compose up -d keycloak postgres redis` → tous healthy
 - [ ] http://localhost:8080/realms/nina-aes/.well-known/openid-configuration répond
-- [ ] Admin console http://localhost:8080/admin accessible (`admin` / `keycloak_admin_2026!`)
-- [ ] Realm `nina-aes` créé avec 3 clients, 4 rôles, 3 users de test
+- [ ] Admin console http://localhost:8080/admin accessible (`admin` / `keycloak_admin_2026!` — ⚠️
+      dev only)
+- [ ] Realm `nina-aes` créé avec ses clients, 7 rôles (cf. § 3.4) et users de test (dev only)
 - [ ] `pnpm --filter @nina-aes/auth-service add` toutes les dépendances installées
 - [ ] Le service démarre sur http://localhost:3002 sans erreur
 - [ ] http://localhost:3002/health retourne `{ status: 'ok' }` (Keycloak + Redis up)
-- [ ] http://localhost:3002/api/docs affiche Swagger UI avec 6 endpoints
+- [ ] http://localhost:3002/api/docs affiche Swagger UI avec ~14 endpoints (cf. § 0)
 - [ ] `POST /api/v1/auth/login` avec `citoyen_dev` retourne un `access_token` + `refresh_token`
 - [ ] Le `access_token` contient bien les claims `realm_access.roles` et `ninaId`
 - [ ] `GET /api/v1/auth/me` avec le token retourne les infos utilisateur
@@ -3136,8 +3368,9 @@ Document 09 — Audit Service (Merkle hash chain).
 - [ ] Réutiliser le même refresh token 2× → deuxième appel échoue en 401
 - [ ] `POST /api/v1/auth/logout` blackliste le token (vérifier dans Redis)
 - [ ] Tentative d'utiliser un token révoqué → 401
-- [ ] `POST /api/v1/auth/register/citizen` avec un NINA invalide → 400
-- [ ] Rate limiting : 6 logins consécutifs → le 6ᵉ renvoie 429
+- [ ] `POST /api/v1/auth/register/verify` (as-built ; ex-`register/citizen`) avec un NINA invalide →
+      400
+- [ ] Rate limiting `/login` : 6 logins consécutifs → le 6ᵉ renvoie 429 (`LoginThrottleGuard`)
 - [ ] Tests unit tous verts (`pnpm run test`)
 - [ ] Tests e2e tous verts (`pnpm run test:e2e`)
 - [ ] Couverture ≥ 85 % (`pnpm run test:cov`)
@@ -3151,15 +3384,16 @@ Document 09 — Audit Service (Merkle hash chain).
 
 ### Améliorations à court terme
 
-| Amélioration                                             | Document cible                     |
-| -------------------------------------------------------- | ---------------------------------- |
-| 🔐 MFA (TOTP / WebAuthn) via Keycloak                    | **26 — DevOps / Sécurité avancée** |
-| 📧 Envoi d'email de vérification (Maildev dev, SES prod) | **11 — notification-service**      |
-| 🔄 Fédération Google / Facebook pour citoyens            | **Extension future**               |
-| 👮 Audit trail des connexions dans Merkle chain          | **09 — audit-service**             |
-| 🛡️ Rate limiting par userId (pas seulement IP)           | **24 — sécurité**                  |
-| 🔑 Package `@nina-aes/auth-lib` partagé                  | **15 — packages partagés**         |
-| 📱 Magic link (login sans password pour USSD)            | **11 — notification-service**      |
+| Amélioration                                                                  | Document cible                |
+| ----------------------------------------------------------------------------- | ----------------------------- |
+| 🔐 MFA (TOTP / WebAuthn) — WebAuthn différé                                   | **15 — Security Hardening**   |
+| 📧 Email de vérification (Maildev dev ; SMTP souverain prod, **pas AWS SES**) | **11 — notification-service** |
+| 🔄 Fédération Google / Facebook pour citoyens                                 | **Extension future**          |
+| 👮 Audit trail des connexions (hash-chain SHA-256, ADR-007)                   | **09 — audit-service**        |
+| 🛡️ Rate limiting par userId + autres routes (pas que `/login`/IP)             | **Phase 2 / 15 — sécurité**   |
+| 🔑 JWKS exposant la clé publique **Vault** d'auth-service (`kid`)             | **Phase 2 (§ 4.6)**           |
+| 🪖 Helmet / CSP / HSTS + cookies refresh httpOnly                             | **Phase 2 (§ 6.4)**           |
+| 📱 Magic link (login sans password pour USSD)                                 | **11 — notification-service** |
 
 ### Références externes
 

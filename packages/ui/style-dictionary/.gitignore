@@ -1,0 +1,3 @@
+# Artefacts générés par build.mjs — régénérables via `pnpm --filter @nina-aes/ui tokens:build`.
+# (src/styles/tokens.css EST versionné : il est importé/consommé directement.)
+generated/

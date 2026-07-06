@@ -42,9 +42,16 @@ export interface JwtAccessPayload {
   email?: string;
   /** Identifiant Keycloak associé (pour le SSO inverse). */
   kcSub?: string;
+  /**
+   * NINA du citoyen propriétaire — présent UNIQUEMENT pour les tokens citoyen
+   * (anti-IDOR `NinaOwnershipGuard` côté identity-service). Absent pour les
+   * rôles internes (agent/admin/auditor/…).
+   */
+  nina?: string;
   /** Issuer et audience contrôlés par les Guards. */
   iss: string;
-  aud: string;
+  /** Audience(s) — émise(s) en tableau (cf. JwtCryptoService), reçue(s) en `string | string[]`. */
+  aud: string | string[];
   iat: number;
   exp: number;
 }

@@ -2,7 +2,7 @@
  * @file        e2e/citizen/nina-flow.spec.ts
  * @description PC-02 → PC-03 : recherche NINA + accès au wizard de correction.
  *              Exécuté en mode mock (NINA_AUTH_MODE=mock → session Fatoumata
- *              Diallo, NINA 18903102015042Z). La fiche citoyen affichée
+ *              Diallo, NINA 18903102015042V). La fiche citoyen affichée
  *              correspond au mock parseNina côté frontend (back-end pas
  *              encore branché).
  */
@@ -10,10 +10,10 @@
 import { test, expect } from '@playwright/test';
 
 // NINA réellement valide selon `validateNina()` (lettre de contrôle V
-// dérivée des 14 chiffres). À noter : le NINA `18903102015042Z` cité
-// partout dans les mocks (i18n, examples) est INVALIDE — la lettre de
-// contrôle correcte est V. À aligner Session 6+ pour cohérence
-// (TODO : régénérer tous les mocks NINA avec validation).
+// dérivée des 14 chiffres). L'ancien `18903102015042Z` (lettre de contrôle
+// INVALIDE) a été aligné sur `...V` là où il servait d'exemple valide
+// (placeholder NinaInput, screens.md, design-system.md, api-client) ; les
+// tests de normalisation de `packages/utils` gardent `Z` à dessein.
 const MOCK_NINA = '18903102015042V';
 // formatNina() : `1 89 03 1 02 015 042 V`
 const MOCK_NINA_FORMATTED = '1 89 03 1 02 015 042 V';
@@ -48,5 +48,34 @@ test.describe('PC-03 — Wizard correction', () => {
     const fieldButtons = page.getByRole('button', { pressed: false });
     // Au moins 9 boutons aria-pressed=false (étape 1 = 9 choix de champs).
     expect(await fieldButtons.count()).toBeGreaterThanOrEqual(9);
+  });
+
+  test('soumet une correction de bout en bout (mode mock) → redirige vers le suivi', async ({
+    page,
+  }) => {
+    await page.goto(`/fr/nina/${MOCK_NINA}/correction`);
+
+    // Étape 1 — choisir un champ.
+    await page.getByRole('button', { name: /Profession/ }).click();
+    await page.getByRole('button', { name: 'Suivant' }).click();
+
+    // Étape 2 — nouvelle valeur + motif (≥ 10 caractères).
+    await page.getByLabel('Nouvelle valeur').fill('Couturière');
+    await page
+      .getByLabel('Motif de la correction')
+      .fill('Erreur de saisie sur ma profession actuelle, à rectifier.');
+    await page.getByRole('button', { name: 'Suivant' }).click();
+
+    // Étape 3 — justificatif facultatif → on passe.
+    await page.getByRole('button', { name: 'Suivant' }).click();
+
+    // Étape 4 — attestation sur l'honneur OBLIGATOIRE (demande à portée légale)
+    // puis soumettre. Sans la case cochée, le bouton reste désactivé.
+    await page.getByRole('checkbox', { name: /certifie sur l'honneur/i }).check();
+    await page.getByRole('button', { name: 'Soumettre la demande' }).click();
+
+    // Redirection vers le tableau de bord avec l'accusé de soumission.
+    await page.waitForURL(/\/dashboard\?submitted=1/);
+    await expect(page.getByText('Corrections en cours').first()).toBeVisible();
   });
 });

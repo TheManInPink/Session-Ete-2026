@@ -16,7 +16,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { CitizenService } from '../src/modules/citizen/citizen.service';
 import { CitizenController } from '../src/modules/citizen/citizen.controller';
-import { RolesGuard } from '../src/common/guards/roles.guard';
+import { JwtAuthGuard, RolesGuard, NinaOwnershipGuard } from '../src/auth/guards';
+import { JWT_VERIFIER } from '../src/auth/auth.types';
 import { Reflector } from '@nestjs/core';
 import { RedisService } from '../src/infrastructure/redis/redis.service';
 
@@ -29,14 +30,22 @@ describe('CitizenController (e2e smoke)', () => {
   };
 
   beforeAll(async () => {
+    // Mode mock : bypass d'AUTHENTIFICATION en dev/test uniquement (jamais en
+    // production, cf. JwtAuthGuard). On s'assure que NODE_ENV n'est pas 'production'.
     process.env.NINA_AUTH_MODE = 'mock';
+    delete process.env.NODE_ENV;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [CitizenController],
       providers: [
         { provide: CitizenService, useValue: mockCitizenService },
         { provide: Reflector, useValue: new Reflector() },
+        // Chaîne de guards réelle (auth fail-closed + RBAC + ownership).
+        // Le verifier n'est pas appelé en mode mock, mais doit être résoluble.
+        { provide: JWT_VERIFIER, useValue: { verifyAccess: jest.fn() } },
+        JwtAuthGuard,
         RolesGuard,
+        NinaOwnershipGuard,
         {
           provide: RedisService,
           useValue: { get: jest.fn(), set: jest.fn(), ping: jest.fn().mockResolvedValue(true) },

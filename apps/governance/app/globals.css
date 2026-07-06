@@ -1,50 +1,17 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/**
+ * globals.css — styles racine apps/governance.
+ *
+ * Importe les tokens partagés + Tailwind v4 + reset depuis @nina-aes/ui.
+ * Toute personnalisation propre au portail gouvernance va dans ce fichier.
+ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@import '@nina-aes/ui/styles/globals.css';
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-
-  .imgLight {
-    display: none;
-  }
-  .imgDark {
-    display: unset;
+@layer components {
+  /* Sidebar gouvernance — bleu institutionnel profond, distinct de la console
+     agent (admin) pour une identité visuelle propre au SGOGT. */
+  .governance-sidebar {
+    background: hsl(215, 45%, 16%);
+    color: hsl(0, 0%, 95%);
   }
 }

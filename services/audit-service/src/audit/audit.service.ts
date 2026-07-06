@@ -244,12 +244,43 @@ export class AuditService {
   /**
    * Preuve cryptographique d'un log : le log + la chaîne jusqu'à la racine
    * scellée la plus proche + cette racine signée Ed25519.
+   *
+   * Exposition (CANON ADR-007) :
+   *  - `signingKeyId` + `publicKeyEd25519` au niveau racine de la réponse :
+   *    permet à un tiers (inspecteur OCLEI/Vérificateur Général) de REJOUER la
+   *    vérification offline (§11) avec la BONNE clé, même après une rotation
+   *    Vault (il choisit la clé d'archive correspondant à `signingKeyId`).
+   *  - `signatureValid` : résultat de la VÉRIFICATION SERVEUR de la signature
+   *    Ed25519 de la racine. L'API ne renvoie jamais une preuve dont la
+   *    signature serait silencieusement invalide (détection précoce d'une clé
+   *    désynchronisée ou d'une racine corrompue).
+   *
+   * Honnêteté (ADR-007 §5.2) : la hash-chain est LINÉAIRE (pas un arbre de
+   * Merkle) ; l'intégrité n'est juridiquement opposable qu'avec un ANCRAGE TIERS
+   * de la racine — ⏳ Phase 2 (`externalAnchor` ci-dessous, `publishedExternal`
+   * dans `audit_roots`). `signatureValid=null` si la racine a été signée par une
+   * clé antérieure à une rotation (clé d'époque non chargée en mémoire) :
+   * l'inspecteur tranche alors via le script offline §11 avec la clé d'archive.
    */
   async getProof(logId: bigint) {
     const log = await this.repo.findById(logId);
     if (!log) return null;
     const root = await this.repo.findRootCoveringLog(logId);
     const chain = root ? await this.repo.findByIdRange(logId, root.lastLogId) : [log];
+
+    // Vérification serveur de la signature Ed25519 de la racine couvrante.
+    // Message signé = `${chainRootHash}|${signedAt.toISOString()}` (cohérent
+    // avec sealRoot). Si la clé courante en mémoire ne correspond pas à celle
+    // d'époque (rotation), on renvoie `null` plutôt qu'un faux négatif.
+    let signatureValid: boolean | null = null;
+    if (root) {
+      const message = `${root.chainRootHash}|${root.signedAt.toISOString()}`;
+      signatureValid =
+        root.signingKeyId === this.signing.getKeyId()
+          ? await this.signing.verify(message, root.signature)
+          : null;
+    }
+
     return {
       log: this.serialize(log),
       chain: chain.map((l) => ({
@@ -268,6 +299,11 @@ export class AuditService {
             publicKey: this.signing.getPublicKeyHex(),
           }
         : null,
+      // Matériel de vérification indépendante (rejouable offline §11).
+      signingKeyId: root?.signingKeyId ?? null,
+      publicKeyEd25519: this.signing.getPublicKeyHex(),
+      signatureValid,
+      // ⏳ Phase 2 : `externalAnchor` (preuve d'ancrage OCLEI/Vérificateur Général).
     };
   }
 

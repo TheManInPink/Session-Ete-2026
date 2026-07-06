@@ -9,6 +9,19 @@ numpy>=2.4.4
 httpx>=0.28.1
 python-dotenv>=1.2.2
 
+# Chargement du bundle Isolation Forest exporté (intégrité fail-closed via sidecar .sha256).
+joblib>=1.4.0
+
+# Auth RBAC — PyJWT (RS256 + JWKS). JAMAIS python-jose (CVE-2024-33663/33664).
+# L'extra [crypto] tire `cryptography` (vérification RS256 + RSA-OAEP côté borne).
+pyjwt[crypto]>=2.9.0
+
+# Crypto signalements lanceurs d'alerte (scellement CÔTÉ CLIENT ; le serveur ne déchiffre jamais) :
+#   - PyNaCl (libsodium) pour SEALED_BOX_X25519 (crypto_box_seal).
+#   - cryptography pour RSA_OAEP_4096 (déjà tirée par pyjwt[crypto], épinglée ici explicitement).
+pynacl>=1.5.0
+cryptography>=43.0.0
+
 # Optionnel — ML avancé (LSTM, BERT)
 torch>=2.11.0
 transformers>=5.5.0

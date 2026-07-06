@@ -1,0 +1,48 @@
+[project]
+name = "nina-aes-training"
+version = "1.0.0"
+description = "Pipeline reproductible d'entraînement des modèles IA NINA-AES (XGBoost + Isolation Forest)"
+authors = [{ name = "Étudiant UQAR" }]
+requires-python = ">=3.14"
+
+# Versions alignées sur l'environnement vérifié localement (Python 3.14).
+# NB : pas de spaCy ici (pas de wheels cp314 — cf. note CI dans ci.yml) ; la
+# fuzziness/phonétique repose sur rapidfuzz + jellyfish, qui ont des wheels 3.14.
+dependencies = [
+    "scikit-learn>=1.8.0",
+    "xgboost>=3.2.0",
+    "pandas>=2.3.3",
+    "numpy>=2.3.5",
+    "scipy>=1.16.3",
+    "joblib>=1.5.2",
+    "rapidfuzz>=3.14.3",
+    "jellyfish>=1.1.0",
+]
+
+[project.optional-dependencies]
+# MLflow est optionnel : le pipeline tourne sans (repli JSON). La CI n'installe
+# PAS cet extra (elle installe .[dev] et lance --no-mlflow → repli JSON) ;
+# installez-le localement (pip install -e .[mlflow]) pour activer le tracking.
+mlflow = ["mlflow>=2.20.0"]
+dev = ["pytest>=9.0.3", "ruff>=0.11.0"]
+
+[project.scripts]
+nina-train-xgboost = "training.train_xgboost:main"
+nina-train-anomaly = "training.train_anomaly:main"
+nina-evaluate = "training.evaluate:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

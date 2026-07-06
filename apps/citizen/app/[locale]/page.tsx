@@ -35,16 +35,19 @@ function HomeContent({ locale }: { locale: ReturnType<typeof normalizeLocale> })
   const actions = [
     { icon: FileSearch, key: 'viewCard', href: 'nina', tone: 'primary' as const },
     {
+      // Le wizard de correction (PC-03) vit sous /nina/[nina]/correction et exige
+      // un NINA : on passe par la recherche avec `intent=correction`, qui enchaîne
+      // directement sur le wizard une fois le NINA saisi.
       icon: PencilLine,
       key: 'requestCorrection',
-      href: 'corrections/new',
+      href: 'nina?intent=correction',
       tone: 'warning' as const,
     },
     { icon: Calendar, key: 'bookAppointment', href: 'appointments/new', tone: 'success' as const },
     {
       icon: MessageSquareWarning,
       key: 'reportCorruption',
-      href: 'reports/new',
+      href: 'signalement',
       tone: 'danger' as const,
     },
   ];
@@ -59,7 +62,7 @@ function HomeContent({ locale }: { locale: ReturnType<typeof normalizeLocale> })
             <div className="flex items-center gap-3">
               <LanguageSwitcher currentLocale={locale} />
               <Link
-                href="#actions"
+                href={`/${locale}/login`}
                 className="rounded-base bg-primary px-4 py-2 text-sm font-medium text-primary-fg hover:bg-primary/90"
               >
                 {tCommon('signIn')}
@@ -82,7 +85,9 @@ function HomeContent({ locale }: { locale: ReturnType<typeof normalizeLocale> })
       <section id="actions" className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {actions.map(({ icon: Icon, key, href, tone }) => (
-            <Link key={key} href={`./${href}`} className="block focus:outline-none">
+            // Href absolu préfixé locale : un `./…` relatif depuis `/fr` perd le
+            // préfixe (`/nina`) et coûte un 307 de re-localisation au proxy.
+            <Link key={key} href={`/${locale}/${href}`} className="block focus:outline-none">
               <Card className="h-full transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring">
                 <CardHeader>
                   <Icon

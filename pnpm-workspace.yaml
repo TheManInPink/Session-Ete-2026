@@ -24,6 +24,7 @@ verifyDepsBeforeRun: false
 #
 # Format pnpm 11 : map avec valeurs booléennes (true = autorisé).
 allowBuilds:
+  '@bundled-es-modules/glob': false
   '@nestjs/core': true
   '@parcel/watcher': true
   '@prisma/client': true
@@ -36,6 +37,7 @@ allowBuilds:
   protobufjs: true
   puppeteer: false
   sharp: true
+  style-dictionary: false
   unrs-resolver: true
 
 # ─── Overrides CVE (force les versions patchées détectées par Trivy) ──
@@ -46,9 +48,17 @@ allowBuilds:
 overrides:
   'lodash@<4.18.0': '>=4.18.0'
   'fast-uri@<3.1.2': '>=3.1.2'
-  'multer@<2.1.1': '>=2.1.1'
+  # multer < 2.2.0 : DoS via noms de champs profondément imbriqués (GHSA-72gw-mp4g-v24j).
+  # Tiré transitivement par @nestjs/platform-express (89 chemins).
+  'multer@<2.2.0': '>=2.2.0'
   '@nestjs/microservices@<11.1.19': '>=11.1.19'
   # axios < 1.16.0 : prototype pollution / MITM / credential theft (GHSA-pmwg-cvhr-8vh7,
   # GHSA-pf86-5x62-jrwf, GHSA-6chq-wfr3-2hj9, GHSA-q8qp-cvcw-x6jj, GHSA-pjwm-pj3p-43mv,
   # GHSA-3g43-6gmg-66jw, GHSA-35jp-ww65-95wh). Tiré transitivement par africastalking (auth-service).
   'axios@<1.16.0': '>=1.16.0'
+  # form-data < 4.0.6 : injection CRLF via noms de champs/fichiers non échappés (GHSA-hmw2-7cc7-3qxx).
+  # Tiré transitivement par axios (vault-client, @nestjs/axios, @nestjs/terminus).
+  'form-data@<4.0.6': '>=4.0.6'
+  # hono < 4.12.25 : le middleware CORS réfléchit toute Origin avec credentials (GHSA-88fw-hqm2-52qc).
+  # Transitif uniquement via @prisma/dev (serveur `prisma dev`), hors runtime/CI — défense en profondeur.
+  'hono@<4.12.25': '>=4.12.25'

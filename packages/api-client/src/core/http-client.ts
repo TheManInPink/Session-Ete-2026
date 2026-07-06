@@ -57,6 +57,13 @@ export interface HttpClientOptions {
   maxRetries?: number;
   /** User-Agent envoyé (utile pour différencier RSC vs client). */
   userAgent?: string;
+  /**
+   * Politique de cookies du `fetch`. Laisser indéfini = comportement par
+   * défaut du navigateur (`same-origin`). Mettre `'omit'` pour les transports
+   * **anonymes** (ex. signalement SIGAC) afin qu'AUCUN cookie ne parte —
+   * garantie d'anonymat même sur une requête same-origin.
+   */
+  credentials?: RequestCredentials;
 }
 
 export interface RequestOptions<TBody = unknown> {
@@ -94,10 +101,15 @@ export class HttpClient {
     const perform = async (): Promise<Response> => {
       const headers: Record<string, string> = {
         Accept: 'application/json',
-        'X-Correlation-Id': correlationId,
         'User-Agent': this.opts.userAgent ?? 'nina-aes-client/0.1',
         ...options.headers,
       };
+      // 🔒 ANTI-CORRÉLATION : sur un transport anonyme (`skipAuth`, ex.
+      // signalement SIGAC), on N'ENVOIE PAS le `X-Correlation-Id` — il est
+      // horodaté (`c-<ts>-…`) et fournirait un vecteur de corrélation temporelle
+      // du lanceur d'alerte. Il reste généré localement pour tracer les erreurs
+      // client, mais ne quitte jamais le navigateur sur ce chemin.
+      if (!options.skipAuth) headers['X-Correlation-Id'] = correlationId;
       if (options.body !== undefined) headers['Content-Type'] = 'application/json';
       if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
       if (!options.skipAuth && this.opts.getAccessToken) {
@@ -111,6 +123,7 @@ export class HttpClient {
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
         signal: options.signal ?? controller.signal,
         cache: 'no-store',
+        credentials: this.opts.credentials,
       });
     };
 
@@ -138,6 +151,15 @@ export class HttpClient {
     }
   }
 
+  /**
+   * Construit l'URL finale.
+   *
+   * ⚠️ Invariant : `baseUrl` doit être une **origine** (ex. `http://host:3000`),
+   * sans chemin. Les clients utilisent des chemins **absolus** (`/api/v1/…`) ;
+   * or un chemin absolu passé à `new URL(path, base)` **remplace** entièrement
+   * le pathname de `base`. Un `baseUrl` avec préfixe (ex. `.../api`) serait donc
+   * silencieusement ignoré. Tous les `*Url()` de la config respectent ce contrat.
+   */
   private buildUrl(path: string, query?: RequestOptions['query']): string {
     const url = new URL(path, this.opts.baseUrl);
     if (query) {

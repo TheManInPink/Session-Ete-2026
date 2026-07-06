@@ -42,8 +42,27 @@ export const EnvSchema = z.object({
 
   // ─── JWT (clés via Vault, métadonnées ici) ──────────────────────
   VAULT_JWT_KEYS_PATH: z.string().min(1).default('auth/jwt'),
-  JWT_ISSUER: z.url(),
-  JWT_AUDIENCE: z.string().min(1),
+  /**
+   * Émetteur (`iss`) gravé dans tous les tokens applicatifs NINA.
+   * ⚠️ CONTRAT INTER-SERVICE : doit valoir EXACTEMENT la valeur attendue par
+   * les vérificateurs JWKS aval (`AUTH_JWT_ISSUER`, défaut `nina-aes-auth`,
+   * cf. `identity-service/src/auth/jwks-jwt.verifier.ts`). Ce n'est donc PAS
+   * une URL — un `z.url()` ici casserait le flux citoyen au premier guard.
+   */
+  JWT_ISSUER: z.string().min(1).default('nina-aes-auth'),
+  /**
+   * Audience(s) (`aud`) — LISTE séparée par des virgules. Chaque vérificateur
+   * aval exige que l'`aud` du token CONTIENNE son identité propre
+   * (`nina-identity-service`, etc.). On émet donc l'union des services NINA
+   * cibles afin qu'un même access token soit accepté par tous les avals
+   * légitimes. Parsé en `string[]` par {@link parseAudience}.
+   */
+  JWT_AUDIENCE: z
+    .string()
+    .min(1)
+    .default(
+      'nina-identity-service,nina-appointment-service,nina-audit-service,nina-document-service,nina-notification-service,nina-api-gateway',
+    ),
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   JWT_REFRESH_TTL_SECONDS: z.coerce.number().int().positive().default(604_800),
   JWT_RESET_TTL_SECONDS: z.coerce.number().int().positive().default(900),
@@ -91,6 +110,21 @@ export const EnvSchema = z.object({
 
 /** Type effectif après validation (`z.infer`). */
 export type AppEnv = z.infer<typeof EnvSchema>;
+
+/**
+ * Normalise `JWT_AUDIENCE` (chaîne CSV) en `string[]` non vide, en
+ * supprimant espaces et entrées vides. Centralisé ici pour garantir le même
+ * découpage côté émission (JwtCryptoService) que côté documentation.
+ *
+ * @param raw Valeur brute de `JWT_AUDIENCE` (ex. `"a, b ,c"`).
+ * @returns Liste d'audiences (au moins un élément si `raw` non vide).
+ */
+export function parseAudience(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0);
+}
 
 /**
  * Callback `validate` à passer à `ConfigModule.forRoot({ validate })`.

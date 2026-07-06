@@ -92,7 +92,7 @@ export const envSchema = z.object({
     .default('postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db?schema=public'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   RABBITMQ_URL: z.string().default('amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672'),
-  ELASTICSEARCH_URL: z.string().url().default('http://localhost:9200'),
+  ELASTICSEARCH_URL: z.url().default('http://localhost:9200'),
 
   // ── Stockage objet MinIO ──────────────────────────────────────────────
   MINIO_ENDPOINT: z.string().default('localhost'),
@@ -124,7 +124,7 @@ export const envSchema = z.object({
   API_GATEWAY_PORT: z.coerce.number().int().positive().default(3000),
 
   // ── HashiCorp Vault ───────────────────────────────────────────────────
-  VAULT_ADDR: z.string().url().default('http://localhost:8200'),
+  VAULT_ADDR: z.url().default('http://localhost:8200'),
   VAULT_TOKEN: z.string().default('dev-root-token'),
   VAULT_NAMESPACE: z.string().default('nina-aes'),
 
@@ -132,15 +132,137 @@ export const envSchema = z.object({
   AFRICAS_TALKING_API_KEY: z.string().default('sandbox-api-key'),
   AFRICAS_TALKING_USERNAME: z.string().default('sandbox'),
 
+  // ── Authenticité du webhook USSD Africa's Talking (P0 sécurité, doc 14 §4.2) ──
+  // Ces deux variables durcissent le webhook PUBLIC `POST /ussd/callback`.
+  // Défauts SÛRS : chaîne vide pour NE PAS casser le boot des autres services
+  // (le webhook n'existe que dans ussd-service). Le fail-closed réel est
+  // appliqué DANS `AtAuthenticityGuard` quand `NODE_ENV=production` :
+  //   - allowlist vide en prod  → tout appel rejeté (403) ;
+  //   - secret vide en prod     → tout appel rejeté (403).
+  // En dev (`NODE_ENV != production`), un défaut vide reste permissif pour
+  // permettre le simulateur local sans config supplémentaire.
+  //
+  /** CSV des IP sortantes autorisées des passerelles Africa's Talking / opérateur. */
+  AT_GATEWAY_IP_ALLOWLIST: z.string().default(''),
+  /**
+   * Secret partagé attendu dans l'en-tête `X-AT-Webhook-Secret` (comparé en
+   * TEMPS CONSTANT). Optionnel au boot (.default('')) ; REQUIS en production
+   * (fail-closed dans le guard). Vit dans Vault — jamais en clair dans le code.
+   */
+  AT_WEBHOOK_SHARED_SECRET: z.string().default(''),
+  /**
+   * Nombre de sauts (hops) de reverse-proxy DE CONFIANCE devant ussd-service
+   * (Express `trust proxy`). Tant que l'IP source est une frontière de sécurité
+   * (IP allowlist du webhook USSD), l'en-tête `X-Real-IP` / `X-Forwarded-For`
+   * ne doit être honoré QUE s'il provient d'un proxy de confiance — sinon un
+   * client Internet pourrait usurper `X-Real-IP: <IP-AT-allowlistée>` et
+   * contourner la couche 1. Mettre le nombre EXACT de proxys que la requête
+   * traverse (ex. `1` = un seul NGINX/ingress en amont). `0` = aucun proxy de
+   * confiance : on n'honore AUCUN en-tête transféré (on n'utilise que l'IP du
+   * pair TCP direct). En production, ce guard impose une valeur ≥ 1.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+
   // ── Certificats mTLS pour l'interopérabilité AES ──────────────────────
   AES_MLI_CERT_PATH: z.string().default('./secrets/aes/mli.pem'),
   AES_BFA_CERT_PATH: z.string().default('./secrets/aes/bfa.pem'),
   AES_NER_CERT_PATH: z.string().default('./secrets/aes/ner.pem'),
   AES_CA_PATH: z.string().default('./secrets/aes/ca.pem'),
 
+  // ── interop-service BCID-AES (Bloc B, port 3006, doc 21 / ADR-021) ─────
+  // Défauts SÛRS : ne cassent le boot d'aucun autre service. Le détail (fenêtre
+  // anti-replay, quota, simulation dev) vit dans `services/interop-service/src/
+  // config/env.schema.ts` ; ces clés sont déclarées ici pour la cohérence du
+  // schéma racine + turbo.json globalEnv.
+  /** Pays opéré par le nœud interop local (ISO 3166-1 alpha-3). */
+  INTEROP_SELF_COUNTRY: z.enum(['MLI', 'BFA', 'NER']).default('MLI'),
+  /** `iss` placé par ce nœud dans les JWS signés. */
+  INTEROP_SELF_ISSUER: z.url().default('https://interop.nina-aes.ml'),
+  /** Quota de requêtes entrantes par pays (rate-limit contractuel). */
+  INTEROP_RATE_LIMIT_PER_COUNTRY: z.coerce.number().int().positive().default(1000),
+  /** Largeur de la fenêtre glissante du rate-limit (secondes). */
+  INTEROP_RATE_LIMIT_WINDOW_SEC: z.coerce.number().int().positive().default(3600),
+  /**
+   * Faire confiance aux en-têtes mTLS réécrits par l'ingress (`ssl-client-*`).
+   * `true` par défaut ; en dev local sans ingress, mettre `false` + INTEROP_DEV_PEER_*.
+   */
+  INTEROP_TRUST_INGRESS_HEADERS: z.coerce.boolean().default(true),
+  /** Chemin Vault KV (relatif au mount kv/data/) de la clé Ed25519 de signature. */
+  VAULT_INTEROP_KEY_PATH: z.string().default('interop/signing-key'),
+  /** Endpoints des passerelles partenaires, CSV `PAYS=URL`. Vide par défaut. */
+  INTEROP_PARTNER_ENDPOINTS: z.string().default(''),
+
+  // ── governance-service SGOGT + électoral (Bloc C2/C3, port 3010) ──────
+  // Défauts SÛRS : ne cassent le boot d'aucun autre service. Le détail (TTL
+  // d'escalade, quota DGE, fail-fast Vault) vit dans `services/governance-
+  // service/src/config/env.schema.ts` ; ces clés sont déclarées ici pour la
+  // cohérence du schéma racine + turbo.json globalEnv. AUCUN secret : seuls des
+  // NOMS de clés Vault Transit (clés non exportables, jamais lues côté service).
+  /** Active la publication d'audit RabbitMQ du governance-service. */
+  GOVERNANCE_AUDIT_ENABLED: z.coerce.boolean().default(true),
+  /** Active l'usage réel de Vault Transit (signature JWS / HMAC pseudonyme). */
+  GOVERNANCE_VAULT_ENABLED: z.coerce.boolean().default(true),
+  /** Clé Transit RS256 (non exportable) signant l'export DGE + l'escalade système. */
+  VAULT_ELECTIONS_EXPORT_KEY: z.string().default('elections-export'),
+  /** Clé HMAC Transit (non exportable) du pseudonyme électoral. */
+  VAULT_ELECTIONS_HMAC_KEY: z.string().default('elections-pseudonym'),
+  /** Préfixe des clés Transit RSA par-fonctionnaire signant les messages SGOGT. */
+  VAULT_SGOGT_KEY_PREFIX: z.string().default('sgogt-user-'),
+  /** Version de contexte HMAC (tag de séparation de domaine PUBLIC, pas un secret). */
+  ELECTIONS_SALT_VERSION: z.coerce.number().int().positive().default(1),
+  /** TTL d'escalade (heures) pour un message SGOGT NORMAL/HIGH non accusé. */
+  SGOGT_TTL_NORMAL_HOURS: z.coerce.number().int().positive().default(24),
+  /** TTL d'escalade (heures) pour un message SGOGT CRITICAL non accusé. */
+  SGOGT_TTL_CRITICAL_HOURS: z.coerce.number().int().positive().default(4),
+  /** Active le cron de balayage/escalade SGOGT. */
+  SGOGT_ESCALATION_CRON_ENABLED: z.coerce.boolean().default(true),
+  /** Active le cron d'inscription électorale auto à 18 ans. */
+  ELECTIONS_INSCRIPTION_CRON_ENABLED: z.coerce.boolean().default(true),
+  /** Plafond d'exports DGE PAR COMPTE et PAR JOUR (quota applicatif atomique). */
+  DGE_EXPORT_DAILY_QUOTA: z.coerce.number().int().positive().default(5),
+  /** Fenêtre du throttler nommé `dge` (ms) — défense en profondeur PAR IP. */
+  DGE_THROTTLE_TTL_MS: z.coerce.number().int().positive().default(3_600_000),
+  /** Limite du throttler nommé `dge` sur la fenêtre — PAR IP. */
+  DGE_THROTTLE_LIMIT: z.coerce.number().int().positive().default(5),
+
+  // ── biometric-service (Bloc F, port 3012 — le module le plus sensible) ─
+  // Défauts SÛRS : ne cassent le boot d'aucun autre service. Le détail (seuil τ,
+  // dimension de projection, gate DPIA, anti-bruteforce) vit dans `services/
+  // biometric-service/src/config/env.schema.ts` ; ces clés sont déclarées ici
+  // pour la cohérence du schéma racine + turbo.json globalEnv. AUCUN secret : le
+  // paramètre cancelable vit dans Vault (jamais en base, jamais en clair ici).
+  /** Active la publication d'audit RabbitMQ du biometric-service. */
+  BIOMETRIC_AUDIT_ENABLED: z.coerce.boolean().default(true),
+  /** Active l'accès Vault au paramètre cancelable (désactivable en test/CI). */
+  BIOMETRIC_VAULT_ENABLED: z.coerce.boolean().default(true),
+  /** Chemin Vault du SECRET de transformation cancelable (« sel » de projection). */
+  BIOMETRIC_TRANSFORM_SECRET_PATH: z.string().default('kv/data/biometric/bio-transform'),
+  /** `transform_kid` ACTIF pour les nouveaux enrôlements (versionné, rotation). */
+  BIOMETRIC_ACTIVE_TRANSFORM_KID: z.string().default('bio-transform-v1'),
+  /** Dimension de la projection aléatoire (longueur du code signe binarisé). */
+  BIOMETRIC_PROJECTION_DIM: z.coerce.number().int().positive().default(512),
+  /** Seuil τ par défaut (distance de Hamming normalisée) — à mesurer en P3a (DET). */
+  BIOMETRIC_MATCH_THRESHOLD: z.coerce.number().min(0).max(1).default(0.32),
+  /** Métrique de comparaison figée à l'enrôlement (traçabilité du point DET). */
+  BIOMETRIC_MATCH_METRIC: z.string().default('hamming-normalized'),
+  /** Audience attendue dans le JWS de consentement (`aud`, anti-relais). */
+  BIOMETRIC_CONSENT_AUDIENCE: z.string().default('nina-biometric-service'),
+  /** Tolérance d'horloge (s) des bornes nbf/exp du consentement (capture offline). */
+  BIOMETRIC_CONSENT_CLOCK_TOLERANCE_SEC: z.coerce.number().int().min(0).default(60),
+  /** Échecs max de vérification par (agent, citoyen) avant verrouillage (anti-bruteforce). */
+  BIOMETRIC_VERIFY_MAX_FAILURES: z.coerce.number().int().positive().default(5),
+  /** Fenêtre (s) de comptage des échecs + durée du verrouillage anti-bruteforce. */
+  BIOMETRIC_VERIFY_LOCKOUT_SEC: z.coerce.number().int().positive().default(900),
+  /**
+   * GATE BLOQUANT : DPIA biométrie signée par le CISO/DPO CTDEC ? Défaut SÛR
+   * `false` (le module ne se déploie pas en prod sans signature — DPIA §10). Le
+   * fail-fast réel est appliqué DANS `DpiaGateService` quand `NODE_ENV=production`.
+   */
+  BIOMETRIC_DPIA_SIGNED: z.coerce.boolean().default(false),
+
   // ── Observabilité ─────────────────────────────────────────────────────
   PROMETHEUS_PORT: z.coerce.number().int().positive().default(9090),
-  JAEGER_ENDPOINT: z.string().url().default('http://localhost:14268/api/traces'),
+  JAEGER_ENDPOINT: z.url().default('http://localhost:14268/api/traces'),
 });
 
 /** Type inféré du schéma complet (à consommer par les microservices). */
@@ -261,7 +383,7 @@ export const CORS_CONFIG = {
   maxAge: 86400,
 } as const;
 
-/** Ports canoniques des 11 microservices (doc 07 → 11). */
+/** Ports canoniques des 14 microservices (doc 07 → 11 + Bloc A/E : biometric, enrollment, ussd). */
 export const SERVICE_PORTS = {
   API_GATEWAY: Number(process.env.API_GATEWAY_PORT) || 3000,
   IDENTITY_SERVICE: Number(process.env.IDENTITY_SERVICE_PORT) || 3001,
@@ -275,6 +397,9 @@ export const SERVICE_PORTS = {
   ANTICORRUPTION_SERVICE: Number(process.env.ANTICORRUPTION_SERVICE_PORT) || 3009,
   GOVERNANCE_SERVICE: Number(process.env.GOVERNANCE_SERVICE_PORT) || 3010,
   VULNERABILITY_SERVICE: Number(process.env.VULNERABILITY_SERVICE_PORT) || 3011,
+  BIOMETRIC_SERVICE: Number(process.env.BIOMETRIC_SERVICE_PORT) || 3012,
+  ENROLLMENT_SERVICE: Number(process.env.ENROLLMENT_SERVICE_PORT) || 3013,
+  USSD_SERVICE: Number(process.env.USSD_SERVICE_PORT) || 3014,
 } as const;
 
 /** Configuration de limitation de débit (rate limiting) standard. */

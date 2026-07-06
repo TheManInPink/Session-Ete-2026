@@ -18,7 +18,8 @@
  */
 import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Client as MinioClient } from 'minio';
+import { Client as MinioClient, RETENTION_MODES } from 'minio';
+import type { Retention } from 'minio';
 import type { Env } from '../config/env.schema';
 
 /** Ajoute N années à une date (UTC stable). */
@@ -83,7 +84,14 @@ export class MinioService implements OnModuleInit {
   }
 
   /**
-   * Upload du PDF FDI avec rétention COMPLIANCE 10 ans (Object Lock).
+   * Upload du PDF FDI avec rétention COMPLIANCE 10 ans (Object Lock WORM).
+   *
+   * 🔒 DURCISSEMENT P1 — la rétention par objet est posée via l'API DÉDIÉE
+   * `putObjectRetention` (PUT `?retention`) PUIS relue via `getObjectRetention`
+   * pour PROUVER l'immuabilité, au lieu des en-têtes `x-amz-object-lock-*`
+   * passés en métadonnée `putObject` (qui peuvent être silencieusement ignorés
+   * selon le client/version ⇒ WORM non garanti). En mode COMPLIANCE, même
+   * l'admin root ne peut pas supprimer l'objet avant l'échéance.
    *
    * @throws ServiceUnavailableException si MinIO n'est pas joignable.
    */
@@ -100,10 +108,13 @@ export class MinioService implements OnModuleInit {
         {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `inline; filename="fdi-${input.jti}.pdf"`,
-          'x-amz-object-lock-mode': 'COMPLIANCE',
-          'x-amz-object-lock-retain-until-date': retainUntil.toISOString(),
         },
       );
+      const versionId = result.versionId ?? '';
+
+      // Pose + preuve de la rétention WORM via l'API dédiée (pas via métadonnée).
+      await this.applyRetention(objectKey, versionId, retainUntil);
+
       const presignedUrl = await this.client.presignedGetObject(
         this.bucket,
         objectKey,
@@ -111,13 +122,55 @@ export class MinioService implements OnModuleInit {
       );
       return {
         objectKey,
-        versionId: result.versionId ?? '',
+        versionId,
         retainUntil,
         presignedUrl,
       };
     } catch (err) {
       throw new ServiceUnavailableException(
         `MinIO put échoué pour ${objectKey} : ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Pose la rétention COMPLIANCE via `putObjectRetention` puis la relit via
+   * `getObjectRetention` (readback) pour vérifier que le WORM est bien appliqué.
+   *
+   * Si le bucket n'a PAS Object Lock activé (cas dev sans `mc mb --with-lock`),
+   * MinIO renvoie une erreur : on la journalise en `warn` SANS faire échouer la
+   * génération de FDI (le défaut de bucket / l'infra reste la garantie ultime),
+   * mais on trace clairement que l'immuabilité n'est pas prouvée.
+   */
+  private async applyRetention(
+    objectKey: string,
+    versionId: string,
+    retainUntil: Date,
+  ): Promise<void> {
+    try {
+      const retention: Retention = {
+        versionId,
+        mode: RETENTION_MODES.COMPLIANCE,
+        retainUntilDate: retainUntil.toISOString(),
+      };
+      await this.client.putObjectRetention(this.bucket, objectKey, retention);
+      // Readback : prouve que la rétention est effectivement posée.
+      const info = await this.client.getObjectRetention(
+        this.bucket,
+        objectKey,
+        versionId ? { versionId } : undefined,
+      );
+      if (info?.mode !== RETENTION_MODES.COMPLIANCE) {
+        this.log.warn(
+          `Rétention WORM non confirmée pour ${objectKey} (mode=${info?.mode ?? 'aucun'}) — ` +
+            `vérifier que le bucket "${this.bucket}" est créé avec Object Lock.`,
+        );
+      }
+    } catch (err) {
+      this.log.warn(
+        `Object Lock non appliqué pour ${objectKey} : ${(err as Error).message} — ` +
+          `le bucket "${this.bucket}" doit être créé avec \`mc mb --with-lock\`. ` +
+          `WORM NON garanti sur cet objet tant que l'infra n'est pas conforme.`,
       );
     }
   }

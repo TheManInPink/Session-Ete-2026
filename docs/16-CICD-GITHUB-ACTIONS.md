@@ -9,9 +9,9 @@
 >   - `verify.yml` (chaîne `verify:repo` + lint + typecheck) — bloquant PR
 >   - `test.yml` (Jest Node + Pytest Python + matrice services)
 >   - `e2e.yml` (Playwright sur les 3 apps Next.js, mode mock)
->   - `build.yml` (Turborepo cache distant + images Docker)
->   - `security.yml` (Trivy + Semgrep + gitleaks + pnpm audit + Bandit)
-> - 1 workflow `deploy-staging.yml` (déclenché sur push `main`, déploie sur K3s via Helm)
+>   - `build.yml` (Turborepo cache distant + images Docker + SBOM syft + cosign sign/attest/verify)
+>   - `security.yml` (Trivy + Semgrep + gitleaks + pnpm audit + Bandit + OWASP ZAP DAST — ADR-034)
+> - 1 workflow `deploy-staging.yml` (push `main`, **OIDC GitHub → K3s** sans kubeconfig, Helm)
 > - 1 workflow réutilisable `_setup-node-pnpm.yml` (composable action)
 > - Caches : pnpm store, Turborepo remote cache (S3 / MinIO interne), pip wheel, Playwright
 >   browsers, Docker buildx
@@ -54,28 +54,63 @@ en CI ». Trois principes structurent ce document :
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Composant                           | Version        | Rôle                                                   |
-| ----------------------------------- | -------------- | ------------------------------------------------------ |
-| **GitHub Actions runners**          | `ubuntu-24.04` | Runner par défaut — Ubuntu 24.04 LTS                   |
-| **actions/checkout**                | `v4`           | Checkout du repo (avec `fetch-depth: 0` pour gitleaks) |
-| **pnpm/action-setup**               | `v4`           | Installation pnpm pinned via `packageManager`          |
-| **actions/setup-node**              | `v4`           | Node 24 LTS + cache pnpm store automatique             |
-| **actions/setup-python**            | `v5`           | Python 3.14 + cache pip                                |
-| **actions/cache**                   | `v4`           | Cache Turbo + Playwright browsers + Docker buildx      |
-| **docker/setup-buildx-action**      | `v3`           | Buildx pour images multi-stage + cache distant         |
-| **docker/build-push-action**        | `v6`           | Build + push vers GHCR (`ghcr.io/<org>/<image>`)       |
-| **aquasecurity/trivy-action**       | `master`       | Scan FS + images Docker — `severity: CRITICAL,HIGH`    |
-| **returntocorp/semgrep-action**     | `v1`           | Static analysis OWASP + secrets accidentels            |
-| **gitleaks/gitleaks-action**        | `v2`           | Détection de secrets dans l'historique git             |
-| **pypa/gh-action-pip-audit**        | `v1`           | Audit deps Python (vs requirements.txt)                |
-| **codecov/codecov-action**          | `v5`           | Upload couverture (optionnel — sinon artefact)         |
-| **peter-evans/create-pull-request** | `v7`           | PRs automatiques (Renovate fallback, etc.)             |
-| **Turborepo Remote Cache**          | self-hosted    | Cache Turbo `.turbo/` sur MinIO interne (souverain)    |
-| **Renovate**                        | `app`          | Bumps dépendances automatisés (alternative Dependabot) |
-| **act (CLI)**                       | `0.2.66+`      | Rejoue les workflows en local (Docker)                 |
+| Composant                           | Version                       | Rôle                                                                   |
+| ----------------------------------- | ----------------------------- | ---------------------------------------------------------------------- |
+| **GitHub Actions runners**          | `ubuntu-24.04`                | Runner par défaut — Ubuntu 24.04 LTS                                   |
+| **actions/checkout**                | `v4` → **digest SHA**         | Checkout du repo (avec `fetch-depth: 0` pour gitleaks)                 |
+| **pnpm/action-setup**               | `v4` → **digest SHA**         | Installation pnpm pinned via `packageManager`                          |
+| **actions/setup-node**              | `v4` → **digest SHA**         | Node 24 LTS + cache pnpm store automatique                             |
+| **actions/setup-python**            | `v5` → **digest SHA**         | Python 3.14 + cache pip                                                |
+| **actions/cache**                   | `v4` → **digest SHA**         | Cache Turbo + Playwright browsers + Docker buildx                      |
+| **docker/setup-buildx-action**      | `v3` → **digest SHA**         | Buildx pour images multi-stage + cache distant                         |
+| **docker/build-push-action**        | `v6` → **digest SHA**         | Build + push vers GHCR (`ghcr.io/<org>/<image>`)                       |
+| **aquasecurity/trivy-action**       | ~~`master`~~ → **digest SHA** | Scan FS + images Docker — `severity: CRITICAL,HIGH` (jamais `@master`) |
+| **returntocorp/semgrep-action**     | `v1` → **digest SHA**         | Static analysis OWASP + secrets accidentels                            |
+| **gitleaks/gitleaks-action**        | `v2` → **digest SHA**         | Détection de secrets dans l'historique git                             |
+| **pypa/gh-action-pip-audit**        | `v1` → **digest SHA**         | Audit deps Python (vs requirements.txt)                                |
+| **sigstore/cosign-installer**       | `v3` → **digest SHA**         | Install `cosign` (signature + attestation images)                      |
+| **anchore/sbom-action** (`syft`)    | `v0` → **digest SHA**         | Génère le SBOM CycloneDX/SPDX par image                                |
+| **codecov/codecov-action**          | `v5` → **digest SHA**         | Upload couverture (optionnel — sinon artefact)                         |
+| **peter-evans/create-pull-request** | `v7` → **digest SHA**         | PRs automatiques (Renovate fallback, etc.)                             |
+| **Turborepo Remote Cache**          | self-hosted                   | Cache Turbo `.turbo/` sur MinIO interne (souverain)                    |
+| **Renovate**                        | `app`                         | Bumps dépendances automatisés (alternative Dependabot)                 |
+| **act (CLI)**                       | `0.2.66+`                     | Rejoue les workflows en local (Docker)                                 |
 
 > 🔒 Tous les outils sont open-source / souverains. Codecov reste optionnel (Codecov est US) —
 > fallback : artefact `coverage-final.json` dans l'onglet Actions.
+
+> 🎯 **Pinning par digest SHA — règle non négociable (cible).** Une référence mutable (`@v4`,
+> `@master`, `@main`) résout, **à chaque run**, vers le `HEAD` courant du tag : si l'action est
+> compromise (compromission de mainteneur, supply-chain), le code malveillant s'exécute avec les
+> permissions du workflow (et l'accès aux `secrets`). Le pinning par **digest immuable** ferme cette
+> porte. Forme canonique : `uses: owner/action@<sha40> # vX.Y.Z`.
+>
+> ```yaml
+> # ❌ MUTABLE — proscrit (l'arbre derrière le tag peut changer sans préavis)
+> - uses: actions/checkout@v4
+> - uses: aquasecurity/trivy-action@master # le pire : branche mouvante
+>
+> # ✅ CIBLE — digest SHA immuable + commentaire de version lisible
+> - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+> - uses: aquasecurity/trivy-action@18f2510ce396bb8e5f17ff86a32cb43f88f2e4ee # v0.29.0
+> ```
+>
+> Les digests ci-dessus sont **illustratifs** — le digest réel se résout au moment du pinning
+> (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`, ou l'outil `pin-github-action` /
+> `ratchet`). Renovate (§4.9) **maintient à jour** un pin par digest tout en gardant le commentaire
+> de version : activer le preset `helpers:pinGitHubActionDigests`. La règle Semgrep
+> `p/github-actions` et un `actionlint` en CI rejettent toute référence mutable résiduelle.
+
+> ⚠️ **HONNÊTETÉ — réel vs cible.** Les workflows **réellement présents** dans `.github/workflows/`
+> à ce jour sont `ci.yml`, `cd-staging.yml`, `codeql.yml`, `release.yml`, `train-models.yml`,
+> `version-check.yml` (la composite action `.github/actions/setup-node-pnpm/` existe). Ils **pinnent
+> encore par tag mutable** (`actions/checkout@v4`, `azure/setup-helm@v4`,
+> `aquasecurity/trivy-action@master`, `returntocorp/semgrep-action@v1`,
+> `gitleaks/gitleaks-action@v2`, `docker/*@v3..v6`, `github/codeql-action/*@v3` — vérifiable par
+> `grep -rE 'uses:.*@(v[0-9]+|master|main)' .github/workflows/`). Le découpage en 5 fichiers
+> canoniques (`verify/test/e2e/security/build` + `deploy-staging`) et le pinning par digest décrits
+> ci-dessous sont la **cible Phase 2** ⏳ — pas l'état committé. Tout extrait YAML de ce document
+> est un **gabarit pédagogique**, pas un dump du réel.
 
 ---
 
@@ -172,12 +207,13 @@ runs:
   using: composite
   steps:
     - name: Setup pnpm (from package.json packageManager)
-      uses: pnpm/action-setup@v4
+      # 🎯 CIBLE : pin par digest SHA (le commentaire conserve la version lisible)
+      uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
       with:
         run_install: false
 
     - name: Setup Node ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
       with:
         node-version-file: '.nvmrc'
         cache: 'pnpm'
@@ -223,7 +259,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      # 🎯 actions tierces pinnées par digest ; action locale (./…) pinnée par le commit du repo
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -299,8 +336,11 @@ jobs:
       JWT_SECRET: ci-test-jwt-secret-minimum-32-characters-long-padding
       NODE_ENV: test
 
+    # 📌 RAPPEL pinning : dans les snippets ci-dessous les `@v4`/`@v5`/`@v3` sont gardés LISIBLES pour
+    # la pédagogie, mais la cible §2 impose le digest SHA (`uses: owner/action@<sha40> # vX.Y.Z`)
+    # pour TOUTE action tierce. Idem dans e2e.yml et security.yml.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # 🎯 → digest SHA en cible (cf. §2)
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Activate PostGIS extension
@@ -436,6 +476,13 @@ jobs:
 **Pourquoi** : c'est la matérialisation des scans de la doc 15 dans le pipeline. Bloque le merge si
 une CVE CRITICAL/HIGH apparaît, un secret est commité, ou une règle Semgrep OWASP est violée.
 
+> 🔗 **Renvoi sécurité (ADR-034).** Le détail des outils, seuils et exceptions de la chaîne de scan
+> est tenu dans la doc 15 et **ADR-034** (mTLS strict + PKI + rotation clés/JWKS + OWASP + scans
+> CI). Couverture cible : **Trivy** (CVE FS + images), **Semgrep** (`p/owasp-top-ten` + langages),
+> **gitleaks** (secrets dans l'historique), **Bandit** (statique Python), **pnpm/pip-audit** (deps),
+> et **OWASP ZAP** en DAST sur l'API staging (baseline scan, cf. §4.7 / doc 15). Toute divergence de
+> seuils se réconcilie côté ADR-034 — ce document ne fait que **câbler** ces scans en CI.
+
 ```yaml
 # .github/workflows/security.yml
 name: security
@@ -458,9 +505,10 @@ jobs:
     name: Trivy (filesystem)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Trivy fs scan
-        uses: aquasecurity/trivy-action@master
+        # 🎯 jamais @master : pin par digest immuable (l'action Trivy avait justement publié sur master)
+        uses: aquasecurity/trivy-action@18f2510ce396bb8e5f17ff86a32cb43f88f2e4ee # v0.29.0
         with:
           scan-type: fs
           scan-ref: .
@@ -529,6 +577,21 @@ jobs:
           python-version: '3.14'
       - run: pip install bandit[toml]
       - run: bandit -r services/ai-service/app services/anticorruption-service/app -ll
+
+  # ── DAST OWASP ZAP (post-déploiement staging) ─────────────────────
+  # ⏳ Cible Phase 2 : ne se déclenche que sur `main` après `deploy-staging` (besoin d'une cible live).
+  # Reste un baseline scan passif (non bloquant au départ pour éviter le bruit), géré côté ADR-034.
+  zap-baseline:
+    name: OWASP ZAP (DAST baseline — staging)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@5f5e1f2eda1e8fd9da0b0a3a7e1c8b3b1e8d9f0a # v0.12.0 (digest illustratif)
+        with:
+          target: 'https://staging.nina-aes.uqar.ca'
+          # règles/seuils gérés par .zap/rules.tsv ; voir doc 15 + ADR-034
 ```
 
 ---
@@ -551,6 +614,10 @@ on:
 permissions:
   contents: read
   packages: write # push GHCR
+  id-token: write # 🎯 OIDC : keyless cosign (Fulcio/Rekor) — pas de clé privée en secret
+  #   ⚠️ Fulcio/Rekor = Sigstore public-good (Linux Foundation, hors souveraineté CTDEC) ;
+  #      pour le cœur prod, viser une instance Sigstore privée — cf. §10 / ADR-034.
+  attestations: write # provenance/SBOM attestations
 
 env:
   TURBO_API: ${{ secrets.TURBO_REMOTE_CACHE_URL }} # ex. https://turbo-cache.aes.internal
@@ -584,15 +651,18 @@ jobs:
           - ai-service
           - anticorruption-service
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 🎯 cosign keyless (OIDC) : aucune clé privée stockée en secret
+      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
 
       - name: Determine Dockerfile
         id: dockerfile
@@ -605,12 +675,17 @@ jobs:
             echo "path=infrastructure/docker/Dockerfile.nestjs" >> $GITHUB_OUTPUT
           fi
 
-      - uses: docker/build-push-action@v6
+      - name: Build & push image
+        id: build
+        uses: docker/build-push-action@5176d81f87c23d6fc96624dfdbcd9f3830bbe445 # v6.5.0
         with:
           context: .
           file: ${{ steps.dockerfile.outputs.path }}
           build-args: SERVICE=${{ matrix.service }}
           push: true
+          # provenance + SBOM attestés directement par buildx (SLSA)
+          provenance: mode=max
+          sbom: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}:main
@@ -618,14 +693,78 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
       - name: Trivy scan image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@18f2510ce396bb8e5f17ff86a32cb43f88f2e4ee # v0.29.0
         with:
           image-ref:
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}:${{
             github.sha }}
           severity: CRITICAL,HIGH
           exit-code: 1
+
+      # ── Chaîne d'approvisionnement : SBOM → signature → attestation → vérif ──
+      - name: Generate SBOM (syft, CycloneDX)
+        uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.2
+        with:
+          image:
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}:${{
+            github.sha }}
+          format: cyclonedx-json
+          output-file: sbom-${{ matrix.service }}.cdx.json
+
+      - name: cosign sign (keyless, OIDC)
+        env:
+          IMG:
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}@${{
+            steps.build.outputs.digest }}
+        run: |
+          # signe par DIGEST (jamais par tag mutable) ; identité Fulcio = le repo+workflow GitHub
+          cosign sign --yes "$IMG"
+
+      - name: cosign attest SBOM (CycloneDX)
+        env:
+          IMG:
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}@${{
+            steps.build.outputs.digest }}
+        run: |
+          cosign attest --yes \
+            --type cyclonedx \
+            --predicate sbom-${{ matrix.service }}.cdx.json \
+            "$IMG"
+
+      - name: cosign verify (gate avant publication "main")
+        env:
+          IMG:
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/nina-aes-${{ matrix.service }}@${{
+            steps.build.outputs.digest }}
+        run: |
+          # le déploiement (Kyverno/policy admission côté K3s) DOIT rejeter une image non signée
+          cosign verify "$IMG" \
+            --certificate-identity-regexp \
+              "https://github.com/${{ github.repository_owner }}/nina-aes-platform/.github/workflows/.+@refs/heads/main" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+      - name: Upload SBOM artifact
+        if: always()
+        uses: actions/upload-artifact@v4 # 🎯 à pinner par digest comme les autres
+        with:
+          name: sbom-${{ matrix.service }}
+          path: sbom-${{ matrix.service }}.cdx.json
+          retention-days: 30
 ```
+
+> 🔐 **cosign keyless (OIDC), pas de clé privée en secret.** `cosign sign`/`attest` utilisent le
+> token OIDC `id-token: write` du workflow : Fulcio émet un certificat éphémère lié à l'identité
+> `repo:…/nina-aes-platform:ref:refs/heads/main`, la signature est journalisée dans Rekor
+> (transparence). Aucune `COSIGN_PRIVATE_KEY` à stocker/roter. Le déploiement (§4.7) **vérifie** la
+> signature avant rollout : un attaquant qui pousserait une image non signée sur GHCR serait rejeté
+> à l'admission K3s (policy Kyverno/`cosign verify`). On signe et on attest **par digest**
+> (`@${{ steps.build.outputs.digest }}`), jamais par tag, pour que la signature couvre exactement le
+> bit-for-bit déployé.
+>
+> ⚠️ **Réserve de souveraineté.** Fulcio (CA éphémère) et Rekor (log de transparence) sont des
+> services **Sigstore public-good** opérés par la **Linux Foundation** (hors souveraineté CTDEC) :
+> la chaîne de signature n'est donc **pas 100 % souveraine** par défaut. Pour le cœur production,
+> viser une **instance Sigstore privée** (Fulcio + Rekor self-hosted) — cf. §10 / ADR-034.
 
 ---
 
@@ -646,6 +785,11 @@ concurrency:
   group: deploy-staging
   cancel-in-progress: false # ne jamais annuler un déploiement en cours
 
+# 🎯 OIDC : le job demande un token d'identité GitHub ; AUCUN kubeconfig long-lived en secret
+permissions:
+  contents: read
+  id-token: write # token OIDC pour s'authentifier auprès de l'API K3s
+
 jobs:
   build:
     uses: ./.github/workflows/build.yml
@@ -660,18 +804,44 @@ jobs:
       url: https://staging.nina-aes.uqar.ca
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup kubectl + helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4.3.0
         with:
           version: '3.16.4'
 
-      - name: Configure kubeconfig
+      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+
+      # ── Auth API K3s via OIDC (pas de kubeconfig persistant) ──────────
+      # GitHub émet un JWT court (≈ exécution du job) ; l'API server K3s est configuré en OIDC
+      # (--oidc-issuer-url=https://token.actions.githubusercontent.com) et un RoleBinding mappe le
+      # claim sub `repo:<org>/nina-aes-platform:ref:refs/heads/main` → Role limité au namespace
+      # nina-aes-staging (jamais cluster-admin). Voir infrastructure/k3s/staging-oidc-rbac.yaml.
+      - name: Get GitHub OIDC token & build kubeconfig (ephemeral, in-memory)
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.K3S_STAGING_KUBECONFIG }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          OIDC_TOKEN="$(curl -fsSL \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=k3s-staging" | jq -r .value)"
+          # kubeconfig sans credential persistant : seul le bearer-token OIDC éphémère est posé
+          kubectl config set-cluster k3s-staging \
+            --server="${{ vars.K3S_STAGING_API }}" \
+            --certificate-authority=<(echo "${{ vars.K3S_STAGING_CA }}")
+          kubectl config set-credentials gha-oidc --token="$OIDC_TOKEN"
+          kubectl config set-context staging \
+            --cluster=k3s-staging --user=gha-oidc --namespace=nina-aes-staging
+          kubectl config use-context staging
+
+      # ── Gate sécurité : refuser de déployer une image non signée (cosign) ──
+      - name: Verify image signatures before rollout
+        run: |
+          for svc in identity-service auth-service audit-service document-service ai-service anticorruption-service; do
+            cosign verify \
+              "${REGISTRY:-ghcr.io}/${{ github.repository_owner }}/nina-aes-$svc:${{ github.sha }}" \
+              --certificate-identity-regexp \
+                "https://github.com/${{ github.repository_owner }}/nina-aes-platform/.github/workflows/.+@refs/heads/main" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          done
 
       - name: Helm upgrade
         run: |
@@ -684,14 +854,26 @@ jobs:
 
       - name: Smoke test API
         run: |
+          # ⚠️ Route /health (PAS /api/health) : les services NestJS EXCLUENT `health` du préfixe
+          # api/v1 (setGlobalPrefix exclude) pour matcher la sonde Docker `curl /health`.
           curl -fsSL --retry 5 --retry-delay 10 \
-            https://staging.nina-aes.uqar.ca/api/health \
+            https://staging.nina-aes.uqar.ca/health \
             | grep '"status":"ok"'
 ```
 
-> 🔒 Le secret `K3S_STAGING_KUBECONFIG` contient un kubeconfig avec un ServiceAccount limité au
-> namespace `nina-aes-staging` (NOT cluster-admin). Voir
-> `infrastructure/k3s/staging-deployer-sa.yaml`.
+> 🔒 **Plus de `K3S_STAGING_KUBECONFIG` long-lived.** Le déploiement s'authentifie via **OIDC** :
+> GitHub émet un token court, l'API server K3s vérifie l'émetteur
+> (`token.actions.githubusercontent.com`) et le claim `sub`
+> (`repo:<org>/nina-aes-platform:ref:refs/heads/main`), mappé par RoleBinding à un Role **limité au
+> namespace** `nina-aes-staging` (jamais cluster-admin). Aucun credential persistant ne traîne dans
+> les secrets → rien à roter, rien à exfiltrer. RBAC et trust OIDC :
+> `infrastructure/k3s/staging-oidc-rbac.yaml`. Le **gate cosign** garantit en plus qu'aucune image
+> non signée par ce repo ne sera déployée (souveraineté de la chaîne d'appro).
+>
+> ⏳ **Phase 2 (honnêteté).** Le workflow réel `cd-staging.yml` utilise encore `azure/setup-helm@v4`
+>
+> - `azure/setup-kubectl@v4` (tags mutables) et un kubeconfig en secret ; la bascule OIDC + cosign
+>   verify ci-dessus est **conçue, à implémenter**, pas l'état committé.
 
 ---
 
@@ -707,7 +889,7 @@ jobs:
 | Require branches to be up to date before merging | ✅                                                                      |
 | Require conversation resolution before merging   | ✅                                                                      |
 | Require linear history                           | ✅ (rebase-and-merge uniquement)                                        |
-| Require signed commits                           | ⚠️ recommandé (GPG/SSH signing)                                         |
+| Require signed commits                           | ✅ **OBLIGATOIRE** — gitsign (Sigstore keyless) ou GPG/SSH signing      |
 | Include administrators                           | ✅ (même l'étudiant ne peut pas bypass)                                 |
 | Allow force pushes                               | ❌                                                                      |
 | Allow deletions                                  | ❌                                                                      |
@@ -715,6 +897,42 @@ jobs:
 > 💡 Pour un projet solo universitaire, le « 1 reviewer » est levé (sinon personne ne peut merger).
 > Compromis : exiger qu'un test de relecture minimal soit fait par soi-même via
 > `gh pr review --approve` après une nuit de recul.
+
+> 🔏 **Commits signés obligatoires.** « Require signed commits » est activé : tout commit non signé
+> est **refusé au merge**. Deux options (avec réserve de souveraineté) :
+>
+> ```bash
+> # Option A — gitsign (Sigstore keyless, cohérent avec cosign : pas de clé à gérer)
+> #   identité = OIDC ; signature journalisée dans Rekor.
+> git config --global commit.gpgsign true
+> git config --global gpg.x509.program gitsign
+> git config --global gpg.format x509
+>
+> # Option B — GPG/SSH classique (clé privée locale, à protéger par passphrase)
+> git config --global commit.gpgsign true
+> git config --global gpg.format ssh
+> git config --global user.signingkey ~/.ssh/id_ed25519.pub
+> ```
+>
+> Cohérence d'ensemble : **commits signés** (gitsign) + **images signées** (cosign) = même racine de
+> confiance Sigstore, aucune clé privée long-lived à stocker (cf. CANON sécurité : pas de secret en
+> clair, OIDC partout). ⏳ Activation = réglage UI GitHub + config locale, pas un fichier de ce
+> repo.
+>
+> ⚠️ **Réserve de souveraineté (honnêteté soutenance).** L'option A (gitsign keyless) **comme** la
+> signature d'images cosign keyless reposent sur l'infrastructure **Sigstore public-good** —
+> **Fulcio** (autorité de certification éphémère) et **Rekor** (log de transparence) — opérée par la
+> **Linux Foundation** (infra majoritairement US). Ce n'est donc **pas** une racine de confiance «
+> 100 % souveraine » : c'est la même catégorie de dépendance que celle pour laquelle le doc rejette
+> Codecov (l. 79, « car US ») et qu'ADR-034 écarte pour les SaaS US sur le cœur. Deux mitigations
+> réellement souveraines :
+>
+> - **Sigstore privé self-hosted** : déployer **Fulcio + Rekor** sur l'infra CTDEC (instance privée,
+>   racine de confiance nationale) — cible Phase 2, cf. §10 / ADR-034.
+> - **GPG/SSH classique (option B)** : clé gérée **on-premise** (HSM ou passphrase locale), aucune
+>   dépendance Sigstore. C'est le chemin **réellement souverain** disponible **dès aujourd'hui**
+>   pour le cœur production ; la commodité keyless est alors échangée contre la gestion locale d'une
+>   clé.
 
 ---
 
@@ -810,18 +1028,18 @@ act -W .github/workflows/security.yml pull_request -s GITHUB_TOKEN=fake-token-fo
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                                       | Cause probable                                                                 | Solution                                                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `pnpm install` lent (~3 min) à chaque run                      | Cache pnpm non hit                                                             | Vérifier que `cache: 'pnpm'` est bien dans `setup-node@v4` et que `pnpm-lock.yaml` est commité |
-| `verify:repo` passe en local mais échoue en CI                 | Locale `fr-FR.UTF-8` absente du runner Ubuntu                                  | Ajouter `LC_ALL: en_US.UTF-8` dans `env:` du job                                               |
-| Postgres CI : `database "nina_aes_test" does not exist`        | L'image `postgis/postgis:18` ne crée pas la DB tant que `POSTGRES_DB` non posé | Vérifier `env: POSTGRES_DB: nina_aes_test` dans `services.postgres`                            |
-| Playwright : `Error: browserType.launch: ... missing X server` | Browsers installés sans `--with-deps`                                          | `pnpm exec playwright install --with-deps chromium`                                            |
-| `gitleaks` faux positif sur exemples (ex. `JWT_SECRET=foo`)    | Patterns par défaut trop larges                                                | Ajouter `.gitleaks.toml` avec `[allowlist]` et un commentaire ticket                           |
-| `Trivy` failed: `unable to find vulnerability database`        | DB Trivy down (rare)                                                           | Retry — DB hostée chez Aqua, rétablie sous quelques minutes                                    |
-| Turbo remote cache MISS systématique                           | Token / URL mal configurés                                                     | Vérifier `TURBO_API` + `TURBO_TOKEN` dans secrets ; `turbo run build --dry=json` pour debug    |
-| Push GHCR : `denied: installation not allowed to upload`       | Permissions du `GITHUB_TOKEN` du workflow trop faibles                         | Ajouter `permissions: packages: write` au niveau workflow                                      |
-| Deploy staging : `helm upgrade` timeout                        | Image pas encore poussée quand deploy démarre                                  | Ajouter `needs: docker-images` ou `wait` sur tous les builds                                   |
-| `act` : `ENOSPC: no space left on device`                      | Cache Docker local plein                                                       | `docker system prune -af --volumes`                                                            |
+| Symptôme                                                       | Cause probable                                                                 | Solution                                                                                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install` lent (~3 min) à chaque run                      | Cache pnpm non hit                                                             | Vérifier que `cache: 'pnpm'` est bien dans `setup-node@v4` et que `pnpm-lock.yaml` est commité                                         |
+| `verify:repo` passe en local mais échoue en CI                 | Locale `fr-FR.UTF-8` absente du runner Ubuntu                                  | Ajouter `LC_ALL: en_US.UTF-8` dans `env:` du job                                                                                       |
+| Postgres CI : `database "nina_aes_test" does not exist`        | L'image `postgis/postgis:18` ne crée pas la DB tant que `POSTGRES_DB` non posé | Vérifier `env: POSTGRES_DB: nina_aes_test` dans `services.postgres`                                                                    |
+| Playwright : `Error: browserType.launch: ... missing X server` | Browsers installés sans `--with-deps`                                          | `pnpm exec playwright install --with-deps chromium`                                                                                    |
+| `gitleaks` faux positif sur exemples (ex. `JWT_SECRET=foo`)    | Patterns par défaut trop larges                                                | Ajouter `.gitleaks.toml` avec `[allowlist]` et un commentaire ticket                                                                   |
+| `Trivy` failed: `unable to find vulnerability database`        | DB Trivy down (rare)                                                           | Retry — DB hostée chez Aqua (dépendance externe acceptée hors cœur ; mirroring possible via registre OCI interne pour la souveraineté) |
+| Turbo remote cache MISS systématique                           | Token / URL mal configurés                                                     | Vérifier `TURBO_API` + `TURBO_TOKEN` dans secrets ; `turbo run build --dry=json` pour debug                                            |
+| Push GHCR : `denied: installation not allowed to upload`       | Permissions du `GITHUB_TOKEN` du workflow trop faibles                         | Ajouter `permissions: packages: write` au niveau workflow                                                                              |
+| Deploy staging : `helm upgrade` timeout                        | Image pas encore poussée quand deploy démarre                                  | Ajouter `needs: docker-images` ou `wait` sur tous les builds                                                                           |
+| `act` : `ENOSPC: no space left on device`                      | Cache Docker local plein                                                       | `docker system prune -af --volumes`                                                                                                    |
 
 ---
 
@@ -870,8 +1088,15 @@ act -W .github/workflows/security.yml pull_request -s GITHUB_TOKEN=fake-token-fo
 - [ ] `e2e.yml` livré, Playwright HTML report en artefact
 - [ ] `security.yml` livré, 6 jobs (trivy-fs, semgrep, gitleaks, pnpm-audit, pip-audit, bandit),
       tous verts
+- [ ] Toutes les actions tierces **pinnées par digest SHA** (zéro `@v*`/`@master`/`@main` ;
+      `grep -rE 'uses:.*@(v[0-9]+|master|main)' .github/workflows/` doit être vide) ⏳ Phase 2
 - [ ] `build.yml` livré, 6 images Docker poussées sur GHCR avec tag `git-sha`
-- [ ] `deploy-staging.yml` livré, smoke test API passe
+- [ ] SBOM `syft` (CycloneDX) généré + `cosign attest` par image ⏳ Phase 2
+- [ ] `cosign sign` (keyless OIDC) + `cosign verify` gate avant déploiement ⏳ Phase 2
+- [ ] `deploy-staging.yml` livré, **OIDC GitHub → K3s** (pas de kubeconfig en secret) ⏳ Phase 2,
+      smoke test sur `/health` (PAS `/api/health`)
+- [ ] Commits signés obligatoires (gitsign/GPG) activés sur `main` ⏳ Phase 2
+- [ ] OWASP ZAP baseline (DAST) câblé sur staging (renvoi ADR-034) ⏳ Phase 2
 - [ ] Branch protection `main` configurée (6 required checks)
 - [ ] `renovate.json` mergé, app Renovate installée
 - [ ] Badges ajoutés au README
@@ -889,18 +1114,28 @@ act -W .github/workflows/security.yml pull_request -s GITHUB_TOKEN=fake-token-fo
 - **Self-hosted runners** : pour réduire les coûts en cas de scale (et garder le contrôle sur
   l'environnement d'exécution). Image runner = Debian 12 + Docker + pnpm pre-installé. Provisionner
   via Ansible sur 2 VMs CTDEC ou un cluster Hetzner souverain (datacenter EU).
-- **OIDC GitHub → AWS / Azure** : remplacer `K3S_STAGING_KUBECONFIG` long-lived par un OIDC trust :
-  GitHub émet un token court (15 min), le cluster K3s vérifie le claim
-  `repo:<org>/nina-aes-platform:ref:refs/heads/main` — zéro secret persistant.
+- **OIDC GitHub → K3s** : ✅ désormais **cible du cœur** (cf. §4.7), pas un « plus tard » — GitHub
+  émet un token court, le cluster K3s vérifie le claim
+  `repo:<org>/nina-aes-platform:ref:refs/heads/main`, zéro secret persistant. ⏳ encore à câbler
+  dans le `cd-staging.yml` réel. Souveraineté : on vise **K3s** (pas AWS/Azure KMS US) ; l'OIDC
+  trust se pose côté API server K3s, sans dépendance cloud US.
 - **Pipeline preview env** : déployer chaque PR sur un sous-domaine éphémère
   (`pr-<NN>.nina-aes.uqar.ca`) via un namespace K3s temporaire. Très utile pour la revue UX. Coût :
   ~1 GB RAM × N PRs ouvertes.
 - **Mergify ou Kodiak** : automerge conditionnel (« si tous les checks passent ET 1 reviewer
   approuve ET pas de label `do-not-merge` »). Évite les merges manuels à 2 h du matin avant
   soutenance.
-- **SBOM en artefact** : intégrer `syft packages dir:.` à chaque build pour générer la liste
-  exhaustive des dépendances dans un format CycloneDX — exigence croissante des audits
-  gouvernementaux (cf. doc 15 §10).
+- **SBOM + signature/attestation** : ✅ désormais **dans le build du cœur** (§4.6) — `syft` génère
+  un SBOM CycloneDX par image, `cosign attest` l'**attache et la signe** (keyless OIDC),
+  `cosign verify` fait office de gate avant déploiement. SLSA provenance via `provenance: mode=max`
+  de buildx. Exigence croissante des audits gouvernementaux (cf. doc 15 §10).
+- **Sigstore privé souverain (Fulcio + Rekor self-hosted)** : ⏳ **cible Phase 2**. La signature
+  keyless actuelle (commits gitsign + images cosign) repose sur le Sigstore **public-good** de la
+  Linux Foundation (Fulcio = CA, Rekor = log de transparence, infra US). Déployer une **instance
+  Sigstore privée** sur l'infra CTDEC retire cette dépendance US de la **racine de confiance** des
+  signatures et aligne la chaîne d'approvisionnement sur **ADR-034 §Note souveraineté** (rejet des
+  SaaS US sur le cœur). Chemin alternatif déjà souverain dès aujourd'hui : signature **GPG/SSH** à
+  clé gérée on-premise (cf. §4.8).
 - **Lectures recommandées** :
   - <https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions>
   - <https://turbo.build/repo/docs/core-concepts/remote-caching>
@@ -910,4 +1145,7 @@ act -W .github/workflows/security.yml pull_request -s GITHUB_TOKEN=fake-token-fo
 
 ---
 
-_Document 16 — Version 1.0 — Mai 2026_ _NINA-AES Platform — UQAR — CONFIDENTIEL_
+_Document 16 — Version 1.2 (harden : pinning digest SHA · cosign sign/attest/verify · SBOM syft ·
+OIDC GitHub→K3s · commits signés · route smoke `/health` · renvoi ADR-034 ZAP · réserve de
+souveraineté Sigstore/Fulcio/Rekor + cible Sigstore privé Phase 2 · note Trivy DB Aqua) — Juin 2026_
+_NINA-AES Platform — UQAR — CONFIDENTIEL_

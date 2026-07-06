@@ -99,7 +99,7 @@ export function NinaInput({
         valid={isFullyValid}
         aria-describedby={cn(helperId, hasError && errorId).trim() || undefined}
         className="font-mono tracking-wider uppercase"
-        placeholder="18903102015042Z"
+        placeholder="18903102015042V"
       />
       {display ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">

@@ -5,6 +5,34 @@
 > `3001` **Stack** : NestJS 11.1 · TypeScript 6.0 · Prisma 7.7 · PostgreSQL 17 · Jest 30 **Auteur**
 > : Étudiant UQAR **Date** : Avril 2026 **Statut** : Implémentation de référence
 
+> 🔐 **Avertissement sécurité (à lire avant le § 6)** — Le NINA est une donnée personnelle exigée
+> pour voter, hériter ou ouvrir un compte. Un endpoint de consultation **sans autorisation** = fuite
+> massive d'identités + IDOR (OWASP A01:2021 _Broken Access Control_). Ce document applique donc,
+> dès la première version du service :
+>
+> 1. **Authentification JWT** sur tous les endpoints non publics (`JwtAuthGuard`, voir § 6.x). ⚠️
+>    **Honnêteté** : le verifier JWT (validation RS256 via le JWKS d'`auth-service`) est **conçu ici
+>    mais dépend du doc 08** ; tant qu'`auth-service` n'émet pas de token, ces gardes refusent tout
+>    (fail-closed), ce qui est le comportement voulu.
+> 2. **Autorisation par rôle** (`RolesGuard` + `@Roles()`, cf. ADR-027) — voir la colonne « Rôle »
+>    du § 3.3.
+> 3. **Contrôle de propriété (ownership)** — un citoyen ne peut consulter que **son propre** NINA
+>    (anti-IDOR), via `NinaOwnershipGuard`.
+> 4. **Durcissement transport** : Helmet (CSP/HSTS), CORS en liste blanche, rate-limiting
+>    (`ThrottlerGuard`) sur les routes d'énumération (`/search`, `/nina/:nina`).
+> 5. **Secrets** : aucun mot de passe Postgres en clair dans le code — `DATABASE_URL` provient de
+>    Vault / `.env` (`getOrThrow`, fail-fast). Voir `docs/security/SECURITY-RUNBOOK.md` et
+>    `ADR-034-security-hardening-vault-mtls-owasp.md`.
+> 6. **Audit & RGPD-like** : chaque mutation (create/update/delete) émet un événement d'audit ;
+>    `delete` est un **soft-delete** (`deletedAt`) ; le NINA est **masqué dans les logs**.
+>
+> ⚠️ **Réserve d'honnêteté (lire le § 3.3, encadré « DOC PRESCRIPTIF vs CODE ACTUEL »)** : les
+> points 1, 3 et 4 ci-dessus décrivent la **cible** de durcissement, **pas** l'état livré. Dans le
+> code réel : le verifier RS256/JWKS n'existe pas, le seul guard (`roles.guard.ts`) est
+> **fail-OPEN** (route sans `@Roles()` = ouverte) et expose un mode `mock` qui autorise tout ; il
+> n'y a ni `NinaOwnershipGuard`, ni Helmet, ni `ThrottlerGuard` global enregistré. Statut de ces
+> trois points : **⏳ à implémenter en Phase 2**.
+
 ---
 
 ## Table des matières
@@ -52,11 +80,16 @@ patterns présentés ici seront réutilisés quasi à l'identique dans les docs 
 Un service `identity-service` entièrement fonctionnel :
 
 - **8 endpoints REST** documentés sur Swagger UI (`http://localhost:3001/api/docs`)
+- **Autorisation par défaut** : `JwtAuthGuard` + `RolesGuard` + `NinaOwnershipGuard` (anti-IDOR) sur
+  chaque route non publique (cf. § 3.3 et ADR-027)
+- **Durcissement** : Helmet (CSP/HSTS), CORS en liste blanche, `ThrottlerGuard` (rate-limit)
 - **Validation NINA** : rejet des faux numéros (clé de contrôle invalide, dates impossibles)
 - **Recherche floue** tolérant les accents et fautes de frappe (≥ 70 % de similarité)
+- **Audit + soft-delete** : chaque mutation émet un événement, `delete` n'efface jamais physiquement
 - **≥ 85 % de couverture de tests** (unit + e2e)
 - **Healthcheck** `/health` pour Docker et Kubernetes
-- **Intégration Prisma** avec le schéma défini dans le document 06
+- **Intégration Prisma** avec le schéma défini dans le document 06 (secret DB via Vault/`.env`,
+  jamais codé en dur)
 
 ### Contexte métier : pourquoi ce service est critique
 
@@ -144,7 +177,7 @@ flowchart TB
 
     subgraph "Infrastructure"
         PG[(PostgreSQL 17<br/>nina_aes_db)]
-        AUDIT[audit-service :3003<br/>Merkle log]
+        AUDIT[audit-service :3007<br/>hash-chain SHA-256]
     end
 
     CIT -->|GET /nina/:nina| CTRL
@@ -161,7 +194,7 @@ flowchart TB
     CTRL -.-> INTERCEPT
     CTRL -.-> SWAGGER
 
-    SVC -.->|HTTP POST /audit/events| AUDIT
+    SVC -.->|événement audit| AUDIT
 
     style CTRL fill:#a78bfa,color:#fff
     style SVC fill:#60a5fa,color:#fff
@@ -189,18 +222,62 @@ jamais Prisma directement. Ceci facilite :
 - La **réutilisation** — le `NinaService` pourrait être appelé par un autre protocole (gRPC,
   GraphQL) sans modification
 
-### 3.3 Endpoints REST exposés
+### 3.3 Endpoints REST exposés et matrice d'autorisation
 
-| Méthode  | Route                  | DTO entrée      | DTO sortie                            | Description                                | Rôle requis  |
-| -------- | ---------------------- | --------------- | ------------------------------------- | ------------------------------------------ | ------------ |
-| `GET`    | `/health`              | —               | `HealthCheckResult`                   | Probe Docker/K8s                           | public       |
-| `GET`    | `/nina/:nina`          | —               | `NinaResponseDto`                     | Consultation par NINA (15 car.)            | citoyen      |
-| `POST`   | `/nina/search`         | `SearchNinaDto` | `NinaResponseDto[]`                   | Recherche floue (nom + prénom + date)      | agent        |
-| `POST`   | `/nina`                | `CreateNinaDto` | `NinaResponseDto`                     | Création enregistrement (migration/import) | admin        |
-| `PATCH`  | `/nina/:id`            | `UpdateNinaDto` | `NinaResponseDto`                     | Correction partielle                       | agent        |
-| `DELETE` | `/nina/:id`            | —               | `{ success: true }`                   | Suppression logique                        | admin        |
-| `GET`    | `/nina/:nina/validate` | —               | `{ valid: boolean, reason?: string }` | Validation pure (sans lecture DB)          | public       |
-| `GET`    | `/api/docs`            | —               | HTML Swagger UI                       | Documentation interactive                  | public (dev) |
+> **Modèle d'autorisation** (cf. ADR-027) : chaque route non publique passe par `JwtAuthGuard`
+> (authentification) **puis** `RolesGuard` (rôle), appliqués via
+> `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(...)`. Les routes publiques sont marquées
+> `@Public()` (le `JwtAuthGuard` court-circuite). La consultation par un citoyen passe **en plus**
+> par `NinaOwnershipGuard` (anti-IDOR).
+
+| Méthode  | Route                  | DTO entrée      | DTO sortie                            | Gardes appliquées                                                | Rôle(s) requis                   |
+| -------- | ---------------------- | --------------- | ------------------------------------- | ---------------------------------------------------------------- | -------------------------------- |
+| `GET`    | `/health`              | —               | `HealthCheckResult`                   | `@Public()`                                                      | public                           |
+| `GET`    | `/nina/:nina`          | —               | `NinaResponseDto`                     | `JwtAuthGuard` + `RolesGuard` + `NinaOwnershipGuard` + Throttler | citoyen (son NINA), agent, admin |
+| `POST`   | `/nina/search`         | `SearchNinaDto` | `NinaResponseDto[]`                   | `JwtAuthGuard` + `RolesGuard` + Throttler                        | agent, admin                     |
+| `POST`   | `/nina`                | `CreateNinaDto` | `NinaResponseDto`                     | `JwtAuthGuard` + `RolesGuard`                                    | admin                            |
+| `PATCH`  | `/nina/:id`            | `UpdateNinaDto` | `NinaResponseDto`                     | `JwtAuthGuard` + `RolesGuard`                                    | agent, admin                     |
+| `DELETE` | `/nina/:id`            | —               | `{ success: true }`                   | `JwtAuthGuard` + `RolesGuard`                                    | admin                            |
+| `GET`    | `/nina/:nina/validate` | —               | `{ valid: boolean, reason?: string }` | `@Public()`                                                      | public                           |
+| `GET`    | `/api/docs`            | —               | HTML Swagger UI                       | `@Public()` (à désactiver en prod, cf. ADR-034)                  | public (dev)                     |
+
+**Justification du contrôle d'_ownership_** : sans lui, un citoyen authentifié pourrait
+incrémenter/deviner le NINA d'un voisin et lire son dossier (IDOR / OWASP A01). `NinaOwnershipGuard`
+compare le `nina` de la route au claim porté par le JWT du citoyen ; les rôles `agent`/`admin` (qui
+ont un besoin métier légitime) le contournent. La recherche floue `/search` n'est **jamais** ouverte
+au citoyen (elle permettrait l'énumération de la population).
+
+> ⚠️ **Honnêteté — état d'implémentation** : les classes `JwtAuthGuard` / `RolesGuard` /
+> `NinaOwnershipGuard` et leur câblage sont décrits ci-dessous (§ 6.x). Le **verifier JWT réel**
+> (validation cryptographique RS256 du token) dépend d'`auth-service` (doc 08) : tant que celui-ci
+> n'expose pas son JWKS, le verifier injecté rejette tout token → les routes protégées renvoient
+> `401` (fail-closed). C'est volontaire : un service « ouvert par défaut » serait une faille, pas
+> une commodité.
+
+> ⚠️ **DOC PRESCRIPTIF vs CODE ACTUEL** — Le code présenté dans tout le § 6 (module `nina/`, dossier
+> `auth/`, `JwksJwtVerifier`, `JwtAuthGuard`, `NinaOwnershipGuard`, Helmet,
+> `APP_GUARD: ThrottlerGuard`) est la **CIBLE de durcissement**, pas l'état livré. Le service tel
+> que livré dans `services/identity-service` n'implémente **PAS** encore ces gardes. Vérifiable par
+> `Read`/`Grep` :
+>
+> - Arborescence réelle : `modules/citizen|correction|location` (PAS de module `nina/`) + un
+>   **seul** guard `common/guards/roles.guard.ts` (PAS de dossier `auth/`, PAS de
+>   `jwks-jwt.verifier.ts`).
+> - `roles.guard.ts::extractUserFromJwt()` **renvoie `null`** : la vérification cryptographique
+>   RS256 n'est PAS faite. Aucun import `jose`, aucune classe `JwksJwtVerifier`, aucun `helmet` (ni
+>   en dépendance), aucun `APP_GUARD` dans le dépôt.
+> - Un mode `NINA_AUTH_MODE=mock` injecte un user `role=AGENT` et fait `return true` **AVANT tout
+>   contrôle de rôle** → bypass total d'auth en dev.
+> - ⚠️ **Le guard réel est fail-OPEN, pas fail-closed** :
+>   `if (!requiredRoles || requiredRoles.length === 0) return true;` → **toute route sans `@Roles()`
+>   est ouverte sans authentification**. Dans `citizen.controller.ts` réel, `GET /citizens/:nina`,
+>   `GET /citizens/by-id/:id` et `GET /citizens` (recherche floue) n'ont **AUCUN `@Roles()`** →
+>   accessibles sans auth → IDOR (OWASP A01)
+>   - énumération de la population, exactement le risque que ce § prétend fermer.
+>
+> **Statut réel : ⏳ à implémenter en Phase 2** — ajouter `@Roles(...)` sur les `GET` ci-dessus,
+> coder le verifier RS256/JWKS, ajouter un `NinaOwnershipGuard` et enregistrer
+> `APP_GUARD: ThrottlerGuard` avant toute mise en production.
 
 ---
 
@@ -212,13 +289,24 @@ services/identity-service/
 │   ├── main.ts                          # Bootstrap NestJS + Swagger
 │   ├── app.module.ts                    # Module racine
 │   │
+│   ├── auth/                            # Autorisation (ADR-027)
+│   │   ├── auth.module.ts               # Fournit JWT_VERIFIER (global)
+│   │   ├── jwks-jwt.verifier.ts         # Vérifie RS256 via JWKS auth-service
+│   │   └── guards/
+│   │       ├── jwt-auth.guard.ts        # Authentification JWT (fail-closed)
+│   │       ├── roles.guard.ts           # @Roles() → 403 si rôle absent
+│   │       ├── nina-ownership.guard.ts  # Anti-IDOR (citoyen = son NINA)
+│   │       └── index.ts
+│   │
 │   ├── common/                          # Cross-cutting concerns
 │   │   ├── filters/
 │   │   │   └── http-exception.filter.ts # Filtre global erreurs HTTP
 │   │   ├── interceptors/
-│   │   │   └── logging.interceptor.ts   # Log requêtes entrantes
-│   │   └── pipes/
-│   │       └── parse-nina.pipe.ts       # Validation format NINA (15 car.)
+│   │   │   └── logging.interceptor.ts   # Log requêtes entrantes (NINA masqué)
+│   │   ├── pipes/
+│   │   │   └── parse-nina.pipe.ts       # Validation format NINA (15 car.)
+│   │   └── utils/
+│   │       └── mask-nina.ts             # Masque le NINA dans les logs
 │   │
 │   ├── config/
 │   │   ├── env.schema.ts                # Schéma Zod pour .env
@@ -235,7 +323,7 @@ services/identity-service/
 │   │
 │   └── nina/                            # Module métier principal
 │       ├── nina.module.ts
-│       ├── nina.controller.ts           # 7 endpoints REST
+│       ├── nina.controller.ts           # endpoints REST (gardés)
 │       ├── nina.service.ts              # Logique métier
 │       ├── nina.repository.ts           # Accès Prisma + pg_trgm
 │       ├── dto/
@@ -655,12 +743,16 @@ describe('generateNina (round-trip)', () => {
     "@nestjs/platform-express": "^11.1.18",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/terminus": "^11.1.0",
+    "@nestjs/throttler": "^6.4.0",
+    "@nina-aes/auth-guards": "workspace:*",
     "@nina-aes/database": "workspace:*",
     "@nina-aes/shared-types": "workspace:*",
     "@nina-aes/utils": "workspace:*",
     "@prisma/client": "^7.7.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "helmet": "^8.1.0",
+    "jose": "^6.1.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^4.3.6"
@@ -689,26 +781,37 @@ describe('generateNina (round-trip)', () => {
 > **Installation** : depuis la racine du monorepo :
 >
 > ```powershell
+> # Dépendances métier + sécurité (helmet, throttler, auth-guards, jose)
 > pnpm --filter @nina-aes/identity-service add `
->   @nestjs/config @nestjs/swagger @nestjs/terminus `
->   @nina-aes/database @nina-aes/shared-types @nina-aes/utils `
->   @prisma/client zod
+>   @nestjs/config @nestjs/swagger @nestjs/terminus @nestjs/throttler `
+>   @nina-aes/auth-guards @nina-aes/database @nina-aes/shared-types @nina-aes/utils `
+>   @prisma/client helmet jose zod
 > pnpm --filter @nina-aes/identity-service add -D `
 >   @types/supertest supertest typescript-eslint
 > ```
 
 ### 6.2 `src/main.ts` — Bootstrap NestJS + Swagger
 
+> ⚠️ **⏳ à installer/câbler en Phase 2** : le **Helmet (CSP/HSTS)** montré dans ce `main.ts` n'est
+> **PAS présent** dans le `main.ts` livré (ni en dépendance du service). Vérifiable par `Grep` :
+> aucune occurrence de `helmet`. Les en-têtes de sécurité HTTP (CSP restrictive, HSTS, suppression
+> `X-Powered-By`) décrits ici restent donc à ajouter (`pnpm add helmet` + `app.use(helmet(...))`).
+
 ```ts
 /**
  * @file        services/identity-service/src/main.ts
  * @description Point d'entrée du microservice identity-service.
  *              Configure :
+ *                - Helmet (CSP, HSTS) — en-têtes HTTP de sécurité
  *                - Validation globale (class-validator)
  *                - Filtre d'exception global
  *                - Swagger UI sur /api/docs
- *                - CORS pour le frontend local (ports 4001, 4002)
+ *                - CORS en LISTE BLANCHE (jamais "*")
  *                - Shutdown hooks pour Prisma (fermeture propre connexion DB)
+ *
+ *              Sécurité (OWASP A05 Misconfiguration / A07) : pas d'en-tête
+ *              `X-Powered-By`, HSTS forcé, CSP restrictive. Voir ADR-034 et
+ *              docs/security/SECURITY-RUNBOOK.md.
  *
  * @author      Étudiant UQAR
  * @date        2026
@@ -718,6 +821,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -739,6 +843,22 @@ async function bootstrap(): Promise<void> {
     bufferLogs: true,
   });
 
+  // ─── 2bis. Helmet — en-têtes HTTP de sécurité (CSP/HSTS) ──────
+  // Pose Content-Security-Policy, Strict-Transport-Security,
+  // X-Content-Type-Options, etc. et supprime X-Powered-By.
+  // ⚠️ En prod, Swagger UI doit être désactivé (cf. ADR-034) ; on garde
+  // donc la CSP par défaut de Helmet. En dev, si Swagger casse à cause de
+  // la CSP, ne PAS désactiver Helmet entièrement — assouplir UNIQUEMENT
+  // `contentSecurityPolicy` (jamais HSTS).
+  app.use(
+    helmet({
+      // HSTS : force HTTPS pendant 180 jours (cohérent ADR-034 / mTLS amont).
+      hsts: { maxAge: 15_552_000, includeSubDomains: true },
+      // CSP désactivée seulement si Swagger est servi (dev) ; sinon laisser true.
+      contentSecurityPolicy: env.NODE_ENV === 'production',
+    }),
+  );
+
   // ─── 3. Pipes globaux — validation DTO automatique ────────────
   app.useGlobalPipes(
     new ValidationPipe({
@@ -759,11 +879,19 @@ async function bootstrap(): Promise<void> {
     exclude: ['health', 'api/docs'],
   });
 
-  // ─── 6. CORS — autorise les apps Next.js en développement ─────
+  // ─── 6. CORS — LISTE BLANCHE stricte (jamais "*") ─────────────
+  // `origin` est un tableau explicite issu de CORS_ORIGINS : toute origine
+  // absente de la liste est refusée par le navigateur. On n'utilise JAMAIS
+  // `origin: true` ni `'*'` car `credentials: true` exposerait alors les
+  // cookies/Authorization à n'importe quel site (OWASP A05).
+  const allowedOrigins = env.CORS_ORIGINS.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: env.CORS_ORIGINS.split(','), // ex: "http://localhost:4001,http://localhost:4002"
+    origin: allowedOrigins, // ex: "http://localhost:4001,http://localhost:4002"
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
   });
 
   // ─── 7. Swagger / OpenAPI ─────────────────────────────────────
@@ -820,11 +948,23 @@ export const envSchema = z.object({
       message: 'DATABASE_URL must be a postgresql:// connection string',
     }),
 
-  // ─── CORS ─────────────────────────────────────────────────
+  // ─── CORS (liste blanche stricte — JAMAIS "*") ────────────
   CORS_ORIGINS: z.string().default('http://localhost:4001,http://localhost:4002'),
 
   // ─── Audit (communication inter-services) ────────────────
-  AUDIT_SERVICE_URL: z.string().url().default('http://localhost:3003'),
+  // ⚠️ Port 3007 = audit-service (3003 = ai-service, ne pas confondre).
+  AUDIT_SERVICE_URL: z.string().url().default('http://localhost:3007'),
+
+  // ─── Authentification JWT (verifier RS256 via JWKS auth-service) ──
+  // Renseignés dès que auth-service (doc 08) est déployé. En attendant,
+  // ces valeurs pointent vers l'instance locale d'auth-service.
+  AUTH_JWKS_URL: z.string().url().default('http://localhost:3002/.well-known/jwks.json'),
+  AUTH_JWT_ISSUER: z.string().default('nina-aes-auth'),
+  AUTH_JWT_AUDIENCE: z.string().default('nina-aes'),
+
+  // ─── Rate-limiting (ThrottlerGuard) ───────────────────────
+  THROTTLE_TTL_MS: z.coerce.number().int().positive().default(60_000),
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(60),
 
   // ─── Recherche floue ──────────────────────────────────────
   PGTRGM_SIMILARITY_THRESHOLD: z.coerce.number().min(0).max(1).default(0.3),
@@ -917,26 +1057,41 @@ export function buildSwaggerConfig() {
  *              - Connexion automatique au démarrage du module
  *              - Déconnexion propre au shutdown
  *              - Log des requêtes en dev (debug)
+ *
+ *              🔐 Sécurité (OWASP A05 / souveraineté) : la chaîne de connexion
+ *              (qui contient le mot de passe Postgres) provient EXCLUSIVEMENT de
+ *              la configuration injectée (`DATABASE_URL`, elle-même alimentée par
+ *              Vault ou le `.env` non versionné). On utilise `getOrThrow` : si la
+ *              variable manque, le service refuse de démarrer (fail-fast) plutôt
+ *              que de retomber sur un secret en clair codé en dur — ce qui serait
+ *              une fuite de credential committée dans Git.
  */
 
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
+
+import type { Env } from '../config/env.schema';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
-  constructor() {
+  /**
+   * @param config - Service de config typé Zod. `getOrThrow('DATABASE_URL')`
+   *                 lève si la variable est absente : AUCUN fallback en clair.
+   */
+  constructor(config: ConfigService<Env, true>) {
     super({
       datasources: {
         db: {
-          url:
-            process.env.DATABASE_URL ??
-            'postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db',
+          // ❌ JAMAIS de `?? 'postgresql://user:motdepasse@...'` ici : ce serait
+          //    un secret committé. ✅ getOrThrow → fail-fast si non configuré.
+          url: config.getOrThrow('DATABASE_URL', { infer: true }),
         },
       },
       log:
-        process.env.NODE_ENV === 'development'
+        config.get('NODE_ENV', { infer: true }) === 'development'
           ? ['query', 'info', 'warn', 'error']
           : ['warn', 'error'],
     });
@@ -970,6 +1125,331 @@ import { PrismaService } from './prisma.service';
   exports: [PrismaService],
 })
 export class PrismaModule {}
+```
+
+### 6.5bis Autorisation — Guards, verifier JWT & ownership (ADR-027)
+
+> **Pourquoi du code local au service et pas un package partagé ?** Le package
+> `@nina-aes/auth-guards` est volontairement **type-only / metadata-only** (ADR-027) : il n'exporte
+> que des types, le token DI `JWT_VERIFIER`, l'enum `UserRole` et les décorateurs `@Public()` /
+> `@Roles()` (de simples `SetMetadata`). Les **classes** `@Injectable()` (`JwtAuthGuard`,
+> `RolesGuard`, …) vivent dans CHAQUE service. Si on les extrayait dans un package workspace, pnpm
+> dupliquerait physiquement `@nestjs/core`, cassant l'identité du `Reflector`
+> (`UnknownDependenciesException`).
+
+#### `src/auth/jwks-jwt.verifier.ts` — vérification RS256 réelle
+
+> ⚠️ **Honnêteté — NON IMPLÉMENTÉ (⏳ Phase 2)** : ce verifier RS256/JWKS via `jose` **n'existe PAS
+> dans le dépôt**. Vérifiable par `Grep` : aucun import `jose`, le fichier
+> `services/identity-service/src/auth/jwks-jwt.verifier.ts` est **inexistant**, et la méthode
+> `verifyAccess()` n'est pas codée. Ne pas la présenter comme existante. Le code livré ne fait
+> **aucune** vérification de signature : `roles.guard.ts::extractUserFromJwt()` renvoie `null` (cf.
+> § 3.3, encadré « DOC PRESCRIPTIF vs CODE ACTUEL »). Ce n'est donc **pas** « seulement le
+> déploiement d'`auth-service` qui manque » — le verifier lui-même reste à écrire.
+>
+> _Cible visée (à coder)_ : valider la signature RS256 d'un token émis par `auth-service` (doc 08) à
+> partir de son JWKS (`/.well-known/jwks.json`). Le claim `nina` (NINA du citoyen propriétaire), une
+> fois posé par `auth-service`, servira au futur `NinaOwnershipGuard` (lui aussi à implémenter).
+
+```ts
+/**
+ * @file        services/identity-service/src/auth/jwks-jwt.verifier.ts
+ * @description Implémentation de JwtVerifier basée sur le JWKS d'auth-service.
+ *              Valide la signature RS256 (clé publique souveraine, signée via
+ *              Vault Transit côté auth-service) et projette le sujet sur
+ *              `request.user`.
+ *
+ *              Souveraineté : aucune dépendance à un IdP étranger (pas d'Auth0,
+ *              pas de Cognito) — le JWKS provient d'auth-service interne.
+ */
+
+import { Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import type { AuthSubject, JwtVerifier } from '@nina-aes/auth-guards';
+
+import type { Env } from '../config/env.schema';
+
+/** Claims attendus dans l'access token émis par auth-service. */
+interface NinaJwtPayload extends JWTPayload {
+  role?: string;
+  mfa?: boolean;
+  email?: string;
+  /** NINA du citoyen propriétaire (absent pour agent/admin). */
+  nina?: string;
+}
+
+@Injectable()
+export class JwksJwtVerifier implements JwtVerifier, OnModuleInit {
+  private readonly logger = new Logger(JwksJwtVerifier.name);
+
+  /** Cache du JWKS distant (rotation gérée par `jose`). */
+  private jwks?: ReturnType<typeof createRemoteJWKSet>;
+
+  constructor(private readonly config: ConfigService<Env, true>) {}
+
+  /**
+   * Initialise le JWKSet distant au boot. N'échoue PAS le démarrage si
+   * auth-service est down : la vérification échouera à la première requête
+   * (fail-closed) plutôt que d'empêcher le service de répondre au /health.
+   */
+  onModuleInit(): void {
+    const url = new URL(this.config.getOrThrow('AUTH_JWKS_URL', { infer: true }));
+    this.jwks = createRemoteJWKSet(url);
+    this.logger.log(`JWKS configuré : ${url.origin}${url.pathname}`);
+  }
+
+  /**
+   * Vérifie un access token et retourne le sujet authentifié.
+   *
+   * ⚠️ Contrat JwtVerifier : DOIT lever `UnauthorizedException` sur tout token
+   * invalide / expiré / mal signé. On NE distingue PAS les sous-cas dans le
+   * message (anti-oracle / anti user-enum). `jwtVerify` est asynchrone alors que
+   * le contrat est synchrone : on le rend synchrone via une stratégie de
+   * pré-chargement n'est pas possible ici → on expose plutôt `verifyAccess`
+   * comme méthode asynchrone si le Guard l'appelle en `await` (cf. note).
+   *
+   * @param token - JWT compact (header.payload.signature)
+   * @returns Projection minimale du sujet (userId, role, mfa, nina…)
+   */
+  async verifyAccess(token: string): Promise<AuthSubject> {
+    if (!this.jwks) throw new UnauthorizedException('AUTH_TOKEN_INVALID');
+    try {
+      const { payload } = await jwtVerify<NinaJwtPayload>(token, this.jwks, {
+        algorithms: ['RS256'], // ⛔ jamais 'none', jamais HS256 (clé symétrique)
+        issuer: this.config.getOrThrow('AUTH_JWT_ISSUER', { infer: true }),
+        audience: this.config.getOrThrow('AUTH_JWT_AUDIENCE', { infer: true }),
+      });
+
+      if (!payload.sub || !payload.role) {
+        throw new UnauthorizedException('AUTH_TOKEN_INVALID');
+      }
+
+      return {
+        userId: payload.sub,
+        role: payload.role,
+        mfa: payload.mfa === true,
+        email: payload.email,
+        // `nina` exposé pour NinaOwnershipGuard (peut être undefined).
+        ...(payload.nina ? { nina: payload.nina } : {}),
+      } as AuthSubject & { nina?: string };
+    } catch {
+      // Message générique : on ne révèle PAS si le token est expiré vs malformé.
+      throw new UnauthorizedException('AUTH_TOKEN_INVALID');
+    }
+  }
+}
+```
+
+> **Note technique** : le contrat `JwtVerifier.verifyAccess` du package est synchrone, mais
+> `jose.jwtVerify` est asynchrone (récupération JWKS). Les Guards ci-dessous appellent donc le
+> verifier en `await` et déclarent `canActivate` comme `Promise<boolean>` — NestJS supporte les
+> `CanActivate` asynchrones. Si tu préfères respecter strictement la signature synchrone du package,
+> pré-charge le JWKS dans un cache mémoire au boot et vérifie la signature en local synchrone.
+
+#### `src/auth/guards/jwt-auth.guard.ts`
+
+```ts
+/**
+ * @file        services/identity-service/src/auth/guards/jwt-auth.guard.ts
+ * @description Garde d'AUTHENTIFICATION. Extrait le Bearer token, le vérifie via
+ *              le {@link JwtVerifier} injecté, et pose `request.user`. Les routes
+ *              `@Public()` (health, validate) sont court-circuitées.
+ *
+ *              ⚠️ Classe LOCALE au service (ADR-027) — ne JAMAIS l'extraire dans
+ *              un package partagé (duplication @nestjs/core → Reflector cassé).
+ *
+ *              Fail-closed : aucun token ou token invalide ⇒ 401. Il n'existe
+ *              AUCUN mode « bypass auth » même en développement.
+ */
+
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY, JWT_VERIFIER, type JwtVerifier } from '@nina-aes/auth-guards';
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  constructor(
+    @Inject(JWT_VERIFIER) private readonly verifier: JwtVerifier,
+    private readonly reflector: Reflector,
+  ) {}
+
+  /**
+   * @returns `true` si la route est publique OU si le token est valide.
+   * @throws  UnauthorizedException (401) sinon.
+   */
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Les décorateurs @Public() (méthode ou classe) court-circuitent l'auth.
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic === true) return true;
+
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, string | string[] | undefined>;
+      user?: unknown;
+    }>();
+
+    const token = this.extractBearer(request.headers.authorization);
+    if (!token) throw new UnauthorizedException('AUTH_TOKEN_INVALID');
+
+    // verifyAccess lève UnauthorizedException si le token est invalide/expiré.
+    request.user = await this.verifier.verifyAccess(token);
+    return true;
+  }
+
+  /** Extrait le token d'un en-tête `Authorization: Bearer <jwt>`. */
+  private extractBearer(header: string | string[] | undefined): string | null {
+    const raw = Array.isArray(header) ? header[0] : header;
+    if (!raw) return null;
+    const [scheme, token] = raw.split(' ');
+    if (scheme?.toLowerCase() !== 'bearer' || !token) return null;
+    return token;
+  }
+}
+```
+
+#### `src/auth/guards/roles.guard.ts`
+
+```ts
+/**
+ * @file        services/identity-service/src/auth/guards/roles.guard.ts
+ * @description Garde d'AUTORISATION par rôle. Lit la métadonnée posée par
+ *              `@Roles(...)` et vérifie que `request.user.role` y figure.
+ *              DOIT s'exécuter APRÈS JwtAuthGuard (qui pose `request.user`).
+ *
+ *              ⚠️ Classe LOCALE au service (ADR-027).
+ */
+
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ROLES_KEY, type AuthSubject } from '@nina-aes/auth-guards';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const required = this.reflector.getAllAndOverride<string[] | undefined>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    // Pas de @Roles() → on ne restreint pas (l'auth a déjà eu lieu en amont).
+    if (!required || required.length === 0) return true;
+
+    const request = context.switchToHttp().getRequest<{ user?: AuthSubject }>();
+    const role = request.user?.role;
+    if (!role || !required.includes(role)) {
+      throw new ForbiddenException('AUTH_FORBIDDEN_ROLE');
+    }
+    return true;
+  }
+}
+```
+
+#### `src/auth/guards/nina-ownership.guard.ts` — anti-IDOR (OWASP A01)
+
+```ts
+/**
+ * @file        services/identity-service/src/auth/guards/nina-ownership.guard.ts
+ * @description Garde de PROPRIÉTÉ (ownership). Empêche un citoyen de consulter
+ *              le NINA d'un autre citoyen (Insecure Direct Object Reference —
+ *              OWASP A01:2021).
+ *
+ *              Règle : si `request.user.role === 'citizen'`, le `:nina` de la
+ *              route DOIT être égal au claim `nina` porté par son token. Les
+ *              rôles `agent`/`admin` (besoin métier légitime) sont exemptés.
+ *
+ *              ⚠️ Classe LOCALE au service (ADR-027). Doit s'exécuter APRÈS
+ *              JwtAuthGuard (lecture de `request.user`).
+ */
+
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import type { AuthSubject } from '@nina-aes/auth-guards';
+
+/** Sujet enrichi du claim `nina` (propriétaire) posé par auth-service. */
+type OwnerSubject = AuthSubject & { nina?: string };
+
+@Injectable()
+export class NinaOwnershipGuard implements CanActivate {
+  /** Rôles autorisés à consulter le NINA d'autrui (besoin métier). */
+  private static readonly PRIVILEGED = new Set(['agent', 'supervisor', 'admin']);
+
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<{
+      user?: OwnerSubject;
+      params: Record<string, string>;
+    }>();
+
+    const user = request.user;
+    if (!user) {
+      // Ne devrait pas arriver (JwtAuthGuard passe avant) — refus par défaut.
+      throw new ForbiddenException('AUTH_FORBIDDEN_OWNERSHIP');
+    }
+
+    // Agents/admins : accès transverse légitime (audité côté audit-service).
+    if (NinaOwnershipGuard.PRIVILEGED.has(user.role)) return true;
+
+    // Citoyen : il ne peut lire QUE son propre NINA.
+    const requestedNina = request.params['nina'];
+    if (!user.nina || user.nina !== requestedNina) {
+      // Message générique : on ne confirme PAS l'existence du NINA visé.
+      throw new ForbiddenException('AUTH_FORBIDDEN_OWNERSHIP');
+    }
+    return true;
+  }
+}
+```
+
+#### `src/auth/guards/index.ts` et `src/auth/auth.module.ts`
+
+```ts
+/**
+ * @file services/identity-service/src/auth/guards/index.ts
+ */
+export * from './jwt-auth.guard';
+export * from './roles.guard';
+export * from './nina-ownership.guard';
+```
+
+```ts
+/**
+ * @file        services/identity-service/src/auth/auth.module.ts
+ * @description Module GLOBAL qui fournit le token DI {@link JWT_VERIFIER}
+ *              (consommé par JwtAuthGuard) et les Guards. Le verifier réel
+ *              (JwksJwtVerifier) charge le JWKS d'auth-service.
+ *
+ *              `@Global()` : pas besoin de réimporter AuthModule dans chaque
+ *              module métier pour résoudre JWT_VERIFIER.
+ */
+
+import { Global, Module } from '@nestjs/common';
+import { JWT_VERIFIER } from '@nina-aes/auth-guards';
+
+import { JwksJwtVerifier } from './jwks-jwt.verifier';
+import { JwtAuthGuard, RolesGuard, NinaOwnershipGuard } from './guards';
+
+@Global()
+@Module({
+  providers: [
+    JwksJwtVerifier,
+    // Le Guard injecte le verifier via le token abstrait JWT_VERIFIER :
+    // on pourra le remplacer (ex: mock en test) sans toucher au Guard.
+    { provide: JWT_VERIFIER, useExisting: JwksJwtVerifier },
+    JwtAuthGuard,
+    RolesGuard,
+    NinaOwnershipGuard,
+  ],
+  exports: [JWT_VERIFIER, JwksJwtVerifier, JwtAuthGuard, RolesGuard, NinaOwnershipGuard],
+})
+export class AuthModule {}
 ```
 
 ### 6.6 DTOs — `src/nina/dto/*.ts`
@@ -1194,16 +1674,20 @@ export class NinaRepository {
 
   /**
    * Recherche exacte par NINA (unique).
+   *
+   * 🔐 `deletedAt: null` : on ignore les enregistrements soft-deleted —
+   * un dossier archivé ne doit plus apparaître dans les consultations
+   * courantes (mais reste en base pour l'audit).
    */
   async findByNina(nina: string): Promise<Citizen | null> {
-    return this.prisma.ninaRecord.findUnique({ where: { nina } });
+    return this.prisma.ninaRecord.findFirst({ where: { nina, deletedAt: null } });
   }
 
   /**
-   * Recherche exacte par UUID.
+   * Recherche exacte par UUID (enregistrements non supprimés uniquement).
    */
   async findById(id: string): Promise<Citizen | null> {
-    return this.prisma.ninaRecord.findUnique({ where: { id } });
+    return this.prisma.ninaRecord.findFirst({ where: { id, deletedAt: null } });
   }
 
   /**
@@ -1221,12 +1705,19 @@ export class NinaRepository {
   }
 
   /**
-   * Suppression (hard delete).
-   * NOTE : un soft-delete sera ajouté au doc 09 (audit) via un champ
-   * `deletedAt` pour conserver la chaîne Merkle.
+   * Suppression LOGIQUE (soft-delete).
+   *
+   * 🔐 On NE fait PAS de hard-delete (`prisma.delete`) : on positionne
+   * `deletedAt = now()` pour conserver la ligne (intégrité de la chaîne
+   * d'audit HASH-CHAIN, cf. ADR-007, et investigations anti-fraude). Le champ
+   * `deletedAt` doit exister dans le schéma Prisma (doc 06) ; toutes les
+   * lectures filtrent `deletedAt: null`.
    */
-  async delete(id: string): Promise<void> {
-    await this.prisma.ninaRecord.delete({ where: { id } });
+  async softDelete(id: string): Promise<void> {
+    await this.prisma.ninaRecord.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 
   /**
@@ -1243,7 +1734,8 @@ export class NinaRepository {
 
     // Cas trivial : aucune contrainte textuelle → recherche exacte
     if (!query) {
-      const where: Prisma.CitizenWhereInput = {};
+      // 🔐 N'inclut jamais les enregistrements soft-deleted.
+      const where: Prisma.CitizenWhereInput = { deletedAt: null };
       if (dto.dateNaissance) {
         where.dateNaissance = new Date(dto.dateNaissance);
       }
@@ -1268,7 +1760,8 @@ export class NinaRepository {
         ) AS similarity
       FROM citizens
       WHERE
-        similarity(
+        deleted_at IS NULL
+        AND similarity(
           unaccent(lower(nom || ' ' || prenoms)),
           unaccent(lower(${query}))
         ) > ${dto.threshold}
@@ -1290,12 +1783,129 @@ export class NinaRepository {
 import { Prisma } from '@prisma/client';
 ```
 
+### 6.7bis Masquage du NINA dans les logs + publication d'audit
+
+```ts
+/**
+ * @file        services/identity-service/src/common/utils/mask-nina.ts
+ * @description Masque un NINA pour les journaux. Un log fuité ne doit pas
+ *              révéler l'identité complète d'un citoyen (RGPD-like, OWASP A09
+ *              Security Logging Failures — ne PAS logger de PII en clair).
+ *
+ *              Format : on conserve 3 premiers + 2 derniers caractères, le
+ *              reste est remplacé par des `•`. Ex: `198071504270422K`
+ *              → `198••••••••••2K`.
+ */
+
+/**
+ * @param nina - NINA complet (peut être vide/undefined → renvoie '∅').
+ * @returns Représentation masquée, sûre pour les logs.
+ */
+export function maskNina(nina: string | null | undefined): string {
+  if (!nina) return '∅';
+  if (nina.length <= 5) return '•'.repeat(nina.length);
+  const head = nina.slice(0, 3);
+  const tail = nina.slice(-2);
+  return `${head}${'•'.repeat(nina.length - 5)}${tail}`;
+}
+```
+
+```ts
+/**
+ * @file        services/identity-service/src/audit/audit-publisher.service.ts
+ * @description Publie les événements d'audit des mutations NINA vers
+ *              audit-service.
+ *
+ *              ⚠️ Honnêteté — état d'implémentation : ce service est l'INTERFACE
+ *              de publication. Dans l'implémentation réelle du dépôt, la
+ *              publication est EVENT-DRIVEN via RabbitMQ
+ *              (`src/infrastructure/rabbitmq`), audit-service consommant la file.
+ *              La variante HTTP ci-dessous (POST direct) est un fallback simple
+ *              décrit à but pédagogique ; le bus de messages est préféré
+ *              (découplage, rétention, rejeu).
+ *
+ *              Côté audit-service (doc 09), l'événement est chaîné dans une
+ *              HASH-CHAIN SHA-256 ; cette chaîne n'est opposable que si sa racine
+ *              est ANCRÉE chez un tiers (OCLEI / Vérificateur Général). Sans
+ *              ancrage, un admin DB pourrait la recalculer → ne JAMAIS la
+ *              qualifier d'« inaltérable » sans cette réserve (ADR-007).
+ */
+
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+import type { Env } from '../config/env.schema';
+
+/** Forme minimale d'un événement d'audit émis par identity-service. */
+export interface NinaAuditEvent {
+  action: 'NINA_CREATED' | 'NINA_UPDATED' | 'NINA_SOFT_DELETED';
+  resourceId: string;
+  /** NINA DÉJÀ MASQUÉ (jamais en clair sur le réseau de log). */
+  nina: string;
+  changedFields?: string[];
+}
+
+@Injectable()
+export class AuditPublisher {
+  private readonly logger = new Logger(AuditPublisher.name);
+
+  constructor(private readonly config: ConfigService<Env, true>) {}
+
+  /**
+   * Émet un événement d'audit. Best-effort non bloquant : une panne de
+   * l'audit ne doit pas faire échouer la mutation métier, MAIS l'échec est
+   * loggué en `error` pour alerte (un audit silencieusement perdu est un
+   * risque de conformité).
+   *
+   * @param event - Événement à publier (NINA déjà masqué).
+   */
+  async emit(event: NinaAuditEvent): Promise<void> {
+    // URL de l'audit-service (port 3007 — cf. .env, PAS 3003 = ai-service).
+    const url = this.config.getOrThrow('AUDIT_SERVICE_URL', { infer: true });
+    try {
+      // Implémentation réelle : publish RabbitMQ (exchange `nina.audit`).
+      // Fallback HTTP montré ici pour la lisibilité pédagogique :
+      await fetch(`${url}/api/v1/audit/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service: 'identity-service',
+          ...event,
+          at: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      // On NE relance PAS : la mutation métier reste valide. Mais on trace.
+      this.logger.error(
+        `Échec publication audit (${event.action}, ${event.resourceId})`,
+        err instanceof Error ? err.stack : String(err),
+      );
+    }
+  }
+}
+```
+
 ### 6.8 `src/nina/nina.service.ts`
 
 ```ts
 /**
  * @file        services/identity-service/src/nina/nina.service.ts
  * @description Logique métier — orchestre validation, accès DB, audit.
+ *
+ *              🔐 Sécurité :
+ *                - Chaque mutation (create/update/delete) émet un événement
+ *                  d'audit (`AuditPublisher`). L'audit-service (doc 09) le
+ *                  chaîne dans une HASH-CHAIN SHA-256 ; cette chaîne n'est
+ *                  réellement opposable que si sa racine est ancrée chez un
+ *                  tiers (OCLEI / Vérificateur Général) — sinon un admin DB
+ *                  pourrait la recalculer. On parle donc d'audit
+ *                  « inviolable SOUS RÉSERVE d'ancrage » (cf. ADR-007), pas
+ *                  d'audit magiquement inaltérable.
+ *                - `delete()` est un SOFT-DELETE (`deletedAt`) : on ne purge
+ *                  jamais physiquement (conservation de la chaîne d'audit + RGPD
+ *                  « droit à l'effacement » géré séparément par anonymisation).
+ *                - Le NINA est MASQUÉ dans les logs (`maskNina`) — un log fuité
+ *                  ne doit pas révéler l'identité complète d'un citoyen.
  */
 
 import {
@@ -1312,13 +1922,22 @@ import type { UpdateNinaDto } from './dto/update-nina.dto';
 import type { SearchNinaDto } from './dto/search-nina.dto';
 import type { NinaResponseDto } from './dto/nina-response.dto';
 import { NinaRepository } from './nina.repository';
+import { AuditPublisher } from '../audit/audit-publisher.service';
+import { maskNina } from '../common/utils/mask-nina';
 
 @Injectable()
 export class NinaService {
   private readonly logger = new Logger(NinaService.name);
 
-  // Valeurs par défaut lues depuis .env dans le controller
-  constructor(private readonly repo: NinaRepository) {}
+  /**
+   * @param repo  - Accès données (Prisma + pg_trgm).
+   * @param audit - Publie les événements d'audit vers audit-service
+   *                (event-driven : RabbitMQ, ou HTTP POST en fallback).
+   */
+  constructor(
+    private readonly repo: NinaRepository,
+    private readonly audit: AuditPublisher,
+  ) {}
 
   /**
    * Recherche par NINA (15 caractères). Valide d'abord la syntaxe
@@ -1381,7 +2000,18 @@ export class NinaService {
       codeCommune: dto.codeCommune,
     });
 
-    this.logger.log(`✅ NINA créé : ${created.nina} (id=${created.id})`);
+    // ─── Audit : trace la création (donnée sensible créée) ──────────
+    // L'événement part vers audit-service qui le chaîne (HASH-CHAIN
+    // SHA-256). On ne loggue jamais le NINA en clair (maskNina).
+    await this.audit.emit({
+      action: 'NINA_CREATED',
+      resourceId: created.id,
+      // Le payload audit côté audit-service stocke le NINA chiffré/haché ;
+      // ici on n'expose que l'id + un NINA masqué pour corrélation.
+      nina: maskNina(created.nina),
+    });
+
+    this.logger.log(`✅ NINA créé : ${maskNina(created.nina)} (id=${created.id})`);
     return created as NinaResponseDto;
   }
 
@@ -1401,20 +2031,48 @@ export class NinaService {
       }),
     });
 
-    this.logger.log(`✏️  NINA mis à jour : ${existing.nina} (id=${id})`);
+    // ─── Audit : trace la correction (champs modifiés) ──────────────
+    await this.audit.emit({
+      action: 'NINA_UPDATED',
+      resourceId: id,
+      nina: maskNina(existing.nina),
+      // On liste les CLÉS modifiées, pas les valeurs (évite de logger des
+      // données personnelles ; les valeurs détaillées sont chiffrées côté
+      // audit-service si nécessaire).
+      changedFields: Object.keys(dto),
+    });
+
+    this.logger.log(`✏️  NINA mis à jour : ${maskNina(existing.nina)} (id=${id})`);
     return updated as NinaResponseDto;
   }
 
   /**
-   * Suppression.
+   * Suppression LOGIQUE (soft-delete).
+   *
+   * 🔐 On ne fait JAMAIS de hard-delete : effacer physiquement la ligne
+   * romprait la chaîne d'audit et empêcherait toute investigation a posteriori
+   * (fraude, contestation). On positionne `deletedAt` ; les lectures filtrent
+   * `deletedAt IS NULL`. Le « droit à l'effacement » RGPD-like est traité
+   * séparément par une procédure d'anonymisation tracée (doc 09), pas par
+   * un DELETE silencieux.
    */
   async delete(id: string): Promise<{ success: true }> {
     const existing = await this.repo.findById(id);
     if (!existing) {
       throw new NotFoundException(`Enregistrement ${id} introuvable`);
     }
-    await this.repo.delete(id);
-    this.logger.log(`🗑️  NINA supprimé : ${existing.nina} (id=${id})`);
+
+    // softDelete = UPDATE ... SET deleted_at = now() (cf. repository).
+    await this.repo.softDelete(id);
+
+    // ─── Audit : trace la suppression logique ───────────────────────
+    await this.audit.emit({
+      action: 'NINA_SOFT_DELETED',
+      resourceId: id,
+      nina: maskNina(existing.nina),
+    });
+
+    this.logger.log(`🗑️  NINA archivé (soft-delete) : ${maskNina(existing.nina)} (id=${id})`);
     return { success: true };
   }
 
@@ -1448,27 +2106,53 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
+import { Public, Roles } from '@nina-aes/auth-guards';
 
 import { CreateNinaDto } from './dto/create-nina.dto';
 import { UpdateNinaDto } from './dto/update-nina.dto';
 import { SearchNinaDto } from './dto/search-nina.dto';
 import { NinaResponseDto } from './dto/nina-response.dto';
 import { NinaService } from './nina.service';
+import { JwtAuthGuard, RolesGuard, NinaOwnershipGuard } from '../auth/guards';
 
+/**
+ * 🔐 `@UseGuards(JwtAuthGuard, RolesGuard)` au niveau CLASSE : tout endpoint est
+ * authentifié + soumis au contrôle de rôle PAR DÉFAUT. Les routes publiques
+ * (health/validate) sont explicitement ouvertes via `@Public()`. C'est le
+ * principe « secure by default » : on doit DÉSACTIVER l'auth (visible), jamais
+ * l'ACTIVER endpoint par endpoint (oubli silencieux = faille).
+ *
+ * ⚠️ CIBLE vs RÉEL (⏳ Phase 2) : ce contrôleur `nina/` n'existe pas dans le
+ * dépôt. Le contrôleur livré (`modules/citizen/citizen.controller.ts`) n'a PAS
+ * de `@UseGuards(JwtAuthGuard, RolesGuard)` de classe et le guard réel est
+ * fail-OPEN : « pas de `@Roles()` = route ouverte » (`return true`). Comme
+ * `GET /citizens/:nina`, `GET /citizens/by-id/:id` et `GET /citizens` (recherche)
+ * ne portent AUCUN `@Roles()`, ils sont aujourd'hui accessibles SANS auth (IDOR
+ * + énumération). Le « secure by default » décrit ici reste à implémenter :
+ * ajouter `@Roles(...)` + un `NinaOwnershipGuard` sur ces `GET` avant prod.
+ */
 @ApiTags('nina')
+@ApiBearerAuth('access-token')
+@ApiUnauthorizedResponse({ description: 'Token JWT absent ou invalide' })
+@ApiForbiddenResponse({ description: 'Rôle insuffisant ou NINA non détenu (IDOR)' })
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('nina')
 export class NinaController {
   constructor(
@@ -1477,10 +2161,19 @@ export class NinaController {
   ) {}
 
   // ─── GET /api/v1/nina/:nina ───────────────────────────────────
+  // Auth (classe) + rôles + OWNERSHIP (citoyen = son NINA) + rate-limit.
+  // Throttle anti-énumération : 10 requêtes / 60 s par client. Un citoyen
+  // ne peut pas balayer l'espace des NINA en force brute.
   @Get(':nina')
+  @Roles('citizen', 'agent', 'supervisor', 'admin')
+  @UseGuards(NinaOwnershipGuard)
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @ApiOperation({
     summary: 'Consultation par NINA',
-    description: "Retourne l'enregistrement correspondant au NINA fourni (15 caractères).",
+    description:
+      "Retourne l'enregistrement correspondant au NINA fourni (15 caractères). " +
+      'Un citoyen ne peut consulter QUE son propre NINA (anti-IDOR) ; agents/admins ' +
+      'ont un accès transverse audité.',
   })
   @ApiParam({ name: 'nina', example: '198071504270422K' })
   @ApiOkResponse({ type: NinaResponseDto })
@@ -1491,9 +2184,13 @@ export class NinaController {
   }
 
   // ─── GET /api/v1/nina/:nina/validate ──────────────────────────
+  // Validation purement syntaxique (modulo 23) : aucune lecture DB, aucune
+  // donnée personnelle exposée → route PUBLIQUE (utile à l'app citoyenne pour
+  // un feedback de saisie immédiat). @Public() court-circuite JwtAuthGuard.
+  @Public()
   @Get(':nina/validate')
   @ApiOperation({
-    summary: 'Validation syntaxique pure (sans accès DB)',
+    summary: 'Validation syntaxique pure (sans accès DB) — publique',
   })
   @ApiParam({ name: 'nina', example: '198071504270422K' })
   @ApiOkResponse({
@@ -1506,10 +2203,15 @@ export class NinaController {
   }
 
   // ─── POST /api/v1/nina/search ─────────────────────────────────
+  // Recherche floue RÉSERVÉE aux agents/admins : ouverte au citoyen elle
+  // permettrait l'énumération de la population. Throttle strict en plus
+  // (5 / 60 s) car c'est l'endpoint le plus coûteux et le plus sensible.
   @Post('search')
+  @Roles('agent', 'supervisor', 'admin')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Recherche floue multi-critères',
+    summary: 'Recherche floue multi-critères (agents/admins)',
     description: 'Utilise pg_trgm + unaccent pour tolérer les fautes de frappe et les accents.',
   })
   @ApiOkResponse({ type: [NinaResponseDto] })
@@ -1521,8 +2223,10 @@ export class NinaController {
   }
 
   // ─── POST /api/v1/nina ────────────────────────────────────────
+  // Création réservée aux ADMINS (migration / import RAVEC).
   @Post()
-  @ApiOperation({ summary: "Création d'un enregistrement NINA" })
+  @Roles('admin')
+  @ApiOperation({ summary: "Création d'un enregistrement NINA (admin)" })
   @ApiCreatedResponse({ type: NinaResponseDto })
   @ApiBadRequestResponse({ description: 'NINA invalide ou DTO malformé' })
   @ApiConflictResponse({ description: 'NINA déjà existant' })
@@ -1531,8 +2235,10 @@ export class NinaController {
   }
 
   // ─── PATCH /api/v1/nina/:id ───────────────────────────────────
+  // Correction par un agent ou un admin (workflow de signalement, doc 09).
   @Patch(':id')
-  @ApiOperation({ summary: "Correction partielle d'un enregistrement" })
+  @Roles('agent', 'supervisor', 'admin')
+  @ApiOperation({ summary: "Correction partielle d'un enregistrement (agent/admin)" })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: NinaResponseDto })
   @ApiNotFoundResponse()
@@ -1544,8 +2250,10 @@ export class NinaController {
   }
 
   // ─── DELETE /api/v1/nina/:id ──────────────────────────────────
+  // Suppression LOGIQUE (soft-delete) réservée aux ADMINS.
   @Delete(':id')
-  @ApiOperation({ summary: "Suppression d'un enregistrement" })
+  @Roles('admin')
+  @ApiOperation({ summary: "Suppression logique (soft-delete) d'un enregistrement (admin)" })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({
     schema: { example: { success: true } },
@@ -1567,10 +2275,14 @@ import { Module } from '@nestjs/common';
 import { NinaController } from './nina.controller';
 import { NinaService } from './nina.service';
 import { NinaRepository } from './nina.repository';
+import { AuditPublisher } from '../audit/audit-publisher.service';
 
 @Module({
   controllers: [NinaController],
-  providers: [NinaService, NinaRepository],
+  // AuditPublisher : émet les événements d'audit des mutations.
+  // Les Guards (JwtAuthGuard, RolesGuard, NinaOwnershipGuard) sont fournis
+  // par AuthModule (@Global) — pas besoin de les redéclarer ici.
+  providers: [NinaService, NinaRepository, AuditPublisher],
   exports: [NinaService],
 })
 export class NinaModule {}
@@ -1585,11 +2297,15 @@ export class NinaModule {}
  */
 
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { NinaModule } from './nina/nina.module';
 import { HealthModule } from './health/health.module';
+import { AuthModule } from './auth/auth.module';
+import type { Env } from './config/env.schema';
 
 @Module({
   imports: [
@@ -1598,13 +2314,41 @@ import { HealthModule } from './health/health.module';
       isGlobal: true,
       cache: true,
     }),
+    // ─── Rate-limiting global (anti brute-force / énumération) ──────
+    // Limite par défaut appliquée à TOUT le service via APP_GUARD
+    // ci-dessous ; les routes sensibles la resserrent avec @Throttle().
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (cfg: ConfigService<Env, true>) => [
+        {
+          ttl: cfg.get('THROTTLE_TTL_MS', { infer: true }),
+          limit: cfg.get('THROTTLE_LIMIT', { infer: true }),
+        },
+      ],
+    }),
+    // AuthModule (@Global) fournit JWT_VERIFIER + les Guards.
+    AuthModule,
     PrismaModule,
     NinaModule,
     HealthModule,
   ],
+  providers: [
+    // ThrottlerGuard en garde GLOBALE : protège tous les endpoints, y compris
+    // ceux qu'on oublierait d'annoter. Les routes @Public() restent limitées
+    // (le rate-limit s'applique AVANT l'auth).
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
 ```
+
+> ⚠️ **⏳ à implémenter en Phase 2 — rate-limiting INERTE dans le code réel** : dans le
+> `app.module.ts` livré, `ThrottlerModule.forRoot([...])` est bien importé, **mais le provider
+> `{ provide: APP_GUARD, useClass: ThrottlerGuard }` n'est PAS enregistré** (vérifiable par `Grep` :
+> aucun `APP_GUARD`, aucun `ThrottlerGuard` dans le service). Conséquence : le rate-limiting global
+> est **inactif**, et les décorateurs `@Throttle()` posés sur `/search` et `/nina/:nina` n'ont
+> **aucun effet** tant que ce provider n'est pas ajouté. L'anti-bruteforce / anti-énumération
+> annoncé ici reste donc à câbler.
 
 ### 6.12 `src/health/health.{module,controller}.ts`
 
@@ -1792,10 +2536,12 @@ import { generateNina } from '@nina-aes/utils';
 
 import { NinaService } from '../src/nina/nina.service';
 import { NinaRepository } from '../src/nina/nina.repository';
+import { AuditPublisher } from '../src/audit/audit-publisher.service';
 
 describe('NinaService', () => {
   let service: NinaService;
   let repo: jest.Mocked<NinaRepository>;
+  let audit: jest.Mocked<AuditPublisher>;
 
   const validNina = generateNina({
     sexe: 'M',
@@ -1832,15 +2578,23 @@ describe('NinaService', () => {
             findById: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
-            delete: jest.fn(),
+            // soft-delete (plus de hard delete)
+            softDelete: jest.fn(),
             fuzzySearch: jest.fn(),
           },
+        },
+        {
+          // Mock de l'AuditPublisher : on vérifie qu'il est appelé sur les
+          // mutations, sans réseau réel.
+          provide: AuditPublisher,
+          useValue: { emit: jest.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();
 
     service = module.get<NinaService>(NinaService);
     repo = module.get(NinaRepository);
+    audit = module.get(AuditPublisher);
   });
 
   describe('findByNina', () => {
@@ -1881,6 +2635,10 @@ describe('NinaService', () => {
 
       expect(result).toEqual(fakeRecord);
       expect(repo.create).toHaveBeenCalled();
+      // 🔐 Une création DOIT émettre un événement d'audit.
+      expect(audit.emit).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'NINA_CREATED', resourceId: fakeRecord.id }),
+      );
     });
 
     it('refuse la création si NINA déjà existant', async () => {
@@ -1923,12 +2681,28 @@ describe('NinaService', () => {
  * @file        services/identity-service/test/nina.e2e-spec.ts
  * @description Tests end-to-end avec SuperTest.
  *              Nécessite une base PostgreSQL accessible (use docker-compose).
+ *
+ *              ⚠️ AUTH dans les tests e2e : depuis le câblage des gardes
+ *              (§ 6.5bis), les routes mutantes (`POST /nina`, `GET /nina/:nina`,
+ *              `POST /nina/search`) exigent un `Authorization: Bearer <jwt>`.
+ *              Deux stratégies :
+ *                1. (préférée) surcharger le `JWT_VERIFIER` du module de test par
+ *                   un faux verifier qui renvoie un `AuthSubject` fixe
+ *                   (`.overrideProvider(JWT_VERIFIER).useValue({ verifyAccess: () =>
+ *                   ({ userId, role: 'admin', mfa: true }) })`) ;
+ *                2. générer un vrai token signé par une clé de test et pointer
+ *                   `AUTH_JWKS_URL` vers un JWKS local.
+ *              Les exemples ci-dessous présentent le scénario MÉTIER ; ils
+ *              supposent l'override (1) appliqué dans `beforeAll`. Sans token ni
+ *              override, ces routes répondent `401` — ce qui est le comportement
+ *              de sécurité attendu, à tester explicitement (voir dernier bloc).
  */
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { generateNina } from '@nina-aes/utils';
+import { JWT_VERIFIER, type AuthSubject } from '@nina-aes/auth-guards';
 
 import { AppModule } from '../src/app.module';
 
@@ -1943,10 +2717,19 @@ describe('NinaController (e2e)', () => {
     codeCommune: '001',
   });
 
+  // Faux verifier : tout token "Bearer test-token" est accepté comme un admin.
+  // On NE teste donc PAS la crypto JWT ici (c'est le rôle des tests
+  // d'auth-service, doc 08) ; on teste l'AUTORISATION et le métier.
+  const fakeAdmin: AuthSubject = { userId: 'test-admin', role: 'admin', mfa: true };
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      // Override du verifier : pas besoin d'auth-service réel en e2e.
+      .overrideProvider(JWT_VERIFIER)
+      .useValue({ verifyAccess: () => fakeAdmin })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
@@ -1975,31 +2758,43 @@ describe('NinaController (e2e)', () => {
     });
   });
 
+  describe('Sécurité — fail-closed', () => {
+    it('refuse une route protégée sans token (401)', () => {
+      // Pas d'en-tête Authorization → JwtAuthGuard rejette.
+      return request(app.getHttpServer()).post('/api/v1/nina').send({ nina: testNina }).expect(401);
+    });
+  });
+
   describe('POST /api/v1/nina', () => {
     it('crée un nouvel enregistrement', () => {
-      return request(app.getHttpServer())
-        .post('/api/v1/nina')
-        .send({
-          nina: testNina,
-          nom: 'DIARRA',
-          prenoms: 'Fatoumata',
-          dateNaissance: '2001-03-12',
-          lieuNaissance: 'Kayes',
-          sexe: 2,
-          codeRegion: '01',
-          codeCercle: '0101',
-          codeCommune: '0101001',
-        })
-        .expect(201)
-        .expect((res) => {
-          expect(res.body.nina).toBe(testNina);
-          expect(res.body.id).toBeDefined();
-        });
+      return (
+        request(app.getHttpServer())
+          .post('/api/v1/nina')
+          // Token accepté par le fakeAdmin (rôle admin requis sur POST /nina).
+          .set('Authorization', 'Bearer test-token')
+          .send({
+            nina: testNina,
+            nom: 'DIARRA',
+            prenoms: 'Fatoumata',
+            dateNaissance: '2001-03-12',
+            lieuNaissance: 'Kayes',
+            sexe: 2,
+            codeRegion: '01',
+            codeCercle: '0101',
+            codeCommune: '0101001',
+          })
+          .expect(201)
+          .expect((res) => {
+            expect(res.body.nina).toBe(testNina);
+            expect(res.body.id).toBeDefined();
+          })
+      );
     });
 
     it('refuse un NINA invalide (400)', () => {
       return request(app.getHttpServer())
         .post('/api/v1/nina')
+        .set('Authorization', 'Bearer test-token')
         .send({
           nina: '00000000000000A',
           nom: 'X',
@@ -2016,9 +2811,10 @@ describe('NinaController (e2e)', () => {
   });
 
   describe('GET /api/v1/nina/:nina', () => {
-    it('retourne 200 si trouvé', () => {
+    it('retourne 200 si trouvé (rôle admin → ownership contourné)', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/nina/${testNina}`)
+        .set('Authorization', 'Bearer test-token')
         .expect(200)
         .expect((res) => {
           expect(res.body.nom).toBe('DIARRA');
@@ -2026,14 +2822,18 @@ describe('NinaController (e2e)', () => {
     });
 
     it('retourne 400 si NINA syntaxiquement invalide', () => {
-      return request(app.getHttpServer()).get('/api/v1/nina/INVALID__________').expect(400);
+      return request(app.getHttpServer())
+        .get('/api/v1/nina/INVALID__________')
+        .set('Authorization', 'Bearer test-token')
+        .expect(400);
     });
   });
 
   describe('POST /api/v1/nina/search', () => {
-    it('trouve par nom tolérant aux accents', () => {
+    it('trouve par nom tolérant aux accents (rôle agent/admin)', () => {
       return request(app.getHttpServer())
         .post('/api/v1/nina/search')
+        .set('Authorization', 'Bearer test-token')
         .send({ nom: 'diarra' }) // sans majuscules
         .expect(200)
         .expect((res) => {
@@ -2111,13 +2911,27 @@ NODE_ENV=development
 PORT=3001
 
 # ─── Base de données ─────────────────────────────────────
-DATABASE_URL=postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db
+# ⚠️ Ce .env.example est un TEMPLATE versionné : la valeur ci-dessous est un
+#    PLACEHOLDER de dev local. Le vrai mot de passe NE doit JAMAIS être committé :
+#    en prod il provient de Vault (injection au déploiement). Le code refuse de
+#    démarrer si DATABASE_URL est absent (getOrThrow) — pas de fallback en clair.
+DATABASE_URL=postgresql://nina_admin:CHANGE_ME_DEV_ONLY@localhost:5432/nina_aes_db
 
-# ─── CORS ─────────────────────────────────────────────────
+# ─── CORS (liste blanche stricte — jamais "*") ───────────
 CORS_ORIGINS=http://localhost:4001,http://localhost:4002
 
 # ─── Services amis ───────────────────────────────────────
-AUDIT_SERVICE_URL=http://localhost:3003
+# Port 3007 = audit-service (3003 = ai-service — ne pas confondre).
+AUDIT_SERVICE_URL=http://localhost:3007
+
+# ─── Authentification JWT (verifier RS256 via JWKS auth-service) ──
+AUTH_JWKS_URL=http://localhost:3002/.well-known/jwks.json
+AUTH_JWT_ISSUER=nina-aes-auth
+AUTH_JWT_AUDIENCE=nina-aes
+
+# ─── Rate-limiting (ThrottlerGuard) ──────────────────────
+THROTTLE_TTL_MS=60000
+THROTTLE_LIMIT=60
 
 # ─── Recherche floue ─────────────────────────────────────
 PGTRGM_SIMILARITY_THRESHOLD=0.3
@@ -2159,7 +2973,8 @@ Implémenter le microservice `identity-service` (NestJS 11 + Prisma 7) avec :
 
 - Validation NINA (clé modulo 23)
 - Recherche floue pg_trgm
-- 7 endpoints REST documentés sur Swagger
+- 8 endpoints REST documentés sur Swagger, gardés (JWT + rôles + ownership)
+- Durcissement (Helmet, CORS liste blanche, throttling) + audit + soft-delete
 - ≥ 85 % de couverture de tests
 
 ## ✅ Réalisations
@@ -2171,7 +2986,12 @@ Implémenter le microservice `identity-service` (NestJS 11 + Prisma 7) avec :
 - [ ] DTOs + validation `class-validator`
 - [ ] `NinaRepository` avec `$queryRaw` pour pg_trgm
 - [ ] `NinaService` (CRUD + validation + recherche)
-- [ ] `NinaController` (7 endpoints + Swagger)
+- [ ] `NinaController` (8 endpoints + Swagger)
+- [ ] Gardes câblées : `JwtAuthGuard` + `RolesGuard` + `NinaOwnershipGuard` (§ 6.5bis)
+- [ ] Helmet + CORS liste blanche + `ThrottlerGuard` actifs
+- [ ] `AuditPublisher` émet sur create/update/delete ; `delete` = soft-delete
+- [ ] NINA masqué dans les logs (`maskNina`)
+- [ ] Aucun secret Postgres en clair dans le code (`getOrThrow`, pas de fallback)
 - [ ] `HealthController` avec `@nestjs/terminus`
 - [ ] `HttpExceptionFilter` global
 - [ ] Index SQL trigramme (`idx_nina_search_fulltext`)
@@ -2217,7 +3037,9 @@ Document 08 — Backend auth-service (JWT RS256, Keycloak).
 - [ ] `pnpm --filter @nina-aes/identity-service run build` se termine sans erreur
 - [ ] `pnpm --filter @nina-aes/identity-service run dev` démarre sur le port 3001
 - [ ] `http://localhost:3001/health` répond `{ status: 'ok' }`
-- [ ] `http://localhost:3001/api/docs` affiche Swagger UI avec 7 endpoints
+- [ ] `http://localhost:3001/api/docs` affiche Swagger UI avec 8 endpoints
+- [ ] Une route protégée sans `Authorization: Bearer` renvoie `401` (fail-closed)
+- [ ] Un citoyen consultant le NINA d'autrui reçoit `403` (anti-IDOR)
 - [ ] `pnpm --filter @nina-aes/identity-service run test` → tous verts
 - [ ] `pnpm --filter @nina-aes/identity-service run test:e2e` → tous verts
 - [ ] `pnpm --filter @nina-aes/identity-service run test:cov` → ≥ 85 % statements
@@ -2239,16 +3061,16 @@ Document 08 — Backend auth-service (JWT RS256, Keycloak).
 
 ### Améliorations à court terme (reportées aux docs suivants)
 
-| Amélioration                                  | Document cible                |
-| --------------------------------------------- | ----------------------------- |
-| 🔐 Authentification JWT RS256                 | **08 — auth-service**         |
-| 📜 Audit log Merkle chain sur chaque mutation | **09 — audit-service**        |
-| 🤖 Détection IA d'erreurs de saisie           | **22 — ai-service**           |
-| 📱 Consultation via USSD `*456#`              | **11 — notification-service** |
-| 🌍 Fédération AES (Burkina, Niger)            | **12 — interop-service**      |
-| 📊 Dashboard admin des corrections            | **19 — frontend-admin**       |
-| ⚡ Cache Redis pour consultations fréquentes  | **23 — performance**          |
-| 🛡️ Rate limiting par IP                       | **24 — sécurité**             |
+| Amélioration                                                                                                   | Document cible                |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 🔐 Émission des JWT RS256 + JWKS (les **gardes** sont déjà câblées ici, § 6.5bis ; reste l'émetteur de tokens) | **08 — auth-service**         |
+| 📜 Audit hash-chain SHA-256 sur chaque mutation (ancrage tiers à implémenter, ADR-007)                         | **09 — audit-service**        |
+| 🤖 Détection IA d'erreurs de saisie                                                                            | **22 — ai-service**           |
+| 📱 Consultation via USSD `*456#`                                                                               | **11 — notification-service** |
+| 🌍 Fédération AES (Burkina, Niger)                                                                             | **12 — interop-service**      |
+| 📊 Dashboard admin des corrections                                                                             | **19 — frontend-admin**       |
+| ⚡ Cache Redis pour consultations fréquentes                                                                   | **23 — performance**          |
+| 🛡️ Rate limiting distribué (Redis store) — la limite mémoire `ThrottlerGuard` est déjà en place ici            | **24 — sécurité**             |
 
 ### Références externes
 
@@ -2259,10 +3081,22 @@ Document 08 — Backend auth-service (JWT RS256, Keycloak).
 - [ESLint 10 Flat config](https://eslint.org/docs/latest/use/configure/configuration-files)
 - [RAVEC Mali — Registre Administratif à Vocation d'État Civil](https://www.ravec.gouv.ml)
 
-### ADR associé
+### ADR & docs sécurité associés
 
 📄
 **[ADR-012 — Architecture en couches pour les microservices NestJS](./adr/ADR-012-nestjs-clean-architecture.md)**
+
+📄
+**[ADR-027 — `@nina-aes/auth-guards` package type-only (Guards locaux au service)](./adr/ADR-027-auth-guards-type-only-package.md)**
+
+📄
+**[ADR-007 — Audit hash-chain SHA-256 (ancrage tiers requis pour l'opposabilité)](./adr/ADR-007-merkle-audit.md)**
+
+📄
+**[ADR-034 — Durcissement sécurité : Vault, mTLS, OWASP](./adr/ADR-034-security-hardening-vault-mtls-owasp.md)**
+
+🛡️ **[docs/security/THREAT-MODEL.md](./security/THREAT-MODEL.md)** ·
+**[docs/security/SECURITY-RUNBOOK.md](./security/SECURITY-RUNBOOK.md)**
 
 ---
 

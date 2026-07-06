@@ -1,7 +1,11 @@
 /**
  * @file        correction-timeline.tsx
- * @description Timeline verticale des événements d'une demande de correction
- *              (SUBMITTED → AI_SCORED → AGENT_REVIEW → APPROVED/REJECTED).
+ * @description Timeline verticale des événements d'une demande de correction,
+ *              limitée aux jalons réellement dérivables du backend
+ *              (SUBMITTED → AI_SCORED → APPROVED | REJECTED, cf.
+ *              lib/corrections/view-model.ts). Les anciens jalons fictifs
+ *              (AGENT_REVIEW, DOCUMENT_REQUESTED, DOCUMENT_UPLOADED) n'avaient
+ *              aucune colonne source : ils ont été retirés.
  *              Icônes + ligne verticale + dates localisées.
  *
  * @module      @nina-aes/admin
@@ -9,50 +13,32 @@
 
 import { useFormatter } from 'next-intl';
 import { useTranslations } from 'next-intl';
-import {
-  Check,
-  FileCheck,
-  FileQuestion,
-  Send,
-  Sparkles,
-  UserCheck,
-  X,
-  type LucideIcon,
-} from 'lucide-react';
+import { Check, Send, Sparkles, X, type LucideIcon } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
-import type { CorrectionTimelineEvent } from '../../../../../lib/mock-corrections';
+import type { AdminTimelineEvent } from '../../../../../lib/corrections/view-model';
 
-const ICONS: Record<CorrectionTimelineEvent['kind'], LucideIcon> = {
+const ICONS: Record<AdminTimelineEvent['kind'], LucideIcon> = {
   SUBMITTED: Send,
   AI_SCORED: Sparkles,
-  AGENT_REVIEW: UserCheck,
-  DOCUMENT_REQUESTED: FileQuestion,
-  DOCUMENT_UPLOADED: FileCheck,
   APPROVED: Check,
   REJECTED: X,
 };
 
-const TONES: Record<CorrectionTimelineEvent['kind'], string> = {
+const TONES: Record<AdminTimelineEvent['kind'], string> = {
   SUBMITTED: 'bg-bg-muted text-fg',
   AI_SCORED: 'bg-info-50 text-info-700',
-  AGENT_REVIEW: 'bg-bg-muted text-fg',
-  DOCUMENT_REQUESTED: 'bg-info-50 text-info-700',
-  DOCUMENT_UPLOADED: 'bg-success-50 text-success-700',
   APPROVED: 'bg-success-50 text-success-700',
   REJECTED: 'bg-danger-50 text-danger-700',
 };
 
-const LABEL_KEYS: Record<CorrectionTimelineEvent['kind'], string> = {
+const LABEL_KEYS: Record<AdminTimelineEvent['kind'], string> = {
   SUBMITTED: 'submitted',
   AI_SCORED: 'aiScored',
-  AGENT_REVIEW: 'agentReview',
-  DOCUMENT_REQUESTED: 'documentRequested',
-  DOCUMENT_UPLOADED: 'documentUploaded',
   APPROVED: 'approved',
   REJECTED: 'rejected',
 };
 
-export function CorrectionTimeline({ events }: { events: CorrectionTimelineEvent[] }) {
+export function CorrectionTimeline({ events }: { events: AdminTimelineEvent[] }) {
   const t = useTranslations('admin.corrections.timeline');
   const format = useFormatter();
 

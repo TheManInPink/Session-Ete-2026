@@ -238,11 +238,16 @@ model Citizen {
   father     Parent?  @relation("FatherOf", fields: [fatherId], references: [id], onDelete: Restrict)
   mother     Parent?  @relation("MotherOf", fields: [motherId], references: [id], onDelete: Restrict)
 
-  correctionRequests CorrectionRequest[]
-  appointments       Appointment[]
-  vulnerabilities    VulnerabilityRecord[]
-  electoralRecord    ElectoralRecord?
-  notifications      Notification[]
+  correctionRequests       CorrectionRequest[]
+  appointments             Appointment[]
+  vulnerabilities          VulnerabilityRecord[]
+  electoralRecord          ElectoralRecord?
+  electoralPseudonym       ElectoralPseudonym?
+  notifications            Notification[]
+  priorityQueueEntries     PriorityQueueEntry[]
+  offlineEnrollmentRecords OfflineEnrollmentRecord[]
+  biometricTemplates       BiometricTemplate[]
+  biometricConsents        BiometricConsent[]
 
   @@index([lastName])
   @@index([birthDate])
@@ -333,6 +338,10 @@ model User {
   lastName          String    @map("last_name") @db.VarChar(100)
   role              UserRole
   institutionId     String?   @map("institution_id") @db.Uuid
+  /// Supérieur hiérarchique direct (self-relation) — utilisé par l'escalade
+  /// SGOGT (Bloc C2) : un message URGENT non accusé dans le TTL remonte au
+  /// `manager` du destinataire. `null` = sommet de la hiérarchie (pas d'escalade).
+  managerId         String?   @map("manager_id") @db.Uuid
   phoneNumber       String?   @map("phone_number") @db.VarChar(20)
   preferredLanguage Language  @default(FR) @map("preferred_language")
   mfaEnabled        Boolean   @default(false) @map("mfa_enabled")
@@ -344,24 +353,34 @@ model User {
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  institution             Institution?          @relation(fields: [institutionId], references: [id], onDelete: Restrict)
-  requestedCorrections    CorrectionRequest[]   @relation("CorrectionRequestedBy")
-  reviewedCorrections     CorrectionRequest[]   @relation("CorrectionReviewedBy")
+  institution             Institution?             @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  manager                 User?                    @relation("UserHierarchy", fields: [managerId], references: [id], onDelete: Restrict)
+  subordinates            User[]                   @relation("UserHierarchy")
+  sgogtSentMessages       SgogtSignedMessage[]     @relation("SgogtSender")
+  sgogtReceivedMessages   SgogtSignedMessage[]     @relation("SgogtRecipient")
+  governedTasks           GovernanceTask[]         @relation("TaskAssignee")
+  createdTasks            GovernanceTask[]         @relation("TaskCreator")
+  requestedCorrections    CorrectionRequest[]      @relation("CorrectionRequestedBy")
+  reviewedCorrections     CorrectionRequest[]      @relation("CorrectionReviewedBy")
   assignedAppointments    Appointment[]
   auditLogs               AuditLog[]
-  issuedDirectives        GovernanceDirective[] @relation("DirectiveIssuer")
-  assignedDirectives      GovernanceDirective[] @relation("DirectiveAssignee")
-  sentMessages            GovernanceMessage[]   @relation("MessageSender")
-  receivedMessages        GovernanceMessage[]   @relation("MessageRecipient")
+  issuedDirectives        GovernanceDirective[]    @relation("DirectiveIssuer")
+  assignedDirectives      GovernanceDirective[]    @relation("DirectiveAssignee")
+  sentMessages            GovernanceMessage[]      @relation("MessageSender")
+  receivedMessages        GovernanceMessage[]      @relation("MessageRecipient")
   verifiedVulnerabilities VulnerabilityRecord[]
-  reportedAlerts          CorruptionAlert[]     @relation("AlertReporter")
-  agentAlerts             CorruptionAlert[]     @relation("AlertAgent")
-  assignedAlerts          CorruptionAlert[]     @relation("AlertAssignedTo")
+  reportedAlerts          CorruptionAlert[]        @relation("AlertReporter")
+  agentAlerts             CorruptionAlert[]        @relation("AlertAgent")
+  assignedAlerts          CorruptionAlert[]        @relation("AlertAssignedTo")
   notifications           Notification[]
   directiveRecipients     DirectiveRecipient[]
+  mobileAgentProfile      MobileAgent?
+  collectedOfflineBatches OfflineEnrollmentBatch[] @relation("BatchCollectedBy")
+  reviewedOfflineBatches  OfflineEnrollmentBatch[] @relation("BatchReviewedBy")
 
   @@index([role])
   @@index([institutionId])
+  @@index([managerId])
   @@index([deletedAt])
   @@map("users")
 }
@@ -492,23 +511,54 @@ model Appointment {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Journal des vérifications transfrontalières BCID-AES (Niger, Burkina Faso).
+///
+/// ⚠️ Extension ADDITIVE Bloc B (interop-service, doc 21 §4.3) : les colonnes
+/// `requestId`, `responderCountry`, `purpose`, `responseExists`, `responseValid`,
+/// `jwsSignature` et `jti` ont été ajoutées pour la traçabilité BCID-AES. Elles
+/// sont TOUTES nullable (ou défautées) afin de NE PAS casser les colonnes
+/// historiques (`requestType`, `result`, `signature`, `correlationId`,
+/// `latencyMs`) déjà committées. La migration SQL réelle
+/// (`bcid_aes_interop`) reste un livrable Phase 2 (nécessite une DB).
+///
+/// ⚠️ PRIVACY by design (data-minimization) : AUCUN NINA n'est conservé EN
+/// CLAIR dans cette table. Seul `requestedNinaHash` (SHA-256) est persisté ; il
+/// suffit aux jointures/recherches/corrélation d'audit sans exposer la PII
+/// transfrontalière. Si un audit légal exige le NINA en clair, le pays
+/// demandeur le détient déjà dans sa requête signée (JWS).
 model AesVerificationLog {
   id                String   @id @default(uuid()) @db.Uuid
   /// Pays requêteur (ISO 3166-1 alpha-3 : MLI, BFA, NER).
   requesterCountry  String   @map("requester_country") @db.Char(3)
-  /// NINA cible — chiffré au repos par le service interop (cf. doc 21).
-  targetNina        String   @map("target_nina") @db.VarChar(15)
-  /// Hash SHA-256 du NINA demandé (évite la fuite si la table est compromise).
+  /// Pays répondeur (= MLI pour la gateway Mali). Optionnel (back-compat).
+  responderCountry  String?  @map("responder_country") @db.Char(3)
+  /// Hash SHA-256 du NINA demandé : SEUL support de recherche/jointure/audit, et
+  /// SEULE empreinte du NINA conservée ici. Le NINA n'est JAMAIS persisté en clair
+  /// (data-minimization, privacy by design) — le hash suffit à corréler les
+  /// vérifications transfrontalières sans exposer la PII. Si un audit légal exige
+  /// le NINA en clair, le pays demandeur le détient dans sa requête signée (JWS).
   requestedNinaHash String   @map("requested_nina_hash") @db.VarChar(64)
   /// Type : IDENTITY_CHECK, STATUS_CHECK, SIGNATURE_VERIFY.
   requestType       String   @map("request_type") @db.VarChar(40)
+  /// `requestId` (= `jti` du JWS) — idempotence + dernier filet anti-replay DB.
+  /// `@unique` : un même `requestId` ne peut jamais être journalisé deux fois.
+  requestId         String?  @unique @map("request_id") @db.VarChar(100)
+  /// Identifiant de jeton JWS (claim `jti`). En pratique égal à `requestId`.
+  jti               String?  @db.VarChar(100)
+  /// Finalité (purpose limitation RGPD) : border-control, bank-kyc, …
+  purpose           String?  @db.VarChar(40)
   /// Verdict : MATCH, NO_MATCH, EXPIRED, REVOKED, ERROR.
   result            String   @db.VarChar(20)
+  /// Champ `exists` de la réponse minimaliste BCID-AES (NINA connu ?).
+  responseExists    Boolean? @map("response_exists")
+  /// Champ `valid` de la réponse minimaliste BCID-AES (NINA actif/non révoqué ?).
+  responseValid     Boolean? @map("response_valid")
   /// Indice de confiance (0–100) — fuzzy matching pour translittérations.
   confidence        Decimal? @db.Decimal(5, 2)
   latencyMs         Int      @map("latency_ms")
   /// Signature Ed25519 de la réponse (pour non-répudiation).
   signature         String   @db.VarChar(128)
+  /// Copie du JWS compact retourné (preuve cryptographique opposable).
+  jwsSignature      String?  @map("jws_signature") @db.Text
   correlationId     String   @map("correlation_id") @db.VarChar(100)
   clientIp          String?  @map("client_ip") @db.Inet
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -516,7 +566,44 @@ model AesVerificationLog {
   @@index([requesterCountry])
   @@index([createdAt])
   @@index([result])
+  @@index([requesterCountry, createdAt])
   @@map("aes_verification_logs")
+}
+
+/// Partenaire AES enregistré (Mali ⇄ Burkina ⇄ Niger) : associe le fingerprint
+/// du certificat mTLS pair à un pays et à sa clé publique JWS Ed25519. Source de
+/// vérité pour `assertPeerKnown` (rejet si cert inconnu/révoqué) et
+/// `fetchPeerPublicKey` (vérification de la signature de requête).
+///
+/// ⚠️ Extension ADDITIVE Bloc B (interop-service, doc 21 §4.3 « aes_partner_keys »).
+/// La migration SQL réelle reste un livrable Phase 2.
+model AesPartner {
+  id              String    @id @default(uuid()) @db.Uuid
+  /// Pays partenaire (ISO 3166-1 alpha-3 : MLI, BFA, NER).
+  country         String    @db.Char(3)
+  /// SHA-256 (hex, 64 chars) du certificat X.509 client présenté en mTLS.
+  certFingerprint String    @unique @map("cert_fingerprint") @db.VarChar(64)
+  /// Clé publique JWK Ed25519 (kty=OKP, crv=Ed25519) du partenaire.
+  publicKeyJwk    Json      @map("public_key_jwk")
+  /// Identifiant de clé (ex. "bfa-2026-q2"), repris dans le header JWS `kid`.
+  kid             String    @unique @db.VarChar(60)
+  /// Émetteur (claim `iss`) attendu dans le JWS de requête du partenaire.
+  expectedIssuer  String    @map("expected_issuer") @db.VarChar(200)
+  /// Statut administratif : ACTIVE | SUSPENDED | REVOKED.
+  status          String    @default("ACTIVE") @db.VarChar(20)
+  validFrom       DateTime  @map("valid_from") @db.Timestamptz(6)
+  validUntil      DateTime  @map("valid_until") @db.Timestamptz(6)
+  /// Horodatage de révocation (null = non révoqué).
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokedReason   String?   @map("revoked_reason") @db.VarChar(300)
+  /// Identifiant de l'agent qui a enregistré la clé (audit).
+  createdBy       String    @map("created_by") @db.VarChar(100)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([country, validUntil])
+  @@index([status])
+  @@map("aes_partners")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -987,4 +1074,676 @@ model EnrollmentCenter {
 
   @@index([isActive])
   @@map("enrollment_centers")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  BLOC C1 — VULNERABILITY-SERVICE (port 3011) — extensions ADDITIVES (doc 22)
+//
+//  Trois sous-domaines, tous greffés sur les modèles existants (Citizen, User,
+//  VulnerabilityRecord) sans en altérer la sémantique :
+//    1. File prioritaire d'enrôlement  → PriorityQueueEntry
+//    2. Agents mobiles d'enrôlement     → MobileAgent
+//    3. Lots d'enrôlement hors-ligne    → OfflineEnrollmentBatch (+ Record)
+//
+//  Le PROFIL VULNÉRABLE (catégorie particulière, RGPD-like) réutilise l'enum
+//  `VulnerabilityCategory` et le modèle `VulnerabilityRecord` déjà présents.
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Statut opérationnel d'un agent mobile d'enrôlement.
+enum MobileAgentStatus {
+  /// Recruté mais pas encore activé sur le terrain.
+  PENDING
+  /// Actif, peut collecter des enrôlements / visites à domicile.
+  ACTIVE
+  /// Suspendu temporairement (enquête, congé, sanction).
+  SUSPENDED
+  /// Désactivé définitivement (fin de mission).
+  RETIRED
+
+  @@map("mobile_agent_status")
+}
+
+/// Statut de traitement d'un lot d'enrôlement collecté hors-ligne.
+enum OfflineBatchStatus {
+  /// Reçu, signature/horodatage validés, en attente de revue agent CTDEC.
+  RECEIVED
+  /// En cours de traitement (création des fiches citoyens).
+  PROCESSING
+  /// Intégralement traité (toutes les fiches importées).
+  COMPLETED
+  /// Rejeté (signature invalide, lot expiré au-delà du cache 5 jours, doublon).
+  REJECTED
+  /// Partiellement traité (certaines fiches en erreur, quarantaine).
+  PARTIAL
+
+  @@map("offline_batch_status")
+}
+
+/// Statut d'une fiche individuelle au sein d'un lot offline.
+enum OfflineRecordStatus {
+  PENDING
+  IMPORTED
+  DUPLICATE
+  INVALID
+
+  @@map("offline_record_status")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.1 — PRIORITY_QUEUE_ENTRIES — file prioritaire d'enrôlement (P1>P2>P3)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Entrée de file prioritaire pour l'enrôlement d'un citoyen vulnérable.
+///
+/// Le `priorityWeight` (1–5) est dérivé de la catégorie de vulnérabilité au
+/// moment du calcul (cf. doc 22 §3). Le `priorityScore` matérialise le rang :
+/// plus il est élevé, plus l'entrée passe tôt. La file est consommée par
+/// l'appointment-service (créneaux PRIORITAIRES) — pas de FK cross-service :
+/// `appointmentId` est un simple identifiant nullable (lecture seule partagée).
+model PriorityQueueEntry {
+  id             String                @id @default(uuid()) @db.Uuid
+  citizenId      String                @map("citizen_id") @db.Uuid
+  /// Catégorie ayant motivé la priorité (snapshot — la fiche peut expirer ensuite).
+  category       VulnerabilityCategory
+  /// Niveau P1/P2/P3 (aligné enum `PriorityLevel`).
+  priority       PriorityLevel         @default(P3)
+  /// Poids 1–5 dérivé de la catégorie (déterminisme du calcul).
+  priorityWeight Int                   @map("priority_weight")
+  /// Score de rang = priorityWeight * 1000 − âge(s) — recalculable, persisté pour tri.
+  priorityScore  Int                   @map("priority_score")
+  /// RDV éventuellement attaché (appointment-service) — pas de FK cross-domaine.
+  appointmentId  String?               @map("appointment_id") @db.Uuid
+  /// Centre d'enrôlement visé (Institution.id) — optionnel à l'inscription en file.
+  centerId       String?               @map("center_id") @db.Uuid
+  /// File active tant que non servie/expirée (cf. `servedAt`).
+  active         Boolean               @default(true)
+  enqueuedAt     DateTime              @default(now()) @map("enqueued_at") @db.Timestamptz(6)
+  servedAt       DateTime?             @map("served_at") @db.Timestamptz(6)
+  /// Acteur ayant inscrit le citoyen en file (User.id ou origine système).
+  enqueuedBy     String                @map("enqueued_by") @db.VarChar(100)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  /// Un citoyen ne peut avoir qu'UNE entrée active à la fois (anti-doublon de file).
+  @@unique([citizenId, active], name: "uniq_active_queue_entry")
+  @@index([active, priorityScore(sort: Desc)])
+  @@index([centerId, active])
+  @@index([category])
+  @@map("priority_queue_entries")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.2 — MOBILE_AGENTS — agents d'enrôlement mobiles (atteindre les isolés)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Agent mobile d'enrôlement : se déplace pour atteindre les personnes isolées
+/// (handicap, grand âge, zones rurales). Rattaché à un `User` (compte agent) et
+/// affecté à des zones administratives (codes Location libres : région/cercle/
+/// commune). Le statut pilote l'éligibilité opérationnelle.
+model MobileAgent {
+  id           String            @id @default(uuid()) @db.Uuid
+  /// Compte utilisateur (rôle AGENT) — 1:1, unique.
+  userId       String            @unique @map("user_id") @db.Uuid
+  /// Matricule terrain (badge), unique et lisible.
+  badgeNumber  String            @unique @map("badge_number") @db.VarChar(40)
+  status       MobileAgentStatus @default(PENDING)
+  /// Zones d'intervention (codes administratifs libres : "ML-7", "Kayes", …).
+  zones        String[]
+  /// Téléphone terrain (rappels/sync) — peut différer du compte User.
+  phoneNumber  String?           @map("phone_number") @db.VarChar(20)
+  /// Clé publique du kit (PEM SPKI) servant à VÉRIFIER la signature détachée des
+  /// lots offline collectés par cet agent (non-répudiation du canal hors-ligne).
+  /// `null` tant que le kit n'a pas été appairé : un lot reçu d'un agent sans clé
+  /// est REJETÉ (fail-closed), jamais scellé sans preuve cryptographique.
+  publicKeyPem String?           @map("public_key_pem") @db.Text
+  /// Algorithme de signature associé à `publicKeyPem` (défaut : RSA-SHA256).
+  signatureAlg String?           @map("signature_alg") @db.VarChar(40)
+  /// Dernière synchronisation réussie (cache offline 5 jours).
+  lastSyncAt   DateTime?         @map("last_sync_at") @db.Timestamptz(6)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  collectedBatches OfflineEnrollmentBatch[] @relation("BatchMobileAgent")
+
+  @@index([status])
+  @@index([zones])
+  @@map("mobile_agents")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.3 — OFFLINE_ENROLLMENT_BATCHES — kits hors-ligne (inclusion numérique)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Lot d'enrôlements collectés HORS-LIGNE par un agent mobile puis synchronisé.
+///
+/// IDEMPOTENCE : `batchId` (clé naturelle fournie par le kit) est UNIQUE — un
+/// renvoi du même lot (perte réseau, retry) ne crée pas de doublon. La charge
+/// est SIGNÉE et HORODATÉE côté kit ; `payloadHash` (SHA-256 du payload canon)
+/// et `signature` permettent de prouver l'intégrité avant import. Aucun NINA en
+/// clair n'est stocké au niveau du lot.
+model OfflineEnrollmentBatch {
+  id                String             @id @default(uuid()) @db.Uuid
+  /// Clé naturelle d'idempotence fournie par le kit (UNIQUE).
+  batchId           String             @unique @map("batch_id") @db.VarChar(100)
+  /// Agent mobile auteur de la collecte (MobileAgent.id).
+  mobileAgentId     String             @map("mobile_agent_id") @db.Uuid
+  /// Compte User collecteur (redondant pour audit rapide).
+  collectedByUserId String             @map("collected_by_user_id") @db.Uuid
+  status            OfflineBatchStatus @default(RECEIVED)
+  /// Nombre de fiches déclarées dans le lot (contrôle de cohérence).
+  recordCount       Int                @map("record_count")
+  /// SHA-256 (hex) du payload canonicalisé du lot — intégrité.
+  payloadHash       String             @map("payload_hash") @db.VarChar(64)
+  /// Signature détachée du payload (base64/hex) produite par le kit.
+  signature         String             @db.Text
+  /// Horodatage de collecte côté kit (peut précéder la sync de ≤ 5 jours).
+  collectedAt       DateTime           @map("collected_at") @db.Timestamptz(6)
+  /// Horodatage de réception serveur (sync).
+  receivedAt        DateTime           @default(now()) @map("received_at") @db.Timestamptz(6)
+  /// Agent CTDEC ayant revu le lot.
+  reviewedByUserId  String?            @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?          @map("reviewed_at") @db.Timestamptz(6)
+  /// Motif de rejet (signature invalide, lot expiré, doublon).
+  rejectionReason   String?            @map("rejection_reason") @db.Text
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  mobileAgent MobileAgent @relation("BatchMobileAgent", fields: [mobileAgentId], references: [id], onDelete: Restrict)
+  collectedBy User        @relation("BatchCollectedBy", fields: [collectedByUserId], references: [id], onDelete: Restrict)
+  reviewedBy  User?       @relation("BatchReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: Restrict)
+
+  records OfflineEnrollmentRecord[]
+
+  @@index([status])
+  @@index([mobileAgentId])
+  @@index([receivedAt])
+  @@map("offline_enrollment_batches")
+}
+
+/// Fiche individuelle d'un lot offline. La déduplication par citoyen est portée
+/// au niveau (lot, hash de la fiche) pour rejeter les doublons internes au lot.
+model OfflineEnrollmentRecord {
+  id         String              @id @default(uuid()) @db.Uuid
+  batchId    String              @map("batch_id") @db.Uuid
+  /// Citoyen créé/rattaché après import (nullable tant que PENDING).
+  citizenId  String?             @map("citizen_id") @db.Uuid
+  /// SHA-256 (hex) de la fiche canonicalisée — déduplication intra-lot.
+  recordHash String              @map("record_hash") @db.VarChar(64)
+  status     OfflineRecordStatus @default(PENDING)
+  /// Détail d'erreur si INVALID/DUPLICATE.
+  error      String?             @db.Text
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  batch   OfflineEnrollmentBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  citizen Citizen?               @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  /// Pas deux fois la même fiche dans le même lot (idempotence intra-lot).
+  @@unique([batchId, recordHash], name: "uniq_record_in_batch")
+  @@index([status])
+  @@map("offline_enrollment_records")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.4 — VULNERABILITY_ACCESS_LOGS — trace DURABLE des accès aux catégories
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Journal d'accès LOCAL et DURABLE aux profils de vulnérabilité (catégorie
+/// particulière RGPD-like). Garantit l'invariant « pas d'accès à une catégorie
+/// sans trace » : la trace est écrite EN BASE (source de vérité) AVANT de
+/// renvoyer la donnée au client, indépendamment de la disponibilité de RabbitMQ.
+/// La publication vers la hash-chain SHA-256 d'audit-service reste un relais
+/// asynchrone best-effort PAR-DESSUS cette trace durable (pattern outbox-like).
+///
+/// ⚠️ Aucun NINA en clair : le citoyen est identifié par son `citizenId` (UUID).
+model VulnerabilityAccessLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// Action (ex. `profile.accessed`, `profile.declared`).
+  action     String   @db.VarChar(100)
+  /// Type d'entité (ex. `VulnerabilityRecord`).
+  entityType String   @map("entity_type") @db.VarChar(80)
+  /// Identifiant d'entité ciblée (UUID citoyen ou clé de liste) — JAMAIS le NINA.
+  entityId   String   @map("entity_id") @db.VarChar(120)
+  /// Acteur authentifié (sub JWT / User.id) — `null` pour origine système.
+  actorId    String?  @map("actor_id") @db.VarChar(100)
+  /// Rôle/origine de l'acteur (`citizen`, `agent`, `supervisor`…).
+  actorType  String   @map("actor_type") @db.VarChar(40)
+  /// Adresse IP source.
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  /// Métadonnée métier (catégorie, compteur…) — SANS NINA en clair.
+  metadata   Json?
+  /// `true` une fois relayé avec succès vers RabbitMQ (audit-service).
+  relayed    Boolean  @default(false)
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([entityId])
+  @@index([actorId])
+  @@index([occurredAt])
+  @@index([relayed])
+  @@map("vulnerability_access_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C2.1 — SGOGT_SIGNED_MESSAGES — messagerie officielle signée (Bloc C2)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèle ADDITIF (n'altère PAS `governance_messages`, conservé pour le fil de
+//  discussion CRUD existant). Ici on porte la « décision administrative
+//  cryptographiquement engageante » : JWS RS256 (signé via Vault Transit, clé
+//  par-fonctionnaire NON exportable), claims signés couvrant TOUTE la décision
+//  (sender/recipient/subject/bodyHash/threadId/priority/ttl/iat) + chaînage
+//  d'intégrité SHA-256 par fil (hash-chain LINÉAIRE, PAS Merkle) + escalade.
+//  Cf. docs/governance/SGOGT-PROTOCOL.md (contrat normatif).
+
+/// Classification d'urgence d'un message SGOGT — pilote le délai d'escalade.
+enum SgogtPriority {
+  NORMAL
+  HIGH
+  CRITICAL
+
+  @@map("sgogt_priority")
+}
+
+/// Cycle de vie d'un message SGOGT signé.
+enum SgogtStatus {
+  SENT
+  READ
+  RESPONDED
+  ESCALATED
+  ARCHIVED
+
+  @@map("sgogt_status")
+}
+
+/// Message officiel SIGNÉ (JWS RS256 via Vault Transit) — non-répudiation.
+///
+/// Le `jwsSignature` couvre les `signedClaims` (sender/recipient/subject/
+/// bodyHash/threadId/priority/ttlEscalateAt/iat). On ne signe PAS le `body` brut
+/// mais son `bodyHash` (SHA-256) — JWS compact même pour un message long.
+/// `chainHash` = SHA-256(previousChainHash | bodyHash | jwsSignature | createdAt)
+/// chaîne les messages D'UN MÊME FIL (anti-altération / anti-suppression locale).
+/// L'intégrité long terme reste portée par la hash-chain SHA-256 d'audit-service.
+model SgogtSignedMessage {
+  id                String        @id @default(uuid()) @db.Uuid
+  /// Groupe de messages liés (fil de décision). Couvert par la signature.
+  threadId          String        @map("thread_id") @db.Uuid
+  /// Émetteur (FK User) — lié à `req.user.id` authentifié, jamais au client.
+  senderId          String        @map("sender_id") @db.Uuid
+  /// Destinataire direct (FK User).
+  recipientId       String        @map("recipient_id") @db.Uuid
+  subject           String        @db.VarChar(300)
+  body              String        @db.Text
+  /// SHA-256 (hex) du `body` — signé à la place du corps brut.
+  bodyHash          String        @map("body_hash") @db.VarChar(64)
+  /// JWS compact RS256 (signature déléguée Vault Transit). Format RFC 7515.
+  jwsSignature      String        @map("jws_signature") @db.Text
+  /// Claims couverts par la signature (anti-rejeu / anti-altération).
+  signedClaims      Json          @map("signed_claims")
+  /// `kid` Vault de la clé signataire (`sgogt-user-<senderId>`).
+  signingKid        String        @map("signing_kid") @db.VarChar(120)
+  priority          SgogtPriority @default(NORMAL)
+  status            SgogtStatus   @default(SENT)
+  /// Échéance d'escalade (dérivée AVANT signature → immuable). CRITICAL=4h, sinon 24h.
+  ttlEscalateAt     DateTime      @map("ttl_escalate_at") @db.Timestamptz(6)
+  /// Supérieur ayant pris le relais après escalade (FK User).
+  escalatedToId     String?       @map("escalated_to_id") @db.Uuid
+  escalatedAt       DateTime?     @map("escalated_at") @db.Timestamptz(6)
+  readAt            DateTime?     @map("read_at") @db.Timestamptz(6)
+  respondedAt       DateTime?     @map("responded_at") @db.Timestamptz(6)
+  /// ACK signé du destinataire (JWS RS256 du lecteur) — preuve de réception.
+  readReceiptJws    String?       @map("read_receipt_jws") @db.Text
+  /// Hash du message précédent du MÊME fil (ou GENESIS = 64 zéros).
+  previousChainHash String        @map("previous_chain_hash") @db.VarChar(64)
+  /// Hash chaîné de CE message (intégrité locale du fil).
+  chainHash         String        @unique @map("chain_hash") @db.VarChar(64)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sender      User                   @relation("SgogtSender", fields: [senderId], references: [id], onDelete: Restrict)
+  recipient   User                   @relation("SgogtRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+  escalations SgogtEscalationEvent[]
+
+  @@index([recipientId, status])
+  @@index([threadId])
+  @@index([status, ttlEscalateAt])
+  @@map("sgogt_signed_messages")
+}
+
+/// Historique d'escalade SIGNÉ (non falsifiable) d'un message SGOGT.
+///
+/// Chaque escalade automatique (TTL dépassé sans accusé) émet une ligne SIGNÉE
+/// par la clé `elections-export`/`sgogt-system` (clé système Vault) et chaînée
+/// (SHA-256) à l'événement précédent du même message → piste d'audit immuable.
+model SgogtEscalationEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  messageId    String   @map("message_id") @db.Uuid
+  /// Destinataire AVANT escalade (FK User).
+  fromUserId   String   @map("from_user_id") @db.Uuid
+  /// Destinataire APRÈS escalade — supérieur hiérarchique (FK User).
+  toUserId     String   @map("to_user_id") @db.Uuid
+  /// Niveau d'escalade atteint (1 = premier cran).
+  level        Int      @default(1)
+  /// Raison (`TTL_EXPIRED`).
+  reason       String   @default("TTL_EXPIRED") @db.VarChar(40)
+  /// JWS RS256 (clé système Vault) couvrant {messageId,from,to,level,at}.
+  signatureJws String   @map("signature_jws") @db.Text
+  /// Hash de l'événement d'escalade précédent (ou GENESIS).
+  previousHash String   @map("previous_hash") @db.VarChar(64)
+  /// Hash chaîné de CET événement.
+  chainHash    String   @unique @map("chain_hash") @db.VarChar(64)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  message SgogtSignedMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([toUserId])
+  @@map("sgogt_escalation_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C2.2 — GOVERNANCE_TASKS — directives Kanban (Bloc C2)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèle ADDITIF (n'altère PAS `governance_directives`). Tableau Kanban des
+//  directives avec cycle de vie strict + assignee + deadline + historique de
+//  transitions audité.
+
+/// Colonne Kanban / cycle de vie d'une directive (tâche de gouvernance).
+enum GovernanceTaskStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+
+  @@map("governance_task_status")
+}
+
+/// Directive opérationnelle suivie en Kanban (DRAFT→SENT→IN_PROGRESS→…).
+model GovernanceTask {
+  id              String               @id @default(uuid()) @db.Uuid
+  title           String               @db.VarChar(300)
+  description     String               @db.Text
+  status          GovernanceTaskStatus @default(DRAFT)
+  /// Créateur/émetteur (FK User).
+  createdById     String               @map("created_by_id") @db.Uuid
+  /// Responsable de l'exécution (FK User).
+  assigneeId      String?              @map("assignee_id") @db.Uuid
+  priority        SgogtPriority        @default(NORMAL)
+  deadline        DateTime?            @db.Timestamptz(6)
+  /// Niveau d'escalade (0 = initial).
+  escalationLevel Int                  @default(0) @map("escalation_level")
+  rejectionReason String?              @map("rejection_reason") @db.Text
+  completedAt     DateTime?            @map("completed_at") @db.Timestamptz(6)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy   User                  @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignee    User?                 @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  transitions GovernanceTaskEvent[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([createdById])
+  @@map("governance_tasks")
+}
+
+/// Transition de cycle de vie d'une `GovernanceTask` (audit local des changements).
+model GovernanceTaskEvent {
+  id         String                @id @default(uuid()) @db.Uuid
+  taskId     String                @map("task_id") @db.Uuid
+  fromStatus GovernanceTaskStatus? @map("from_status")
+  toStatus   GovernanceTaskStatus  @map("to_status")
+  /// Acteur de la transition (sub JWT) — chaîne libre (pas FK : peut être système).
+  actorId    String                @map("actor_id") @db.VarChar(100)
+  note       String?               @db.Text
+  createdAt  DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  task GovernanceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("governance_task_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C3.1 — ELECTORAL_PSEUDONYMS — registre électoral pseudonymisé (Bloc C3)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèle ADDITIF (n'altère PAS `electoral_records`). Porte le `pseudonymousId`
+//  HMAC-SHA256 calculé DANS Vault (clé non exportable, PAS un SHA-256(NINA+sel)
+//  bruteforçable) + `saltVersion` PUBLIC (séparation de domaine, rotation).
+//  Source de l'export delta DGE. Cf. docs/governance/ELECTIONS-EXPORT-CONTRACT.md.
+
+/// Type d'inscription au registre électoral.
+enum VoterInscriptionType {
+  AUTO_18
+  MANUAL
+  TRANSFER
+
+  @@map("voter_inscription_type")
+}
+
+/// Statut électoral (actif / radié avec motif).
+enum VoterStatus {
+  ACTIVE
+  REMOVED_DECEASED
+  REMOVED_RELOCATED
+  REMOVED_DISQUALIFIED
+
+  @@map("voter_status")
+}
+
+/// Ligne pseudonymisée du registre électoral (delta exporté vers la DGE).
+model ElectoralPseudonym {
+  id              String               @id @default(uuid()) @db.Uuid
+  /// Citoyen source (UUID) — JAMAIS exporté vers la DGE. Lien interne seulement.
+  citizenId       String               @unique @map("citizen_id") @db.Uuid
+  /// HMAC-SHA256(`v<salt>:<nina>`) calculé DANS Vault (clé non exportable).
+  /// STABLE entre exports (linkable par conception, cf. avertissement contrat §10).
+  pseudonymousId  String               @unique @map("pseudonymous_id") @db.VarChar(128)
+  /// Tag de séparation de domaine PUBLIC (PAS un secret) — version de contexte HMAC.
+  saltVersion     Int                  @map("salt_version")
+  region          String               @db.VarChar(100)
+  cercle          String               @db.VarChar(100)
+  commune         String?              @db.VarChar(100)
+  inscriptionType VoterInscriptionType @default(AUTO_18) @map("inscription_type")
+  status          VoterStatus          @default(ACTIVE)
+  registeredAt    DateTime             @default(now()) @map("registered_at") @db.Timestamptz(6)
+  removedAt       DateTime?            @map("removed_at") @db.Timestamptz(6)
+  removedReason   String?              @map("removed_reason") @db.VarChar(120)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  @@index([region, status])
+  @@index([pseudonymousId])
+  @@index([registeredAt])
+  @@index([removedAt])
+  @@map("electoral_pseudonyms")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C3.2 — DGE_EXPORT_QUOTA — quota atomique PAR COMPTE (anti-exfiltration)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Compteur quotidien d'exports DGE PAR COMPTE. Incrément ATOMIQUE (UPDATE
+/// conditionnel `count < limit`) AVANT le stream — pas de comptage TOCTOU dérivé
+/// d'`audit_logs`. Un compte DGE compromis est borné à `limit` exports/jour.
+model DgeExportQuota {
+  /// Compte DGE (sub JWT du DGE_OFFICIAL).
+  accountId String   @map("account_id") @db.VarChar(100)
+  /// Jour (UTC, format `YYYY-MM-DD`).
+  day       String   @db.VarChar(10)
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([accountId, day])
+  @@map("dge_export_quota")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C3.3 — ELECTORAL_EXPORT_LOGS — journal local des exports DGE
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Trace LOCALE et DURABLE de chaque export DGE (en complément de la hash-chain
+/// SHA-256 d'audit-service). Rend un compte DGE compromis détectable : qui /
+/// quand / fenêtre `since` / nb lignes / sha256 / IP.
+model ElectoralExportLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Compte DGE exportateur (sub JWT vérifié).
+  accountId   String   @map("account_id") @db.VarChar(100)
+  /// Fenêtre temporelle demandée (ISO-8601).
+  sinceIso    String   @map("since_iso") @db.VarChar(40)
+  /// Nombre de lignes du delta.
+  rowCount    Int      @map("row_count")
+  /// SHA-256 (hex) du corps CSV exporté.
+  sha256      String   @db.VarChar(64)
+  saltVersion Int      @map("salt_version")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([accountId])
+  @@index([createdAt])
+  @@map("electoral_export_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  F — BIOMÉTRIE (Bloc F) — protection de template ISO/IEC 24745 (cancelable)
+// ──────────────────────────────────────────────────────────────────────────────
+//
+//  Modèles ADDITIFS (n'altèrent PAS l'existant — `Citizen.fingerprintHash` legacy
+//  conservé). Cf. docs/25-BLOC-F-BIOMETRIE.md §4.1, ADR-025, DPIA-NINA-AES-2026.
+//
+//  CANON : on ne stocke JAMAIS l'image brute ni le template en clair — uniquement
+//  un TEMPLATE PROTÉGÉ (cancelable, distance-préservant), comparé par DISTANCE +
+//  seuil τ (JAMAIS par égalité de hash, cf. doc 25 §0). Le paramètre cancelable
+//  (« sel » de projection) reste dans Vault, JAMAIS en base — seul son `kid` est
+//  référencé. La comparaison se fait par distance de Hamming sur le code signe.
+
+/// Type de biométrie (P3a empreinte, P3b face).
+enum BiometricKind {
+  FINGERPRINT
+  FACE
+
+  @@map("biometric_kind")
+}
+
+/// Un template biométrique PROTÉGÉ (ISO/IEC 24745, cancelable) — jamais d'image,
+/// jamais de template en clair. La comparaison se fait par distance + seuil τ
+/// (doc 25 §0.5), JAMAIS par égalité. Plusieurs templates ACTIFS peuvent coexister
+/// pour un même citoyen pendant une rotation en double-écriture (§4.5).
+model BiometricTemplate {
+  id                BigInt        @id @default(autoincrement())
+  citizenId         String        @map("citizen_id") @db.Uuid
+  kind              BiometricKind
+  /// Template PROTÉGÉ (transformation cancelable du template ISO). Octets opaques
+  /// (`bytea`), PAS un hash : il préserve approximativement la distance pour le
+  /// matching flou. NON unique (deux ré-enrôlements légitimes doivent coexister).
+  protectedTemplate Bytes         @map("protected_template")
+  /// Identifiant du paramètre de transformation cancelable dans Vault (rotation =
+  /// nouveau kid). Le paramètre LUI-MÊME n'est JAMAIS en base.
+  transformKid      String        @map("transform_kid") @db.VarChar(80)
+  /// Schéma de protection employé (traçabilité + migration).
+  protectionScheme  String        @map("protection_scheme") @db.VarChar(80)
+  /// Format du template source (ISO standard, pas de vendor lock-in).
+  templateFormat    String        @map("template_format") @db.VarChar(60)
+  /// Métrique + seuil τ figés à l'enrôlement (auditabilité du point d'opération).
+  matchMetric       String        @map("match_metric") @db.VarChar(30)
+  matchThreshold    Float         @map("match_threshold")
+  capturedAt        DateTime      @default(now()) @map("captured_at") @db.Timestamptz(6)
+  /// Agent ayant capturé (sub JWT / User.id) — jamais le NINA.
+  capturedBy        String        @map("captured_by") @db.VarChar(100)
+  /// Empreinte de la clé publique citoyen ayant signé le consentement (ancre §4.6).
+  consentSignerKid  String        @map("consent_signer_kid") @db.VarChar(160)
+  /// `jti` du JWS de consentement (corrélation preuve + anti-rejeu).
+  consentJti        String        @map("consent_jti") @db.VarChar(120)
+  /// URL MinIO chiffrée de la preuve de consentement (jamais le JWS brut ici).
+  consentDocUrl     String?       @map("consent_doc_url") @db.VarChar(500)
+  revokedAt         DateTime?     @map("revoked_at") @db.Timestamptz(6)
+  revokedReason     String?       @map("revoked_reason") @db.VarChar(200)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  // 1:1 = on retrouve les templates ACTIFS d'un citoyen puis on compare par
+  // distance EN MÉMOIRE. PAS d'index sur protectedTemplate : la recherche 1:N
+  // rapide passe par un index ANN externe (P3c), jamais un index SQL d'égalité.
+  @@index([citizenId, kind, revokedAt])
+  @@index([transformKid])
+  @@map("biometric_templates")
+}
+
+/// Registre de consentement biométrique (CONSENT-PROTOCOL). Le consentement est
+/// une preuve cryptographique portable (JWS Ed25519 ancré sur la clé publique du
+/// citoyen). On garde le `jti` pour l'anti-rejeu et l'état de révocation pour le
+/// droit de retrait (RGPD-like). On ne stocke PAS la clé privée (elle vit sur
+/// l'appareil du citoyen) — uniquement le signataire (`signerKid`) et le JWS.
+model BiometricConsent {
+  id              String    @id @default(uuid()) @db.Uuid
+  citizenId       String    @map("citizen_id") @db.Uuid
+  /// Nonce unique du JWS (anti-rejeu) — vu une seule fois dans sa fenêtre exp.
+  jti             String    @unique @db.VarChar(120)
+  /// `kid` de la clé publique citoyen ayant signé (ancre de confiance §4.6).
+  signerKid       String    @map("signer_kid") @db.VarChar(160)
+  /// Périmètre exact accordé (ex. `enroll:FINGERPRINT`).
+  scope           String    @db.VarChar(60)
+  /// Canal de recueil (web | kiosk | ussd | agent | offline-kit).
+  channel         String    @db.VarChar(30)
+  /// Langue effectivement présentée (preuve d'information éclairée).
+  lang            String    @db.VarChar(10)
+  /// JWS compact de consentement (preuve signée vérifiable a posteriori).
+  consentJws      String    @map("consent_jws") @db.Text
+  /// Bornes temporelles signées par le citoyen (epoch s → DateTime).
+  issuedAt        DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
+  /// Nombre d'enrôlements DÉJÀ autorisés par CE consentement (liaison per-opération).
+  /// Empêche qu'un seul JWS autorise des enrôlements illimités jusqu'à `exp` : la
+  /// garde d'enrôlement refuse quand `enrollmentsUsed >= maxEnrollments` (doc 25 §4.2).
+  enrollmentsUsed Int       @default(0) @map("enrollments_used")
+  /// Plafond d'enrôlements autorisés par CE consentement (par défaut single-use = 1).
+  maxEnrollments  Int       @default(1) @map("max_enrollments")
+  /// Retrait du consentement (déclenche le droit à l'effacement, §6).
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  @@index([citizenId])
+  @@index([revokedAt])
+  @@map("biometric_consents")
+}
+
+/// Trace LOCALE et DURABLE de chaque opération biométrique (en complément de la
+/// hash-chain SHA-256 d'audit-service). Invariant « pas d'opération biométrique
+/// sans trace ». JAMAIS de template (même protégé), JAMAIS de paramètre cancelable,
+/// JAMAIS de NINA en clair — uniquement des références (kid, citizenId UUID,
+/// compteurs).
+model BiometricAccessLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// Action (ex. `biometric.registered`, `biometric.verify_success`).
+  action     String   @db.VarChar(100)
+  /// Type d'entité (ex. `BiometricTemplate`).
+  entityType String   @map("entity_type") @db.VarChar(80)
+  /// Identifiant ciblé (UUID citoyen / id template) — JAMAIS le NINA.
+  entityId   String   @map("entity_id") @db.VarChar(120)
+  /// Acteur authentifié (sub JWT / User.id) — `null` pour origine système.
+  actorId    String?  @map("actor_id") @db.VarChar(100)
+  /// Rôle/origine de l'acteur (`biometric_operator`, `inspector`…).
+  actorType  String   @map("actor_type") @db.VarChar(40)
+  /// Adresse IP source.
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  /// Métadonnée métier (kind, transformKid, compteur…) — SANS NINA en clair.
+  metadata   Json?
+  /// `true` une fois relayé avec succès vers RabbitMQ (audit-service).
+  relayed    Boolean  @default(false)
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([entityId])
+  @@index([actorId])
+  @@index([occurredAt])
+  @@index([relayed])
+  @@map("biometric_access_logs")
 }

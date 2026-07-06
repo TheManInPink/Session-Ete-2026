@@ -54,7 +54,7 @@ export const paginationQuerySchema = z.object({
 
 /** Localisation hiérarchique sur 10 niveaux. */
 export const locationSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   countryCode: z.string().length(3),
   pays: z.string().min(1),
   région: z.string().min(1),
@@ -83,20 +83,20 @@ export const citizenDtoSchema = z.object({
   nina: ninaSchema,
   firstName: z.string().min(1).max(120),
   lastName: z.string().min(1).max(120),
-  sex: z.nativeEnum(Sex),
+  sex: z.enum(Sex),
   birthDate: isoDateSchema,
   birthPlace: locationSchema,
   residence: locationSchema,
-  maritalStatus: z.nativeEnum(MaritalStatus),
+  maritalStatus: z.enum(MaritalStatus),
   profession: z.string().min(1).max(200),
   parents: z.array(parentSchema).min(1).max(4),
-  photoUrl: z.string().url().optional(),
+  photoUrl: z.url().optional(),
   fingerprintHash: z
     .string()
     .regex(/^[0-9a-f]{64}$/i)
     .optional(),
-  vulnerabilityCategory: z.nativeEnum(VulnerabilityCategory).optional(),
-  preferredLanguage: z.nativeEnum(Language).optional(),
+  vulnerabilityCategory: z.enum(VulnerabilityCategory).optional(),
+  preferredLanguage: z.enum(Language).optional(),
   metadata: z.record(z.string(), z.string()).optional(),
 });
 
@@ -106,25 +106,25 @@ export const citizenDtoSchema = z.object({
 
 /** Création d'une demande de correction. */
 export const correctionRequestCreateSchema = z.object({
-  citizenId: z.string().uuid(),
+  citizenId: z.uuid(),
   nina: ninaSchema,
   fieldKey: z.string().min(1).max(80),
   currentValue: z.string().max(2000),
   proposedValue: z.string().max(2000),
   aiConfidence: z.number().min(0).max(100).optional(),
-  justificationDocUrl: z.string().url().optional(),
+  justificationDocUrl: z.url().optional(),
 });
 
 /** Statut de revue agent (approbation / rejet). */
 export const correctionReviewSchema = z.object({
   status: z.enum([CorrectionStatus.APPROVED, CorrectionStatus.REJECTED]),
-  reviewedBy: z.string().uuid(),
+  reviewedBy: z.uuid(),
   reviewerNote: z.string().max(2000).optional(),
 });
 
 /** Filtre sur le statut des corrections (tableaux agent). */
 export const correctionStatusFilterSchema = z.object({
-  status: z.nativeEnum(CorrectionStatus).optional(),
+  status: z.enum(CorrectionStatus).optional(),
   nina: ninaSchema.optional(),
 });
 
@@ -134,16 +134,16 @@ export const correctionStatusFilterSchema = z.object({
 
 /** Création / mise à jour de rendez-vous. */
 export const appointmentUpsertSchema = z.object({
-  citizenId: z.string().uuid(),
+  citizenId: z.uuid(),
   nina: ninaSchema,
-  status: z.nativeEnum(AppointmentStatus),
-  priority: z.nativeEnum(PriorityLevel),
-  vulnerability: z.nativeEnum(VulnerabilityCategory).optional(),
+  status: z.enum(AppointmentStatus),
+  priority: z.enum(PriorityLevel),
+  vulnerability: z.enum(VulnerabilityCategory).optional(),
   startsAt: z.string().min(1),
   endsAt: z.string().min(1),
-  centerId: z.string().uuid(),
+  centerId: z.uuid(),
   queueNumber: z.number().int().positive(),
-  language: z.nativeEnum(Language),
+  language: z.enum(Language),
   notes: z.string().max(2000).optional(),
 });
 
@@ -153,12 +153,12 @@ export const appointmentUpsertSchema = z.object({
 
 /** Création d'alerte anticorruption. */
 export const corruptionAlertCreateSchema = z.object({
-  severity: z.nativeEnum(AlertSeverity),
+  severity: z.enum(AlertSeverity),
   title: z.string().min(3).max(200),
   description: z.string().min(10).max(8000),
-  country: z.nativeEnum(AESCountry),
-  agentUserId: z.string().uuid().optional(),
-  evidenceUrls: z.array(z.string().url()).max(20).default([]),
+  country: z.enum(AESCountry),
+  agentUserId: z.uuid().optional(),
+  evidenceUrls: z.array(z.url()).max(20).default([]),
   anonymousReporterToken: z.string().min(8).max(128).optional(),
   referenceId: z.string().max(128).optional(),
 });
@@ -169,35 +169,35 @@ export const corruptionAlertCreateSchema = z.object({
 
 /** Directive de gouvernance — création. */
 export const governanceDirectiveCreateSchema = z.object({
-  issuerId: z.string().uuid(),
-  assigneeId: z.string().uuid(),
-  institutionId: z.string().uuid(),
+  issuerId: z.uuid(),
+  assigneeId: z.uuid(),
+  institutionId: z.uuid(),
   title: z.string().min(3).max(200),
   description: z.string().min(10).max(20000),
-  status: z.nativeEnum(DirectiveStatus),
-  priority: z.nativeEnum(PriorityLevel),
+  status: z.enum(DirectiveStatus),
+  priority: z.enum(PriorityLevel),
   deadline: z.string().min(1),
   escalationLevel: z.number().int().min(0).max(10),
-  country: z.nativeEnum(AESCountry),
+  country: z.enum(AESCountry),
   referenceCode: z.string().max(128).optional(),
 });
 
 /** Pièce jointe d'un message gouvernance. */
 export const governanceAttachmentSchema = z.object({
   filename: z.string().min(1).max(256),
-  url: z.string().url(),
+  url: z.url(),
   contentType: z.string().min(1).max(120),
   size: z.number().int().positive(),
   sha256: z.string().regex(/^[0-9a-f]{64}$/i),
 });
 
-/** Message institutionnel signé — ingestion. */
+/** Message institutionnel signé — ingestion. Signature = JWS RS256 serveur (ADR-026/034). */
 export const governanceMessageIngestSchema = z.object({
   subject: z.string().min(1).max(200),
   body: z.string().min(1).max(20000),
   attachments: z.array(governanceAttachmentSchema).max(20).default([]),
-  signatureEd25519: z.string().min(1),
-  publicKeyFingerprint: z.string().min(1),
+  jwsSignature: z.string().min(1),
+  signingKeyId: z.string().min(1),
   readStatus: z.enum(['unread', 'read']),
   serverTimestamp: z.string().min(1),
   fromUserId: z.string().min(1).max(128),
@@ -210,9 +210,9 @@ export const governanceMessageIngestSchema = z.object({
 
 /** Requête interop AES — vérification transfrontalière. */
 export const aesVerificationRequestSchema = z.object({
-  correlationId: z.string().uuid(),
-  requestingCountry: z.nativeEnum(AESCountry),
-  targetCountry: z.nativeEnum(AESCountry),
+  correlationId: z.uuid(),
+  requestingCountry: z.enum(AESCountry),
+  targetCountry: z.enum(AESCountry),
   nina: ninaSchema,
   lastName: z.string().min(1).max(120),
   birthDate: isoDateSchema,
@@ -222,8 +222,8 @@ export const aesVerificationRequestSchema = z.object({
 
 /** Réponse interop AES. */
 export const aesVerificationResponseSchema = z.object({
-  correlationId: z.string().uuid(),
-  respondingCountry: z.nativeEnum(AESCountry),
+  correlationId: z.uuid(),
+  respondingCountry: z.enum(AESCountry),
   verified: z.boolean(),
   confidence: z.number().min(0).max(100),
   matchFields: z.array(z.string()).default([]),
@@ -237,9 +237,9 @@ export const aesVerificationResponseSchema = z.object({
 
 /** Ingestion d'un journal d'audit (service signataire). */
 export const auditLogIngestSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.uuid(),
   action: z.string().min(1).max(120),
-  actorRole: z.nativeEnum(UserRole),
+  actorRole: z.enum(UserRole),
   entityType: z.string().min(1).max(80),
   entityId: z.string().min(1).max(256),
   oldValue: z.string().max(20000).optional(),
@@ -267,8 +267,8 @@ export const electoralRecordUpdateSchema = z.object({
 /** Session borne — ouverture. */
 export const kioskSessionOpenSchema = z.object({
   kioskId: z.string().min(1).max(64),
-  country: z.nativeEnum(AESCountry),
-  language: z.nativeEnum(Language),
+  country: z.enum(AESCountry),
+  language: z.enum(Language),
   assistedMode: z.boolean(),
   /** Durée de session en secondes (1 min – 8 h). */
   ttlSeconds: z

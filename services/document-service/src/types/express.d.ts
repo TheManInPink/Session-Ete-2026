@@ -6,12 +6,12 @@
  *
  * @module      document-service/types
  */
-import type { AuthSubject } from '@nina-aes/auth-guards';
+import type { AuthSubjectWithNina } from '../auth/request-user';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: AuthSubject;
+      user?: AuthSubjectWithNina;
     }
   }
 }

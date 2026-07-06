@@ -1,12 +1,22 @@
 /**
  * @file        public-documents.controller.ts
  * @description Endpoint public sans auth pour vérification offline du QR.
- *              Rate-limité 30 req/min/IP (cf. app.module.ts ThrottlerModule).
+ *
+ *              🔒 DURCISSEMENT — l'endpoint étant NON authentifié, il est
+ *              explicitement rate-limité par `ThrottlerGuard` (config
+ *              `ThrottlerModule`, cf. app.module.ts : `THROTTLE_TTL_MS` /
+ *              `THROTTLE_LIMIT`). Sans cette garde, chaque appel déclenchait un
+ *              cycle non borné (vérification RSA + lecture JWKS/révocation Redis
+ *              + insert `documentAccessLog` + publish RabbitMQ) → amplification
+ *              DoS et croissance non bornée du journal d'accès. Le guard est
+ *              posé au niveau du contrôleur (pas globalement) pour ne pas
+ *              throttler les sondes de santé ni les endpoints authentifiés.
  *
  * @module      document-service/documents
  */
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Public } from '@nina-aes/auth-guards';
 import type { Request } from 'express';
 import { prisma } from '@nina-aes/database';
@@ -17,6 +27,7 @@ import { ZodBodyPipe } from './zod-validation.pipe';
 import type { QrVerifyResult } from '../qr/qr-payload.interface';
 
 @ApiTags('public-documents')
+@UseGuards(ThrottlerGuard)
 @Controller('public/documents')
 export class PublicDocumentsController {
   constructor(

@@ -53,6 +53,8 @@ package "Services Core (NestJS — services/)" as CORE #E0E7FF {
   component "interop-service\n:3006\nmTLS + Ed25519" as Interop
   component "audit-service\n:3007\nMerkle chain" as Audit
   component "appointment-service\n:3008" as Appt
+  component "biometric-service\n:3012\nempreintes ICAO (Bloc A)" as Biometric
+  component "enrollment-service\n:3013\nenrôlement (Bloc A)" as Enrollment
 }
 
 ' ══════════════ Services IA (FastAPI) ═════════════════════════════════════

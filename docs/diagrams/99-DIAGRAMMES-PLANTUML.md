@@ -419,27 +419,29 @@ package "Apps clientes" {
 
 package "Edge/Sécurité" {
   [Traefik v3 mTLS] as tr
+  [api-gateway :3000] as gw
   [Keycloak 26.5] as kc
   [HashiCorp Vault] as vlt
 }
 
-package "Core NestJS 11" {
-  [auth-service :3002] as auth
+package "Core NestJS 12" {
   [identity-service :3001] as iden
-  [correction-service :3003] as corr
-  [appointment-service :3004] as appt
-  [governance-service :3005] as gov
-  [audit-service :3006] as aud
-  [notification-service :3007] as notif
-  [interop-aes-service :3008] as int
-  [electoral-service :3009] as ele
-  [kiosk-service :3010] as ksvc
-  [file-service :3011] as fil
+  [auth-service :3002] as auth
+  [document-service :3004] as doc
+  [notification-service :3005] as notif
+  [interop-service :3006] as int
+  [audit-service :3007] as aud
+  [appointment-service :3008] as appt
+  [governance-service :3010] as gov
+  [vulnerability-service :3011] as vuln
+  [biometric-service :3012] as bio
+  [enrollment-service :3013] as enrl
+  [ussd-service :3014] as ussdSvc
 }
 
 package "IA Python FastAPI" {
-  [ai-service :8001] as ai
-  [anticorruption-service :8002] as anti
+  [ai-service :3003] as ai
+  [anticorruption-service :3009] as anti
 }
 
 database "PostgreSQL 18" as pg
@@ -464,29 +466,35 @@ ksk --> tr
 ussd --> tr
 
 tr --> kc
-tr --> auth
-tr --> iden
-tr --> corr
-tr --> appt
-tr --> gov
-tr --> int
+tr --> gw
+gw --> iden
+gw --> auth
+gw --> ai
+gw --> doc
+gw --> notif
+gw --> int
+gw --> aud
+gw --> appt
+gw --> anti
+gw --> gov
+gw --> vuln
+gw --> bio
+gw --> enrl
+gw --> ussdSvc
 
 auth --> kc
 auth --> rds
 iden --> pg
 iden --> els
-corr --> ai
-corr --> pg
-corr --> mq
+iden --> ai
+iden --> mq
 appt --> pg
 gov --> pg
 aud --> pg
 aud --> mq
 notif --> mq
 int --> pg
-ele --> pg
-ksvc --> pg
-fil --> minio
+doc --> minio
 anti --> pg
 anti --> els
 
@@ -603,13 +611,12 @@ cloud "Cluster K3s prod — 3 nodes" as cluster {
   node "Node B — worker" as nodeB {
     artifact "Pod auth-service x2" as podAuth
     artifact "Pod identity-service x3" as podI
-    artifact "Pod correction-service x2" as podC
     artifact "Pod ai-service GPU x1" as podAI
   }
   node "Node C — worker" as nodeC {
     artifact "Pod governance-service x1" as podG
     artifact "Pod audit-service x2" as podAud
-    artifact "Pod interop-aes-service x2" as podInt
+    artifact "Pod interop-service x2" as podInt
     artifact "Pod anticorruption-service x1" as podAnti
   }
   database "PVC postgres-data 500GB" as pvcPg
@@ -700,17 +707,19 @@ package "nina-aes-platform (Turborepo 2.9.4)" {
     [kiosk-agent]
   }
   package "services/" {
-    [auth-service]
+    [api-gateway]
     [identity-service]
-    [correction-service]
+    [auth-service]
+    [document-service]
+    [notification-service]
+    [interop-service]
+    [audit-service]
     [appointment-service]
     [governance-service]
-    [audit-service]
-    [notification-service]
-    [interop-aes-service]
-    [electoral-service]
-    [kiosk-service]
-    [file-service]
+    [vulnerability-service]
+    [biometric-service]
+    [enrollment-service]
+    [ussd-service]
     [ai-service]
     [anticorruption-service]
   }
@@ -833,7 +842,7 @@ rectangle "NINA-AES — Citoyen" {
   usecase "Accéder via USSD multilingue" as UC6
   usecase "Recevoir notification SMS" as UC7
   usecase "Consulter statut dossier" as UC8
-  usecase "Signer électoralement" as UC9
+  usecase "Vérifier inscription électorale" as UC9
   usecase "S'authentifier Keycloak" as UC10
 }
 
@@ -1079,7 +1088,7 @@ case (1 Consulter)
 case (2 RDV)
   :Book appointment-service;
 case (3 Statut)
-  :Status correction-service;
+  :Status identity-service;
 case (4 Alerte)
   :Alert corruption anon;
 endswitch
@@ -1287,27 +1296,27 @@ Mobile --> Citizen : ✓ Agent vérifié
 @startuml
 actor "Citizen" as Citizen
 participant "web-citoyen" as Web
-participant "correction-service :3003" as Corr
-participant "ai-service :8001" as AI
+participant "identity-service :3001" as Iden
+participant "ai-service :3003" as AI
 database "MinIO" as Minio
 queue "RabbitMQ" as MQ
 participant "anticorruption-service" as AntiC
 
 Citizen -> Web : Soumet correction + photo CNI
-Web -> Corr : POST /corrections {dto, file}
-Corr -> Minio : PUT /corrections/{id}.jpg
-Minio --> Corr : object URL
-Corr -> AI : POST /analyze {citizenId, objectUrl, proposed}
+Web -> Iden : POST /corrections {dto, file}
+Iden -> Minio : PUT /corrections/{id}.jpg
+Minio --> Iden : object URL
+Iden -> AI : POST /analyze {citizenId, objectUrl, proposed}
 AI -> AI : OCR Tesseract
 AI -> AI : NLP spaCy + langdetect
 AI -> AI : Fuzzy match RapidFuzz
 AI -> AI : XGBoost confidence
-AI --> Corr : {score=87.3, anomalies=[]}
-Corr -> Corr : auto-approve (≥85)
-Corr -> MQ : publish correction.approved
+AI --> Iden : {score=87.3, anomalies=[]}
+Iden -> Iden : auto-approve (≥85)
+Iden -> MQ : publish correction.approved
 MQ -> AntiC : consume → check agent pattern
 AntiC -> AntiC : if suspicious → create alert
-Corr --> Web : {status=APPROVED, score=87.3}
+Iden --> Web : {status=APPROVED, score=87.3}
 Web --> Citizen : ✓ Correction approuvée
 @enduml
 ```
@@ -1321,7 +1330,7 @@ Web --> Citizen : ✓ Correction approuvée
 participant "Système BFA" as BFA
 participant "Gateway Mali" as GwM
 participant "auth-service" as Auth
-participant "interop-aes-service :3008" as Int
+participant "interop-service :3006" as Int
 participant "identity-service" as Iden
 participant "audit-service" as Aud
 
@@ -1381,11 +1390,11 @@ AT --> Tel : Display response
 @startuml
 participant "Any microservice" as Svc
 queue "RabbitMQ" as MQ
-participant "audit-service :3006" as Aud
+participant "audit-service :3007" as Aud
 database "PostgreSQL audit_logs" as Pg
 
 Svc -> MQ : publish event.audit {actor, action, payload}
-MQ -> Aud : consume from audit.queue
+MQ -> Aud : consume from audit.log
 Aud -> Pg : SELECT merkle_hash FROM audit_logs ORDER BY id DESC LIMIT 1
 Pg --> Aud : previousHash
 Aud -> Aud : merkleHash = SHA256(previousHash + payload + ts)
@@ -1409,7 +1418,6 @@ object "Citoyen" as C
 object "web-citoyen" as W
 object "auth-service" as A
 object "identity-service" as I
-object "correction-service" as Co
 object "ai-service" as AI
 object "audit-service" as Au
 object "RabbitMQ" as MQ
@@ -1418,12 +1426,12 @@ C --> W : 1 : login()
 W --> A : 2 : authenticate()
 A --> C : 3 : JWT token
 C --> W : 4 : submitCorrection()
-W --> Co : 5 : POST /corrections
-Co --> AI : 6 : analyze()
-AI --> Co : 7 : score
-Co --> MQ : 8 : publish event
+W --> I : 5 : POST /corrections
+I --> AI : 6 : analyze()
+AI --> I : 7 : score
+I --> MQ : 8 : publish event
 MQ --> Au : 9 : consume → Merkle
-Co --> I : 10 : update citizen
+I --> I : 10 : update citizen
 I --> Au : 11 : audit log
 @enduml
 ```
@@ -1689,8 +1697,8 @@ project starts 2026-04-01
 [Auth Keycloak] starts at [Infra Docker + K3s]'s end
 [identity-service] lasts 40 days
 [identity-service] starts at [Infra Docker + K3s]'s end
-[correction-service + IA] lasts 45 days
-[correction-service + IA] starts at [identity-service]'s end
+[Correction module + IA] lasts 45 days
+[Correction module + IA] starts at [identity-service]'s end
 [Web citoyen/agent] lasts 50 days
 [Web citoyen/agent] starts at [identity-service]'s end
 [Mobile Expo] lasts 30 days
@@ -1699,16 +1707,16 @@ project starts 2026-04-01
 [USSD 8 langues] starts at [identity-service]'s end
 
 -- P1 Bloc B — Interop AES --
-[interop-aes-service] lasts 40 days
-[interop-aes-service] starts at [correction-service + IA]'s end
+[interop-service] lasts 40 days
+[interop-service] starts at [Correction module + IA]'s end
 [mTLS + Ed25519 gateway] lasts 20 days
-[mTLS + Ed25519 gateway] starts at [interop-aes-service]'s end
+[mTLS + Ed25519 gateway] starts at [interop-service]'s end
 [Tests cross-border] lasts 25 days
 [Tests cross-border] starts at [mTLS + Ed25519 gateway]'s end
 
 -- P1 Bloc C — Gouvernance --
 [governance-service] lasts 35 days
-[governance-service] starts at [correction-service + IA]'s end
+[governance-service] starts at [Correction module + IA]'s end
 [web-gouvernance] lasts 30 days
 [web-gouvernance] starts at [governance-service]'s end
 [Directives signées] lasts 20 days
@@ -1723,10 +1731,8 @@ project starts 2026-04-01
 [Alertes ML] starts at [Score intégrité agents]'s end
 
 -- P2 Bloc E — Kiosk --
-[kiosk-service] lasts 25 days
-[kiosk-service] starts at [Tests cross-border]'s end
-[Electron app] lasts 30 days
-[Electron app] starts at [kiosk-service]'s end
+[kiosk-agent Electron] lasts 30 days
+[kiosk-agent Electron] starts at [Tests cross-border]'s end
 
 -- P3 Bloc F — Biométrie --
 [Empreintes digitales] lasts 50 days
@@ -1843,8 +1849,7 @@ cloud "Edge" {
 cloud "Core NestJS" {
   [auth-service] as auth
   [identity-service] as iden
-  [correction-service] as corr
-  [interop-aes-service] as int
+  [interop-service] as int
 }
 
 cloud "IA FastAPI" {
@@ -1861,15 +1866,13 @@ cloud "Stockage" {
 
 tr --> auth
 tr --> iden
-tr --> corr
 tr --> int
 auth --> kc
 auth --> rds
 iden --> pg
 iden --> els
-corr --> ai
-corr --> pg
-corr --> minio
+iden --> ai
+iden --> minio
 anti --> pg
 anti --> els
 @enduml

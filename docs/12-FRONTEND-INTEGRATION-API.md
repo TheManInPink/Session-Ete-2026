@@ -16,9 +16,9 @@
 > propagée dans `MAINTENANCE.md` §3.
 
 > **Projet** : NINA-AES Platform **Document** : 12/26 **Apps** : `apps/citizen` (port 4001) ·
-> `apps/admin` (port 4002) · `apps/governance` (port 4003) **Stack** : Next.js 16.1 · React 19.2 ·
+> `apps/admin` (port 4002) · `apps/governance` (port 4003) **Stack** : Next.js 16.2.6 · React 19.2 ·
 > TanStack Query 5.90 · Zustand 5.1 · Tailwind CSS 4.2 · shadcn/ui (canary-2026) · Zod 4.3 · React
-> Hook Form 8.0 · next-intl 5.2 · TypeScript 5.9 **Auteur** : Étudiant UQAR **Date** : Avril 2026
+> Hook Form 8.0 · next-intl 5.2 · TypeScript 6.0 **Auteur** : Étudiant UQAR **Date** : Avril 2026
 > **Prérequis** : [07 — Identity Service](./07-BACKEND-IDENTITY-SERVICE.md) ·
 > [08 — Auth Service](./08-BACKEND-AUTH-SERVICE.md) ·
 > [10 — Document Service](./10-BACKEND-DOCUMENT-SERVICE.md) ·
@@ -39,6 +39,8 @@
 7. [Client HTTP typé `@nina-aes/api-client`](#7-client-http-typé)
 8. [Gestion JWT — login, refresh silencieux, logout propre](#8-gestion-jwt)
 9. [Intercepteurs — retry, correlation-id, erreurs normalisées](#9-intercepteurs)
+   - 9bis.
+     [Sécurité frontend — verifyIdToken, requireRole, secrets Vault, headers, rate-limiting, CSRF](#9bis-sécurité-frontend--vérification-de-jeton-rôles-secrets-vault-headers-rate-limiting-csrf)
 10. [State management — TanStack Query + Zustand](#10-state-management)
 11. [App `citizen` — pages critiques](#11-app-citizen)
 12. [App `admin` — validation des corrections IA + recherche](#12-app-admin)
@@ -158,10 +160,10 @@ Next.js 16 apporte en avril 2026 :
 
 | Package                          | Version   | Rôle                                    |
 | -------------------------------- | --------- | --------------------------------------- |
-| `next`                           | `16.1.0`  | Framework React avec App Router         |
+| `next`                           | `16.2.6`  | Framework React avec App Router         |
 | `react`                          | `19.2.0`  | Lib UI, hooks `use()`, `useActionState` |
 | `react-dom`                      | `19.2.0`  | Rendu DOM                               |
-| `typescript`                     | `5.9.2`   | Typage strict `"strict": true`          |
+| `typescript`                     | `6.0.2`   | Typage strict `"strict": true`          |
 | `tailwindcss`                    | `4.2.1`   | CSS utility + Oxide engine (Rust)       |
 | `@tailwindcss/postcss`           | `4.2.1`   | Plugin PostCSS v4                       |
 | `lightningcss`                   | `1.30.0`  | Minification CSS native                 |
@@ -741,6 +743,25 @@ export default {
 
 ## 7. Client HTTP typé `@nina-aes/api-client`
 
+> **État d'implémentation — tranche 1 (PROMPT 5.1), le code fait foi.** Cette section reste utile
+> comme intention pédagogique, mais l'implémentation réelle a précisé l'architecture. Voir
+> **[ADR-031](./adr/ADR-031-frontend-data-layer-mock-live-bff.md)** et le CHANGELOG (§
+> 0quaterdecies).
+>
+> - Les **hooks React Query** sont exportés par le **sous-chemin `@nina-aes/api-client/react`**
+>   (`ApiClientProvider`, `useCitizenByNina`, `useSubmitCorrection`, `useAvailableSlots`,
+>   `useSubmitAlert`, …), pas redéfinis par app. `react`/`@tanstack/react-query` = peerDeps
+>   optionnelles.
+> - **Bascule mock↔live** : `resolveApiMode()` + `createMockApiClient()` (fixtures validées Zod) ;
+>   **kill-switch prod** `assertApiModeSafe()` (interdit `mock` et les URLs `localhost` en
+>   production).
+> - **Sécurité tokens** : les appels authentifiés navigateur passent par le **BFF**
+>   `apps/citizen/app/api/v1/[...path]` qui injecte le Bearer **côté serveur** depuis le cookie
+>   httpOnly (jamais en JS). Le **signalement anonyme SIGAC** utilise un transport séparé vers le
+>   gateway public avec `credentials:'omit'` (aucun cookie).
+> - La factory (§ 7.4) expose pour l'instant **4 sous-clients** réels (identity, correction,
+>   appointment, sigac) ; les autres seront ajoutés au fil des tranches.
+
 ### 7.1 Pourquoi un package séparé et pas Axios directement ?
 
 - **Type safety bout en bout** : chaque endpoint retourne un type Zod-inféré, pas un `any`.
@@ -957,7 +978,9 @@ export class IdentityClient {
   }): Promise<CitizenSearchResult> {
     return this.http.request<CitizenSearchResult>({
       method: 'GET',
-      path: '/api/v1/citizens/search',
+      // Route réelle : `@Get()` sur /citizens (le gateway forwarde le chemin
+      // INCHANGÉ ; `/citizens/search` heurtait `@Get(':nina')`). Cf. 0quattuorvicies.
+      path: '/api/v1/citizens',
       query: params,
       schema: CitizenSearchResultSchema,
     });
@@ -967,48 +990,69 @@ export class IdentityClient {
 
 ### 7.4 Factory principale
 
+> ⚠️ **Réconciliation honnêteté (audit mai 2026).** Le bloc ci-dessous est l'**intention cible**
+> (les 7 microservices câblés). L'implémentation **réelle de la tranche 1** (PROMPT 5.1, cf. bandeau
+> du § 7 et [ADR-031](./adr/ADR-031-frontend-data-layer-mock-live-bff.md)) n'expose que **4
+> sous-clients** vraiment branchés : `identity`, `correction`, `appointment` et `sigac` (signalement
+> anonyme). Les sous-clients `document`, `ai`, `audit` et `governance` sont **conçus mais pas encore
+> implémentés (Phase 2)** : ne pas les présenter comme acquis en soutenance. Pour éviter un client «
+> fantôme » qui exporterait des méthodes inexistantes, la factory réelle ne construit que ce qui
+> existe — les autres sont ajoutés tranche par tranche. Le bloc suivant montre donc la cible **et**
+> distingue explicitement le réel du différé.
+
 ```ts
 // packages/api-client/src/index.ts
 import { HttpClient, type HttpClientOptions } from './core/http-client';
+// --- Sous-clients RÉELS (tranche 1) -----------------------------------------
 import { IdentityClient } from './identity/identity.client';
-import { AuthClient } from './auth/auth.client';
-import { DocumentClient } from './document/document.client';
 import { CorrectionClient } from './correction/correction.client';
 import { AppointmentClient } from './appointment/appointment.client';
-import { AiClient } from './ai/ai.client';
-import { AuditClient } from './audit/audit.client';
+import { SigacClient } from './sigac/sigac.client'; // signalement anonyme (transport séparé)
+// --- Sous-clients DIFFÉRÉS (Phase 2 — NE PAS importer tant que non livrés) ---
+// import { AuthClient } from './auth/auth.client';
+// import { DocumentClient } from './document/document.client';
+// import { AiClient } from './ai/ai.client';
+// import { AuditClient } from './audit/audit.client';
+// import { GovernanceClient } from './governance/governance.client';
 
+/**
+ * Surface RÉELLE de l'API client (tranche 1). On ne déclare PAS les sous-clients
+ * non implémentés : un champ typé `document: DocumentClient` qui pointe sur du
+ * vide serait un « sous-client fantôme » — l'app planterait au runtime sur un
+ * appel `api.document.x()` que TypeScript croyait pourtant sûr. On élargira
+ * cette interface au fil des tranches (chaque ajout = un sous-client testé).
+ */
 export interface ApiClient {
   identity: IdentityClient;
-  auth: AuthClient;
-  document: DocumentClient;
   correction: CorrectionClient;
   appointment: AppointmentClient;
-  ai: AiClient;
-  audit: AuditClient;
+  sigac: SigacClient;
+  // Phase 2 : auth · document · ai · audit · governance
 }
 
 export function createApiClient(opts: HttpClientOptions): ApiClient {
   const http = new HttpClient(opts);
   return {
     identity: new IdentityClient(http),
-    auth: new AuthClient(http),
-    document: new DocumentClient(http),
     correction: new CorrectionClient(http),
     appointment: new AppointmentClient(http),
-    ai: new AiClient(http),
-    audit: new AuditClient(http),
+    sigac: new SigacClient(http),
+    // Phase 2 : new DocumentClient(http), new AiClient(http), new AuditClient(http), …
   };
 }
 
 export * from './identity/identity.schema';
 export * from './correction/correction.schema';
-export * from './document/document.schema';
 export * from './appointment/appointment.schema';
-export * from './ai/ai.schema';
-export * from './audit/audit.schema';
+export * from './sigac/sigac.schema';
+// Phase 2 : export * from './document/document.schema'; (+ ai, audit, governance)
 export * from './core/errors';
 ```
+
+> **Note** — les exemples des sections suivantes (§ 11.4 PDF via `api.document.*`, § 12.4 métriques
+> via `api.ai.*`) supposent les sous-clients de Phase 2. Tant qu'ils ne sont pas livrés, ces pages
+> tournent en **mode mock** (`createMockApiClient()` + fixtures validées Zod), ce qui est cohérent
+> avec la bascule mock↔live d'ADR-031. À présenter comme « écran câblé sur mock, backend Phase 2 ».
 
 ### 7.5 Utilisation côté serveur (RSC) et côté client
 
@@ -1055,6 +1099,12 @@ Le pattern **BFF (Backend for Frontend)** : les appels client passent par des ro
 ---
 
 ## 8. Gestion JWT — login, refresh silencieux, logout propre
+
+> 🔒 **Compléments sécurité — voir § 9bis.** Cette section montre le flux nominal. Le **corps réel
+> de `verifyIdToken`** (§ 8.2) est fourni au **§ 9bis.1** (allowlist RS256/EdDSA, rejet
+> `alg=none`/`HS*`, validation `iss`/`aud`/`nonce`/`exp`). L'app `citizen` est un **client public +
+> PKCE** (pas de secret) ; les apps `admin`/`governance` sont **confidentielles** et ajoutent un
+> `client_secret` **résolu via Vault** (§ 9bis.3), jamais en `process.env` nu.
 
 ### 8.1 Séquence de login (Keycloak Authorization Code + PKCE)
 
@@ -1496,6 +1546,526 @@ export default function GlobalError({
   );
 }
 ```
+
+---
+
+## 9bis. Sécurité frontend — vérification de jeton, rôles, secrets Vault, headers, rate-limiting, CSRF
+
+> 🔒 **Section ajoutée à l'audit sécurité (mai 2026).** Les sections 7–9 décrivaient le « chemin
+> heureux ». Cette section comble les **trous de sécurité** repérés : implémentation réelle de
+> `verifyIdToken` et `requireRole` (jusqu'ici seulement importés), routage des **secrets clients
+> confidentiels** via Vault (jamais `process.env` nu), **durcissement des en-têtes** (HSTS,
+> X-Frame-Options, Referrer-Policy), **rate-limiting** sur `/api/auth/*` et le BFF, et **protection
+> CSRF double-submit**. Le canon sécurité de la plateforme est porté par
+> [ADR-034](./adr/ADR-034-security-hardening-vault-mtls-owasp.md) (mTLS, PKI, rotation JWKS, OWASP,
+> scans CI) et [`docs/security/THREAT-MODEL.md`](./security/THREAT-MODEL.md) ; ce qui suit en est la
+> déclinaison côté Next.js.
+
+### 9bis.1 `verifyIdToken` — vérification JWKS + aud + nonce + exp + allowlist d'algorithmes
+
+Le § 8.2 appelait `verifyIdToken(parsed.id_token, { expectedNonce: nonce })` sans en montrer le
+corps — un point critique : une vérification d'ID token bâclée ouvre la porte à l'**algorithm
+confusion** (`alg=none`, ou passage RS256→HS256 où la clé publique sert de secret HMAC). La règle
+OWASP/JWT-BCP (RFC 8725) est : **allowlist explicite d'algorithmes asymétriques**, **rejet de `none`
+et de toute la famille `HS*`**, et **validation `iss`/`aud`/`exp`/`nonce`**.
+
+```ts
+// apps/citizen/lib/auth/verify-id-token.ts
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { getKeycloakClient } from '@/lib/auth/keycloak-config'; // secrets via Vault (cf. 9bis.3)
+
+/**
+ * Allowlist STRICTE des algorithmes acceptés (RFC 8725 §3.1).
+ * - RS256 : signature des access/id tokens Keycloak par défaut.
+ * - EdDSA : si le realm est configuré en Ed25519 (signature seulement — cf. canon sécurité).
+ * On N'inclut JAMAIS :
+ *   - 'none'  → token non signé, contournement trivial.
+ *   - 'HS*'   → HMAC symétrique : avec une JWKS publique, un attaquant signerait
+ *               ses propres tokens en utilisant la clé publique comme secret partagé
+ *               (algorithm confusion). jose rejette de toute façon un HS* contre une
+ *               clé asymétrique, mais on verrouille en amont par défense en profondeur.
+ */
+const ALLOWED_ALGS = ['RS256', 'EdDSA'] as const;
+
+// createRemoteJWKSet met en cache les clés et gère la rotation/cooldown automatiquement.
+// L'URL JWKS provient de la config (issuer Keycloak), pas d'une chaîne en dur.
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getJwks(jwksUri: string) {
+  jwks ??= createRemoteJWKSet(new URL(jwksUri), {
+    cooldownDuration: 30_000, // anti-DoS sur le endpoint JWKS
+    cacheMaxAge: 600_000, // 10 min
+  });
+  return jwks;
+}
+
+export interface VerifiedIdToken extends JWTPayload {
+  sub: string;
+  nonce?: string;
+  preferred_username?: string;
+  realm_access?: { roles: string[] };
+}
+
+export async function verifyIdToken(
+  idToken: string,
+  opts: { expectedNonce: string },
+): Promise<VerifiedIdToken> {
+  const kc = await getKeycloakClient(); // { issuer, jwksUri, audience } — secrets résolus via Vault
+
+  const { payload, protectedHeader } = await jwtVerify(idToken, getJwks(kc.jwksUri), {
+    issuer: kc.issuer, // claim `iss` doit matcher exactement le realm attendu
+    audience: kc.audience, // claim `aud` doit contenir le client_id de CETTE app
+    algorithms: [...ALLOWED_ALGS], // ← rejette alg=none / HS* (algorithm confusion)
+    clockTolerance: 5, // 5 s de tolérance d'horloge ; `exp`/`nbf` vérifiés par jose
+    maxTokenAge: '15m', // borne supérieure d'âge (cohérent avec access_token 15 min)
+  });
+
+  // Défense en profondeur : re-vérifier l'algorithme du header (jose l'a déjà fait,
+  // mais on échoue bruyamment si une régression de config laissait passer autre chose).
+  if (!ALLOWED_ALGS.includes(protectedHeader.alg as (typeof ALLOWED_ALGS)[number])) {
+    throw new Error(`Algorithme JWT non autorisé : ${protectedHeader.alg}`);
+  }
+
+  // Liaison nonce : empêche le rejeu d'un id_token capturé sur une autre session OIDC.
+  if (payload.nonce !== opts.expectedNonce) {
+    throw new Error('Nonce OIDC invalide — possible rejeu / CSRF de login');
+  }
+
+  return payload as VerifiedIdToken;
+}
+```
+
+> **Honnêteté soutenance.** `jose` (Auth0/Panva, MIT, audité) est la bibliothèque de référence Node
+> pour cette vérification. Si le code réel de la tranche 1 délègue encore la vérif à Keycloak via le
+> userinfo endpoint, présenter `verifyIdToken` comme « conçu, à brancher Phase 2 » plutôt que comme
+> acquis — mais le **rejet `alg=none`/`HS*`** est non négociable dès qu'on vérifie localement.
+>
+> ⚙️ **Dette code réel (à brancher, ne pas basculer en « Implémenté »).** Le code actuel
+> (`packages/auth/src/session.ts` L50, `packages/auth/src/handlers/callback.ts` L69) appelle
+> `jwtVerify(token, jwks, { issuer, audience })` **sans** l'option `algorithms`. L'allowlist
+> explicite `['RS256', 'EdDSA']` décrite ici n'est donc **pas encore branchée** au runtime.
+> Correctif code réel attendu : passer `algorithms: ['RS256', 'EdDSA']` à `jwtVerify` dans
+> `@nina-aes/auth`. NB : `jose` bloque déjà `HS*` contre une clé asymétrique et ne supporte pas
+> `alg=none`, mais l'allowlist reste la **défense en profondeur** exigée par RFC 8725. Tant que ce
+> n'est pas fait, les lignes `verifyIdToken` / `requireRole` / allowlist d'algorithmes restent
+> labellisées **« Conçu/Phase 2 »**.
+
+### 9bis.2 `requireRole` — garde de rôle côté serveur (RSC / layout)
+
+Le § 12.1 appelait `await requireRole([...])` sans en montrer le corps. Cette garde doit s'exécuter
+**côté serveur uniquement** (un check côté client est cosmétique : l'utilisateur contrôle son
+navigateur). Elle lit le cookie httpOnly, vérifie l'access token avec la **même allowlist
+d'algorithmes**, extrait les rôles realm Keycloak, et **redirige** (pas de page blanche) si l'accès
+est refusé.
+
+```ts
+// apps/admin/lib/auth/require-role.ts
+import 'server-only'; // garantit que ce module ne fuite jamais côté client
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { jwtVerify, createRemoteJWKSet } from 'jose';
+import { getKeycloakClient } from '@/lib/auth/keycloak-config';
+
+export type AppRole = 'agent' | 'supervisor' | 'auditor' | 'admin';
+
+const ALLOWED_ALGS = ['RS256', 'EdDSA'] as const; // identique à verifyIdToken (RFC 8725)
+
+/**
+ * Vérifie que l'utilisateur courant possède AU MOINS UN des rôles requis.
+ * - Rejette les tokens non vérifiables / expirés / mal signés.
+ * - Applique le principe du moindre privilège (ADR-013) : un agent n'accède pas
+ *   aux écrans admin, un auditeur ne valide pas les corrections, etc.
+ * @returns la liste des rôles de l'utilisateur (utile pour un affichage conditionnel fin).
+ */
+export async function requireRole(required: AppRole[]): Promise<AppRole[]> {
+  const jar = await cookies();
+  const token = jar.get('access_token')?.value;
+  if (!token) redirect('/fr/login?error=no_session');
+
+  const kc = await getKeycloakClient();
+  let roles: string[] = [];
+  try {
+    const { payload } = await jwtVerify(token, createRemoteJWKSet(new URL(kc.jwksUri)), {
+      issuer: kc.issuer,
+      audience: kc.audience,
+      algorithms: [...ALLOWED_ALGS], // ← rejette alg=none / HS*
+      clockTolerance: 5,
+    });
+    roles = (payload as { realm_access?: { roles?: string[] } }).realm_access?.roles ?? [];
+  } catch {
+    // Token absent/altéré/expiré → on renvoie au login plutôt que d'exposer l'écran.
+    redirect('/fr/login?error=invalid_token');
+  }
+
+  const granted = required.filter((r) => roles.includes(r));
+  if (granted.length === 0) {
+    // Authentifié mais pas autorisé → 403 dédié (ne pas réveler la structure des routes).
+    redirect('/fr/forbidden');
+  }
+  return granted;
+}
+```
+
+> Le marqueur `import 'server-only'` (Next.js) fait **échouer le build** si ce module est importé
+> par erreur dans un Client Component — barrière anti-fuite de la logique d'autorisation.
+
+### 9bis.3 Secrets clients confidentiels — Vault, jamais `process.env` nu
+
+Les apps `admin` et `governance` utilisent des **clients Keycloak confidentiels** (avec
+`client_secret`) parce que leurs utilisateurs sont privilégiés (MFA, rôles sensibles). L'app
+`citizen` reste un **client public + PKCE** (pas de secret). Aujourd'hui le code lit
+`process.env.KEYCLOAK_CLIENT_ID!` (§ 8.2/8.3/8.4) — acceptable pour un identifiant **public**, mais
+**un `client_secret` ne doit jamais** être posé en variable d'environnement nue (fuite via `/proc`,
+dumps, logs, images Docker, `next build` qui inline). Il transite par **Vault** (AppRole / K8s
+ServiceAccount + lease court — cf. canon sécurité), récupéré **côté serveur uniquement**.
+
+```ts
+// apps/admin/lib/auth/keycloak-config.ts
+import 'server-only';
+import { readVaultSecret } from '@nina-aes/vault-client'; // wrapper interne (AppRole + lease)
+
+export interface KeycloakClientConfig {
+  issuer: string; // ex: https://idp.nina-aes.ml/realms/nina-aes — NON secret
+  jwksUri: string; // dérivé de l'issuer — NON secret
+  audience: string; // client_id de l'app (aud attendu) — NON secret
+  clientId: string; // identifiant public du client confidentiel
+  clientSecret: string; // ⚠️ SECRET — vient EXCLUSIVEMENT de Vault
+}
+
+let cached: KeycloakClientConfig | null = null;
+
+export async function getKeycloakClient(): Promise<KeycloakClientConfig> {
+  if (cached) return cached;
+
+  // Données NON sensibles : variables d'env classiques (injectées au déploiement).
+  const issuer = process.env.KEYCLOAK_ISSUER!;
+  const clientId = process.env.KEYCLOAK_CLIENT_ID!; // public
+  const audience = clientId;
+
+  // SECRET : lu dans Vault au runtime, jamais build-time, jamais loggé.
+  // Chemin KV v2 : secret/data/nina/<app>/keycloak  → champ `client_secret`.
+  // Le token Vault provient d'AppRole/K8s SA avec un lease court — pas de
+  // VAULT_TOKEN long-lived (cf. canon souveraineté/secrets).
+  const { client_secret } = await readVaultSecret('nina/admin/keycloak');
+
+  cached = {
+    issuer,
+    jwksUri: `${issuer}/protocol/openid-connect/certs`,
+    audience,
+    clientId,
+    clientSecret: client_secret,
+  };
+  return cached;
+}
+```
+
+L'échange de code (§ 8.2) et le refresh (§ 8.3) des apps confidentielles ajoutent alors le secret
+**côté serveur** au corps `x-www-form-urlencoded` :
+
+```ts
+// extrait — apps/admin/app/api/auth/callback/route.ts (différence vs citizen public)
+const kc = await getKeycloakClient(); // secret résolu via Vault
+const body = new URLSearchParams({
+  grant_type: 'authorization_code',
+  client_id: kc.clientId,
+  client_secret: kc.clientSecret, // ← jamais exposé au navigateur ni à process.env nu
+  code,
+  redirect_uri: `${process.env.APP_PUBLIC_URL}/api/auth/callback`,
+  code_verifier, // PKCE conservé même en client confidentiel (défense en profondeur)
+});
+```
+
+> ⏳ **Phase 2 (correctif code réel).** Le wrapper `@nina-aes/vault-client` existe déjà côté
+> services backend ; son intégration aux route handlers Next.js des apps `admin`/`governance` est à
+> brancher. Tant que ce n'est pas fait, ces apps doivent rester en **client public + PKCE** plutôt
+> que de poser un `client_secret` en clair dans `process.env`.
+
+### 9bis.4 Durcissement des en-têtes HTTP (`next.config.ts` + `proxy.ts`)
+
+Les en-têtes de sécurité se répartissent en **deux catégories** :
+
+- **En-têtes statiques** (HSTS, `X-Frame-Options DENY`, `X-Content-Type-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, `Cross-Origin-Opener-Policy`, …) → posés dans `next.config.ts`
+  (`headers()`), identiques pour toutes les réponses.
+- **CSP stricte à nonce** → posée **par requête** dans `proxy.ts` (le middleware Next 16), voir
+  l'encadré ci-dessous.
+
+> ⚠️ **Piège corrigé (attrapé par les tests e2e).** Une CSP `script-src 'self'` **statique** (posée
+> dans `next.config.ts headers()`, **sans nonce**) **casse l'hydratation** de Next.js App Router :
+> Next émet des `<script>` **INLINE** (flux RSC `self.__next_f`, bootstrap `self.__next_r`) qu'une
+> telle CSP bloque → aucune hydratation, la page reste une coque serveur figée (skeletons, zéro
+> appel API). Symptôme observé : `Invariant: Expected a request ID to be defined via self.__next_r`.
+> Une CSP statique **ne peut pas** porter de nonce (valeur par requête) ; il faut donc la générer
+> dans le middleware. En Next 16, `middleware.ts` est renommé `proxy.ts` — c'est le seul point
+> d'interception par requête.
+
+```ts
+// apps/citizen/next.config.ts — en-têtes STATIQUES uniquement (la CSP est dans proxy.ts)
+import type { NextConfig } from 'next';
+
+const isProd = process.env.NODE_ENV === 'production';
+
+const securityHeaders = [
+  // HSTS : force HTTPS 2 ans, sous-domaines inclus, éligible preload list.
+  // À n'activer qu'en prod (casserait le dev http://localhost).
+  ...(isProd
+    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]
+    : []),
+  { key: 'X-Frame-Options', value: 'DENY' }, // pas de mise en iframe de l'app
+  { key: 'X-Content-Type-Options', value: 'nosniff' }, // pas de MIME sniffing
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  // Réduit la surface : on ne demande aucune API puissante côté citoyen (camera=(self) pour le QR).
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
+];
+
+const nextConfig: NextConfig = {
+  poweredByHeader: false, // retire l'en-tête X-Powered-By (fingerprinting)
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }];
+  },
+};
+
+export default nextConfig;
+```
+
+```ts
+// apps/citizen/proxy.ts — CSP stricte À NONCE, générée par requête.
+import { NextRequest, NextResponse } from 'next/server';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+const IS_DEV = !IS_PROD;
+
+/** Nonce cryptographique (16 octets, base64) — Web Crypto (runtime Edge/proxy). */
+function generateNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function buildCsp(nonce: string): string {
+  const scriptSrc = [
+    "script-src 'self'",
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'", // fait confiance aux scripts chargés par le bootstrap nonce-é
+    "'wasm-unsafe-eval'", // libsodium WASM (PC-06)
+    ...(IS_DEV ? ["'unsafe-eval'"] : []), // HMR/React Refresh en dev — JAMAIS en prod
+  ].join(' ');
+  return [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'", // Tailwind injecte des styles ; aucun script inline
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    "connect-src 'self' https://api.nina-aes.ml wss://api.nina-aes.ml",
+    "frame-ancestors 'none'", // anti-clickjacking (double X-Frame-Options)
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    ...(IS_PROD ? ['upgrade-insecure-requests'] : []),
+  ].join('; ');
+}
+
+// Propage un override d'en-tête de REQUÊTE vers le moteur de rendu (même canal que
+// `NextResponse.next({ request })`) : Next lit la CSP à nonce et l'applique à SES <script>.
+function setRequestHeaderOverride(res: NextResponse, name: string, value: string): void {
+  const key = name.toLowerCase();
+  const cur = res.headers.get('x-middleware-override-headers');
+  const names = cur
+    ? cur
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean)
+    : [];
+  if (!names.includes(key)) names.push(key);
+  res.headers.set('x-middleware-override-headers', names.join(','));
+  res.headers.set(`x-middleware-request-${key}`, value);
+}
+
+export default function proxy(req: NextRequest): NextResponse {
+  // … (garde d'auth : redirection /login si non-connecté — pas de nonce sur un redirect) …
+  const nonce = generateNonce();
+  const csp = buildCsp(nonce);
+  const response = intlMiddleware(req) as NextResponse; // next-intl (routing i18n)
+  setRequestHeaderOverride(response, 'content-security-policy', csp); // → moteur de rendu
+  setRequestHeaderOverride(response, 'x-nonce', nonce);
+  response.headers.set('content-security-policy', csp); // → navigateur (application)
+  return response;
+}
+```
+
+> **Remarque caméra.** L'app `citizen` a besoin de `camera=(self)` pour le scanner QR (§ 5.5). Les
+> apps `admin`/`governance` mettent `camera=()` (désactivé). La page d'aperçu PDF (§ 11.4) n'est pas
+> mise en iframe par un tiers : `frame-ancestors 'none'` la protège du clickjacking.
+>
+> **`'strict-dynamic'` + nonce** : `'self'` est ignoré pour les scripts au profit du nonce ; le
+> bootstrap nonce-é propage sa confiance aux chunks qu'il charge (`/_next/static/*`).
+> `'unsafe-eval'` est ajouté **en dev uniquement** (HMR/React Refresh de Turbopack). Contrepartie
+> assumée : un nonce par requête rend la coque HTML dynamique (légère érosion du PPR
+> `cacheComponents`).
+
+### 9bis.5 Rate-limiting `/api/auth/*` + BFF
+
+Les route handlers d'auth (login, callback, refresh) et le BFF sont des cibles de **brute-force /
+credential-stuffing / abus de refresh**. On applique un rate-limit par IP (et par session pour le
+refresh) dans `middleware.ts`. En dev/solo, un **token-bucket en mémoire** suffit ; en prod
+multi-réplicas, le compteur doit être **partagé via Redis** (sinon chaque réplica compte
+séparément).
+
+```ts
+// apps/citizen/lib/security/rate-limit.ts
+// Implémentation pédagogique en mémoire (mono-process). En prod multi-réplicas :
+// remplacer par un store Redis (INCR + EXPIRE) — sinon la limite est contournable.
+type Bucket = { count: number; resetAt: number };
+const buckets = new Map<string, Bucket>();
+
+export function rateLimit(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const b = buckets.get(key);
+  if (!b || b.resetAt < now) {
+    buckets.set(key, { count: 1, resetAt: now + windowMs });
+    return true; // autorisé
+  }
+  if (b.count >= limit) return false; // bloqué
+  b.count += 1;
+  return true;
+}
+```
+
+```ts
+// extrait — apps/citizen/middleware.ts (ajout au middleware du § 8.5)
+import { rateLimit } from '@/lib/security/rate-limit';
+
+function clientIp(req: NextRequest): string {
+  // ⚠️ Le segment GAUCHE de X-Forwarded-For est fourni par le CLIENT = spoofable.
+  // Un attaquant qui envoie `X-Forwarded-For: <aléatoire>` à chaque requête obtient
+  // un bucket neuf et contourne la limite de 10/min/IP. On lit donc le hop DE DROITE,
+  // injecté par le proxy de confiance (Traefik), ou `x-real-ip` posé par Traefik.
+  const xff = req.headers.get('x-forwarded-for');
+  if (xff) {
+    const hops = xff.split(',').map((h) => h.trim());
+    return hops[hops.length - 1] || 'unknown'; // dernier proxy de confiance
+  }
+  return req.headers.get('x-real-ip')?.trim() ?? 'unknown';
+}
+
+// Dans middleware(req), AVANT le routage :
+const { pathname } = req.nextUrl;
+if (pathname.startsWith('/api/auth/') || pathname.startsWith('/bff/')) {
+  const ip = clientIp(req);
+  // 10 tentatives d'auth / minute / IP ; le BFF est plus permissif (60/min).
+  const isAuth = pathname.startsWith('/api/auth/');
+  const ok = rateLimit(`${isAuth ? 'auth' : 'bff'}:${ip}`, isAuth ? 10 : 60, 60_000);
+  if (!ok) {
+    return new NextResponse(JSON.stringify({ error: 'rate_limited' }), {
+      status: 429,
+      headers: { 'content-type': 'application/json', 'retry-after': '60' },
+    });
+  }
+}
+```
+
+> ⏳ **Phase 2.** Le store Redis partagé et l'alignement avec le rate-limiting du gateway Traefik
+> (double couche) sont à câbler. Présenter le bucket en mémoire comme « limiteur de premier niveau,
+> renforcé Phase 2 par Redis + Traefik ».
+>
+> ⏳ **Phase 2 (anti-spoof XFF).** Lire le « dernier hop » suppose **exactement un** proxy de
+> confiance devant l'app. Si la topologie ajoute des proxys (CDN, LB amont), valider le **nombre de
+> proxys de confiance** (compteur N → prendre l'avant-dernier(s) hop(s)) pour éviter qu'un attaquant
+> ne réinjecte un hop falsifié à droite. À défaut, s'appuyer sur l'IP source TCP exposée par Traefik
+> (`x-real-ip`) plutôt que sur un X-Forwarded-For libre.
+
+### 9bis.6 Protection CSRF — double-submit cookie sur le BFF et les Server Actions
+
+Les cookies de session sont `httpOnly + Secure + SameSite=Lax`. `SameSite=Lax` neutralise déjà la
+majorité des CSRF (les requêtes cross-site `POST` n'emportent pas le cookie), mais **ce n'est pas
+suffisant** pour les mutations sensibles (navigateurs anciens, certaines navigations top-level). On
+ajoute le pattern **double-submit cookie** : un token CSRF non-httpOnly est posé en cookie ET
+renvoyé par le client dans un en-tête `X-CSRF-Token` ; le serveur exige l'égalité.
+
+```ts
+// apps/citizen/lib/security/csrf.ts
+import 'server-only';
+import { cookies } from 'next/headers';
+
+const CSRF_COOKIE = 'csrf_token';
+
+/** Pose un token CSRF aléatoire (lisible en JS) à associer à la session. */
+export async function issueCsrfToken(): Promise<string> {
+  const token = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, '');
+  const jar = await cookies();
+  jar.set(CSRF_COOKIE, token, {
+    httpOnly: false, // DOIT être lisible par le JS client pour le renvoyer en header
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+  });
+  return token;
+}
+
+/**
+ * Vérifie le double-submit : le header X-CSRF-Token doit égaler le cookie csrf_token.
+ * Comparaison à temps constant pour éviter les attaques par timing.
+ */
+export async function assertCsrf(headerToken: string | null): Promise<void> {
+  const jar = await cookies();
+  const cookieToken = jar.get(CSRF_COOKIE)?.value ?? '';
+  if (!headerToken || !cookieToken || !timingSafeEqual(headerToken, cookieToken)) {
+    throw new Error('CSRF token invalide');
+  }
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+```
+
+```ts
+// extrait — handler BFF mutant : apps/citizen/app/api/v1/[...path]/route.ts
+import { assertCsrf } from '@/lib/security/csrf';
+
+export async function POST(req: NextRequest) {
+  // Toute mutation passant par le BFF exige un token CSRF valide.
+  await assertCsrf(req.headers.get('x-csrf-token'));
+  // … forward vers le gateway avec le Bearer injecté depuis le cookie httpOnly …
+}
+```
+
+> Le **signalement anonyme SIGAC** (transport séparé, `credentials:'omit'`, aucun cookie) n'est par
+> construction **pas** vulnérable au CSRF : sans cookie de session, il n'y a rien à détourner. On ne
+> lui applique donc pas le double-submit (mais bien le rate-limiting).
+
+### 9bis.7 Modèle de menaces STRIDE + mapping OWASP Top 10 (frontend)
+
+Threat model focalisé sur la **surface frontend** (les 3 apps + BFF + route handlers). Le modèle
+plateforme complet est dans [`docs/security/THREAT-MODEL.md`](./security/THREAT-MODEL.md) ;
+ci-dessous la tranche Next.js.
+
+| STRIDE                     | Menace concrète (frontend NINA-AES)                   | OWASP Top 10 2021     | Contre-mesure (section)                                               | État          |
+| -------------------------- | ----------------------------------------------------- | --------------------- | --------------------------------------------------------------------- | ------------- |
+| **S**poofing               | Vol de session / rejeu d'`id_token` capté             | A07 (Auth Failures)   | nonce OIDC + `verifyIdToken` (9bis.1), cookies `httpOnly+Secure`      | Conçu/partiel |
+| **S**poofing               | Algorithm confusion (`alg=none`, RS256→HS256)         | A02 (Crypto Failures) | Allowlist RS256/EdDSA, rejet `none`/`HS*` (9bis.1)                    | Conçu         |
+| **T**ampering              | CSRF sur mutation (correction, directive)             | A01 (Broken Access)   | Double-submit CSRF (9bis.6) + `SameSite=Lax`                          | Conçu         |
+| **T**ampering              | Réponse backend altérée / drift de contrat            | A08 (Integrity)       | Parsing Zod `safeParse` (§ 7.2) → `ApiValidationError`                | Implémenté    |
+| **R**epudiation            | Action sans trace (qui a validé cette correction ?)   | A09 (Logging)         | `X-Correlation-Id` (§ 9.2) propagé au backend → audit hash-chain      | Implémenté    |
+| **I**nformation disclosure | `access_token` exposé au JS navigateur                | A02 / A05             | Cookies `httpOnly` + BFF injecte le Bearer côté serveur (§ 7.5)       | Implémenté    |
+| **I**nformation disclosure | Fuite de l'URL pré-signée PDF / referrer              | A01                   | `referrerPolicy="no-referrer"` + sandbox PDF (§ 11.4)                 | Implémenté    |
+| **I**nformation disclosure | `client_secret` admin/governance en clair             | A05 (Misconfig)       | Secret via Vault, jamais `process.env` nu (9bis.3)                    | Conçu/Phase 2 |
+| **D**enial of Service      | Brute-force login / abus refresh / flood BFF          | A07 / A04             | Rate-limiting `/api/auth/*` + BFF (9bis.5), cooldown JWKS             | Conçu/partiel |
+| **D**enial of Service      | XSS via injection de script                           | A03 (Injection)       | CSP `script-src 'self'` sans `unsafe-inline` (§ 4.2, 9bis.4)          | Implémenté    |
+| **E**levation of privilege | Citoyen accède aux écrans admin                       | A01 (Broken Access)   | `requireRole` côté serveur (9bis.2) + 3 apps/clients Keycloak séparés | Conçu         |
+| **E**levation of privilege | Clickjacking (UI redress sur action sensible)         | A05 (Misconfig)       | `X-Frame-Options: DENY` + `frame-ancestors 'none'` (9bis.4)           | Implémenté    |
+| **T**ampering              | Composant frontend importé avec faille (supply chain) | A06 (Vuln. Comp.)     | Scans CI (`pnpm audit`, Trivy) + lockfile gelé (ADR-034)              | Implémenté    |
+
+**Lecture honnêteté soutenance.** Les lignes « Implémenté » sont vérifiables dans le code de la
+tranche 1 (Zod parsing, cookies httpOnly/BFF, CSP, correlation-id). Les lignes « Conçu » / « Conçu,
+Phase 2 » (verifyIdToken local, requireRole, Vault client secret, rate-limit Redis) sont
+**spécifiées dans ce document mais pas encore toutes branchées** — à présenter comme architecture
+cible, jamais comme acquis.
 
 ---
 
@@ -1971,11 +2541,32 @@ export default async function Page({ params }: { params: Promise<{ nina: string 
       <h1 className="text-2xl font-bold">{t('title')}</h1>
       <p className="mt-2 text-muted-foreground">{t('help')}</p>
       <div className="mt-6 overflow-hidden rounded-lg border">
+        {/*
+         * SÉCURITÉ — sandbox de l'iframe PDF (durci, audit mai 2026).
+         *
+         * RÈGLE ABSOLUE : ne JAMAIS combiner `allow-scripts` ET `allow-same-origin`.
+         * Réunis, ces deux flags permettent au document embarqué de réécrire son
+         * propre attribut `sandbox` (il s'exécute dans l'origine du parent), ce qui
+         * annule complètement le bac à sable — c'est documenté par le HTML living
+         * standard et signalé par OWASP comme un anti-pattern clickjacking/XSS.
+         *
+         * Un aperçu de FDI (PDF statique signé, servi via URL pré-signée) n'a besoin
+         * d'AUCUN script. On retire donc `allow-scripts`. Le viewer PDF natif du
+         * navigateur fonctionne sans JS embarqué ; `allow-same-origin` reste utile
+         * seulement si l'URL pointe vers notre propre origine (ex. proxy BFF) pour
+         * que le viewer accède au flux — on le conserve SEUL, jamais avec scripts.
+         *
+         * Si le PDF est servi depuis une origine tierce (S3/MinIO pré-signé), on peut
+         * même retirer `allow-same-origin` (sandbox vide = isolation maximale).
+         */}
         <iframe
           title="Fiche descriptive individuelle"
           src={url}
           className="h-[900px] w-full"
-          sandbox="allow-same-origin allow-scripts"
+          // sandbox SANS allow-scripts (cf. note ci-dessus) ; referrerPolicy
+          // empêche la fuite de l'URL pré-signée vers une éventuelle origine tierce.
+          sandbox="allow-same-origin"
+          referrerPolicy="no-referrer"
         />
       </div>
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -2465,9 +3056,12 @@ export default async function Page() {
 
 ### 13.2 Publication d'une directive signée
 
-Une directive est un acte officiel signé cryptographiquement par le directeur général avec sa clé
-Ed25519 détenue dans Vault. Le frontend récupère la directive, la prévisualise en PDF et l'envoie
-pour signature :
+Une directive est un acte officiel signé en **Ed25519 (JWS)** côté backend governance. La clé privée
+Ed25519 est **stockée** dans Vault (KV v2), mais la **signature est calculée in-process** via
+`@noble/ed25519` — **Vault Transit ne supporte pas Ed25519** (cf. ADR-026, ADR-034 ; Ed25519 =
+signature seulement, jamais chiffrement). Le frontend ne manipule jamais la clé : il récupère la
+directive, la prévisualise en PDF et l'envoie au backend pour signature. _(cf. doc 09 §12 —
+scellement Ed25519 in-process, et ADR-026.)_
 
 ```tsx
 // apps/governance/components/directives/new-directive-form.tsx
@@ -3128,6 +3722,15 @@ module.exports = {
 - [ ] ✅ Refresh silencieux testé (attendre 14 min, faire une requête, refresh auto)
 - [ ] ✅ Logout propre (session Keycloak terminée + cookies supprimés)
 - [ ] ✅ CSP active et sans `unsafe-inline` (headers visibles dans DevTools)
+- [ ] ✅ En-têtes durcis présents : HSTS (prod), `X-Frame-Options: DENY` + `frame-ancestors 'none'`,
+      `Referrer-Policy`, `X-Content-Type-Options: nosniff` (§ 9bis.4)
+- [ ] ✅ `verifyIdToken` rejette `alg=none` / `HS*` et valide `iss`/`aud`/`nonce`/`exp` (§ 9bis.1)
+- [ ] ✅ `requireRole` côté serveur (`server-only`) garde les écrans admin/governance (§ 9bis.2)
+- [ ] ✅ `client_secret` admin/governance résolu via Vault, jamais en `process.env` nu (§ 9bis.3)
+- [ ] ✅ Rate-limiting actif sur `/api/auth/*` et le BFF (429 + Retry-After) (§ 9bis.5)
+- [ ] ✅ Protection CSRF double-submit sur les mutations BFF / Server Actions (§ 9bis.6)
+- [ ] ✅ iframe d'aperçu PDF : sandbox SANS combinaison `allow-scripts`+`allow-same-origin` (§ 11.4)
+- [ ] ✅ Threat model STRIDE + mapping OWASP renseigné, lignes « Conçu/Phase 2 » assumées (§ 9bis.7)
 - [ ] ✅ `@nina-aes/api-client` : 7 clients avec parsing Zod, coverage ≥ 85 %
 - [ ] ✅ Parcours citoyen : recherche NINA → fiche → correction → PDF téléchargé
 - [ ] ✅ Parcours admin : liste corrections → détail avec SHAP → approve/reject

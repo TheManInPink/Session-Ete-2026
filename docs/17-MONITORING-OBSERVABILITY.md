@@ -3,8 +3,12 @@
 > **Bloc concerné** : Transversal (tous les blocs A → F) — observabilité appliquée dès que les
 > microservices Bloc A passent en intégration continue. **Prérequis** : documents 00 → 16 complétés
 > ; chaîne `pnpm run verify:repo` opérationnelle ; `infrastructure/docker/docker-compose.dev.yml` à
-> jour ; `@nina-aes/logger` à l'état de stub (cf. CHANGELOG §2). **Durée estimée** : 16 à 22 heures
-> pour un étudiant seul. **Livrables de cette étape** :
+> jour ; `@nina-aes/logger` déjà en Pino v0.2.0 (redact paths + corrélation + module NestJS) — il
+> **reste** à ajouter le transport Loki et le hook NINA message-libre (cf. CHANGELOG §2 à rectifier
+> : la ligne « stub » est obsolète). **Durée estimée** : 16 à 22 heures pour un étudiant seul.
+> **Statut global de ce document : conçu / cible Phase 2 — rien de la stack n'est encore déployé**
+> (ni OTel SDK, ni `nestjs-prometheus`, ni `infrastructure/observability/`). **Livrables de cette
+> étape** :
 >
 > - Stack LGTM souveraine déployée en local via Docker Compose :
 >   - **Prometheus 3.4** (collecte métriques, retention 15j)
@@ -13,7 +17,8 @@
 >   - **Tempo 2.7** (traces distribuées OTLP)
 >   - **Promtail 3.5** (shipping des logs containers)
 >   - **OpenTelemetry Collector 0.119** (router OTLP → Prometheus/Loki/Tempo)
->   - **Alertmanager 0.28** (routing alertes vers email/Slack/PagerDuty mock)
+>   - **Alertmanager 0.28** (routing alertes vers récepteurs **souverains** : email/SMTP on-prem,
+>     Matrix, webhook interne — **jamais** Slack/PagerDuty/Opsgenie US, cf. CANON souveraineté)
 > - `@nina-aes/logger` réécrit en **Pino 9** avec transport Loki HTTP + sanitisation automatique des
 >   PII (NINA, biométrie, dateNaissance)
 > - Endpoints `/metrics` (Prometheus exposition format) sur les 11 services :
@@ -49,9 +54,18 @@ Trois leçons pédagogiques :
    services.
 
 2. **PII jamais en clair dans les logs**. Un log « `info: created citizen NINA=18903102015042V` »
-   est une fuite de donnée souveraine. Le logger Pino embarque un **redact array** qui caviardise
-   automatiquement les champs `nina`, `fingerprintHash`, `dateNaissance` avant émission. Le test
-   unitaire `logger.redact.test.ts` valide qu'aucun NINA brut ne traverse jamais le transport Loki.
+   est une fuite de donnée souveraine. Deux défenses **complémentaires** sont nécessaires, car le
+   `redact array` de Pino ne caviardise QUE les **champs structurés** (`nina`, `fingerprintHash`,
+   `dateNaissance`) — il **ne touche pas** au message libre de premier argument :
+   - le **redact array** (`paths`) pour les clés structurées ;
+   - un **hook `formatters.log` / `messageKey` + regex NINA** qui scanne le message texte ET les
+     valeurs string et remplace tout NINA brut (`\b\d{14}[A-Z]\b`) par `***NINA-REDACTED***` AVANT
+     que le transport Loki ne reçoive l'entrée. Ainsi un NINA glissé dans une interpolation de
+     message (`` `created ${nina}` ``) ne fuit jamais et n'est **jamais indexable** dans Loki.
+
+   Le test unitaire `logger.redact.test.ts` valide les deux chemins : champ structuré ET NINA inséré
+   dans le message libre. Règle absolue : **aucun NINA ne devient un label Loki** (cardinalité +
+   fuite) — il reste, au mieux, dans un corps de log caviardé.
 
 3. **Alertes actionnables seulement**. Une alerte qui ne demande rien à personne est du bruit.
    Chaque règle Alertmanager pointe vers une entrée du `RUNBOOK.md` avec un protocole « si vous
@@ -65,22 +79,22 @@ Trois leçons pédagogiques :
 
 ## 2. Technologies utilisées (versions mai 2026)
 
-| Composant                                 | Version   | Rôle                                                               |
-| ----------------------------------------- | --------- | ------------------------------------------------------------------ |
-| **Prometheus**                            | `3.4.1`   | Collecte + stockage série temporelles, retention 15j               |
-| **Grafana**                               | `12.3.0`  | Dashboards, alerting unifié, datasources Prometheus/Loki/Tempo     |
-| **Loki**                                  | `3.5.0`   | Stockage logs indexés par labels (TSDB-like), retention 30j        |
-| **Tempo**                                 | `2.7.1`   | Stockage traces distribuées OTLP, retention 7j                     |
-| **Promtail**                              | `3.5.0`   | Agent shipping logs containers → Loki                              |
-| **OpenTelemetry Collector**               | `0.119.0` | Routeur OTLP → Prometheus (metrics) + Loki (logs) + Tempo (traces) |
-| **Alertmanager**                          | `0.28.1`  | Routing + dédoublonnage + silence des alertes Prometheus           |
-| **Pino (Node)**                           | `9.6.0`   | Logger structuré JSON, < 1 µs/log, transport Loki HTTP             |
-| **pino-loki**                             | `2.4.0`   | Transport HTTP Loki avec batching                                  |
-| **nestjs-prometheus**                     | `7.2.0`   | Module NestJS qui expose `/metrics` + métriques HTTP par défaut    |
-| **prometheus-fastapi-instrumentator**     | `7.0.2`   | Middleware FastAPI auto-instrumenté                                |
-| **@opentelemetry/sdk-node**               | `0.50.0`  | OTel SDK Node + auto-instrumentations (HTTP, Prisma, ioredis)      |
-| **opentelemetry-instrumentation-fastapi** | `0.50b0`  | OTel auto-instrumentation FastAPI                                  |
-| **structlog (Python)**                    | `25.1.0`  | Logger structuré JSON Python — sortie compat. Promtail             |
+| Composant                                 | Version   | Rôle                                                                      |
+| ----------------------------------------- | --------- | ------------------------------------------------------------------------- |
+| **Prometheus**                            | `3.4.1`   | Collecte + stockage série temporelles, retention 15j                      |
+| **Grafana**                               | `12.3.0`  | Dashboards, alerting unifié, datasources Prometheus/Loki/Tempo            |
+| **Loki**                                  | `3.5.0`   | Stockage logs indexés par labels (TSDB-like), retention 30j               |
+| **Tempo**                                 | `2.7.1`   | Stockage traces distribuées OTLP, retention 7j                            |
+| **Promtail**                              | `3.5.0`   | Agent shipping logs containers → Loki                                     |
+| **OpenTelemetry Collector**               | `0.119.0` | Routeur OTLP → Prometheus (metrics) + Loki (logs) + Tempo (traces)        |
+| **Alertmanager**                          | `0.28.1`  | Routing + dédoublonnage + silence des alertes Prometheus                  |
+| **Pino (Node)**                           | `9.6.0`   | Logger structuré JSON, < 1 µs/log, transport Loki HTTP                    |
+| **pino-loki**                             | `2.4.0`   | Transport HTTP Loki avec batching                                         |
+| **nestjs-prometheus**                     | `7.2.0`   | Module NestJS qui expose `/metrics` + métriques HTTP par défaut           |
+| **prometheus-fastapi-instrumentator**     | `7.0.2`   | Middleware FastAPI auto-instrumenté                                       |
+| **@opentelemetry/sdk-node**               | `0.205.0` | OTel SDK Node + auto-instr. (API `resourceFromAttributes`, non dépréciée) |
+| **opentelemetry-instrumentation-fastapi** | `0.50b0`  | OTel auto-instrumentation FastAPI                                         |
+| **structlog (Python)**                    | `25.1.0`  | Logger structuré JSON Python — sortie compat. Promtail                    |
 
 > 🔒 Tous open-source, AGPL/Apache 2.0. Aucune dépendance SaaS US.
 
@@ -160,14 +174,28 @@ end note
 
 ### Étape 4.1 — Réécrire `@nina-aes/logger` (Pino + transport Loki + redact PII)
 
-**Pourquoi** : le stub console-backed actuel ne supporte ni le format JSON structuré ni la redaction
-automatique. Pino est le logger Node le plus rapide (< 1 µs / log), JSON natif, ecosystem mature
+**Pourquoi** : Pino est le logger Node le plus rapide (< 1 µs / log), JSON natif, ecosystem mature
 pour les transports.
 
-**Fichier(s) à modifier** : `packages/logger/src/index.ts` (réécrit).
+> ⚠️ **État réel du package (à NE PAS écraser)** : `@nina-aes/logger` n'est **plus un stub**. Il est
+> déjà à la v0.2.0 et fournit le factory Pino (`logger.ts`), le masquage par `redact.paths`
+> (`redaction.ts` — chemins NINA/biométrie/secrets), la corrélation `AsyncLocalStorage`
+> (`correlation.ts`), les helpers `maskNina/maskEmail/maskPhone`, et un sous-module NestJS
+> (`./nestjs`). **Ce qui MANQUE encore** et constitue le livrable de cette étape : (a) le
+> **transport Loki** (`pino-loki`, absent des dépendances) ; (b) le **hook NINA sur le message
+> libre** (le `redact.paths` actuel ne couvre QUE les clés structurées, pas un NINA glissé dans le
+> `msg`). Le code ci-dessous est un **schéma cible illustratif** : il doit être **intégré dans la
+> structure existante** (ajout du transport dans `logger.ts` + ajout du hook), **jamais** réécrire
+> `index.ts` d'un bloc, sous peine de perdre corrélation, helpers et module NestJS déjà livrés.
+> **Statut : conçu, intégration Phase 2.**
+
+**Fichier(s) à modifier** : `packages/logger/src/logger.ts` (ajout transport Loki + hook NINA) —
+**ne pas** remplacer `index.ts` qui réexporte la structure existante.
 
 ```ts
-// packages/logger/src/index.ts
+// SCHÉMA CIBLE ILLUSTRATIF — à INTÉGRER dans packages/logger/src/logger.ts
+// (ajout transport Loki + hook scrubNina). NE PAS écraser index.ts/redaction.ts/
+// correlation.ts/nestjs déjà livrés (cf. encadré ci-dessus). Statut : conçu, Phase 2.
 /**
  * @file Logger NINA-AES — Pino structuré JSON + transport Loki + redact PII.
  *
@@ -209,6 +237,30 @@ const PII_REDACT_PATHS = [
   'req.headers.cookie',
 ];
 
+/**
+ * Regex NINA brut : 14 chiffres + 1 lettre de contrôle (ex. 18903102015042V).
+ * Utilisée pour caviardiser le **message libre** et toute valeur string, car
+ * `redact.paths` ne couvre QUE les clés structurées listées plus haut.
+ */
+const NINA_REGEX = /\b\d{14}[A-Z]\b/g;
+const NINA_CENSOR = '***NINA-REDACTED***';
+
+/** Caviarde récursivement tout NINA brut trouvé dans les valeurs string d'un objet. */
+function scrubNina<T>(value: T): T {
+  if (typeof value === 'string') {
+    return value.replace(NINA_REGEX, NINA_CENSOR) as unknown as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map(scrubNina) as unknown as T;
+  }
+  if (value && typeof value === 'object') {
+    for (const k of Object.keys(value as Record<string, unknown>)) {
+      (value as Record<string, unknown>)[k] = scrubNina((value as Record<string, unknown>)[k]);
+    }
+  }
+  return value;
+}
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface Logger {
@@ -233,6 +285,17 @@ function buildOptions(serviceName: string): LoggerOptions {
     redact: {
       paths: PII_REDACT_PATHS,
       censor: '***REDACTED***',
+    },
+    // Hook NINA : scanne le **message libre** + les valeurs string AVANT émission.
+    // `redact.paths` ne caviarde que les clés connues ; ce hook attrape un NINA
+    // glissé dans une interpolation de message ou une clé non listée.
+    hooks: {
+      logMethod(args, method) {
+        const scrubbed = args.map((a) =>
+          typeof a === 'string' || (a && typeof a === 'object') ? scrubNina(a) : a,
+        );
+        return method.apply(this, scrubbed as Parameters<typeof method>);
+      },
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {
@@ -296,7 +359,9 @@ export function createLogger(serviceName: string): Logger {
 export default createLogger;
 ```
 
-**Tests à ajouter** : `packages/logger/src/__tests__/redact.test.ts`.
+**Tests à ajouter** : compléter `packages/logger/src/__tests__/redaction.test.ts` (fichier déjà
+existant — il teste `maskNina/maskEmail/maskPhone` ; lui ajouter les deux cas ci-dessous : champ
+structuré ET NINA dans le message libre).
 
 ```ts
 import { createLogger } from '../index';
@@ -321,18 +386,39 @@ describe('logger PII redact', () => {
     expect(all).not.toContain('18903102015042V');
     expect(all).toContain('***REDACTED***');
   });
+
+  it('redacts a NINA embedded in the free-text message', () => {
+    const captured: string[] = [];
+    const origStdout = process.stdout.write.bind(process.stdout);
+    // @ts-expect-error monkey-patch test
+    process.stdout.write = (chunk: any) => {
+      captured.push(String(chunk));
+      return true;
+    };
+    try {
+      const log = createLogger('identity-service');
+      // NINA glissé dans le message libre (PAS dans un champ structuré).
+      log.info('created citizen 18903102015042V from terminal X');
+    } finally {
+      // @ts-expect-error restore
+      process.stdout.write = origStdout;
+    }
+    const all = captured.join('');
+    expect(all).not.toContain('18903102015042V');
+    expect(all).toContain('***NINA-REDACTED***');
+  });
 });
 ```
 
-**Dépendances à installer** dans `packages/logger/package.json` :
+**Dépendance à AJOUTER** dans `packages/logger/package.json` (les autres sont déjà présentes :
+`pino@^9.5.0`, `pino-pretty@^11.3.0`, `pino-http`, `uuid`) :
 
-```json
+```jsonc
 {
   "dependencies": {
-    "pino": "^9.6.0",
+    // seule nouveauté de cette étape : le transport Loki
     "pino-loki": "^2.4.0",
-    "pino-pretty": "^11.3.0"
-  }
+  },
 }
 ```
 
@@ -452,21 +538,50 @@ INFERENCE_LATENCY = Histogram(
 
 ```ts
 // services/<service>/src/observability/otel.ts
+import { readFileSync } from 'node:fs';
+import { credentials } from '@grpc/grpc-js';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+// ⚠️ API OTel ≥ 1.x : `new Resource()` est DÉPRÉCIÉ → `resourceFromAttributes`.
+// `SemanticResourceAttributes` est remplacé par les constantes `ATTR_*` (incubating
+// pour DEPLOYMENT_ENVIRONMENT_NAME). Ne pas régresser vers l'ancienne API.
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import { ATTR_DEPLOYMENT_ENVIRONMENT_NAME } from '@opentelemetry/semantic-conventions/incubating';
+
+/**
+ * Construit les credentials gRPC pour l'export OTLP.
+ * Souveraineté + intégrité : en staging/prod l'export est **TLS (mTLS)**, jamais en clair.
+ * Le collector OTel reçoit alors uniquement des clients porteurs d'un certificat valide
+ * de la PKI interne (cf. ADR-034). Le mode insecure n'est toléré qu'en `dev`.
+ */
+function otlpCredentials() {
+  if ((process.env.ENV ?? 'dev') === 'dev' && process.env.OTEL_EXPORTER_OTLP_INSECURE === 'true') {
+    return credentials.createInsecure();
+  }
+  const ca = readFileSync(process.env.OTEL_EXPORTER_OTLP_CA ?? '/etc/nina/tls/ca.crt');
+  // mTLS : on présente le certificat client du service (PKI interne ADR-034).
+  const cert = process.env.OTEL_EXPORTER_OTLP_CLIENT_CERT
+    ? readFileSync(process.env.OTEL_EXPORTER_OTLP_CLIENT_CERT)
+    : undefined;
+  const key = process.env.OTEL_EXPORTER_OTLP_CLIENT_KEY
+    ? readFileSync(process.env.OTEL_EXPORTER_OTLP_CLIENT_KEY)
+    : undefined;
+  return credentials.createSsl(ca, key, cert);
+}
 
 export function startOtel(serviceName: string): void {
   const sdk = new NodeSDK({
-    resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
-      [SemanticResourceAttributes.SERVICE_VERSION]: process.env.SERVICE_VERSION ?? '0.0.0',
-      [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.ENV ?? 'dev',
+    resource: resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: serviceName,
+      [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION ?? '0.0.0',
+      [ATTR_DEPLOYMENT_ENVIRONMENT_NAME]: process.env.ENV ?? 'dev',
     }),
     traceExporter: new OTLPTraceExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://otel-collector:4317',
+      // gRPC over TLS : préfixe https:// + credentials mTLS (cf. otlpCredentials()).
+      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'https://otel-collector:4317',
+      credentials: otlpCredentials(),
     }),
     instrumentations: [
       getNodeAutoInstrumentations({
@@ -503,12 +618,36 @@ def init_tracing(service_name: str) -> None:
     provider = TracerProvider(resource=Resource.create({
         "service.name": service_name,
         "service.version": os.environ.get("SERVICE_VERSION", "0.0.0"),
-        "deployment.environment": os.environ.get("ENV", "dev"),
+        # clé sémantique recommandée : deployment.environment.name
+        "deployment.environment.name": os.environ.get("ENV", "dev"),
     }))
-    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(
-        endpoint=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector:4317"),
-        insecure=True,
-    )))
+
+    # Souveraineté + intégrité : export OTLP en TLS/mTLS hors dev (cf. ADR-034).
+    # `insecure=True` UNIQUEMENT en dev local ; sinon credentials gRPC TLS avec CA
+    # interne + certificat client (mTLS) de la PKI NINA.
+    env = os.environ.get("ENV", "dev")
+    if env == "dev" and os.environ.get("OTEL_EXPORTER_OTLP_INSECURE") == "true":
+        exporter = OTLPSpanExporter(
+            endpoint=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector:4317"),
+            insecure=True,
+        )
+    else:
+        from grpc import ssl_channel_credentials  # gRPC TLS
+
+        def _read(path: str | None):
+            return open(path, "rb").read() if path else None
+
+        creds = ssl_channel_credentials(
+            root_certificates=_read(os.environ.get("OTEL_EXPORTER_OTLP_CA", "/etc/nina/tls/ca.crt")),
+            private_key=_read(os.environ.get("OTEL_EXPORTER_OTLP_CLIENT_KEY")),
+            certificate_chain=_read(os.environ.get("OTEL_EXPORTER_OTLP_CLIENT_CERT")),
+        )
+        exporter = OTLPSpanExporter(
+            endpoint=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector:4317"),
+            credentials=creds,  # TLS/mTLS, PAS insecure
+        )
+
+    provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
 ```
 
@@ -609,11 +748,30 @@ FastAPIInstrumentor.instrument_app(app)
     container_name: nina-grafana
     profiles: [observability]
     environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-nina-dev-only}
+      # ── Compte admin local : secret injecté depuis Vault (KV) au boot ──────
+      # JAMAIS admin/admin. Le mot de passe vient de Vault via `__FILE` (fichier
+      # monté par l'agent Vault) — aucun secret en clair dans compose/.env.
+      # En dev, `pnpm vault:bootstrap` provisionne secret/observability/grafana.
+      GF_SECURITY_ADMIN_USER__FILE: /run/secrets/grafana_admin_user
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
       GF_USERS_ALLOW_SIGN_UP: 'false'
       GF_AUTH_ANONYMOUS_ENABLED: 'false'
       GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+      # ── SSO Keycloak (OIDC) — l'auth réelle passe par l'IdP souverain ─────
+      # Le compte admin local reste un "break-glass" ; les opérateurs se
+      # connectent via Keycloak (rôles mappés Editor/Admin). Réutilise le realm
+      # NINA (ADR-013). Secrets client_id/secret également via Vault `__FILE`.
+      GF_AUTH_GENERIC_OAUTH_ENABLED: 'true'
+      GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID__FILE: /run/secrets/grafana_oidc_client_id
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET__FILE: /run/secrets/grafana_oidc_client_secret
+      GF_AUTH_GENERIC_OAUTH_SCOPES: 'openid email profile roles'
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: ${KEYCLOAK_URL}/realms/nina/protocol/openid-connect/auth
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: ${KEYCLOAK_URL}/realms/nina/protocol/openid-connect/token
+      GF_AUTH_GENERIC_OAUTH_API_URL: ${KEYCLOAK_URL}/realms/nina/protocol/openid-connect/userinfo
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(realm_access.roles[*], 'grafana-admin') && 'Admin' || contains(realm_access.roles[*], 'grafana-editor') && 'Editor' || 'Viewer'"
+      GF_AUTH_GENERIC_OAUTH_TLS_CLIENT_CA: /etc/nina/tls/ca.crt
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.nina.local}
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -645,7 +803,10 @@ docker compose --env-file .env -f infrastructure/docker/docker-compose.dev.yml `
   --profile observability up -d
 
 # Ouverture des UIs
-Start-Process http://localhost:3000   # Grafana (admin / nina-dev-only)
+# Grafana : connexion via Keycloak (bouton « Sign in with Keycloak »).
+# Le compte admin local est un break-glass — son secret vient de Vault
+# (cf. `pnpm vault:bootstrap`), JAMAIS admin/admin.
+Start-Process http://localhost:3000   # Grafana (SSO Keycloak OIDC)
 Start-Process http://localhost:9090   # Prometheus
 Start-Process http://localhost:9093   # Alertmanager
 ```
@@ -703,8 +864,22 @@ scrape_configs:
 receivers:
   otlp:
     protocols:
-      grpc: { endpoint: 0.0.0.0:4317 }
-      http: { endpoint: 0.0.0.0:4318 }
+      # mTLS côté réception : seuls les services porteurs d'un cert PKI interne
+      # peuvent pousser traces/metrics/logs (cf. ADR-034). En dev local on peut
+      # commenter le bloc `tls` ; en staging/prod il est OBLIGATOIRE.
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls:
+          ca_file: /etc/nina/tls/ca.crt
+          cert_file: /etc/nina/tls/otel-collector.crt
+          key_file: /etc/nina/tls/otel-collector.key
+          client_ca_file: /etc/nina/tls/ca.crt # exige un cert client => mTLS
+      http:
+        endpoint: 0.0.0.0:4318
+        tls:
+          ca_file: /etc/nina/tls/ca.crt
+          cert_file: /etc/nina/tls/otel-collector.crt
+          key_file: /etc/nina/tls/otel-collector.key
 
 processors:
   batch:
@@ -713,6 +888,14 @@ processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 512
+  # Défense en profondeur : caviarde tout NINA brut résiduel dans le corps des
+  # logs AVANT export Loki (au cas où un service mal instrumenté oublierait le
+  # hook Pino). Un NINA ne doit JAMAIS être indexé par Loki.
+  transform/redact-nina:
+    log_statements:
+      - context: log
+        statements:
+          - replace_pattern(body, "\\b\\d{14}[A-Z]\\b", "***NINA-REDACTED***")
 
 exporters:
   prometheusremotewrite:
@@ -721,7 +904,14 @@ exporters:
     endpoint: http://loki:3100/loki/api/v1/push
   otlp/tempo:
     endpoint: tempo:9095
-    tls: { insecure: true }
+    # Intégrité du flux de traces : TLS/mTLS vers Tempo (cf. ADR-034).
+    # `insecure: true` est RÉSERVÉ au dev local jetable ; en staging/prod on
+    # présente le certificat client du collector (PKI interne). Ne pas régresser.
+    tls:
+      insecure: false
+      ca_file: /etc/nina/tls/ca.crt
+      cert_file: /etc/nina/tls/otel-collector.crt
+      key_file: /etc/nina/tls/otel-collector.key
 
 service:
   pipelines:
@@ -735,7 +925,7 @@ service:
       exporters: [prometheusremotewrite]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter, transform/redact-nina, batch]
       exporters: [loki]
 ```
 
@@ -780,6 +970,7 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'Disque < 10% libre sur {{ $labels.mountpoint }}'
+          runbook: 'docs/observability/RUNBOOK.md#disk-space-low'
 
       - alert: PostgresConnectionsHigh
         expr: sum by (datname) (pg_stat_activity_count) / pg_settings_max_connections > 0.8
@@ -787,6 +978,7 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'Pool Postgres > 80% sur {{ $labels.datname }}'
+          runbook: 'docs/observability/RUNBOOK.md#postgres-connections-high'
 
       - alert: RabbitMQQueueBacklog
         expr: rabbitmq_queue_messages_ready > 1000
@@ -794,6 +986,7 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'Queue {{ $labels.queue }} a {{ $value }} messages en attente'
+          runbook: 'docs/observability/RUNBOOK.md#rabbitmq-queue-backlog'
 
       - alert: NinaValidationFailureSpike
         expr: rate(identity_citizens_validated_total{result="failure"}[5m]) > 1
@@ -811,6 +1004,7 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'p99 inference IA > 2s — modèle dégradé ou file pleine'
+          runbook: 'docs/observability/RUNBOOK.md#ai-inference-latency-p99'
 
       - alert: NodeHeapPressure
         expr: nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes > 0.9
@@ -818,6 +1012,7 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'Heap Node > 90% sur {{ $labels.service }} — risque OOM'
+          runbook: 'docs/observability/RUNBOOK.md#node-heap-pressure'
 
       - alert: EventLoopLag
         expr: nodejs_eventloop_lag_seconds > 0.1
@@ -825,6 +1020,7 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'Event loop lag > 100ms sur {{ $labels.service }}'
+          runbook: 'docs/observability/RUNBOOK.md#event-loop-lag'
 
       - alert: LokiIngestionDown
         expr: rate(loki_distributor_lines_received_total[5m]) == 0
@@ -832,18 +1028,82 @@ groups:
         labels: { severity: critical, domain: observability }
         annotations:
           summary: 'Loki ne reçoit plus de logs — perte de traçabilité'
+          runbook: 'docs/observability/RUNBOOK.md#loki-ingestion-down'
 
       - alert: AuditChainBreak
-        expr: increase(audit_merkle_chain_break_total[1h]) > 0
+        # CANON ADR-007/014 : l'audit est une HASH-CHAIN SHA-256, PAS un arbre de
+        # Merkle. La métrique compte les ruptures de chaînage de hash (hash(n) !=
+        # hash(prev) attendu). Ne pas renommer en "merkle".
+        expr: increase(audit_hashchain_break_total[1h]) > 0
         for: 1m
         labels: { severity: critical, domain: security }
         annotations:
-          summary: '🚨 Rupture de chaîne Merkle audit — INTERVENTION IMMÉDIATE'
+          summary: '🚨 Rupture de hash-chain audit (SHA-256) — INTERVENTION IMMÉDIATE'
           runbook: 'docs/observability/RUNBOOK.md#audit-chain-break'
 ```
 
 > 🔒 **`AuditChainBreak`** est l'alerte la plus critique : elle signifie qu'un attaquant a manipulé
-> les logs d'audit. Procédure runbook = isolation immédiate + ANSSI / CISO CTDEC contactés.
+> les logs d'audit. L'intégrité repose sur une **hash-chain SHA-256** (ADR-007/014), pas sur un
+> arbre de Merkle. Procédure runbook (`docs/observability/RUNBOOK.md#audit-chain-break`) = isolation
+> immédiate + ANSSI / CISO CTDEC contactés.
+
+**`alertmanager.yml`** — récepteurs **souverains** uniquement (CANON souveraineté : pas de Slack /
+PagerDuty / Opsgenie US sur le cœur) :
+
+```yaml
+# Routage vers des récepteurs auto-hébergés : SMTP on-prem, Matrix (Synapse
+# interne) et webhook on-prem. AUCUN SaaS US. Les secrets (mot de passe SMTP,
+# access_token Matrix, URL webhook) sont injectés depuis Vault au déploiement
+# via les variantes `*_file` — jamais en clair dans ce YAML.
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'mailhog:1025' # dev ; en prod : relais SMTP souverain CTDEC
+  smtp_from: 'alertmanager@nina.local'
+
+route:
+  receiver: 'email-ops' # défaut
+  group_by: [alertname, service]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # Critiques sécurité (ex. AuditChainBreak) → Matrix + email, escalade rapide.
+    - matchers: ['severity="critical"']
+      receiver: 'matrix-soc'
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: true
+    - matchers: ['domain="security"']
+      receiver: 'webhook-soc'
+
+receivers:
+  - name: 'email-ops'
+    email_configs:
+      - to: 'ops@ctdec.gov.ml'
+        auth_password_file: /run/secrets/alertmanager_smtp_password # Vault
+        send_resolved: true
+
+  - name: 'matrix-soc'
+    # Pont Matrix on-prem (Synapse souverain). PAS de Slack/PagerDuty.
+    webhook_configs:
+      - url: 'http://matrix-webhook:9088/alerts'
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /run/secrets/alertmanager_matrix_token # Vault
+        send_resolved: true
+
+  - name: 'webhook-soc'
+    # Webhook interne (SIEM / orchestrateur d'incidents on-prem).
+    webhook_configs:
+      - url: 'http://soc-incident-bridge:8080/nina/alerts'
+        send_resolved: true
+```
+
+> 🔒 **Souveraineté des alertes** : Slack, PagerDuty et Opsgenie sont des SaaS US ; une alerte
+> contient des métadonnées d'État (nom de service, gravité, parfois IP source). On les route donc
+> exclusivement vers email SMTP on-prem, Matrix (Synapse souverain) ou webhook interne. Le mock
+> historique « Slack/PagerDuty » est remplacé par MailHog (dev) puis le relais SMTP CTDEC (prod).
 
 ---
 
@@ -859,7 +1119,7 @@ provisioning/
 │   └── nina-aes.yml           # provider qui charge dashboards/*.json
 dashboards/
 ├── golden-signals.json        # latence + traffic + erreurs + saturation
-├── nina-business.json         # NINA validés, IA détections, audit Merkle
+├── nina-business.json         # NINA validés, IA détections, audit hash-chain SHA-256
 ├── postgres.json              # connections, locks, slow queries
 ├── redis.json                 # hit rate, memory, evictions
 ├── rabbitmq.json              # queues, consumers, ack rate
@@ -903,7 +1163,26 @@ datasources:
 
 ### Étape 4.8 — Runbook de triage
 
-**Fichier à créer** : `docs/observability/RUNBOOK.md`
+**Fichier à créer** : `docs/observability/RUNBOOK.md` ⏳ **(produit en Wave 4)**. Chaque règle
+d'alerting de l'étape 4.6 porte une annotation `runbook:` qui pointe vers une **ancre** de ce
+fichier ; le runbook doit donc exposer, au minimum, une section par ancre référencée :
+
+| Alerte                       | Ancre runbook attendue       |
+| ---------------------------- | ---------------------------- |
+| `HighLatencyP95`             | `#high-latency-p95`          |
+| `HighError5xxRate`           | `#error-rate-5xx`            |
+| `ServiceDown`                | `#service-down`              |
+| `DiskSpaceLow`               | `#disk-space-low`            |
+| `PostgresConnectionsHigh`    | `#postgres-connections-high` |
+| `RabbitMQQueueBacklog`       | `#rabbitmq-queue-backlog`    |
+| `NinaValidationFailureSpike` | `#nina-validation-spike`     |
+| `AIInferenceLatencyP99`      | `#ai-inference-latency-p99`  |
+| `NodeHeapPressure`           | `#node-heap-pressure`        |
+| `EventLoopLag`               | `#event-loop-lag`            |
+| `LokiIngestionDown`          | `#loki-ingestion-down`       |
+| `AuditChainBreak`            | `#audit-chain-break`         |
+
+Extrait (les 3 procédures critiques rédigées en premier) :
 
 ```markdown
 # RUNBOOK — Procédures de triage NINA-AES
@@ -926,7 +1205,8 @@ datasources:
 1. **Isoler** : `kubectl scale deploy/audit-service --replicas=0`
 2. **Notifier** : email CISO CTDEC + appel ANSSI Mali (+223 ...)
 3. **Préserver** : `pg_dump nina_aes_db.audit_logs > /backup/audit-incident-$(date +%s).sql`
-4. **Investiguer** : Loki query `{service="audit-service"} |= "merkle"`
+4. **Investiguer** : Loki query `{service="audit-service"} |= "hashchain"` (chaîne SHA-256,
+   ADR-007/014)
 5. **Ne pas redéployer** sans go formel du CISO
 
 ## `NinaValidationSpike`
@@ -968,7 +1248,8 @@ curl -G 'http://localhost:3100/loki/api/v1/query_range' `
 Start-Process http://localhost:3000   # Grafana → Tempo → Search
 
 # 6) Grafana provisionning OK
-# Login admin / nina-dev-only → menu Dashboards → 6 dashboards visibles
+# Connexion via Keycloak (SSO OIDC) → menu Dashboards → 6 dashboards visibles.
+# (Le compte admin local break-glass a son mot de passe dans Vault, pas admin/admin.)
 
 # 7) Test redact PII
 pnpm --filter @nina-aes/logger test
@@ -979,19 +1260,21 @@ pnpm --filter @nina-aes/logger test
 
 ## 6. Pièges courants & dépannage
 
-| Symptôme                                               | Cause probable                                  | Solution                                                                                       |
-| ------------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Prometheus target `DOWN` mais le service tourne        | Service écoute `127.0.0.1` au lieu de `0.0.0.0` | Forcer `app.listen(port, '0.0.0.0')` dans NestJS                                               |
-| Loki refuse logs : `entry too far behind`              | Horloge du runner desynchronisée                | NTP obligatoire ; `chrony` ou `ntpd` actif sur les hôtes                                       |
-| Tempo : trace incomplète (un seul span)                | OTel SDK pas démarré AVANT le serveur HTTP      | Vérifier que `startOtel()` est appelé **avant** `NestFactory.create()`                         |
-| Pino transport `loki` : flood d'erreurs `ECONNREFUSED` | Loki pas encore prêt au boot du service         | Pino retry built-in ; si persistent, healthcheck `depends_on: { condition: service_healthy }`  |
-| Grafana dashboards vides à la 1ère ouverture           | Provisioning lu uniquement au boot Grafana      | `docker compose restart grafana` après modif des JSON                                          |
-| Alertmanager envoie 10 mails en 5 min                  | Pas de `group_interval` configuré               | Dans `alertmanager.yml` : `group_by: [alertname, service]` + `group_interval: 5m`              |
-| Métrique custom NestJS jamais visible                  | Métrique enregistrée mais pas exposée           | Importer `MetricsModule` au `AppModule`, vérifier `Counter.inc()` est appelé                   |
-| FastAPI : `/metrics` 404                               | `Instrumentator.expose(app)` non appelé         | Voir étape 4.3, ordre : `instrument().expose()`                                                |
-| Cardinality explosion Prometheus (RAM > 4 GB)          | Label avec valeur dynamique (ex. `user_id`)     | Audit : `topk(10, count by (__name__)({__name__=~".+"}))` ; supprimer labels haute cardinality |
-| `pino-pretty` en prod                                  | Devrait être JSON brut pour Loki                | `LOG_TRANSPORT=loki` (pas `both`) en prod                                                      |
-| Loki retient logs > 30j                                | Compactor lent ou retention pas appliquée       | `loki.yml` : `compactor.retention_enabled: true` + `retention_period: 720h`                    |
+| Symptôme                                               | Cause probable                                     | Solution                                                                                                    |
+| ------------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Prometheus target `DOWN` mais le service tourne        | Service écoute `127.0.0.1` au lieu de `0.0.0.0`    | Forcer `app.listen(port, '0.0.0.0')` dans NestJS                                                            |
+| Loki refuse logs : `entry too far behind`              | Horloge du runner desynchronisée                   | NTP obligatoire ; `chrony` ou `ntpd` actif sur les hôtes                                                    |
+| Tempo : trace incomplète (un seul span)                | OTel SDK pas démarré AVANT le serveur HTTP         | Vérifier que `startOtel()` est appelé **avant** `NestFactory.create()`                                      |
+| Pino transport `loki` : flood d'erreurs `ECONNREFUSED` | Loki pas encore prêt au boot du service            | Pino retry built-in ; si persistent, healthcheck `depends_on: { condition: service_healthy }`               |
+| Grafana dashboards vides à la 1ère ouverture           | Provisioning lu uniquement au boot Grafana         | `docker compose restart grafana` après modif des JSON                                                       |
+| Alertmanager envoie 10 mails en 5 min                  | Pas de `group_interval` configuré                  | Dans `alertmanager.yml` : `group_by: [alertname, service]` + `group_interval: 5m`                           |
+| Métrique custom NestJS jamais visible                  | Métrique enregistrée mais pas exposée              | Importer `MetricsModule` au `AppModule`, vérifier `Counter.inc()` est appelé                                |
+| FastAPI : `/metrics` 404                               | `Instrumentator.expose(app)` non appelé            | Voir étape 4.3, ordre : `instrument().expose()`                                                             |
+| Cardinality explosion Prometheus (RAM > 4 GB)          | Label avec valeur dynamique (ex. `user_id`)        | Audit : `topk(10, count by (__name__)({__name__=~".+"}))` ; supprimer labels haute cardinality              |
+| `pino-pretty` en prod                                  | Devrait être JSON brut pour Loki                   | `LOG_TRANSPORT=loki` (pas `both`) en prod                                                                   |
+| Loki retient logs > 30j                                | Compactor lent ou retention pas appliquée          | `loki.yml` : `compactor.retention_enabled: true` + `retention_period: 720h`                                 |
+| Grafana : bouton Keycloak absent / `invalid_client`    | `GF_AUTH_GENERIC_OAUTH_*` ou secret Vault manquant | Vérifier `pnpm vault:bootstrap` (secret/observability/grafana) + client OIDC `grafana` dans le realm `nina` |
+| NINA brut visible dans Loki                            | Service non instrumenté avec le hook Pino          | Vérifier `createLogger()` (hook NINA) ; filet collector `transform/redact-nina` actif                       |
 
 ---
 
@@ -1002,7 +1285,13 @@ pnpm --filter @nina-aes/logger test
 - `docs/observability/SLOs.md` — Service Level Objectives chiffrés :
   - Disponibilité 99.5 % `/api/nina/*`
   - p95 latence < 500 ms sur tous les endpoints publics
-  - 0 rupture chaîne Merkle audit (alerte critique sans tolérance)
+  - 0 rupture de hash-chain SHA-256 audit (ADR-007/014 ; alerte critique sans tolérance)
+- Secrets Vault (KV `secret/observability/`) à provisionner via `pnpm vault:bootstrap` :
+  `grafana_admin_user/password`, `grafana_oidc_client_id/secret`, `alertmanager_smtp_password`,
+  `alertmanager_matrix_token`. Client OIDC `grafana` (mappers de rôles) à créer dans le realm `nina`
+  (ADR-013). ⏳ **Provisioning réel = Phase 2** ; ce document fournit la configuration cible.
+- Certificats PKI pour l'export OTLP (mTLS, ADR-034) : `otel-collector.crt/key` + CA interne montés
+  dans le collector et les services. ⏳ **Émission = Phase 2** (chaîne PKI doc 15/ADR-034).
 - Mise à jour `docs/02-ARCHITECTURE-GLOBALE.md` : section « Observabilité » pointant vers ce
   document + diagramme PlantUML.
 - Mise à jour `docs/CHANGELOG.md` §2 : `@nina-aes/logger` passe de `stub` à `Pino + Loki ✅`.
@@ -1010,6 +1299,10 @@ pnpm --filter @nina-aes/logger test
 ---
 
 ## 8. Mini-rapport d'étape (template)
+
+> ⚠️ **Template vierge** : les ✅ ci-dessous sont des **exemples de format**, PAS un état réel. À ce
+> jour aucune ligne n'est acquise (la stack n'est pas déployée). Ne cocher ✅ qu'après vérification
+> effective ; sinon laisser ⏳. Pour la soutenance : présenter ce document comme « conçu, Phase 2 ».
 
 ```markdown
 ### Rapport — Monitoring & Observabilité — JJ/MM/2026
@@ -1046,12 +1339,18 @@ pnpm --filter @nina-aes/logger test
 - [ ] Tempo affiche des traces complètes (multi-spans cross-services)
 - [ ] 6 dashboards Grafana visibles et alimentés
 - [ ] 12 règles d'alerting évaluées (`Status: firing/inactive` dans UI Prometheus)
-- [ ] Alertmanager teste un envoi mail (vers MailDev port 1080 en dev)
+- [ ] Alertmanager teste un envoi mail souverain (vers MailHog SMTP 1025 / UI 8025 en dev)
 - [ ] `RUNBOOK.md` couvre les 12 alertes
 - [ ] `SLOs.md` rédigé
 - [ ] `ADR-017` rédigé
 - [ ] `docs/CHANGELOG.md` mis à jour (§2 logger + nouvelle entrée §15)
-- [ ] Aucun NINA brut dans Loki : `logcli query '{service=~".+"} |~ "189[0-9]{12}[A-Z]"' → 0 hit`
+- [ ] Aucun NINA brut dans Loki (champ ET message libre) :
+      `logcli query '{service=~".+"} |~ "\\b[0-9]{14}[A-Z]\\b"' → 0 hit`
+- [ ] Grafana derrière Keycloak OIDC ; mot de passe admin local via Vault (jamais admin/admin)
+- [ ] Export OTLP en TLS/mTLS hors dev (collector + Tempo) ; `insecure` réservé au dev local
+- [ ] Alertmanager route vers récepteurs souverains uniquement (email/Matrix/webhook on-prem)
+- [ ] Chaque règle d'alerting porte une annotation `runbook:` pointant vers
+      `docs/observability/RUNBOOK.md#…`
 - [ ] Tag Git `observability-mvp` posé après validation tutorat
 - [ ] Commit conventionnel : `feat(observability): LGTM stack + Pino + OTel + 12 alertes + runbook`
 

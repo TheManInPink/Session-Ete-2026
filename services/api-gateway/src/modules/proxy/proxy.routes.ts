@@ -38,6 +38,12 @@ export interface GatewayRoute {
  *
  * ⚠️ Ordre IMPORTANT : les préfixes plus spécifiques DOIVENT être avant
  *    les plus généraux pour que le matcher trouve la bonne entrée en premier.
+ *
+ * ⚠️ Le proxy forwarde le chemin INCHANGÉ (aucune réécriture d'URL) : chaque
+ *    `publicPrefix` DOIT donc être identique au préfixe réellement exposé par
+ *    les controllers du service aval. Un même service peut être visé par
+ *    plusieurs préfixes (identity via /citizens, /corrections, /locations ;
+ *    governance via /sgogt, /directives, /elections).
  */
 export const GATEWAY_ROUTES: readonly GatewayRoute[] = [
   {
@@ -97,10 +103,30 @@ export const GATEWAY_ROUTES: readonly GatewayRoute[] = [
     publicPrefix: '/api/v1/sigac',
     targetBaseUrl: getEnvOr('ANTICORRUPTION_SERVICE_URL', 'http://anticorruption-service:3009'),
     serviceName: 'anticorruption',
-    publicEndpoints: ['/api/v1/sigac/alerts', '/api/v1/sigac/alerts/status'],
+    // Canal lanceur d'alerte ANONYME (PC-06) : les 3 seules routes sans JWT
+    // exposées par anticorruption-service (app/main.py). Le suivi porte un
+    // token dynamique → motif `:token` (matching segment par segment).
+    publicEndpoints: [
+      '/api/v1/sigac/whistleblower/public-key',
+      '/api/v1/sigac/whistleblower/reports',
+      '/api/v1/sigac/whistleblower/reports/:token/status',
+    ],
+  },
+  // governance-service expose /sgogt, /directives et /elections (pas de
+  // préfixe /governance côté controllers, et le proxy ne réécrit pas l'URL) :
+  // trois préfixes publics pour un même service aval.
+  {
+    publicPrefix: '/api/v1/sgogt',
+    targetBaseUrl: getEnvOr('GOVERNANCE_SERVICE_URL', 'http://governance-service:3010'),
+    serviceName: 'governance',
   },
   {
-    publicPrefix: '/api/v1/governance',
+    publicPrefix: '/api/v1/directives',
+    targetBaseUrl: getEnvOr('GOVERNANCE_SERVICE_URL', 'http://governance-service:3010'),
+    serviceName: 'governance',
+  },
+  {
+    publicPrefix: '/api/v1/elections',
     targetBaseUrl: getEnvOr('GOVERNANCE_SERVICE_URL', 'http://governance-service:3010'),
     serviceName: 'governance',
   },
@@ -146,9 +172,38 @@ export function matchRoute(path: string): GatewayRoute | undefined {
 
 /**
  * Vérifie si un endpoint est public (pas besoin de JWT).
+ *
+ * Deux formes de déclaration coexistent dans `publicEndpoints` :
+ *  - littérale (ex. `/api/v1/auth/login`) → matching par PRÉFIXE
+ *    (comportement historique, inchangé) ;
+ *  - paramétrée (segments `:param`, ex. `/api/v1/sigac/whistleblower/reports/:token/status`)
+ *    → matching EXACT segment par segment, chaque `:param` acceptant
+ *    exactement UN segment non vide.
  */
 export function isPublicEndpoint(path: string, route: GatewayRoute): boolean {
-  return route.publicEndpoints?.some((ep) => path.startsWith(ep)) ?? false;
+  return route.publicEndpoints?.some((ep) => matchesPublicEndpoint(path, ep)) ?? false;
+}
+
+/**
+ * Teste si un chemin (déjà débarrassé de sa query string par l'appelant)
+ * correspond à UNE déclaration d'endpoint public.
+ *
+ * @param path - Chemin de la requête (ex. `/api/v1/sigac/whistleblower/reports/abc/status`).
+ * @param declared - Déclaration littérale (préfixe) ou motif à segments `:param`.
+ * @returns `true` si le chemin matche la déclaration.
+ */
+function matchesPublicEndpoint(path: string, declared: string): boolean {
+  // Forme littérale : préfixe (rétro-compatible avec la table historique).
+  if (!declared.includes('/:')) return path.startsWith(declared);
+
+  // Forme paramétrée : même nombre de segments, `:param` = 1 segment non vide.
+  // Fail-closed : segment vide, manquant ou surnuméraire → PAS public → JWT exigé.
+  const declaredSegments = declared.split('/');
+  const pathSegments = path.split('/');
+  if (pathSegments.length !== declaredSegments.length) return false;
+  return declaredSegments.every((segment, i) =>
+    segment.startsWith(':') ? (pathSegments[i] ?? '').length > 0 : pathSegments[i] === segment,
+  );
 }
 
 /**

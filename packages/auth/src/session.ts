@@ -17,6 +17,7 @@
 
 import { cookies } from 'next/headers';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
+import { resolveAuthMode } from './auth-mode';
 import type { AuthConfig, Role, Session, UserProfile } from './types';
 
 /** Cache module-level des JWKS par issuer (jose gère son propre cache 10 min). */
@@ -36,8 +37,7 @@ export async function getSession(config: AuthConfig): Promise<Session | null> {
   // Toujours lire cookies() d'abord (cacheComponents requirement).
   const jar = await cookies();
 
-  const authMode =
-    config.authMode ?? ((process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak');
+  const authMode = resolveAuthMode(config);
   if (authMode === 'mock') return getMockSession(config);
 
   const accessToken = jar.get('access_token')?.value;
@@ -112,10 +112,19 @@ function extractUserFromClaims(claims: Record<string, unknown>): UserProfile {
     'SUPERVISOR',
     'AUDITOR',
     'ADMIN',
+    'ANTICORRUPTION_INSPECTOR',
     'MINISTER',
     'CABINET',
   ];
-  const roles = allRoles.filter((r): r is Role => (KNOWN_ROLES as string[]).includes(r));
+  // Le realm Keycloak déclare les rôles en MINUSCULE (`citizen`, `agent`,
+  // `anticorruption_inspector`… cf. infrastructure/keycloak/import/realm-nina-aes.json)
+  // alors que le contrat applicatif Role est en MAJUSCULE (doc 08 §369 :
+  // `anticorruption_inspector` → ANTICORRUPTION_INSPECTOR). On normalise donc en
+  // MAJUSCULE AVANT le filtrage — sinon TOUS les rôles seraient silencieusement
+  // écartés en mode keycloak (fail-closed involontaire = 403 pour tout le monde).
+  const roles = allRoles
+    .map((r) => r.toUpperCase())
+    .filter((r): r is Role => (KNOWN_ROLES as string[]).includes(r));
 
   return {
     id: String(claims.sub ?? ''),

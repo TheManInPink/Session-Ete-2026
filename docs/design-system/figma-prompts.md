@@ -7,8 +7,8 @@
 > **Ordre d'exécution recommandé** : §0 (setup tokens) → §1 (composants atomiques) → §2 (composants
 > métier) → §3 (12 écrans) → §4 (audit a11y) → §5 (export retour code).
 >
-> **Plan d'attaque temporel** : ~27 heures réparties sur 8 jours (cf. `design-system.md` §12 et
-> conversation préparatoire).
+> **Plan d'attaque temporel** : ~43 heures réparties sur 12 jours (détail en §7 — l'estimation
+> initiale de 27 h a été révisée à la hausse pour intégrer les itérations qualité).
 
 ---
 
@@ -389,7 +389,7 @@ Génère 6 frames stack vertical (espacement spacing/4) :
 1. Empty       — placeholder "_ __ __ _ __ ___ ___ _" en mono color/neutral/400
                  letter-spacing 0.1em
 2. Typing (5 chars) — texte "1 89 03" en mono color/neutral/900, curseur visible
-3. Typing (15 chars valide) — texte "1 89 03 1 02 015 042 Z" + icône CheckCircle
+3. Typing (15 chars valide) — texte "1 89 03 1 02 015 042 V" + icône CheckCircle
                               Lucide 20px à droite color/success/600
 4. Invalid (15 chars mauvaise lettre) — bordure color/danger/500, icône AlertCircle
                                          + message "Lettre de contrôle invalide" en
@@ -418,13 +418,13 @@ Composant NinaDisplay pour NINA-AES — affichage formaté d'un NINA.
 
 3 variants côte à côte :
 
-A. grouped (default) — "1 89 03 1 02 015 042 Z" en mono Inter Variable mono ou
+A. grouped (default) — "1 89 03 1 02 015 042 V" en mono Inter Variable mono ou
    JetBrains Mono Variable size 24 medium, letter-spacing 0.1em, color/neutral/900,
    bouton Copy à droite (Lucide Copy 16px)
 
-B. compact — "18903102015042Z" sans espaces, size 18
+B. compact — "18903102015042V" sans espaces, size 18
 
-C. masked — "18***********4Z" pour les logs, size 18 italic color/neutral/500
+C. masked — "18***********4V" pour les logs, size 18 italic color/neutral/500
 
 Chaque variant a 3 tailles : sm (16), md (24), lg (32).
 
@@ -462,7 +462,7 @@ LAYOUT mobile (360x480) :
 - Infos dessous en pile, alignement centré
 - Boutons full width en pile
 
-Données fictives : Fatoumata DIALLO, NINA 1 89 03 1 02 015 042 Z, née 15/03/1989,
+Données fictives : Fatoumata DIALLO, NINA 1 89 03 1 02 015 042 V, née 15/03/1989,
 réside Mali > District de Bamako > Commune IV > Lafiabougou.
 
 Light + Dark.
@@ -920,7 +920,7 @@ Génère 4 frames montrant la séquence :
 
 À droite du téléphone : panneau debug 280x720 fond color/neutral/100, mono 12 :
 - sessionId : sim-1735819234
-- accumulated text : "2*1*18903102015042Z"
+- accumulated text : "2*1*18903102015042V"
 - API call : POST /ussd { ... }
 - Last response : "END Fatoumata DIALLO · 15/03/1989..."
 

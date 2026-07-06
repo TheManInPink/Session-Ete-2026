@@ -13,6 +13,15 @@ dependencies = [
     "numpy>=2.4.4",
     "httpx>=0.28.1",
     "python-dotenv>=1.2.2",
+    # Chargement du bundle Isolation Forest (intégrité fail-closed via sidecar .sha256).
+    "joblib>=1.4.0",
+    # Auth RBAC — PyJWT (RS256 + JWKS) ; l'extra [crypto] tire `cryptography`.
+    # JAMAIS python-jose (CVE-2024-33663 confusion d'algorithme / CVE-2024-33664 DoS).
+    "pyjwt[crypto]>=2.9.0",
+    # Scellement signalements CÔTÉ CLIENT (le serveur ne déchiffre jamais) :
+    #   PyNaCl → SEALED_BOX_X25519 ; cryptography → RSA_OAEP_4096 (épinglée explicitement).
+    "pynacl>=1.5.0",
+    "cryptography>=43.0.0",
 ]
 
 [project.optional-dependencies]

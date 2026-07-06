@@ -56,6 +56,15 @@ Dans cette étape, on apprend à :
 | Markdown    | CommonMark | Rédaction structurée des ADR                                | https://commonmark.org/       |
 | draw.io     | 24+        | Diagrammes de déploiement détaillés (optionnel)             | https://www.drawio.com/       |
 
+> **Versions infrastructure — source de vérité unique.** Les versions des dépendances **runtime**
+> (bases de données, brokers, IdP) ne sont **pas** figées dans ce document : elles sont définies
+> dans la table de référence du document **`00-README-INDEX.md` (§ Ports & versions)** et dans
+> **`05-INFRASTRUCTURE-DOCKER-COMPOSE.md`**. Au 2026-06 la cible canonique est : **PostgreSQL 18**,
+> **Redis 8.6**, **RabbitMQ 4.2**, **Elasticsearch 9.3**, **Keycloak 26.5**. Si un diagramme Mermaid
+> ci-dessous affiche encore une version antérieure (`PostgreSQL 17`, `Redis 7`, `Elasticsearch 8`),
+> c'est un **résidu de rédaction d'avril 2026** : la table du doc 00 fait foi, pas le label du nœud.
+> Les libellés ont été réalignés dans les diagrammes des §3.2 et §7.
+
 ---
 
 ## 3. Architecture — Vue C4
@@ -124,6 +133,24 @@ graph TB
 Ce diagramme ouvre la boîte noire et montre les composants déployables : 3 frontends, 11
 microservices, 6 systèmes de stockage.
 
+> **Décision — ports des frontends (contradiction tranchée).** Deux affectations circulaient : d'un
+> côté le tableau d'état des apps du doc 00 (et le code réel `apps/citizen`) → **citizen 4001 ·
+> admin 4002 · governance 4003** ; de l'autre la table « Ports & versions » du doc 00 (lignes
+> 372-374) → citoyen 4000 · admin 4001 · gouvernance 4002. **Affectation canonique retenue ici et
+> dans tout le doc 02 : `citizen=4001`, `admin=4002`, `governance=4003`** — elle reflète l'état
+> livré (`apps/citizen` tourne bien sur 4001, PROMPT 5.1) et évite le port 4000. ⏳ **Reste-à-faire
+> (hors périmètre doc 02)** : réaligner la table « Ports & versions » du doc 00 sur ce triplet pour
+> lever le drift interne au doc 00.
+
+> **Décision — handler USSD (affectation tranchée).** Les premières versions de ce document
+> faisaient transiter le webhook USSD par `notification-service :3005`. **Le canon est désormais un
+> microservice dédié `ussd-service` (NestJS, port 3014)** : webhook `POST /ussd`, sessions Redis TTL
+> 5 min, menu 8 langues (cf. **doc 14 — USSD Africa's Talking** + **ADR-008**). Raison : l'USSD a un
+> cycle de vie, un modèle de sécurité (allowlist IP + secret Africa's Talking) et une cadence de
+> déploiement propres, qui ne doivent pas être couplés au service de notifications. `ussd-service`
+> **appelle** ensuite `identity-service` (vérif NINA), `appointment-service` (RDV) et
+> `notification-service` (SMS de confirmation) — d'où les arêtes sortantes ci-dessus.
+
 ```mermaid
 graph TB
     subgraph "Frontends"
@@ -141,23 +168,24 @@ graph TB
         SVC_DOC["document-service<br/>NestJS — :3004<br/>PDF + QR signé"]
         SVC_NOTIF["notification-service<br/>NestJS — :3005<br/>SMS + Email"]
         SVC_INTER["interop-service<br/>NestJS — :3006<br/>Protocole BCID-AES"]
-        SVC_AUDIT["audit-service<br/>NestJS — :3007<br/>Merkle hash"]
+        SVC_AUDIT["audit-service<br/>NestJS — :3007<br/>Hash-chain SHA-256"]
         SVC_RDV["appointment-service<br/>NestJS — :3008<br/>Rendez-vous"]
         SVC_SIGAC["anticorruption-service<br/>FastAPI — :3009<br/>Isolation Forest"]
         SVC_GOUV["governance-service<br/>NestJS — :3010<br/>SGOGT"]
         SVC_VULN["vulnerability-service<br/>NestJS — :3011<br/>Personnes vulnérables"]
+        SVC_USSD["ussd-service<br/>NestJS — :3014<br/>Webhook POST /ussd + sessions Redis"]
     end
 
     subgraph "Couche données"
-        PG[("PostgreSQL 17<br/>:5432<br/>Données NINA + Audit")]
-        RD[("Redis 7<br/>:6379<br/>Cache + Sessions USSD")]
-        ES[("Elasticsearch 8<br/>:9200<br/>Recherche floue")]
+        PG[("PostgreSQL 18<br/>:5432<br/>Données NINA + Audit")]
+        RD[("Redis 8.6<br/>:6379<br/>Cache + Sessions USSD")]
+        ES[("Elasticsearch 9.3<br/>:9200<br/>Recherche floue")]
         MIO[("MinIO<br/>:9000<br/>Photos + PDF")]
-        RMQ[("RabbitMQ 4<br/>:5672<br/>Messages async")]
+        RMQ[("RabbitMQ 4.2<br/>:5672<br/>Messages async")]
     end
 
     subgraph "Sécurité"
-        KC_SVC["Keycloak 26<br/>:8080<br/>OAuth2 / OIDC"]
+        KC_SVC["Keycloak 26.5<br/>:8080<br/>OAuth2 / OIDC"]
         VAULT["HashiCorp Vault<br/>:8200<br/>Secrets"]
     end
 
@@ -171,9 +199,10 @@ graph TB
     FE_GOV --> SVC_GOUV
     FE_MOB --> SVC_ID
     FE_MOB --> SVC_DOC
-    FE_USSD --> SVC_ID
-    FE_USSD --> SVC_RDV
-    FE_USSD --> SVC_NOTIF
+    FE_USSD --> SVC_USSD
+    SVC_USSD --> SVC_ID
+    SVC_USSD --> SVC_RDV
+    SVC_USSD --> SVC_NOTIF
 
     SVC_ID --> PG
     SVC_ID --> ES
@@ -191,6 +220,7 @@ graph TB
     SVC_GOUV --> PG
     SVC_VULN --> PG
     SVC_VULN --> RD
+    SVC_USSD --> RD
 
     SVC_ID --> RMQ
     SVC_AUTH --> VAULT
@@ -225,7 +255,7 @@ graph LR
     subgraph "Externe"
         PG_DB[("PostgreSQL")]
         ES_DB[("Elasticsearch")]
-        RMQ_Q[("RabbitMQ<br/>audit.actions")]
+        RMQ_Q[("RabbitMQ<br/>nina.audit (fanout)<br/>+ nina.events (topic)")]
     end
 
     GUARD --> CTRL
@@ -261,6 +291,8 @@ sequenceDiagram
     participant AUD as audit-service<br/>:3007
     participant RMQ as RabbitMQ
 
+    Note over FE,RMQ: Tous les sauts inter-services (REST + AMQP) sont en mTLS strict (Linkerd + PKI Vault) — ADR-034
+
     C->>FE: Saisit son NINA ou son nom
     FE->>AUTH: GET /auth/verify-token (JWT)
     AUTH-->>FE: ✅ Token valide (rôle: citoyen)
@@ -278,7 +310,7 @@ sequenceDiagram
 
     ID->>RMQ: Publish audit.actions (action: READ)
     RMQ-->>AUD: Consume → INSERT audit_log
-    AUD->>PG: INSERT INTO audit_logs (hash Merkle)
+    AUD->>PG: INSERT INTO audit_logs (hash-chain SHA-256)
 
     ID-->>FE: 200 OK — Données NINA
     FE-->>C: Affiche PC-02 (écran résultat)
@@ -330,11 +362,21 @@ sequenceDiagram
     ADM_FE->>ID: PATCH /nina/{id} (avec correction)
     ID->>PG: UPDATE citizens SET nom = $1
     ID->>RMQ: Publish audit.actions (action: CORRECT)
-    RMQ-->>AUD: Consume → INSERT audit_log (Merkle)
+    RMQ-->>AUD: Consume → INSERT audit_log (hash-chain)
     ID-->>ADM_FE: 200 OK — Correction appliquée
 ```
 
 ### 4.3 Flux QR code — Génération et vérification
+
+> 🔐 **Signature via Vault Transit (ADR-026).** La clé privée RSA-3072 de signature du QR **n'est
+> jamais extraite** de Vault : le `document-service` envoie un **hash SHA-256** à
+> `transit/sign/nina-qr-signing/sha2-256` et reçoit la signature. Le service détient uniquement le
+> droit `update` sur cet endpoint (jamais `read`/`export` de la clé). Toute compromission RCE ne
+> permet donc que de **faire signer** pendant la fenêtre de compromission (détectable par pic
+> `vault_audit_total`), pas d'**exfiltrer** la clé. Ne **pas** réintroduire un
+> `GET secret/jwt-private-key` — c'est précisément l'anti-pattern rejeté par ADR-026. La signature
+> audit (Ed25519) est un autre usage, **in-process** `@noble/ed25519` (doc 09), car Vault Transit ne
+> supporte pas Ed25519.
 
 ```mermaid
 sequenceDiagram
@@ -353,12 +395,13 @@ sequenceDiagram
     DOC->>ID: GET /nina/{nina} (données complètes)
     ID-->>DOC: Données NINA + photo_url
 
-    DOC->>VAULT: GET /secret/jwt-private-key
-    VAULT-->>DOC: Clé privée RSA (RS256)
-
     DOC->>DOC: Construit le payload JWT
     Note right of DOC: { nina, nom, prenoms,<br/>biometric_hash,<br/>issued_at, issuer: "CTDEC" }
-    DOC->>DOC: Signe avec RS256
+    DOC->>DOC: Calcule SHA-256 de l'en-tête.payload
+    DOC->>VAULT: POST transit/sign/nina-qr-signing/sha2-256 { hash }
+    Note right of VAULT: ADR-026 — la clé privée RSA-3072 NE QUITTE JAMAIS Vault ;<br/>le service n'a que le droit `update` sur transit/sign
+    VAULT-->>DOC: Signature RS256 (PKCS#1 v1.5) + key_version
+    DOC->>DOC: Assemble le JWT signé (RS256)
     DOC->>DOC: Génère QR code (JWT encodé)
     DOC->>DOC: Génère PDF A4 (Puppeteer)
 
@@ -376,9 +419,9 @@ sequenceDiagram
     V->>MOB: Scanne le QR code
     MOB->>MOB: Décode le JWT
     MOB->>DOC: POST /documents/verify-qr { jwt }
-    DOC->>VAULT: GET /secret/jwt-public-key
-    VAULT-->>DOC: Clé publique RSA
-    DOC->>DOC: Vérifie signature RS256
+    DOC->>VAULT: GET transit/keys/nina-qr-signing (clé PUBLIQUE, par key_version)
+    VAULT-->>DOC: Clé publique RSA (exportable, jamais la privée)
+    DOC->>DOC: Vérifie signature RS256 (key_version du header JWT)
     DOC->>DOC: Vérifie expiration
     DOC->>ID: GET /nina/{nina} (existence)
     ID-->>DOC: ✅ NINA existe
@@ -395,13 +438,13 @@ sequenceDiagram
     actor C as Citoyen<br/>(téléphone basique)
     participant TEL as Opérateur Télécom<br/>(Orange Mali)
     participant AT as Africa's Talking<br/>(Gateway USSD)
-    participant USSD as notification-service<br/>:3005 (handler USSD)
+    participant USSD as ussd-service<br/>:3014 (webhook POST /ussd)
     participant RD as Redis<br/>(sessions USSD)
     participant ID as identity-service<br/>:3001
 
     C->>TEL: Compose *123*NINA#
     TEL->>AT: Requête USSD
-    AT->>USSD: POST /ussd/callback {sessionId, phoneNumber, text: ""}
+    AT->>USSD: POST /ussd {sessionId, phoneNumber, text: ""}<br/>(allowlist IP + secret Africa's Talking)
 
     USSD->>RD: GET session:{sessionId}
     RD-->>USSD: null (nouvelle session)
@@ -413,7 +456,7 @@ sequenceDiagram
 
     C->>TEL: Tape "1"
     TEL->>AT: Requête USSD
-    AT->>USSD: POST /ussd/callback {sessionId, text: "1"}
+    AT->>USSD: POST /ussd {sessionId, text: "1"}
 
     USSD->>RD: GET session:{sessionId}
     RD-->>USSD: {step: "menu", lang: "fr"}
@@ -424,7 +467,7 @@ sequenceDiagram
 
     C->>TEL: Tape "190010100100001A"
     TEL->>AT: Requête USSD
-    AT->>USSD: POST /ussd/callback {sessionId, text: "190010100100001A"}
+    AT->>USSD: POST /ussd {sessionId, text: "190010100100001A"}
 
     USSD->>ID: GET /nina/190010100100001A
     ID-->>USSD: {nom: "DIALLO", prenoms: "Mamadou", status: "actif"}
@@ -439,6 +482,17 @@ sequenceDiagram
 ## 5. Patterns architecturaux
 
 ### 5.1 Communication inter-services
+
+> **mTLS strict intra-cluster (ADR-034).** Toutes les arêtes inter-services ci-dessous — REST
+> **comme** AMQP — transitent en **mTLS strict** appliqué par le **mesh Linkerd** : chaque pod
+> reçoit une **identité cryptographique courte durée** (certificat émis par la **PKI Vault**,
+> rotation automatique). Un pod compromis ne peut donc pas se faire passer pour un autre service par
+> une simple requête HTTP nu. Le détail (politique `deny-by-default`, rotation des clés et du JWKS,
+> cartographie OWASP, scans CI) est figé dans **ADR-034 — Durcissement sécurité** et le doc **15 —
+> Security Hardening** ; les diagrammes de séquence ci-dessus n'affichent pas explicitement le
+> handshake mTLS pour rester lisibles, mais il est **systématique** (aucune exception
+> intra-cluster). ⏳ Linkerd + PKI Vault sont **conçus, déploiement à finaliser en Phase 2**
+> (vérifiable : pas encore de manifeste `linkerd` appliqué dans `infrastructure/`).
 
 Le système utilise **deux modes de communication** entre microservices :
 
@@ -462,6 +516,18 @@ graph LR
 | **Asynchrone (RabbitMQ)** | Quand l'action peut être traitée plus tard, ou quand plusieurs services doivent réagir au même événement | Audit logging, notifications SMS, indexation Elasticsearch, corrections IA                                              |
 
 ### 5.2 Exchanges et queues RabbitMQ
+
+> ✅ **Topologie audit RabbitMQ (drift résolu côté code — note d'honnêteté).** Le diagramme
+> ci-dessous reste la **cible logique** (libellés `audit.exchange` historiques). Dans le code livré,
+> l'`audit-service` lie son consumer aux exchanges **`nina.events`** (topic) + **`nina.audit`**
+> (fanout) — cf. doc 09 §«1 consumer RabbitMQ». Les publishers ont **déjà été réalignés** sur ces
+> noms canoniques : `document-service` (`src/config/env.schema.ts` → `RABBITMQ_EVENTS_EXCHANGE`
+> défaut `nina.events`, commentaire « Anciennement `audit.events` — exchange orphelin non consommé
+> (drift corrigé) ») et `identity-service` (`RABBITMQ_EXCHANGE=nina.events`). L'exchange orphelin
+> historique **`audit.events`** (et `nina-aes.events`) n'est **plus émis** par le code livré. **⏳
+> Reste-à-faire purement documentaire** : les docs **09 / 10 / 11 et ADR-014** nomment encore par
+> endroits l'exchange historique `audit.events` ; le code et `definitions.json` font foi
+> (`nina.events`). Convention canonique : `nina.audit` (fanout) / `nina.events` (topic).
 
 ```mermaid
 graph LR
@@ -524,6 +590,55 @@ graph TB
     CTRL --> AUDIT_MW["Audit Interceptor<br/>Log automatique<br/>vers RabbitMQ"]
     AUDIT_MW --> RESP["Réponse HTTP"]
 ```
+
+> Le périmètre **réseau** de cette chaîne (mTLS strict entre le reverse proxy et chaque service,
+> rotation des certificats et du JWKS) relève de **ADR-034**, pas de ce diagramme applicatif.
+
+### 5.4 Cartographie OWASP Top 10 (2021) — où chaque risque est traité
+
+Cette table relie chaque catégorie **OWASP Top 10 : 2021** à la **défense architecturale**
+correspondante dans NINA-AES. Elle synthétise des décisions figées ailleurs (**ADR-034**,
+**ADR-006**, **ADR-007/014**, **ADR-013**) ; le détail opérationnel et les scans CI sont dans le doc
+**15 — Security Hardening**. Statut honnête : ✅ = conçu **et** présent dans le code livré ; ⏳ =
+conçu, **à finaliser en Phase 2** (vérifiable par Read/Grep).
+
+| Risque OWASP 2021                      | Défense dans NINA-AES                                                                                                  | Réf. / statut                  |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **A01 — Broken Access Control**        | `JWT Guard` (RS256) + `Role Guard` RBAC à chaque controller ; déni par défaut ; pas d'IDOR (UUID + contrôle de portée) | ADR-013 · ✅                   |
+| **A02 — Cryptographic Failures**       | TLS partout ; **mTLS strict** intra-cluster ; secrets en **Vault** (jamais en `.env`) ; QR signé **RS256** (Transit)   | ADR-034 · ADR-006 · ⏳ mTLS    |
+| **A03 — Injection**                    | Prisma (requêtes paramétrées, pas de SQL concaténé) ; `class-validator` + **Zod** ; `unaccent`/`pg_trgm` côté SQL géré | ADR-005 · ✅                   |
+| **A04 — Insecure Design**              | Modèle de menace dédié (`docs/security/THREAT-MODEL.md`) ; audit hash-chain (ADR-007) ; database-per-service           | THREAT-MODEL · ✅              |
+| **A05 — Security Misconfiguration**    | **En-têtes durcis** (HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy`) ; CORS allowlist ; images minimales       | ADR-034 · ⏳ (voir ci-dessous) |
+| **A06 — Vulnerable Components**        | Scans **CI** (audit deps, image scan) ; pnpm lockfile gelé ; registry miroir CTDEC (souveraineté)                      | ADR-034 · ⏳                   |
+| **A07 — Identification/Auth Failures** | **Keycloak** OIDC + **MFA** agents ; JWT courte durée ; rate-limit anti-bruteforce ; pas de secret long-lived          | ADR-013 · ADR-034 · ⏳         |
+| **A08 — Software/Data Integrity**      | QR **JWT RS256** (ADR-006) ; audit **hash-chain + scellement Ed25519** (ADR-007) ; ⏳ ancrage tiers OCLEI              | ADR-006 · ADR-007 · ⏳         |
+| **A09 — Logging/Monitoring Failures**  | `Audit Interceptor` → `audit-service` ; stack Prometheus/Grafana/Loki/Jaeger (namespace `nina-monitoring`)             | ADR-014 · ✅ partiel           |
+| **A10 — SSRF**                         | Sorties réseau restreintes (allowlist passerelles AES + Africa's Talking) ; pas de fetch d'URL arbitraire utilisateur  | ADR-034 · ⏳                   |
+
+#### En-têtes de sécurité HTTP (HSTS / CSP) — au reverse proxy + middleware NestJS
+
+Ces en-têtes couvrent **A05** (misconfiguration) et durcissent **A02/A03** côté navigateur. Ils sont
+posés à la fois par l'**ingress** (Nginx) et par un middleware applicatif (type `helmet`). **Statut
+: conçu, ⏳ à appliquer/vérifier en Phase 2** (cf. doc 15).
+
+```http
+# Force HTTPS pendant 2 ans, sous-domaines inclus, éligible preload
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+
+# CSP verrouillée : tout par défaut depuis l'origine ; pas d'inline script ;
+# images/data: autorisés (QR codes, photos NINA servies en data-URI ou MinIO signé)
+Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none';
+  img-src 'self' data:; base-uri 'self'; frame-ancestors 'none'
+
+X-Content-Type-Options: nosniff       # bloque le MIME-sniffing
+Referrer-Policy: no-referrer          # ne fuite pas l'URL NINA vers des tiers
+Permissions-Policy: geolocation=(), microphone=(), camera=()   # surface minimale
+```
+
+> Pourquoi `frame-ancestors 'none'` plutôt que `X-Frame-Options` ? `frame-ancestors` (CSP niveau 2)
+> est la directive moderne anti-clickjacking ; elle remplace l'en-tête historique `X-Frame-Options`
+> et couvre tous les navigateurs cibles. Pourquoi pas de `'unsafe-inline'` dans `script-src` ?
+> Next.js 16 supporte les nonces/hash CSP ; autoriser l'inline rouvrirait une porte XSS (**A03**).
 
 ---
 
@@ -659,12 +774,12 @@ erDiagram
 graph TB
     subgraph "Poste de travail Windows"
         subgraph "Docker Desktop"
-            D_PG["PostgreSQL 17<br/>:5432"]
-            D_RD["Redis 7<br/>:6379"]
-            D_RMQ["RabbitMQ 4<br/>:5672 / :15672"]
+            D_PG["PostgreSQL 18<br/>:5432"]
+            D_RD["Redis 8.6<br/>:6379"]
+            D_RMQ["RabbitMQ 4.2<br/>:5672 / :15672"]
             D_MINIO["MinIO<br/>:9000 / :9001"]
-            D_ES["Elasticsearch 8<br/>:9200"]
-            D_KC["Keycloak 26<br/>:8080"]
+            D_ES["Elasticsearch 9.3<br/>:9200"]
+            D_KC["Keycloak 26.5<br/>:8080"]
             D_VAULT["Vault<br/>:8200"]
             D_MAIL["Maildev<br/>:1080 / :1025"]
         end
@@ -700,6 +815,13 @@ graph TB
 ```
 
 ### 7.2 Environnement de production (cible)
+
+> **Souveraineté — périmètre Cloudflare.** Cloudflare n'intervient **que** comme CDN d'**actifs
+> statiques** pour la diaspora (JS/CSS/images publiques) ; il **ne termine pas le TLS du cœur** et
+> ne voit **aucune donnée NINA ni biométrique** (le trafic applicatif entre par l'ingress Nginx +
+> cert-manager au CTDEC). Aucune dépendance Cloudflare (ni AWS KMS) sur le chemin de données
+> souverain on-premise. Auto-unseal Vault, ACME et registry restent internes/mirrorés CTDEC (cf.
+> ADR-034).
 
 ```mermaid
 graph TB
@@ -773,6 +895,13 @@ graph TB
 Les ADR documentent les **raisons** derrière chaque choix technique. Ils suivent le format :
 Contexte → Décision → Conséquences.
 
+> **Ne pas dupliquer les ADR sécurité.** Ce document rappelle les ADR fondateurs (002→008). La
+> sécurité transversale (**mTLS strict Linkerd + PKI Vault + rotation clés/JWKS + OWASP + scans
+> CI**) est **déjà** figée dans **ADR-034** ; l'audit événementiel append-only dans **ADR-014** ; la
+> signature QR via Transit dans **ADR-026**. **Référencer ces ADR existants** plutôt que d'en créer
+> de nouveaux. Le périmètre ADR du dépôt est **ADR-001 → ADR-034** (ne pas proposer un doublon sans
+> avoir vérifié son absence).
+
 ### ADR-002 — Microservices plutôt que monolithe
 
 |                            |                                                                                                                                                                                                                         |
@@ -810,7 +939,7 @@ Contexte → Décision → Conséquences.
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Statut**                | Accepté — Avril 2026                                                                                                                                                                                                                                                                                                                                                 |
 | **Contexte**              | Les données NINA sont relationnelles (enregistrements, régions, corrections) et nécessitent des garanties ACID fortes (intégrité référentielle, transactions).                                                                                                                                                                                                       |
-| **Décision**              | PostgreSQL 17 (dernière version stable avec image Docker) comme base unique pour tous les services.                                                                                                                                                                                                                                                                  |
+| **Décision**              | PostgreSQL comme base unique pour tous les services. _Version cible alignée 2026-06 : **PostgreSQL 18** (table de référence doc 00 + doc 05). Le « 17 » mentionné dans la rédaction d'origine (avril 2026) est obsolète._                                                                                                                                            |
 | **Raisons**               | (1) Extensions critiques : `pg_trgm` pour la recherche floue, `unaccent` pour la normalisation des noms, `pgcrypto` pour le hachage. (2) TDE (Transparent Data Encryption) pour le chiffrement au repos (ENF-013). (3) Maturité — utilisé en production pour des systèmes gouvernementaux dans le monde entier. (4) Open source — conformité souveraineté numérique. |
 | **Alternatives rejetées** | MongoDB (pas de garanties ACID, pas d'intégrité référentielle). MySQL (extensions moins riches). CockroachDB (surcoût opérationnel pour un projet universitaire).                                                                                                                                                                                                    |
 
@@ -824,15 +953,24 @@ Contexte → Décision → Conséquences.
 | **Raisons**               | (1) RS256 (asymétrique) permet la vérification sans partager la clé privée — n'importe qui avec la clé publique peut vérifier, mais seul le CTDEC peut signer. (2) Le timestamp rend chaque QR code unique et permet de détecter les reproductions. (3) Le hash biométrique lie le document à une personne physique sans exposer la biométrie brute. |
 | **Alternatives rejetées** | HS256 (symétrique — la clé de vérification est la même que la clé de signature, trop risqué). QR code chiffré AES (nécessite la clé de déchiffrement pour toute vérification, pas pratique pour les agents de terrain).                                                                                                                              |
 
-### ADR-007 — Chaîne de hash Merkle pour l'audit
+### ADR-007 — Chaîne de hash (hash-chain) SHA-256 pour l'audit
 
-|                           |                                                                                                                                                                                                                                                                            |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Statut**                | Accepté — Avril 2026                                                                                                                                                                                                                                                       |
-| **Contexte**              | L'exigence EF-A-018 impose un journal d'audit immuable. Un attaquant (ou un agent corrompu ayant accès à la BDD) ne doit pas pouvoir modifier une entrée passée sans être détecté.                                                                                         |
-| **Décision**              | Chaque entrée d'audit contient un hash SHA-256 calculé à partir de son contenu concaténé au hash de l'entrée précédente (chaîne de type Merkle).                                                                                                                           |
-| **Raisons**               | (1) Modification d'une entrée passée → invalide tous les hash suivants → détection immédiate. (2) Vérification en O(n) — parcours linéaire de la chaîne. (3) Plus simple qu'une blockchain complète, mais offre les mêmes garanties d'immutabilité pour notre cas d'usage. |
-| **Alternatives rejetées** | Blockchain complète (Hyperledger, Ethereum) — surcoût opérationnel disproportionné pour un journal d'audit interne. Append-only table sans hash — détectable par l'admin BDD mais pas par un auditeur externe.                                                             |
+> ⚠️ **Correction terminologique (canon sécurité).** Ce mécanisme est une **chaîne de hash linéaire
+> (hash-chain)**, **pas un arbre de Merkle**. Un arbre de Merkle agrège des feuilles en un arbre
+> binaire dont seule la racine est publiée ; ici, chaque entrée référence simplement le hash de
+> **l'entrée précédente** (`previous_hash`), formant une liste chaînée cryptographique. La rédaction
+> d'origine parlait à tort de « Merkle » — le terme exact est **hash-chain**. Voir
+> **`09-BACKEND-AUDIT-SERVICE.md`** (implémentation de référence) et **ADR-014** (audit append-only
+> event-driven).
+
+|                                |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Statut**                     | Accepté — Avril 2026 · _terminologie corrigée 2026-06 (hash-chain, pas Merkle)_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Contexte**                   | L'exigence EF-A-018 impose un journal d'audit immuable. Un attaquant (ou un agent corrompu ayant accès à la BDD) ne doit pas pouvoir modifier une entrée passée sans être détecté.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Décision**                   | Chaque entrée d'audit contient un hash SHA-256 = `SHA256(contenu_entrée ‖ previous_hash)`. Les entrées forment une **hash-chain linéaire** : chaque ligne scelle la précédente. La **racine de chaîne** est en outre **signée Ed25519 toutes les 60 min** (scellement horaire in-process, doc 09).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Raisons**                    | (1) Modification d'une entrée passée → invalide tous les hash suivants → détection au prochain `verify`. (2) Vérification en O(n) — parcours linéaire de la chaîne. (3) Beaucoup plus simple qu'une blockchain à consensus, suffisant pour un journal d'audit **interne**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Limite assumée (honnêteté)** | Une hash-chain seule **ne résiste pas à un admin BDD malveillant** : qui peut écrire dans la table peut **recalculer toute la chaîne** (réécrire l'entrée falsifiée _et_ tous les `hash`/`previous_hash` suivants) — le journal redevient cohérent et la falsification est **indétectable par parcours local**. L'immutabilité réelle exige deux ajouts : (a) le **scellement Ed25519 in-process** de la racine (`@noble/ed25519`, clé chargée depuis **Vault KV** — **PAS** Vault Transit, qui ne supporte pas Ed25519, cf. ADR-026/034) qui horodate l'état de la chaîne et rend toute réécriture postérieure prouvable ; (b) **l'ancrage périodique** de la racine signée chez un **tiers indépendant** (OCLEI / Vérificateur Général) — **⏳ à implémenter en Phase 2**. Sans cet ancrage tiers, la garantie reste « détectable par un auditeur détenant les racines signées historiques », pas « infalsifiable ». |
+| **Alternatives rejetées**      | Arbre de Merkle complet (utile pour des **preuves d'inclusion** partielles ; superflu ici car on vérifie la chaîne entière). Blockchain à consensus (Hyperledger, Ethereum) — surcoût opérationnel disproportionné, contraire à la souveraineté on-premise. Append-only sans hash — détectable par l'admin BDD mais pas par un auditeur externe.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ### ADR-008 — USSD via Africa's Talking
 
@@ -872,9 +1010,15 @@ docs/adr/
 ├── ADR-004-fastapi.md
 ├── ADR-005-postgresql.md
 ├── ADR-006-jwt-rs256-qr-code.md
-├── ADR-007-merkle-audit.md
+├── ADR-007-merkle-audit.md                (nom de fichier historique ; contenu = hash-chain, pas Merkle)
 └── ADR-008-ussd-africas-talking.md
 ```
+
+> **ADR transversaux déjà existants (ne pas recréer)** — référencés par ce document mais rédigés à
+> d'autres étapes : `ADR-013-keycloak-identity-provider.md` (OIDC/MFA),
+> `ADR-014-audit-event-driven-append-only.md` (topologie audit), `ADR-026` (signature QR via Vault
+> Transit RS256), `ADR-034-security-hardening-vault-mtls-owasp.md` (mTLS strict + PKI + rotation +
+> OWASP + scans CI).
 
 ---
 
@@ -931,13 +1075,13 @@ docs/adr/
 
 ### Questions fréquentes en soutenance
 
-| Question du jury                                                 | Réponse préparée                                                                                                                                                             |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| « Pourquoi 11 microservices et pas un monolithe ? »              | Voir ADR-002. Diversité des stacks (TS + Python), résilience, déploiement indépendant. Un monolithe mélangerait l'IA Python et le CRUD TypeScript dans la même base de code. |
-| « Comment gérez-vous la cohérence des données entre services ? » | Cohérence éventuelle via RabbitMQ. Chaque service possède ses propres données (database-per-service). Les opérations critiques (création NINA) sont synchrones (REST).       |
-| « Que se passe-t-il si RabbitMQ tombe ? »                        | Les messages non consommés sont persistés sur disque. Au redémarrage, le traitement reprend. Les services continuent de fonctionner (les logs d'audit seront rattrapés).     |
-| « Pourquoi ne pas utiliser une blockchain pour l'audit ? »       | Voir ADR-007. La chaîne Merkle offre les mêmes garanties d'immutabilité sans la complexité d'un réseau distribué de consensus.                                               |
-| « Comment assurez-vous la souveraineté numérique ? »             | Toutes les technologies sont open source. Le déploiement cible est on-premise au CTDEC Bamako. Aucune donnée biométrique ne transite par des serveurs étrangers.             |
+| Question du jury                                                 | Réponse préparée                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| « Pourquoi 11 microservices et pas un monolithe ? »              | Voir ADR-002. Diversité des stacks (TS + Python), résilience, déploiement indépendant. Un monolithe mélangerait l'IA Python et le CRUD TypeScript dans la même base de code.                                                                                                                          |
+| « Comment gérez-vous la cohérence des données entre services ? » | Cohérence éventuelle via RabbitMQ. Chaque service possède ses propres données (database-per-service). Les opérations critiques (création NINA) sont synchrones (REST).                                                                                                                                |
+| « Que se passe-t-il si RabbitMQ tombe ? »                        | Les messages non consommés sont persistés sur disque. Au redémarrage, le traitement reprend. Les services continuent de fonctionner (les logs d'audit seront rattrapés).                                                                                                                              |
+| « Pourquoi ne pas utiliser une blockchain pour l'audit ? »       | Voir ADR-007. La **hash-chain SHA-256** (chaîne linéaire, pas un arbre de Merkle) + **scellement Ed25519 horaire** offre la détection d'altération sans réseau de consensus. Honnêteté : sans **ancrage tiers** (OCLEI), un admin BDD pourrait recalculer toute la chaîne — l'ancrage est ⏳ Phase 2. |
+| « Comment assurez-vous la souveraineté numérique ? »             | Toutes les technologies sont open source. Le déploiement cible est on-premise au CTDEC Bamako. Aucune donnée biométrique ne transite par des serveurs étrangers.                                                                                                                                      |
 
 ---
 

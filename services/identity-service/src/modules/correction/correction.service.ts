@@ -23,13 +23,21 @@
  * @module      identity-service/correction
  */
 
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom, timeout, catchError, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { prisma, Prisma } from '@nina-aes/database';
-import { CorrectionStatus } from '@nina-aes/shared-types';
+import { CorrectionStatus, UserRole } from '@nina-aes/shared-types';
+import { normalizeNina } from '@nina-aes/utils';
 
+import type { RequestUser } from '../../auth/guards';
 import { RabbitMQService } from '../../infrastructure/rabbitmq/rabbitmq.service';
 import type {
   ListCorrectionsDto,
@@ -62,11 +70,35 @@ export class CorrectionService {
     private readonly rabbit: RabbitMQService,
   ) {}
 
-  /** POST /corrections — pipeline complet. */
-  async submit(dto: SubmitCorrectionDto, actorId?: string): Promise<unknown> {
+  /**
+   * POST /corrections — pipeline complet.
+   *
+   * 🔒 Anti-IDOR (write-side, OWASP A01) : un acteur de rôle `CITIZEN` ne peut
+   * soumettre une correction QUE sur SON PROPRE dossier. On compare le NINA du
+   * citoyen ciblé (`dto.citizenId`) au claim `nina` du token (normalisé). Tout
+   * écart ⇒ 403 (message générique : on ne confirme pas l'existence du dossier
+   * visé). Les rôles privilégiés (agent/supervisor/admin) conservent l'accès
+   * transverse légitime (audité côté audit-service).
+   *
+   * @param dto   Demande de correction.
+   * @param actor Utilisateur authentifié (rôle + nina), injecté par le guard.
+   * @returns La `CorrectionRequest` persistée, enrichie de l'analyse IA.
+   * @throws NotFoundException  si le citoyen ciblé est introuvable.
+   * @throws ForbiddenException si un citoyen vise un dossier autre que le sien.
+   */
+  async submit(dto: SubmitCorrectionDto, actor: RequestUser): Promise<unknown> {
+    const actorId = actor.id;
+
     const citizen = await prisma.citizen.findUnique({ where: { id: dto.citizenId } });
     if (!citizen || citizen.deletedAt) {
       throw new NotFoundException(`Citoyen ${dto.citizenId} introuvable`);
+    }
+
+    // 🔒 Ownership : un citoyen ne corrige QUE son propre dossier (fail-closed).
+    if (actor.role === UserRole.CITIZEN) {
+      if (!actor.nina || normalizeNina(actor.nina) !== normalizeNina(citizen.nina)) {
+        throw new ForbiddenException('CORRECTION_FORBIDDEN_OWNERSHIP');
+      }
     }
 
     // 1. Persister la demande en status UNDER_REVIEW
@@ -154,6 +186,37 @@ export class CorrectionService {
       prisma.correctionRequest.count({ where }),
     ]);
     return { data, total, page: dto.page, pageSize: dto.pageSize };
+  }
+
+  /**
+   * GET /corrections/me — corrections du dossier du citoyen AUTHENTIFIÉ.
+   *
+   * 🔒 Anti-IDOR / BOLA (read-side, OWASP A01) : le NINA provient EXCLUSIVEMENT
+   * du token (jamais d'un paramètre client), donc un citoyen ne peut lister QUE
+   * les corrections rattachées à SON propre dossier — contrairement à `list()`,
+   * réservé aux agents. Le NINA est normalisé pour matcher la forme stockée
+   * (cf. `citizen.service` qui persiste `nina: normalized`).
+   *
+   * @param nina NINA du citoyen, extrait du claim `nina` du JWT par le controller.
+   * @returns Les corrections du citoyen (ordre antéchronologique) + total.
+   */
+  async listForCitizen(nina: string): Promise<{ data: unknown[]; total: number }> {
+    const normalized = normalizeNina(nina);
+    const where: Prisma.CorrectionRequestWhereInput = {
+      deletedAt: null,
+      citizen: { is: { nina: normalized } },
+    };
+    const [data, total] = await Promise.all([
+      prisma.correctionRequest.findMany({
+        where,
+        include: {
+          citizen: { select: { id: true, nina: true, firstName: true, lastName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.correctionRequest.count({ where }),
+    ]);
+    return { data, total };
   }
 
   /** GET /corrections/:id. */

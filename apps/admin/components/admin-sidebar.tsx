@@ -51,7 +51,7 @@ export function AdminSidebar({
   const pathname = usePathname() ?? '';
 
   return (
-    <aside className="admin-sidebar flex h-screen w-60 shrink-0 flex-col">
+    <aside className="admin-sidebar hidden h-screen w-60 shrink-0 flex-col lg:flex">
       {/* Logo + titre */}
       <div className="border-b border-white/10 px-4 py-5">
         <p className="text-xs uppercase tracking-wider text-white/60">{t('brand')}</p>
@@ -93,13 +93,16 @@ export function AdminSidebar({
           )}
           {agent.centerId && <p className="text-xs text-white/50">{agent.centerId}</p>}
         </div>
-        <a
-          href="/api/auth/logout"
-          className="flex items-center gap-2 rounded-base px-3 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-        >
-          <LogOut className="size-4" aria-hidden="true" />
-          <span>{t('logout')}</span>
-        </a>
+        {/* Déconnexion = navigation vers une route API serveur (form GET), pas une page Next. */}
+        <form action="/api/auth/logout">
+          <button
+            type="submit"
+            className="flex w-full items-center gap-2 rounded-base px-3 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+            <span>{t('logout')}</span>
+          </button>
+        </form>
       </div>
     </aside>
   );

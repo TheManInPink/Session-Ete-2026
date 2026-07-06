@@ -13,6 +13,20 @@
 @import 'tailwindcss';
 
 /**
+ * Sources de contenu EXPLICITES pour le scan des classes utilitaires.
+ *
+ * Tailwind v4 auto-détecte les fichiers de l'app qui importe cette feuille,
+ * mais IGNORE `node_modules` — or le lien workspace `@nina-aes/ui` y est résolu.
+ * Sans ce `@source`, les utilitaires présents UNIQUEMENT dans les composants
+ * partagés (ex. `inset-y-0`, `top-0`, `slide-in-from-*` du Sheet — invisibles
+ * dans le code des apps) ne sont JAMAIS générés → composants mal positionnés
+ * (le drawer, en `position:fixed inset-y-0`, retombe sous le pli faute de CSS).
+ * Chemin relatif à CE fichier (`packages/ui/src/styles/`) → scanne tout
+ * `packages/ui/src`. Un `@source` explicite prime sur l'exclusion node_modules.
+ */
+@source '../**/*.{ts,tsx}';
+
+/**
  * @theme inline — expose nos variables aux utility classes Tailwind v4.
  * Ex. `class="bg-primary text-primary-fg"` consomme --primary / --primary-fg.
  */

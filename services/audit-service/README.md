@@ -27,11 +27,12 @@ Journal d'audit **append-only** et **inviolable** de la plateforme NINA-AES :
      (`citizen.#`, `correction.#`, `governance.#`, `document.#`, …).
 2. **POST `/api/v1/audit`** (synchrone m2m, rôle `ADMIN`).
 
-> ⚠️ **Drift topologie connu** : `document-service` publie aujourd'hui sur son propre exchange
-> `audit.events` (cf. son `RABBITMQ_AUDIT_EXCHANGE`), non capté ici. Réconciliation recommandée :
-> aligner `document-service` sur `nina.events`
->
-> - clés `document.*` (déjà liées côté audit). Cf. `docs/09 §9`.
+> ✅ **Drift topologie résolu** (cf. CHANGELOG `0vicies`) : `document-service` (clés `document.*`)
+> et `identity-service` (clés `citizen.*` / `correction.*`) publient désormais tous deux sur
+> `nina.events`, capté ici via `AUDIT_EVENT_PATTERNS`. Auparavant ils émettaient respectivement sur
+> `audit.events` et `nina-aes.events` (exchanges orphelins). _Note doc : ADR-014 / docs 09-10-11
+> nomment encore l'exchange historique `audit.events` ; `nina.events` (code + `definitions.json`)
+> fait foi._
 
 ## 3. Endpoints (`/api/v1`)
 

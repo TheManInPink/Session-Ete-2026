@@ -24,6 +24,9 @@ pnpm dev
 - **État réel courant** : [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
 - **Opérationnel quotidien** : [`MAINTENANCE.md`](./MAINTENANCE.md) (§3 « Quand modifier quoi »)
 - **Décisions d'architecture** : [`docs/adr/`](./docs/adr/) (ADR-001 → ADR-025)
+- **Sécurité** : [`docs/security/THREAT-MODEL.md`](./docs/security/THREAT-MODEL.md) (modèle de
+  menace) · [`docs/security/SECURITY-RUNBOOK.md`](./docs/security/SECURITY-RUNBOOK.md) (runbook
+  réponse incident)
 
 Si un document numéroté contredit le code, se référer d'abord à `docs/CHANGELOG.md` puis à
 `docs/DOCUMENTATION-MAP.md` pour les drifts documentés.
