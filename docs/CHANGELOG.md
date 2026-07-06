@@ -532,7 +532,7 @@ Passage des écrans citoyen d'un rendu **sur mocks locaux** à une **couture de 
   transport sans cookie vers le gateway public, `meta.anonymous` ⇒ pas de redirection /login sur
   401).
 - **Bascule** : `NEXT_PUBLIC_NINA_API_MODE` (`mock`|`live`, repli `NEXT_PUBLIC_DEMO_MODE`) ;
-  `NEXT_PUBLIC_APP_URL` + `NEXT_PUBLIC_GATEWAY_URL` ajoutés à `apps/citizen/.env.example`.
+  `NEXT_PUBLIC_APP_URL` + `NEXT_PUBLIC_GATEWAY_URL` ajoutés à `apps/citizen/.env.local.example`.
 
 **Vérif** : typecheck (api-client + citizen) ✅, lint citizen (0 warning) ✅, **e2e citizen 13/13**
 (mode mock, dont flux PC-03 soumission→suivi, PC-04 réservation→confirmation, PC-06

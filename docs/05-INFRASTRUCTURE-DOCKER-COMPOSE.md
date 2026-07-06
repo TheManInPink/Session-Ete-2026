@@ -1025,7 +1025,7 @@ document 08) :
 | Élément | Valeur                                                               | Rôle                                              |
 | ------- | -------------------------------------------------------------------- | ------------------------------------------------- |
 | Realm   | `nina-aes`                                                           | Isoler les utilisateurs NINA du realm master      |
-| Client  | `nina-platform`                                                      | Application frontend (citizen, admin, governance) |
+| Client  | `nina-aes-platform`                                                  | Application frontend (citizen, admin, governance) |
 | Rôles   | `citoyen`, `agent`, `superviseur`, `admin`, `auditeur`, `inspecteur` | 6 rôles RBAC                                      |
 | Flow    | `browser` + `direct-grant`                                           | Login web + API (grant_type=password pour dev)    |
 
@@ -1559,7 +1559,7 @@ détaillée par catégorie.
 | ------------------------- | ------------------------ | ------------------------- | --------------------------------------------- |
 | `KEYCLOAK_URL`            | `http://localhost:8080`  | `auth-service`, frontends | URL du serveur Keycloak                       |
 | `KEYCLOAK_REALM`          | `nina-aes`               | `auth-service`            | Realm dédié au projet                         |
-| `KEYCLOAK_CLIENT_ID`      | `nina-platform`          | Frontends Next.js         | ID du client OAuth2                           |
+| `KEYCLOAK_CLIENT_ID`      | `nina-aes-platform`      | Frontends Next.js         | ID du client OAuth2                           |
 | `KEYCLOAK_CLIENT_SECRET`  | `__CHANGE_ME__KC_CLIENT` | `auth-service`            | Secret du client OAuth2                       |
 | `KEYCLOAK_ADMIN_USER`     | `admin`                  | Docker Compose            | Admin bootstrap (KC_BOOTSTRAP_ADMIN_USERNAME) |
 | `KEYCLOAK_ADMIN_PASSWORD` | `__CHANGE_ME__KC_ADMIN`  | Docker Compose            | Mot de passe admin bootstrap                  |
