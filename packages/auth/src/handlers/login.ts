@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import crypto from 'node:crypto';
 import { resolveNextPath } from '../next-path';
+import { resolveAuthMode } from '../auth-mode';
 import type { AuthConfig } from '../types';
 
 function base64UrlEncode(buf: Buffer): string {
@@ -36,8 +37,7 @@ export function buildLoginHandler(config: AuthConfig) {
     // providers) — validé puis utilisé tel quel ; seul le défaut est préfixé.
     const nextPath = resolveNextPath(url.searchParams.get('next'), locale, config.defaultNext);
 
-    const authMode =
-      config.authMode ?? ((process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak');
+    const authMode = resolveAuthMode(config);
     if (authMode === 'mock') {
       return NextResponse.redirect(new URL(nextPath, req.url));
     }

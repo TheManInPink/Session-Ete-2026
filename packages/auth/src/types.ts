@@ -17,6 +17,10 @@ export type Role =
   | 'SUPERVISOR'
   | 'AUDITOR'
   | 'ADMIN'
+  // Inspecteur anti-corruption OCLEI (module SIGAC) — rôle ISOLÉ, hors chaîne
+  // d'héritage agent (cf. doc 08 §2798). Seul habilité à lire la file procureur
+  // des signalements scellés (compartimentation vis-à-vis SUPERVISOR/AUDITOR/ADMIN).
+  | 'ANTICORRUPTION_INSPECTOR'
   // Côté gouvernance (Session 6+)
   | 'MINISTER'
   | 'CABINET';

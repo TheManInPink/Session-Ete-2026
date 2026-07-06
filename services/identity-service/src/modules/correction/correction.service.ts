@@ -188,6 +188,37 @@ export class CorrectionService {
     return { data, total, page: dto.page, pageSize: dto.pageSize };
   }
 
+  /**
+   * GET /corrections/me — corrections du dossier du citoyen AUTHENTIFIÉ.
+   *
+   * 🔒 Anti-IDOR / BOLA (read-side, OWASP A01) : le NINA provient EXCLUSIVEMENT
+   * du token (jamais d'un paramètre client), donc un citoyen ne peut lister QUE
+   * les corrections rattachées à SON propre dossier — contrairement à `list()`,
+   * réservé aux agents. Le NINA est normalisé pour matcher la forme stockée
+   * (cf. `citizen.service` qui persiste `nina: normalized`).
+   *
+   * @param nina NINA du citoyen, extrait du claim `nina` du JWT par le controller.
+   * @returns Les corrections du citoyen (ordre antéchronologique) + total.
+   */
+  async listForCitizen(nina: string): Promise<{ data: unknown[]; total: number }> {
+    const normalized = normalizeNina(nina);
+    const where: Prisma.CorrectionRequestWhereInput = {
+      deletedAt: null,
+      citizen: { is: { nina: normalized } },
+    };
+    const [data, total] = await Promise.all([
+      prisma.correctionRequest.findMany({
+        where,
+        include: {
+          citizen: { select: { id: true, nina: true, firstName: true, lastName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.correctionRequest.count({ where }),
+    ]);
+    return { data, total };
+  }
+
   /** GET /corrections/:id. */
   async findById(id: string): Promise<unknown> {
     const correction = await prisma.correctionRequest.findUnique({

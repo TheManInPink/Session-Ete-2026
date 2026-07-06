@@ -31,7 +31,7 @@ export const verifyConsentSchema = z
     /** JWS Ed25519 de consentement signé par le citoyen. */
     consentJws: jwsCompact,
     /** URL MinIO chiffrée de la preuve (optionnelle ; jamais le JWS brut côté objet). */
-    consentDocUrl: z.string().url().max(500).optional(),
+    consentDocUrl: z.url().max(500).optional(),
   })
   .strict();
 

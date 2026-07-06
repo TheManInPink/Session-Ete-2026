@@ -11,8 +11,9 @@
  */
 import { z } from 'zod';
 
+// NB : en Zod 4, z.number() rejette déjà NaN/±Infinity (.finite() est un no-op déprécié).
 const featureVector = z
-  .array(z.number().finite())
+  .array(z.number())
   .min(8, 'vecteur de features trop court')
   .max(4096, 'vecteur de features trop long');
 

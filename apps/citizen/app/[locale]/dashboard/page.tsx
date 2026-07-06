@@ -106,8 +106,9 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
     })[s] ?? s;
 
   // Couture données (mock ↔ live) : corrections + RDV du citoyen connecté.
+  // `fetchMyCorrections` est self-scoped (NINA dérivé du token côté backend).
   const [corrections, appointments] = await Promise.all([
-    fetchMyCorrections(session.user.nina ?? undefined),
+    fetchMyCorrections(),
     fetchMyAppointments(),
   ]);
 

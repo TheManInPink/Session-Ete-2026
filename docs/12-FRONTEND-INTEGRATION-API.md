@@ -978,7 +978,9 @@ export class IdentityClient {
   }): Promise<CitizenSearchResult> {
     return this.http.request<CitizenSearchResult>({
       method: 'GET',
-      path: '/api/v1/citizens/search',
+      // Route réelle : `@Get()` sur /citizens (le gateway forwarde le chemin
+      // INCHANGÉ ; `/citizens/search` heurtait `@Get(':nina')`). Cf. 0quattuorvicies.
+      path: '/api/v1/citizens',
       query: params,
       schema: CitizenSearchResultSchema,
     });
@@ -1777,52 +1779,41 @@ const body = new URLSearchParams({
 > brancher. Tant que ce n'est pas fait, ces apps doivent rester en **client public + PKCE** plutôt
 > que de poser un `client_secret` en clair dans `process.env`.
 
-### 9bis.4 Durcissement des en-têtes HTTP (`next.config.ts`)
+### 9bis.4 Durcissement des en-têtes HTTP (`next.config.ts` + `proxy.ts`)
 
-La CSP est décrite au § 4.2 mais n'apparaissait dans aucune config. Voici les en-têtes appliqués par
-chaque app via `next.config.ts` (servi aussi par le reverse-proxy Traefik en défense en profondeur)
-: **HSTS**, **X-Frame-Options DENY** (+ `frame-ancestors 'none'`), **Referrer-Policy**, et la CSP
-stricte sans `unsafe-inline`.
+Les en-têtes de sécurité se répartissent en **deux catégories** :
+
+- **En-têtes statiques** (HSTS, `X-Frame-Options DENY`, `X-Content-Type-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, `Cross-Origin-Opener-Policy`, …) → posés dans `next.config.ts`
+  (`headers()`), identiques pour toutes les réponses.
+- **CSP stricte à nonce** → posée **par requête** dans `proxy.ts` (le middleware Next 16), voir
+  l'encadré ci-dessous.
+
+> ⚠️ **Piège corrigé (attrapé par les tests e2e).** Une CSP `script-src 'self'` **statique** (posée
+> dans `next.config.ts headers()`, **sans nonce**) **casse l'hydratation** de Next.js App Router :
+> Next émet des `<script>` **INLINE** (flux RSC `self.__next_f`, bootstrap `self.__next_r`) qu'une
+> telle CSP bloque → aucune hydratation, la page reste une coque serveur figée (skeletons, zéro
+> appel API). Symptôme observé : `Invariant: Expected a request ID to be defined via self.__next_r`.
+> Une CSP statique **ne peut pas** porter de nonce (valeur par requête) ; il faut donc la générer
+> dans le middleware. En Next 16, `middleware.ts` est renommé `proxy.ts` — c'est le seul point
+> d'interception par requête.
 
 ```ts
-// apps/citizen/next.config.ts (identique mod. domaines pour admin/governance)
+// apps/citizen/next.config.ts — en-têtes STATIQUES uniquement (la CSP est dans proxy.ts)
 import type { NextConfig } from 'next';
 
 const isProd = process.env.NODE_ENV === 'production';
-
-// CSP stricte (cf. § 4.2). frame-ancestors 'none' double X-Frame-Options pour les
-// navigateurs modernes ; object-src 'none' tue les plugins ; base-uri 'self' bloque
-// l'injection de <base> ; form-action borne les cibles de soumission.
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'", // Tailwind injecte des styles ; pas de script inline
-  "img-src 'self' data: blob:",
-  "font-src 'self'",
-  "connect-src 'self' https://api.nina-aes.ml wss://api.nina-aes.ml",
-  "frame-ancestors 'none'", // anti-clickjacking (équivalent moderne de X-Frame-Options)
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  ...(isProd ? ['upgrade-insecure-requests'] : []),
-].join('; ');
 
 const securityHeaders = [
   // HSTS : force HTTPS 2 ans, sous-domaines inclus, éligible preload list.
   // À n'activer qu'en prod (casserait le dev http://localhost).
   ...(isProd
-    ? [
-        {
-          key: 'Strict-Transport-Security',
-          value: 'max-age=63072000; includeSubDomains; preload',
-        },
-      ]
+    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]
     : []),
-  { key: 'Content-Security-Policy', value: csp },
   { key: 'X-Frame-Options', value: 'DENY' }, // pas de mise en iframe de l'app
   { key: 'X-Content-Type-Options', value: 'nosniff' }, // pas de MIME sniffing
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // Réduit la surface : on ne demande aucune API puissante côté citoyen.
+  // Réduit la surface : on ne demande aucune API puissante côté citoyen (camera=(self) pour le QR).
   { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
@@ -1831,16 +1822,88 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false, // retire l'en-tête X-Powered-By (fingerprinting)
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [{ source: '/(.*)', headers: securityHeaders }];
   },
 };
 
 export default nextConfig;
 ```
 
+```ts
+// apps/citizen/proxy.ts — CSP stricte À NONCE, générée par requête.
+import { NextRequest, NextResponse } from 'next/server';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+const IS_DEV = !IS_PROD;
+
+/** Nonce cryptographique (16 octets, base64) — Web Crypto (runtime Edge/proxy). */
+function generateNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function buildCsp(nonce: string): string {
+  const scriptSrc = [
+    "script-src 'self'",
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'", // fait confiance aux scripts chargés par le bootstrap nonce-é
+    "'wasm-unsafe-eval'", // libsodium WASM (PC-06)
+    ...(IS_DEV ? ["'unsafe-eval'"] : []), // HMR/React Refresh en dev — JAMAIS en prod
+  ].join(' ');
+  return [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'", // Tailwind injecte des styles ; aucun script inline
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    "connect-src 'self' https://api.nina-aes.ml wss://api.nina-aes.ml",
+    "frame-ancestors 'none'", // anti-clickjacking (double X-Frame-Options)
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    ...(IS_PROD ? ['upgrade-insecure-requests'] : []),
+  ].join('; ');
+}
+
+// Propage un override d'en-tête de REQUÊTE vers le moteur de rendu (même canal que
+// `NextResponse.next({ request })`) : Next lit la CSP à nonce et l'applique à SES <script>.
+function setRequestHeaderOverride(res: NextResponse, name: string, value: string): void {
+  const key = name.toLowerCase();
+  const cur = res.headers.get('x-middleware-override-headers');
+  const names = cur
+    ? cur
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean)
+    : [];
+  if (!names.includes(key)) names.push(key);
+  res.headers.set('x-middleware-override-headers', names.join(','));
+  res.headers.set(`x-middleware-request-${key}`, value);
+}
+
+export default function proxy(req: NextRequest): NextResponse {
+  // … (garde d'auth : redirection /login si non-connecté — pas de nonce sur un redirect) …
+  const nonce = generateNonce();
+  const csp = buildCsp(nonce);
+  const response = intlMiddleware(req) as NextResponse; // next-intl (routing i18n)
+  setRequestHeaderOverride(response, 'content-security-policy', csp); // → moteur de rendu
+  setRequestHeaderOverride(response, 'x-nonce', nonce);
+  response.headers.set('content-security-policy', csp); // → navigateur (application)
+  return response;
+}
+```
+
 > **Remarque caméra.** L'app `citizen` a besoin de `camera=(self)` pour le scanner QR (§ 5.5). Les
 > apps `admin`/`governance` mettent `camera=()` (désactivé). La page d'aperçu PDF (§ 11.4) n'est pas
 > mise en iframe par un tiers : `frame-ancestors 'none'` la protège du clickjacking.
+>
+> **`'strict-dynamic'` + nonce** : `'self'` est ignoré pour les scripts au profit du nonce ; le
+> bootstrap nonce-é propage sa confiance aux chunks qu'il charge (`/_next/static/*`).
+> `'unsafe-eval'` est ajouté **en dev uniquement** (HMR/React Refresh de Turbopack). Contrepartie
+> assumée : un nonce par requête rend la coque HTML dynamique (légère érosion du PPR
+> `cacheComponents`).
 
 ### 9bis.5 Rate-limiting `/api/auth/*` + BFF
 

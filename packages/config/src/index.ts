@@ -92,7 +92,7 @@ export const envSchema = z.object({
     .default('postgresql://nina_admin:nina_dev_2026!@localhost:5432/nina_aes_db?schema=public'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   RABBITMQ_URL: z.string().default('amqp://nina_rabbit:rabbit_dev_2026!@localhost:5672'),
-  ELASTICSEARCH_URL: z.string().url().default('http://localhost:9200'),
+  ELASTICSEARCH_URL: z.url().default('http://localhost:9200'),
 
   // ── Stockage objet MinIO ──────────────────────────────────────────────
   MINIO_ENDPOINT: z.string().default('localhost'),
@@ -124,7 +124,7 @@ export const envSchema = z.object({
   API_GATEWAY_PORT: z.coerce.number().int().positive().default(3000),
 
   // ── HashiCorp Vault ───────────────────────────────────────────────────
-  VAULT_ADDR: z.string().url().default('http://localhost:8200'),
+  VAULT_ADDR: z.url().default('http://localhost:8200'),
   VAULT_TOKEN: z.string().default('dev-root-token'),
   VAULT_NAMESPACE: z.string().default('nina-aes'),
 
@@ -177,7 +177,7 @@ export const envSchema = z.object({
   /** Pays opéré par le nœud interop local (ISO 3166-1 alpha-3). */
   INTEROP_SELF_COUNTRY: z.enum(['MLI', 'BFA', 'NER']).default('MLI'),
   /** `iss` placé par ce nœud dans les JWS signés. */
-  INTEROP_SELF_ISSUER: z.string().url().default('https://interop.nina-aes.ml'),
+  INTEROP_SELF_ISSUER: z.url().default('https://interop.nina-aes.ml'),
   /** Quota de requêtes entrantes par pays (rate-limit contractuel). */
   INTEROP_RATE_LIMIT_PER_COUNTRY: z.coerce.number().int().positive().default(1000),
   /** Largeur de la fenêtre glissante du rate-limit (secondes). */
@@ -262,7 +262,7 @@ export const envSchema = z.object({
 
   // ── Observabilité ─────────────────────────────────────────────────────
   PROMETHEUS_PORT: z.coerce.number().int().positive().default(9090),
-  JAEGER_ENDPOINT: z.string().url().default('http://localhost:14268/api/traces'),
+  JAEGER_ENDPOINT: z.url().default('http://localhost:14268/api/traces'),
 });
 
 /** Type inféré du schéma complet (à consommer par les microservices). */

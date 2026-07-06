@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { resolveAuthMode } from '../auth-mode';
 import type { AuthConfig } from '../types';
 
 export function buildLogoutHandler(config: AuthConfig) {
@@ -15,8 +16,7 @@ export function buildLogoutHandler(config: AuthConfig) {
     const jar = await cookies();
     const refresh = jar.get('refresh_token')?.value;
     const idToken = jar.get('id_token')?.value;
-    const authMode =
-      config.authMode ?? ((process.env.NINA_AUTH_MODE ?? 'mock') as 'mock' | 'keycloak');
+    const authMode = resolveAuthMode(config);
     const issuer = config.keycloakIssuer ?? process.env.KEYCLOAK_ISSUER ?? '';
 
     if (authMode !== 'mock' && refresh && issuer) {

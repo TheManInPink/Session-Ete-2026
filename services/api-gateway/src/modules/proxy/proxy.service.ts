@@ -24,13 +24,68 @@ import { getContext } from '@nina-aes/logger';
 import type { StructuredLogger } from '@nina-aes/logger';
 
 import { BreakerRegistry } from '../../infrastructure/breaker/breaker.registry.js';
-import type { GatewayRoute } from './proxy.routes.js';
+import { isPublicEndpoint, type GatewayRoute } from './proxy.routes.js';
 
 /**
  * Timeout par défaut (ms) — partagé entre le circuit breaker et axios pour
  * garantir que les deux couches déclenchent dans le même ordre de grandeur.
  */
 const DEFAULT_TIMEOUT_MS = 5000;
+
+/** En-têtes toujours retirés (hop-by-hop / recalculés par axios). */
+const ALWAYS_STRIP_HEADERS = new Set(['host', 'connection', 'content-length']);
+
+/**
+ * En-têtes retirés EN PLUS sur un canal ANONYME (routes publiques du lanceur
+ * d'alerte SIGAC). Tout ce qui permettrait de corréler ou désanonymiser
+ * l'auteur d'un signalement : IP relayée, empreinte navigateur, cookie,
+ * référent, identifiants de corrélation/trace. Défense en profondeur —
+ * le client n'en émet déjà pas (fetch sans cookie, sans X-Correlation-Id) et
+ * anticorruption-service ne les journalise pas ; on garantit ici qu'ils
+ * n'atteignent JAMAIS le service aval, même via un proxy/ingress amont.
+ */
+export const ANONYMOUS_STRIP_HEADERS = new Set([
+  'x-forwarded-for',
+  'x-forwarded-host',
+  'x-forwarded-proto',
+  'x-forwarded-port',
+  'x-real-ip',
+  'forwarded',
+  'user-agent',
+  'referer',
+  'referrer',
+  'cookie',
+  'x-correlation-id',
+  'x-request-id',
+  'traceparent',
+  'tracestate',
+  'accept-language',
+  'dnt',
+]);
+
+/**
+ * Construit la table d'en-têtes forwardés vers le service aval.
+ *
+ * @param headers   En-têtes entrants (bruts, casse quelconque).
+ * @param anonymous `true` sur une route publique anonyme → strip anti-corrélation
+ *                  (cf. {@link ANONYMOUS_STRIP_HEADERS}).
+ * @returns Les en-têtes à transmettre (Authorization inclus ici ; il sera
+ *          remplacé par X-User-Context en amont pour les routes protégées).
+ */
+export function buildForwardedHeaders(
+  headers: Record<string, string | string[] | undefined>,
+  anonymous: boolean,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    const lk = k.toLowerCase();
+    if (ALWAYS_STRIP_HEADERS.has(lk)) continue;
+    if (anonymous && ANONYMOUS_STRIP_HEADERS.has(lk)) continue;
+    if (Array.isArray(v)) out[k] = v.join(',');
+    else if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
 
 /**
  * Options par défaut du circuit breaker (sensées pour le contexte AES, où
@@ -197,23 +252,21 @@ export class ProxyService {
     const targetUrl = `${route.targetBaseUrl}${req.path}`;
     const ctx = getContext();
 
+    // 🔒 Anti-corrélation : une route PUBLIQUE anonyme (canal lanceur d'alerte
+    // SIGAC) ne doit laisser passer AUCUN en-tête identifiant vers le service
+    // aval. Sur les routes protégées, comportement inchangé.
+    const anonymous = isPublicEndpoint(req.path, route);
+
     // Headers à propager : on supprime ceux qui ne doivent pas voyager
-    // (Authorization sera remplacé par X-User-Context plus tard).
-    const forwardedHeaders: Record<string, string> = {};
-    for (const [k, v] of Object.entries(req.headers)) {
-      const lk = k.toLowerCase();
-      // Ne PAS propager : Host, Connection, Content-Length (axios le recalcule),
-      // Authorization (sera remplacé par X-User-Context côté JWT middleware).
-      if (['host', 'connection', 'content-length'].includes(lk)) continue;
-      if (Array.isArray(v)) forwardedHeaders[k] = v.join(',');
-      else if (v !== undefined) forwardedHeaders[k] = v;
-    }
+    // (Authorization sera remplacé par X-User-Context plus tard) et, sur canal
+    // anonyme, tous les en-têtes de corrélation/empreinte.
+    const forwardedHeaders = buildForwardedHeaders(req.headers, anonymous);
 
     // Propagation du correlationId (et, implicitement, de `traceparent`/`tracestate`
-    // W3C s'ils sont présents : ils ne figurent PAS dans la liste de filtrage
-    // ci-dessus, donc ils traversent le gateway et préservent la trace OTel
-    // distribuée de bout en bout).
-    if (ctx?.correlationId) {
+    // W3C s'ils sont présents : ils traversent le gateway et préservent la trace
+    // OTel distribuée de bout en bout) — SAUF sur un canal anonyme, où propager
+    // un identifiant de corrélation recréerait une poignée de désanonymisation.
+    if (ctx?.correlationId && !anonymous) {
       forwardedHeaders['x-request-id'] = ctx.correlationId;
     }
     // Propagation du contexte utilisateur :

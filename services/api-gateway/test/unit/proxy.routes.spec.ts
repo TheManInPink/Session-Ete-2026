@@ -10,6 +10,7 @@ import {
   isPublicEndpoint,
   listRoutesPublic,
   matchRoute,
+  type GatewayRoute,
 } from '../../src/modules/proxy/proxy.routes.js';
 
 describe('proxy.routes — matchRoute', () => {
@@ -25,6 +26,19 @@ describe('proxy.routes — matchRoute', () => {
 
   it('route /api/v1/ussd vers ussd', () => {
     expect(matchRoute('/api/v1/ussd/callback')?.serviceName).toBe('ussd');
+  });
+
+  it.each(['/api/v1/sgogt/messages', '/api/v1/directives', '/api/v1/elections/export'])(
+    'route %s vers governance (port 3010, préfixes réels des controllers)',
+    (path) => {
+      const route = matchRoute(path);
+      expect(route?.serviceName).toBe('governance');
+      expect(route?.targetBaseUrl).toContain('3010');
+    },
+  );
+
+  it("ne route PLUS /api/v1/governance (préfixe mort : le proxy ne réécrit pas l'URL)", () => {
+    expect(matchRoute('/api/v1/governance/directives')).toBeUndefined();
   });
 
   it('renvoie undefined pour un chemin inconnu', () => {
@@ -50,6 +64,69 @@ describe('proxy.routes — isPublicEndpoint', () => {
   it('expose le webhook USSD sans auth', () => {
     const ussd = GATEWAY_ROUTES.find((r) => r.serviceName === 'ussd')!;
     expect(isPublicEndpoint('/api/v1/ussd/callback', ussd)).toBe(true);
+  });
+});
+
+describe('proxy.routes — isPublicEndpoint (canal lanceur d’alerte SIGAC, PC-06)', () => {
+  const sigac = GATEWAY_ROUTES.find((r) => r.serviceName === 'anticorruption')!;
+
+  it('expose la clé publique procureur sans JWT', () => {
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/public-key', sigac)).toBe(true);
+  });
+
+  it("expose l'intake de signalement scellé sans JWT", () => {
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/reports', sigac)).toBe(true);
+  });
+
+  it('expose le suivi par token dynamique {token}/status sans JWT', () => {
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/reports/wb-3f9a1c/status', sigac)).toBe(
+      true,
+    );
+  });
+
+  it('protège la file procureur (queue) et le scoring d’intégrité', () => {
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/queue', sigac)).toBe(false);
+    expect(isPublicEndpoint('/api/v1/sigac/integrity-scores', sigac)).toBe(false);
+  });
+
+  it('ne considère PLUS /api/v1/sigac/alerts comme public (routes inexistantes côté service)', () => {
+    expect(isPublicEndpoint('/api/v1/sigac/alerts', sigac)).toBe(false);
+    expect(isPublicEndpoint('/api/v1/sigac/alerts/status', sigac)).toBe(false);
+  });
+});
+
+describe('proxy.routes — isPublicEndpoint (motifs à segments `:param`)', () => {
+  /** Route fixture avec UNIQUEMENT un motif paramétré (isole le mécanisme). */
+  const patternRoute: GatewayRoute = {
+    publicPrefix: '/api/v1/sigac',
+    targetBaseUrl: 'http://anticorruption-service:3009',
+    serviceName: 'anticorruption',
+    publicEndpoints: ['/api/v1/sigac/whistleblower/reports/:token/status'],
+  };
+
+  it('matche un token opaque (exactement UN segment non vide)', () => {
+    expect(
+      isPublicEndpoint('/api/v1/sigac/whistleblower/reports/AbC-123_x/status', patternRoute),
+    ).toBe(true);
+  });
+
+  it('refuse un segment token vide (fail-closed)', () => {
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/reports//status', patternRoute)).toBe(
+      false,
+    );
+  });
+
+  it('refuse un nombre de segments différent (préfixe seul, ou segments surnuméraires)', () => {
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/reports', patternRoute)).toBe(false);
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/reports/a/b/status', patternRoute)).toBe(
+      false,
+    );
+  });
+
+  it('refuse un dernier segment littéral différent', () => {
+    expect(isPublicEndpoint('/api/v1/sigac/whistleblower/reports/abc/delete', patternRoute)).toBe(
+      false,
+    );
   });
 });
 

@@ -1,12 +1,14 @@
 /**
  * @file        alerts-feed.tsx
- * @description Feed scrollable d'alertes SIGAC avec mock SSE (setInterval).
- *              Le client component reçoit `initialAlerts` en prop et ajoute
- *              une nouvelle alerte toutes les 12-20s (jitter).
+ * @description Feed scrollable d'alertes SIGAC. Les données initiales viennent
+ *              du contrat `AdminDashboardStats.alerts` (@nina-aes/api-client),
+ *              passées en prop par le server component AD-01.
  *
- *              En Session 5+, remplacer le setInterval par un EventSource
- *              connecté à `/api/v1/sigac/alerts/stream` (anticorruption-
- *              service, doc 11).
+ *              La simulation d'arrivées (setInterval avec jitter 12-20 s) est
+ *              STRICTEMENT réservée au mode `mock` (`useApiMode()`), pour les
+ *              démos sans backend. En mode live, le feed n'affiche que les
+ *              alertes du contrat — le flux temps réel (SSE anticorruption-
+ *              service) reste à implémenter (Bloc D).
  *
  * @module      @nina-aes/admin
  */
@@ -15,6 +17,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { useApiMode } from '@nina-aes/api-client/react';
+import type { AlertEntry, AlertSeverity } from '@nina-aes/api-client';
 import { Badge } from '@nina-aes/ui/components/badge';
 import {
   Card,
@@ -25,13 +29,10 @@ import {
 } from '@nina-aes/ui/components/card';
 import { AlertTriangle, ChevronRight, Radio } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
-import {
-  generateNewAlert,
-  type AlertEntry,
-  type AlertSeverity,
-} from '../../../../../lib/mock-dashboard';
+import { generateNewAlert } from '../../../../../lib/dashboard/view-model';
 
 const SEVERITY_TONES: Record<AlertSeverity, string> = {
+  INFO: 'bg-bg-muted text-fg-muted',
   LOW: 'bg-info-50 text-info-700',
   MEDIUM: 'bg-warning-50 text-warning-700',
   HIGH: 'bg-warning-50 text-warning-800',
@@ -56,6 +57,7 @@ export function AlertsFeed({
   const tSeverity = useTranslations('admin.sigac.severity');
   const tCategory = useTranslations('admin.sigac.category');
   const format = useFormatter();
+  const apiMode = useApiMode();
   const [alerts, setAlerts] = useState<readonly AlertEntry[]>(initialAlerts);
   const counterRef = useRef(initialAlerts.length);
   const [pulse, setPulse] = useState(false);
@@ -63,7 +65,12 @@ export function AlertsFeed({
   // On stocke l'objet brut et on traduit au rendu (hooks indisponibles en effet).
   const [announced, setAnnounced] = useState<AlertEntry | null>(null);
 
+  /** Libellé sévérité — INFO n'a pas de clé `admin.sigac.severity.*`. */
+  const severityLabel = (s: AlertSeverity): string => (s === 'INFO' ? 'Info' : tSeverity(s));
+
   useEffect(() => {
+    // Simulation réservée au mode mock — jamais de fausses alertes en live.
+    if (apiMode !== 'mock') return;
     // Jitter 12-20 s pour simuler un flux non régulier
     const schedule = () => {
       const delay = 12_000 + Math.random() * 8_000;
@@ -81,7 +88,7 @@ export function AlertsFeed({
     return () => {
       window.clearTimeout(handle.current);
     };
-  }, [maxItems]);
+  }, [maxItems, apiMode]);
 
   return (
     <Card className="flex h-full flex-col">
@@ -123,7 +130,7 @@ export function AlertsFeed({
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 text-sm">
                       <Badge className={cn('px-1.5 py-0 text-xs', SEVERITY_TONES[a.severity])}>
-                        {tSeverity(a.severity)}
+                        {severityLabel(a.severity)}
                       </Badge>
                       <span className="truncate text-xs text-fg-muted">
                         {tCategory(a.category)}
@@ -148,7 +155,7 @@ export function AlertsFeed({
       {/* Annonce vocale des nouvelles alertes (lecteurs d'écran uniquement). */}
       <p className="sr-only" role="status" aria-live="polite">
         {announced
-          ? `${t('alertsFeedNew')} ${tSeverity(announced.severity)} : ${announced.shortDescription}`
+          ? `${t('alertsFeedNew')} ${severityLabel(announced.severity)} : ${announced.shortDescription}`
           : ''}
       </p>
     </Card>

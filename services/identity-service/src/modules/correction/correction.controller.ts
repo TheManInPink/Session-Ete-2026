@@ -15,6 +15,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -63,6 +64,24 @@ export class CorrectionController {
   @ApiOperation({ summary: 'Liste paginée des corrections filtrées' })
   async list(@Query() dto: ListCorrectionsDto): Promise<unknown> {
     return this.correctionService.list(dto);
+  }
+
+  // ─── GET /corrections/me (citoyen : SES corrections uniquement) ──
+  // ⚠️ ORDRE : DOIT précéder `@Get(':id')`, sinon "me" serait capturé comme un
+  // paramètre :id et routé vers findById (réservé agent) → jamais atteint.
+  // 🔒 Anti-IDOR (read-side) : AUCUN paramètre d'entrée — le NINA est dérivé du
+  // token (claim `nina`), un citoyen ne peut donc PAS lister le dossier d'autrui.
+  @Get('me')
+  @Roles(UserRole.CITIZEN)
+  @ApiOperation({ summary: 'Liste les corrections du citoyen authentifié (NINA du token)' })
+  @ApiResponse({ status: 200, description: 'Corrections du dossier du citoyen connecté' })
+  @ApiResponse({ status: 403, description: 'Token sans NINA (compte non citoyen)' })
+  async listMine(@CurrentUser() user: RequestUser): Promise<unknown> {
+    // Fail-closed : un token CITIZEN sans claim `nina` ne peut rien scoper.
+    if (!user.nina) {
+      throw new ForbiddenException('CORRECTION_ME_REQUIRES_NINA');
+    }
+    return this.correctionService.listForCitizen(user.nina);
   }
 
   // ─── GET /corrections/:id ────────────────────────────────────

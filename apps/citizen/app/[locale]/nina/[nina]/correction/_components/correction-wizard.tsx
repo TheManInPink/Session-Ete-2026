@@ -23,6 +23,7 @@ import { Input } from '@nina-aes/ui/components/input';
 import { Label } from '@nina-aes/ui/components/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
+import { Checkbox } from '@nina-aes/ui/components/checkbox';
 import {
   Check,
   ChevronLeft,
@@ -66,6 +67,8 @@ interface WizardState {
   proposedValue: string;
   reason: string;
   justificationDocUrl: string | null;
+  /** Attestation sur l'honneur (étape 4) — obligatoire avant soumission. */
+  certified: boolean;
 }
 
 const INITIAL_STATE: WizardState = {
@@ -74,6 +77,7 @@ const INITIAL_STATE: WizardState = {
   proposedValue: '',
   reason: '',
   justificationDocUrl: null,
+  certified: false,
 };
 
 export function CorrectionWizard({ nina, locale }: WizardProps) {
@@ -140,6 +144,11 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
     e.preventDefault();
     const field = state.field;
     if (!field) return;
+    // Attestation obligatoire — garde-fou en plus du bouton désactivé.
+    if (!state.certified) {
+      setError(t('summary.certifyRequired'));
+      return;
+    }
     setError(null);
     try {
       // Le justificatif n'est pas encore transmis (document-service, cf. doc 10) :
@@ -343,6 +352,22 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
                 <AlertTitle>{t('summary.processingTitle')}</AlertTitle>
                 <AlertDescription>{t('summary.processingBody')}</AlertDescription>
               </Alert>
+
+              {/* Attestation sur l'honneur — obligatoire (demande à portée légale). */}
+              <div className="flex items-start gap-3 rounded-base border border-border p-3">
+                <Checkbox
+                  id="certify"
+                  checked={state.certified}
+                  onCheckedChange={(checked) =>
+                    setState((s) => ({ ...s, certified: checked === true }))
+                  }
+                  className="mt-0.5"
+                />
+                <Label htmlFor="certify" className="text-sm font-normal leading-snug">
+                  {t('summary.certifyLabel')}
+                </Label>
+              </div>
+
               {error && (
                 <Alert variant="danger">
                   <AlertCircle className="size-4" aria-hidden="true" />
@@ -370,7 +395,7 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
               <ChevronRight className="size-4" aria-hidden="true" />
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !state.certified}>
               {isSubmitting ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
               ) : (

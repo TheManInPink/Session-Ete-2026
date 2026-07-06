@@ -69,7 +69,9 @@ test.describe('PC-03 — Wizard correction', () => {
     // Étape 3 — justificatif facultatif → on passe.
     await page.getByRole('button', { name: 'Suivant' }).click();
 
-    // Étape 4 — soumettre.
+    // Étape 4 — attestation sur l'honneur OBLIGATOIRE (demande à portée légale)
+    // puis soumettre. Sans la case cochée, le bouton reste désactivé.
+    await page.getByRole('checkbox', { name: /certifie sur l'honneur/i }).check();
     await page.getByRole('button', { name: 'Soumettre la demande' }).click();
 
     // Redirection vers le tableau de bord avec l'accusé de soumission.

@@ -28,8 +28,8 @@ export const VerifyNinaRequestSchema = z.object({
   nina: z.string().regex(NINA_PATTERN, 'NINA invalide (14 chiffres + 1 lettre)'),
   requesterCountry: z.enum(AES_COUNTRIES),
   purpose: z.enum(VERIFY_PURPOSES),
-  requestId: z.string().uuid('requestId doit être un UUID'),
-  timestamp: z.string().datetime({ offset: true, message: 'timestamp ISO 8601 requis' }),
+  requestId: z.uuid('requestId doit être un UUID'),
+  timestamp: z.iso.datetime({ offset: true, message: 'timestamp ISO 8601 requis' }),
 });
 
 /** Type métier de la requête verify-nina (sans les claims JWS techniques). */

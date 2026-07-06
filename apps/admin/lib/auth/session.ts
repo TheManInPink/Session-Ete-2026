@@ -19,9 +19,20 @@ import {
 } from '@nina-aes/auth';
 
 /** Rôles métier admin (sous-ensemble de Role pour API typée). */
-export type AdminRole = Extract<Role, 'AGENT' | 'SUPERVISOR' | 'AUDITOR' | 'ADMIN'>;
+export type AdminRole = Extract<
+  Role,
+  'AGENT' | 'SUPERVISOR' | 'AUDITOR' | 'ADMIN' | 'ANTICORRUPTION_INSPECTOR'
+>;
 
-/** Mock agent — Modibo Konaté, CTDEC Bamako, AGENT + SUPERVISOR. */
+/**
+ * Mock agent — Modibo Konaté, CTDEC Bamako.
+ *
+ * En mode démo/mock il cumule volontairement AGENT + SUPERVISOR + inspecteur
+ * anti-corruption : c'est un super-utilisateur de démonstration qui doit voir
+ * TOUS les écrans (dont la file procureur AD-03). La COMPARTIMENTATION réelle
+ * (ANTICORRUPTION_INSPECTOR seul lit la file scellée) est portée par le realm
+ * Keycloak en prod, pas par ce profil fictif.
+ */
 const MOCK_AGENT: UserProfile = {
   id: 'mock-agent-001',
   email: 'modibo.konate@ctdec.ml',
@@ -29,7 +40,7 @@ const MOCK_AGENT: UserProfile = {
   nina: null,
   matricule: 'CTDEC-2024-0156',
   centerId: 'ctdec-bamako',
-  roles: ['AGENT', 'SUPERVISOR'],
+  roles: ['AGENT', 'SUPERVISOR', 'ANTICORRUPTION_INSPECTOR'],
   locale: 'fr',
 };
 

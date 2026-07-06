@@ -3,13 +3,271 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-06-25 (consolidation **Phase 1** — audit contenu + sécurité des 27
-> docs, 5 commits sur `feat/ai-training-pipeline` ; corrections crypto SIGAC + biométrie, 12 docs
-> thématiques créés, ADR-034 ; total **34 ADRs**. Voir 0unvicies. Précédent : 0vicies —
-> réconciliation topologie RabbitMQ)
+> **Dernière mise à jour** : 2026-07-06 (**Fix hydratation CSP + drawer AD-02** — 2 bugs attrapés
+> par les tests e2e mock : CSP statique sans nonce cassait l'hydratation des 3 apps ; Tailwind v4 ne
+> scannait pas `packages/ui` → drawer mal positionné. Voir 0quinvicies. Précédent : 0quattuorvicies
+> — Autorisation objet + RBAC SIGAC)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quinvicies. Patch 2026-07-06 — Fix hydratation CSP à nonce + drawer AD-02 (2 bugs e2e)
+
+Le durcissement sécurité de `0trevicies` (CSP stricte via `next.config.ts headers()`) avait
+introduit **deux régressions invisibles à l'œil** mais **attrapées par les tests e2e mock** de
+PROMPT 5.1 (admin corrections 5/5 rouge → vert). Diagnostic empirique (probes Playwright
+`getComputedStyle`), pas de supposition :
+
+- **CSP statique sans nonce → hydratation cassée (les 3 apps citizen/admin/governance)** : une CSP
+  `script-src 'self' 'wasm-unsafe-eval'` posée **statiquement** dans `next.config.ts headers()`
+  bloque les `<script>` **INLINE** de Next.js App Router (flux RSC `self.__next_f`, bootstrap
+  `self.__next_r`) → **aucune hydratation**, la page reste une coque serveur figée (skeletons,
+  **zéro appel API**, jamais interactive ; console :
+  `Invariant: Expected a request ID … self.__next_r`). Une CSP statique **ne peut pas** porter de
+  nonce. **Fix** : CSP retirée de `next.config.ts` (n'y restent que les en-têtes statiques : HSTS,
+  X-Frame-Options, etc.) et **régénérée par requête** dans `proxy.ts` (le middleware Next 16) :
+  `script-src 'self' 'nonce-…' 'strict-dynamic' 'wasm-unsafe-eval'` (+ `'unsafe-eval'` en dev pour
+  le HMR). Le nonce est propagé au moteur de rendu via override d'en-tête de requête
+  (`x-middleware-request-content-security-policy`, le canal de `NextResponse.next({request})`) —
+  sinon Next ne nonce pas ses scripts. Posture **« sans unsafe-inline » conservée** (décision
+  utilisateur). `docs/12 §9bis.4` réécrit. Contrepartie : nonce par requête ⇒ coque HTML dynamique
+  (légère érosion du PPR `cacheComponents`).
+- **Tailwind v4 ne scanne pas `packages/ui` → drawer AD-02 « outside of viewport »** : Tailwind v4
+  (`@import 'tailwindcss'`) auto-détecte les fichiers de l'app mais **ignore `node_modules`** (où le
+  lien workspace `@nina-aes/ui` est résolu). Les utilitaires présents **uniquement** dans les
+  composants partagés — `inset-y-0`, `top-0`, `slide-in-from-*` du `Sheet` — n'étaient **pas
+  générés**. Le drawer `fixed inset-y-0 h-dvh` retombait donc à sa **position statique sous le pli**
+  (`top` calculé ≈ 720px au lieu de 0) → boutons Approuver/Rejeter injoignables (clic e2e en
+  timeout). **Fix** : `@source '../**/*.{ts,tsx}';` ajouté dans `packages/ui/src/styles/globals.css`
+  (importé par les 3 apps → corrige tout d'un coup ; un `@source` explicite prime sur l'exclusion
+  node_modules). Preuve : probe runtime `<div class="fixed inset-y-0">` → `top: 0px` après fix
+  (était `868px`).
+- **Assertions e2e affinées** : governance — `getByRole('alert').toHaveCount(0)` faux-positivait sur
+  une live-region `@dnd-kit` ; remplacé par l'absence du texte d'erreur précis
+  (`Transition refusée`).
+
+### 0quattuorvicies. Patch 2026-07-06 — Autorisation objet PC-02/PC-05 + cloisonnement RBAC SIGAC
+
+Traitement du tier **HAUT** du backlog d'audit (typecheck `api-client` + `auth` + apps
+`citizen/admin/governance` OK ; identity-service 14/14 ; anticorruption-service 8/8) :
+
+- **PC-02 / AD-01 / AD-02 — routing api-client identity cassé en live (le mock masquait le bug)** :
+  `IdentityClient` visait `/citizens/by-nina/:nina`, `/citizens/search`, `/citizens/:id` — or le
+  gateway **forwarde le chemin INCHANGÉ** (`proxy.routes.ts`) et le controller n'expose que
+  `@Get(':nina')` (NinaOwnershipGuard, anti-IDOR déjà en place), `@Get()` (recherche) et
+  `@Get('by-id/:id')`. Les 3 chemins sont réalignés sur le controller réel (cf. doc 07 §2146). Le
+  filtre `nina` ne servait qu'en mock ; en live la fiche par NINA renvoyait 404.
+- **PC-05 — corrections self-scoped (fuite latente fermée)** : `fetchMyCorrections` appelait
+  `correction.list({ nina })`, un endpoint **réservé aux agents** qui **ignore** tout filtre `nina`
+  (un citoyen recevait 403, ou potentiellement tout le périmètre). Nouvelle route backend
+  `GET /corrections/me` (identity-service) : le NINA est dérivé **exclusivement du token** (jamais
+  d'un paramètre client), `@Roles(CITIZEN)`, `listForCitizen(nina)` filtre `citizen.nina` normalisé.
+  Câblage complet : `CorrectionClient.listMine()` + `CorrectionApi` + mock (self-scoped sur
+  `DEFAULT_MOCK_NINA`) + `fetchMyCorrections()` sans argument. `@Get('me')` déclaré **avant**
+  `@Get(':id')` (sinon capturé comme `:id`).
+- **RBAC SIGAC — rôle `ANTICORRUPTION_INSPECTOR` + cloisonnement (need-to-know)** : le rôle existait
+  côté realm Keycloak (`anticorruption_inspector`) et docs (07/08/09) mais **pas** dans le contrat
+  applicatif `@nina-aes/auth`. Ajouté au type `Role` + `KNOWN_ROLES`. **Bug prod corrigé** :
+  `extractUserFromClaims` filtrait les rôles JWT en **casse exacte MAJUSCULE** alors que le realm
+  les émet en **minuscule** → en mode keycloak **tous** les rôles étaient silencieusement écartés
+  (403 pour tout le monde) ; on normalise désormais en MAJUSCULE avant filtrage (doc 08 §369). Côté
+  AD-03 : la page reste ouverte à SUPERVISOR/AUDITOR/ADMIN (agrégats régionaux non nominatifs) mais
+  la **file procureur scellée** (`<SigacClient />`) n'est rendue que pour `ANTICORRUPTION_INSPECTOR`
+  (sinon `UnavailableCard`) — défense en profondeur au-dessus de la garde backend. Backend
+  `anticorruption-service` : `require_role("inspector")` (rôle inexistant au realm, donc
+  **inaccessible à l'inspecteur réel**) → `require_role("anticorruption_inspector")` sur
+  `/whistleblower/queue` **et** `/integrity-scores`. Le mock agent admin (« Modibo Konaté ») cumule
+  volontairement le rôle inspecteur (super-utilisateur de démo) pour préserver la démo/e2e AD-03 ;
+  la compartimentation réelle est portée par le realm en prod.
+- **Gateway — anti-corrélation du canal anonyme (souveraineté)** : sur les 3 routes PUBLIQUES du
+  lanceur d'alerte (`/sigac/whistleblower/{public-key,reports,reports/:token/status}`), le proxy
+  retire désormais **tout en-tête identifiant** avant de forwarder à anticorruption-service —
+  `X-Forwarded-For`/`X-Real-IP` (IP relayée), `User-Agent`, `Cookie`, `Referer`, `Accept-Language`,
+  `X-Correlation-Id`/`X-Request-Id`, `traceparent`/`tracestate` — et n'injecte PLUS le
+  correlation-id de trace. Défense en profondeur au-dessus du client (déjà sans cookie ni
+  correlation-id) et du service (qui ne journalise pas l'IP) : les identifiants n'atteignent jamais
+  l'aval, même via un ingress amont. Helper pur `buildForwardedHeaders()` (piloté par
+  `isPublicEndpoint`) + suite de tests `proxy.headers.spec.ts` (gateway 50/50). Routes protégées :
+  comportement inchangé.
+- **GOV-01 — identité du signataire révélée seulement après vérification** : la messagerie SGOGT
+  affichait le bloc d'attestation cryptographique (« Signataire : X », empreinte, horodatage) dès
+  qu'un message était inspecté, **quel que soit le résultat de la vérification JWS**. Un message
+  usurpé aurait donc affiché le nom de l'officiel impersoné comme signataire « attesté ». Désormais
+  le bloc n'est rendu qu'après `valid === true` ; sur signature invalide, un avertissement explicite
+  (`signature.identityUnverified`) remplace l'identité. En mock (`verify` → toujours `valid:true`)
+  la démo/e2e est inchangée ; l'écart ne se manifeste que sur une vraie signature invalide.
+- **`biometricHash` hors payload QR — NON traité (conflit ADR-006)** : l'audit le proposait en
+  préventif, mais **ADR-006 mandate explicitement** `biometric_hash` dans le JWS QR (placeholder
+  `null` en P0, valeur réelle en Bloc F) pour la vérification hors-ligne. Le retirer violerait un
+  ADR ratifié (SHA-256 one-way sur un document physique = design délibéré, pas une faille) → à
+  porter en révision d'ADR si le besoin se confirme, pas en modif de code unilatérale.
+
+**Reste au backlog (P2)** : uploads réels MinIO (correction justificatif + evidence signalement) ;
+auto-refresh 30 s PC-05 ; auto-vérif signatures GOV-01 ; `biometricHash` hors payload QR (préventif)
+; i18n 7 langues nationales ; test unitaire dédié `/corrections/me` (harnais Prisma-mock à créer) ;
+`fine_classification`/`fine_severity` SIGAC encore en clair (limite backend).
+
+### 0trevicies. Patch 2026-07-06 — Durcissement sécurité frontend/backend + écran USSD-01
+
+Audit multi-agents des 12 écrans (PC-01→06, AD-01→03, GOV-01/02, USSD-01) + surfaces sécurité
+transverses (BFF, en-têtes, QR-JWT, pipeline anonyme, wiring api-client) → backlog priorisé.
+Première passe de durcissement (typecheck 6 packages OK ; 35/35 tests `document-service` ; lint
+`citizen` 0 warning) :
+
+- **En-têtes de sécurité (docs/12 §9bis.4)** : CSP stricte (`script-src 'self' 'wasm-unsafe-eval'`,
+  `frame-ancestors 'none'`, `object-src/base-uri/form-action 'self'`), **HSTS** (prod uniquement),
+  **COOP `same-origin`**, `X-Permitted-Cross-Domain-Policies: none` posés sur les 3 `next.config.ts`
+  (citizen `camera=(self)` pour le scanner QR §5.5 ; admin/governance `camera=()`). La CSP était
+  documentée (§4.2) mais **absente** du code — c'était le contrôle anti-XSS principal.
+- **document-service** : `ThrottlerGuard` réellement appliqué à `PublicDocumentsController`
+  (`POST public/documents/verify-qr` non authentifié n'était PAS rate-limité malgré sa docstring) ;
+  NINA retiré des logs applicatifs et messages d'exception (`fdi.service.ts`, `identity.client.ts` →
+  référence `sha256(nina)[0..8]`). Le NINA reste tracé **uniquement** dans l'audit immuable.
+- **XSS `javascript:` (console admin AD-02)** : `justificationDocUrl` durci — schéma Zod
+  `SafeDocUrlSchema` bannit `javascript:/data:/vbscript:/file:` + garde au rendu `isHttpUrl` (lien
+  cliquable http(s) uniquement ; React n'assainit pas ces `href`).
+- **Auth fail-open (`@nina-aes/auth`)** : nouveau `resolveAuthMode()` — **kill-switch prod** (refuse
+  `mock` si `NODE_ENV=production` sauf opt-in `NINA_ALLOW_MOCK_AUTH=true`), défaut `keycloak` en
+  prod. Câblé dans `login/logout/session` + les 3 `proxy.ts` (le bypass `hasToken || mock` devient
+  inerte en prod). Symétrique du `assertApiModeSafe` du mode données.
+- **BFF** : `AbortSignal.timeout(15 s)` (→ 504 `GATEWAY_TIMEOUT`) sur les 3 proxys
+  `app/api/v1/[...path]/route.ts` (anti-slowloris). Le streaming binaire (`req.body` duplex) reste à
+  câbler avec les uploads réels.
+- **USSD-01 (écran manquant → livré)** : `app/[locale]/ussd-sim/page.tsx` + client pilote + BFF
+  **dev** `app/api/ussd-sim/route.ts` relayant vers `ussd-service:3014` `/ussd/callback` (secret
+  partagé côté serveur ; désactivé hors dev sauf `NINA_ENABLE_USSD_SIM=true`). Pavé virtuel +
+  clavier physique, parcours réel en 8 langues.
+- **PC-03** : case d'attestation sur l'honneur **obligatoire** (bloque la soumission d'une demande à
+  portée légale) ; clé i18n `admin.corrections.drawer.rejectReasonError` corrigée (« 5 » → 20,
+  paramétrée et consommée par le drawer).
+- **PC-06 — chiffrement de bout en bout du signalement (CRITIQUE résolu)** : le corps + la
+  localisation partaient **en clair**. Désormais scellés **dans le navigateur** (libsodium sealed
+  box X25519, interopérable octet-pour-octet avec PyNaCl `SealedBox` côté procureur) avant tout
+  envoi — le serveur ne reçoit qu'un `ciphertext_b64` qu'il ne peut pas déchiffrer. Le pipeline
+  anonyme **cassé** est réconcilié avec le contrat FastAPI réel :
+  `GET .../whistleblower/public-key`, `POST .../whistleblower/reports`,
+  `GET .../whistleblower/reports/{token}/status` (les 3 seuls allowlistés public au gateway).
+  Schémas Zod reçus/statut alignés (`SealedReportRequest/Receipt`, `WhistleblowerStatusResponse`),
+  taxonomie UI→backend pontée (`UI_CATEGORY_TO_FINE_CLASSIFICATION`), bornes description 200-2000
+  (maquette + plafond ciphertext 8192). **Fail-closed** : sans clé publique valide, la soumission
+  est refusée (jamais de repli en clair). Anti-corrélation : le transport anonyme (`skipAuth`)
+  n'émet plus le `X-Correlation-Id` horodaté ; token de suivi mock rendu aléatoire
+  (`crypto.getRandomValues`). ⚠️ `fine_classification`/`fine_severity` restent en clair (limite
+  backend documentée — à sceller côté serveur ultérieurement). Dépendance ajoutée :
+  `libsodium-wrappers` (WASM, chargé uniquement sur PC-06 ; CSP `wasm-unsafe-eval` déjà posée).
+
+**Reste au backlog (non traité ici, à prioriser)** : ~~IDOR PC-02~~ + ~~`/corrections/me`
+self-scoped PC-05~~ + ~~cloisonnement RBAC de la file procureur SIGAC~~ → **traités en
+[0quattuorvicies](#0quattuorvicies-patch-2026-07-06--autorisation-objet-pc-02pc-05--cloisonnement-rbac-sigac)**
+(le rôle réel est `ANTICORRUPTION_INSPECTOR`, pas `INSPECTOR/PROSECUTOR` qui n'existent pas au
+realm) ; uploads réels vers MinIO ; auto-refresh 30 s PC-05 ; `biometricHash` hors payload QR
+(préventif Bloc F) ; couverture i18n des 7 langues nationales.
+
+### 0duovicies. Patch 2026-07-05 — Frontend tranche 2 : apps admin + governance branchées (PROMPT 5.1)
+
+Suite de la couture données mock↔live (tranche 1 = app citizen, cf.
+[0quaterdecies](#0quaterdecies-patch-2026-06-17--frontend--couture-api-mocklive--hooks-react--bff-prompt-51-tranche-1--app-citizen)
+
+- **ADR-031**). Les apps **admin** (AD-01/02/03) et **governance** (GOV-01/02) passent de mocks
+  locaux au contrat `@nina-aes/api-client`, en **répliquant le pattern citizen** (kill-switch
+  `assertApiModeSafe`, BFF `app/api/v1/[...path]` injectant le Bearer côté serveur,
+  `ApiClientProvider`
+- `MutationCache` sensible à `ApiError`). Méthode : orchestration multi-agents (contrats → apps en
+  parallèle) puis vérification centralisée.
+
+**Livré** :
+
+- **`@nina-aes/api-client`** (scope `api-client`) : `CorrectionApi.approve(id)` /
+  `reject(id, {reason ≥ 20})` ; `list()` **normalise** la réponse backend
+  `{data, total, page, pageSize}` (+ join `citizen` optionnel `{id, nina, firstName, lastName}`)
+  vers la vue publique `{items, …}` (les consommateurs citizen ne changent pas) + filtres
+  `agent`/`from`/`to`. `SigacApi.getQueue()` (file procureur en buckets, **authentifié** — les
+  `submit`/`getStatus` anonymes restent `skipAuth`). **Nouveau domaine `governance`** :
+  `sgogt.{send,inbox,verify,ack,respond}` + `directives.{create,list,transition}`, schémas Zod
+  calqués sur governance-service (`MessageView`, `DirectiveView`, statuts
+  `DRAFT/SENT/IN_PROGRESS/COMPLETED/REJECTED`, priorités `NORMAL/HIGH/CRITICAL`) +
+  `DIRECTIVE_LEGAL_TRANSITIONS`/`isDirectiveTransitionAllowed` (machine à états partagée UI↔mock).
+  **Nouveau domaine `adminDashboard.getStats()`** au contrat **honnête nullable** : en live seuls
+  `correctionsPending`/`correctionsToday` sont dérivés (compteurs paginés d'identity-service), tout
+  le reste (`activityByRegion`, `topAgents`, séries, feed) vaut `null` = « backend d'agrégation Bloc
+  D non implémenté ». Hooks RQ (`useApproveCorrection`, `useRejectCorrection`,
+  `useWhistleblowerQueue`, `useSgogtInbox`, `useSendSgogtMessage`, `useAckSgogtMessage`,
+  `useRespondSgogtMessage`, `useVerifySgogtMessage`, `useDirectives`, `useCreateDirective`,
+  `useTransitionDirective`, `useAdminDashboardStats`) + query-keys. **Mock stateful déterministe**
+  (`mock/{corrections,governance,admin-dashboard}.fixtures.ts`, `personas.ts`, `deterministic.ts`) :
+  50 corrections vue agent (dont les 2 fixtures citoyennes historiques du NINA `18903102015042V`
+  préservées), inbox 8 messages / 3 fils, 7 directives, file whistleblower ;
+  `approve/reject/send/respond/ack/transition` **mutent l'état en mémoire** (validé par les MÊMES
+  schémas Zod que le live).
+
+- **`api-gateway`** (scope `api-gateway`) : **table de routage réconciliée** — 18 préfixes → 14
+  services. Ajout `/api/v1/{sgogt,directives,elections}` → `GOVERNANCE_SERVICE_URL` (le préfixe mort
+  `/api/v1/governance` — qui ne matchait aucun controller aval, ceux-ci étant sous sgogt/directives/
+  elections — est **retiré**). `publicEndpoints` SIGAC corrigés : les 2 entrées mortes
+  (`/api/v1/sigac/alerts[/status]`, routes inexistantes) remplacées par les 3 vraies routes anonymes
+  du canal lanceur d'alerte (`whistleblower/public-key`, `whistleblower/reports`,
+  `whistleblower/reports/:token/status`) ; nouveau matching **segment-exact fail-closed** pour les
+  déclarations à paramètre `:token` (token vide/surnuméraire → JWT exigé). **54/54 tests** (36 +
+  18). README §2.1 mis à jour.
+
+- **`apps/admin`** (scope `admin`) : couture `lib/api/{config,server,browser}.ts` + BFF +
+  `instrumentation.ts` + `providers.tsx` (redirect 401 **dérivant la locale du pathname** via un
+  `localeFromPathname` local, pas de `/fr` en dur — amélioration vs citizen). **AD-02** :
+  `useCorrections` + adaptateur `lib/corrections/` (join citizen → `citizenName`, région dérivée du
+  NINA, timeline **synthétisée** des seuls champs réels), drawer `useApprove/useReject` (motif ≥
+  20). **AD-01** : `adminDashboard.getStats()` + `lib/dashboard/` view-model ; sections `null` →
+  `UnavailableCard` « Bloc D à venir » ; simulation d'arrivées d'alertes conservée **uniquement en
+  mode mock**. **AD-03** : `useWhistleblowerQueue` (buckets) ; heatmap/top-agents dégradés. Mocks
+  locaux `lib/mock-{corrections,dashboard}.ts` **supprimés**. E2E admin recalés (approbation/rejet
+  bout-en-bout, mock stateful).
+
+- **`apps/governance`** (scope `gov`) : couture identique. **GOV-01** : `useSgogtInbox` (**polling
+  30 s** — pas de WebSocket backend, escalade par cron), regroupement par `threadId`, annuaire
+  `lib/directory.ts` (via `MOCK_GOVERNANCE_DIRECTORY`, repli « Fonctionnaire {uuid.8} » en live),
+  composition/réponse activées, ack à l'ouverture, badge de vérif de signature par message. **GOV-02
+  Kanban** : **5 colonnes = statuts serveur** (l'ancienne colonne « Escaladée » devient un **badge
+  `escalationLevel`**), priorités `CRITICAL/HIGH/NORMAL` → affichage P1/P2/P3, drag **restreint aux
+  transitions légales** + update optimiste **auto-inerte** avec rollback, rejet exigeant une note.
+  **Drift crypto corrigé** : le canon (ADR-026/034, `governance-service/src/crypto/jws.signer.ts`)
+  est une signature **JWS RS256 côté serveur via Vault Transit** (clé non exportable, aucune
+  signature client possible) → tous les libellés « Ed25519 » de l'UI/i18n governance deviennent «
+  **Signature électronique vérifiée (JWS)** ». Clés `governance.*` de `messages/fr.json` refondues
+  (repli automatique pour les 7 autres langues via le `deepMerge` de
+  `packages/i18n/src/request.ts`).
+
+- **`turbo.json`** : `E2E_GOVERNANCE_URL` ajouté au `globalEnv` (était silencé par un eslint-disable
+  dans `playwright.config.ts`).
+
+- **Alignement vocabulaire crypto `shared-types` + `ui`** : le type spec obsolète
+  `GovernanceMessage` (non consommé par le code vivant — le live passe par `MessageView` de
+  governance-service) portait encore `signatureEd25519` / `publicKeyFingerprint`, en contradiction
+  avec le canon **JWS RS256 serveur** (la colonne Prisma réelle est `signature`, scheme-agnostique).
+  Renommés en **`jwsSignature` / `signingKeyId`** (`interfaces.ts` + `dtos.ts` +
+  `governanceMessageIngestSchema`) ; `packages/ui/signed-message-bubble.tsx` (badge « Ed25519 ✓ » →
+  « JWS ✓ », infobulles alignées) ; diagramme `docs/diagrams/02-classes.puml` synchronisé. Les
+  clés/types réexportés (`GovernanceMessage`, `GovernanceMessageIngestDto`) ne changent PAS de nom —
+  aucun consommateur cassé. Le **vrai** Ed25519 du repo (interop transfrontalier, scellement audit
+  Merkle, consentement biométrique) est **intact** : le renommage est ciblé sur le seul contexte
+  messagerie SGOGT.
+
+**Vérif** : `check-types` api-client + citizen (non-régression) + admin + governance + i18n +
+shared-types + ui ✅ (dist shared-types reconstruit) ; `eslint --max-warnings=0` sur les 4 zones ✅
+; `api-gateway` 54/54 ✅ ; `docs:sync:check` ✅. **Playwright e2e admin/gov NON lancés** (exécution
+CI ; le drag @dnd-kit gov est le point le plus sensible aux flakes — passe de run réelle à faire).
+
+**Reste (hors périmètre — code fait foi)** : mode live jamais testé contre backend réel ;
+whistleblower store/dispute d'anticorruption-service non persistés (mémoire, Bloc D) ; polling temps
+réel PC-05 citizen toujours non câblé ; le type spec `GovernanceMessage` de `shared-types` reste
+globalement divergent de `MessageView` (governance-service) au-delà du champ signature
+(`publicKeyFingerprint`→`signingKeyId` fait, mais `serverTimestamp`/`recipientIds`/`readStatus` non
+réconciliés) — réconciliation complète du type à faire si un consommateur l'adopte.
+
+**Incident (résolu)** : un switch de branche GitHub Desktop (`feat` → `main`) survenu pendant le
+workflow a mêlé le travail à des marqueurs de conflit et à du WIP d'autres chantiers ; récupération
+par snapshot + réapplication sur `feat`. Le diff de session inclut donc, **hors tranche 2 et à ne
+pas committer sans tri**, du WIP utilisateur préexistant (apps/citizen d'une session parallèle ;
+`packages/config` + services biometric/interop/vulnerability issus d'un stash `!!GitHub_Desktop`,
+toujours présent dans `git stash list`).
 
 ### 0unvicies. Consolidation 2026-06-25 — Phase 1 : audit contenu + sécurité des 27 docs (5 vagues)
 

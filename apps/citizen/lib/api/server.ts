@@ -68,12 +68,15 @@ export async function fetchCitizenFiche(nina: string): Promise<CitizenFiche | nu
 }
 
 /**
- * PC-05 — corrections du citoyen (filtrées sur son NINA côté serveur).
- * @param nina - NINA du citoyen connecté (si connu).
+ * PC-05 — corrections du citoyen AUTHENTIFIÉ.
+ *
+ * 🔒 Self-scoped : appelle `GET /corrections/me`, où le backend dérive le NINA
+ * du token (jamais d'un paramètre client). On n'appelle PLUS `correction.list()`
+ * (réservé aux agents et qui ignorait tout filtre `nina` — un citoyen recevait
+ * soit un 403, soit potentiellement TOUT le périmètre).
  */
-export async function fetchMyCorrections(nina?: string): Promise<CorrectionRequest[]> {
-  const res = await serverApi().correction.list(nina ? { nina } : {});
-  return res.items;
+export async function fetchMyCorrections(): Promise<CorrectionRequest[]> {
+  return serverApi().correction.listMine();
 }
 
 /** PC-05 — rendez-vous du citoyen connecté. */

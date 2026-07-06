@@ -137,6 +137,50 @@ describe('api-gateway — routage (e2e)', () => {
     expect(payload.userContextJws).toBeUndefined();
   });
 
+  // ── Gouvernance (préfixes réels /sgogt, /directives, /elections) ────────
+  it('GET /api/v1/sgogt/messages avec token → forward vers governance', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/sgogt/messages')
+      .set('Authorization', 'Bearer valid');
+    expect(res.status).toBe(200);
+    expect(forwardMock).toHaveBeenCalledTimes(1);
+    const [route] = forwardMock.mock.calls[0];
+    expect(route.serviceName).toBe('governance');
+  });
+
+  it('ancien préfixe /api/v1/governance → 404 E_GW_NOT_FOUND (préfixe mort retiré)', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/governance/directives')
+      .set('Authorization', 'Bearer valid');
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe('E_GW_NOT_FOUND');
+    expect(forwardMock).not.toHaveBeenCalled();
+  });
+
+  // ── Canal lanceur d'alerte anonyme (PC-06) ──────────────────────────────
+  it('POST /api/v1/sigac/whistleblower/reports SANS token → forward (anonyme)', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/sigac/whistleblower/reports')
+      .send({ ciphertext_b64: 'xxx' });
+    expect(res.status).toBe(200);
+    expect(forwardMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('GET suivi /reports/{token}/status SANS token → forward (anonyme)', async () => {
+    const res = await request(app.getHttpServer()).get(
+      '/api/v1/sigac/whistleblower/reports/wb-3f9a1c/status',
+    );
+    expect(res.status).toBe(200);
+    expect(forwardMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('GET /api/v1/sigac/whistleblower/queue SANS token → 401 (réservé inspecteur)', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/sigac/whistleblower/queue');
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('E_GW_004');
+    expect(forwardMock).not.toHaveBeenCalled();
+  });
+
   // ── 404 ────────────────────────────────────────────────────────────────
   it('chemin /api/v1 inconnu → 404 E_GW_NOT_FOUND', async () => {
     const res = await request(app.getHttpServer())
@@ -153,14 +197,15 @@ describe('api-gateway — routage (e2e)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('GET /api/v1/api-gateway/routes avec token → 200 et 15 routes', async () => {
+  it('GET /api/v1/api-gateway/routes avec token → 200 et 18 routes', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/v1/api-gateway/routes')
       .set('Authorization', 'Bearer valid');
     expect(res.status).toBe(200);
-    // 16 préfixes publics (identity est atteint via /citizens, /corrections,
-    // /locations) pour 14 services aval distincts.
-    expect(res.body.total).toBe(16);
+    // 18 préfixes publics (identity est atteint via /citizens, /corrections,
+    // /locations ; governance via /sgogt, /directives, /elections) pour
+    // 14 services aval distincts.
+    expect(res.body.total).toBe(18);
   });
 
   // ── Rate limiting ────────────────────────────────────────────────────────

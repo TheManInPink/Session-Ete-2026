@@ -10,8 +10,8 @@ Garanties exposées par cette surface API :
 - **CORS sûr** : jamais de wildcard combiné aux credentials (corrige la revue).
 - **Scoring fail-closed** : le bundle Isolation Forest est vérifié (sidecar
   ``.sha256``) avant tout usage ; sinon ``503`` (pas de scoring dégradé).
-- **Advisory only** : le scoring ne sanctionne pas ; un humain (INSPECTOR /
-  PROSECUTOR) agit via ``require_role``.
+- **Advisory only** : le scoring ne sanctionne pas ; un humain habilité
+  (``anticorruption_inspector``) agit via ``require_role``.
 - **Contestation** : un agent authentifié ne peut contester QUE son propre ``sub``.
 - **Anti-corrélation** : l'intake signalement ne stocke que ciphertext + buckets +
   jour + hash de token ; aucune IP / aucun NINA n'est journalisé par requête.
@@ -140,13 +140,14 @@ async def health_check() -> dict[str, Any]:
 # ──────────────────────────────────────────────────────────────────────────────
 @app.post(
     "/api/v1/sigac/integrity-scores",
-    dependencies=[Depends(require_role("inspector"))],
+    dependencies=[Depends(require_role("anticorruption_inspector"))],
 )
 async def compute_integrity_score(request: IntegrityScoreRequest) -> dict[str, Any]:
     """Calcule la bande d'intégrité d'un agent — **signal d'aide à la décision**, pas une sanction.
 
-    🔒 Réservé aux rôles d'investigation (``inspector``) via :func:`app.auth.require_role`
-    (repli admin-token / dev). Garde-fous appliqués (cf. ``app/scoring.py``) :
+    🔒 Réservé au rôle d'investigation ``anticorruption_inspector`` (realm Keycloak,
+    cf. doc 08 §369) via :func:`app.auth.require_role` (repli admin-token / dev).
+    Garde-fous appliqués (cf. ``app/scoring.py``) :
 
     - ``n_actions`` < ``SIGAC_MIN_ACTIONS_FOR_SCORE`` ⇒ ``INSUFFICIENT_DATA`` (JAMAIS
       un 0 pénalisant) ;
@@ -311,12 +312,13 @@ async def whistleblower_status(tracking_token: str) -> dict[str, Any]:
 
 @app.get(
     "/api/v1/sigac/whistleblower/queue",
-    dependencies=[Depends(require_role("inspector"))],
+    dependencies=[Depends(require_role("anticorruption_inspector"))],
 )
 async def whistleblower_queue() -> dict[str, Any]:
-    """Liste la file procureur — buckets + jour SEULEMENT (réservé INSPECTOR/PROSECUTOR).
+    """Liste la file procureur — buckets + jour SEULEMENT (réservé anticorruption_inspector).
 
-    🔒 Réservé via :func:`app.auth.require_role` (repli admin-token / dev). N'expose
+    🔒 Réservé au rôle ``anticorruption_inspector`` via :func:`app.auth.require_role`
+    (repli admin-token / dev). N'expose
     JAMAIS le ciphertext ni de métadonnée fine : le déchiffrement réel se fait hors-ligne
     sur le poste procureur.
 

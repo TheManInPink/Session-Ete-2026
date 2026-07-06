@@ -158,6 +158,8 @@
       "justificationNone": "Aucun",
       "processingTitle": "Traitement de votre demande",
       "processingBody": "Votre demande sera analysée par le module IA puis validée par un agent CTDEC. Délai habituel : 24-48 h.",
+      "certifyLabel": "Je certifie sur l'honneur l'exactitude des informations fournies. Toute fausse déclaration est passible de poursuites.",
+      "certifyRequired": "Vous devez certifier l'exactitude des informations avant de soumettre.",
       "error": "La soumission a échoué"
     },
     "nav": {
@@ -274,12 +276,17 @@
       },
       "description": "Description détaillée",
       "descriptionPlaceholder": "Décrivez ce qui s'est passé, où, quand, et comment vous en avez été témoin.",
-      "descriptionHelp": "Minimum 50 caractères. Ne mentionnez pas vos propres informations.",
+      "descriptionHelp": "Entre 200 et 2000 caractères. Ne mentionnez pas vos propres informations.",
       "region": "Région concernée (facultatif)",
       "cercle": "Cercle concerné (facultatif)",
       "consent": "Je certifie sur l'honneur que les faits décrits sont véridiques et que je ne cherche pas à nuire arbitrairement à un agent.",
       "submit": "Soumettre le signalement",
-      "error": "L'envoi a échoué"
+      "error": "L'envoi a échoué",
+      "encryptedNotice": "🔒 Chiffrement de bout en bout : votre signalement est chiffré dans votre navigateur avant l'envoi. Le serveur ne peut pas le lire — seul le procureur habilité le déchiffre, hors ligne.",
+      "encrypting": "Chiffrement en cours…",
+      "keyUnavailable": "Le service de chiffrement est momentanément indisponible. Par sécurité, aucun signalement n'est envoyé en clair. Veuillez réessayer plus tard.",
+      "schemeUnsupported": "Le schéma de chiffrement demandé par le serveur n'est pas pris en charge par ce navigateur pour un signalement long.",
+      "tooLong": "Le signalement chiffré dépasse la taille maximale autorisée. Veuillez raccourcir la description."
     },
     "receipt": {
       "title": "Signalement enregistré ✓",
@@ -509,12 +516,14 @@
         },
         "justificatif": "Justificatif",
         "noJustificatif": "Aucun justificatif fourni.",
+        "viewJustificatif": "Consulter le justificatif",
+        "justificatifUnavailable": "Justificatif fourni, mais son aperçu est indisponible (format non pris en charge).",
         "timelineTitle": "Historique",
         "approve": "Approuver",
         "reject": "Rejeter",
         "rejectReason": "Motif de rejet (visible par le citoyen)",
         "rejectReasonPlaceholder": "Expliquez brièvement la raison du rejet — le citoyen verra ce texte.",
-        "rejectReasonError": "Minimum 5 caractères requis."
+        "rejectReasonError": "Le motif doit contenir au moins {min} caractères."
       },
       "timeline": {
         "label": "Historique de la demande",
@@ -601,6 +610,7 @@
         "verifying": "Vérification de la signature…",
         "verified": "Signature électronique vérifiée (JWS)",
         "invalid": "Signature invalide — intégrité non garantie",
+        "identityUnverified": "Identité du signataire non authentifiée : ne pas se fier à l'expéditeur affiché tant que la signature n'est pas vérifiée.",
         "signer": "Signataire",
         "timestamp": "Horodatage serveur",
         "hash": "Empreinte"

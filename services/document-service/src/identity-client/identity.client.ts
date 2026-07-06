@@ -26,9 +26,15 @@
  */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createHash } from 'node:crypto';
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import type { Env } from '../config/env.schema';
 import type { CitizenDto, LocationWithAncestorsDto } from './types';
+
+/** Référence hachée non réversible d'un NINA — corrélable en logs sans PII. */
+function ninaRef(nina: string): string {
+  return createHash('sha256').update(nina).digest('hex').slice(0, 8);
+}
 
 @Injectable()
 export class IdentityClient {
@@ -55,9 +61,12 @@ export class IdentityClient {
       return data;
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 404) {
-        throw new NotFoundException(`NINA ${nina} introuvable dans identity-service`);
+        throw new NotFoundException(
+          `NINA (réf. ${ninaRef(nina)}) introuvable dans identity-service`,
+        );
       }
-      this.log.error({ err, nina }, 'fetchCitizen échoué');
+      // 🔒 Jamais de NINA en clair dans les logs — référence hachée corrélable.
+      this.log.error({ err, ninaRef: ninaRef(nina) }, 'fetchCitizen échoué');
       throw err;
     }
   }

@@ -74,11 +74,14 @@ test.describe('PC-06 — Signalement anonyme', () => {
     // 1) Choisir une catégorie (premier bouton radio).
     await page.getByRole('radio').first().check();
 
-    // 2) Description ≥ 50 caractères (contrainte AnonymousAlertDto).
+    // 2) Description ≥ 200 caractères (le formulaire de dépôt scellé exige un
+    //    récit circonstancié — cf. `canSubmit` de whistleblower-form.tsx).
     await page
       .locator('#description')
       .fill(
-        'Description de test pour le signalement anonyme — au moins cinquante caractères afin de satisfaire la validation du formulaire.',
+        'Description de test pour le signalement anonyme. Je rapporte ici des faits présumés de corruption ' +
+          'observés dans un centre d’état civil, avec suffisamment de détails circonstanciés pour dépasser ' +
+          'le seuil de deux cents caractères imposé par le formulaire de dépôt sécurisé du canal SIGAC.',
       );
 
     // 3) Consentement obligatoire.
@@ -87,7 +90,10 @@ test.describe('PC-06 — Signalement anonyme', () => {
     // 4) Soumettre.
     await page.locator('button[type="submit"]').click();
 
-    // 5) Le reçu affiche un token de suivi opaque (format mock `vault:v3:`).
-    await expect(page.getByText(/vault:v3:/).first()).toBeVisible();
+    // 5) Le reçu confirme le dépôt et affiche le token de suivi anonyme
+    //    (token opaque base64url `secrets.token_urlsafe`, PAS un ciphertext
+    //    Vault `vault:v3:` — cf. WhistleblowerReceiptSchema + mock).
+    await expect(page.getByText(/Signalement enregistré/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /copier le token/i })).toBeVisible();
   });
 });

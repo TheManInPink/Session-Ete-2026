@@ -22,8 +22,8 @@
 import { Controller, Get } from '@nestjs/common';
 import {
   HealthCheck,
-  HealthCheckError,
   HealthCheckService,
+  HealthIndicatorService,
   PrismaHealthIndicator,
   type HealthIndicatorResult,
 } from '@nestjs/terminus';
@@ -40,6 +40,7 @@ export class HealthController {
     private readonly hc: HealthCheckService,
     private readonly db: PrismaHealthIndicator,
     private readonly redis: RedisService,
+    private readonly indicator: HealthIndicatorService,
   ) {}
 
   @Get()
@@ -69,18 +70,19 @@ export class HealthController {
   }
 
   /**
-   * Indicateur Redis BLOQUANT : si Redis est injoignable, on lève une
-   * `HealthCheckError` (statut `down`) — l'anti-replay et le rate-limit
-   * dépendent de Redis (fail-closed), donc un nœud sans Redis n'est pas prêt.
+   * Indicateur Redis BLOQUANT : si Redis est injoignable, on retourne un
+   * statut `down` (l'exécuteur Terminus le traite comme une erreur → 503) —
+   * l'anti-replay et le rate-limit dépendent de Redis (fail-closed), donc un
+   * nœud sans Redis n'est pas prêt.
    */
   private async redisIndicator(): Promise<HealthIndicatorResult> {
+    const check = this.indicator.check('redis');
     const reachable = await this.redis.ping();
-    const result: HealthIndicatorResult = {
-      redis: { status: reachable ? 'up' : 'down', reachable },
-    };
-    if (!reachable) {
-      throw new HealthCheckError('Redis injoignable (anti-replay/rate-limit fail-closed)', result);
-    }
-    return result;
+    return reachable
+      ? check.up({ reachable })
+      : check.down({
+          reachable,
+          message: 'Redis injoignable (anti-replay/rate-limit fail-closed)',
+        });
   }
 }

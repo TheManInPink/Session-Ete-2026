@@ -20,6 +20,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gatewayInternalUrl } from '../../../../lib/api/config';
 
+/** Coupe-circuit du proxy : au-delà, on renvoie 504 au lieu de rester pendant. */
+const GATEWAY_TIMEOUT_MS = 15_000;
+
 /** Relaie une requête vers le gateway en injectant le Bearer depuis le cookie. */
 async function forward(
   req: NextRequest,
@@ -56,16 +59,27 @@ async function forward(
   const body = method === 'GET' || method === 'HEAD' ? undefined : await req.text();
 
   try {
-    const upstream = await fetch(target, { method, headers, body, cache: 'no-store' });
+    // 🔒 `AbortSignal.timeout` : jamais de requête pendante (anti-slowloris /
+    // épuisement de connexions côté BFF).
+    const upstream = await fetch(target, {
+      method,
+      headers,
+      body,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS),
+    });
     const payload = await upstream.text();
     return new NextResponse(payload, {
       status: upstream.status,
       headers: { 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
     });
-  } catch {
+  } catch (err) {
+    const timedOut = err instanceof Error && err.name === 'TimeoutError';
     return NextResponse.json(
-      { code: 'GATEWAY_UNREACHABLE', message: 'Service indisponible.' },
-      { status: 502 },
+      timedOut
+        ? { code: 'GATEWAY_TIMEOUT', message: 'Le service a mis trop de temps à répondre.' }
+        : { code: 'GATEWAY_UNREACHABLE', message: 'Service indisponible.' },
+      { status: timedOut ? 504 : 502 },
     );
   }
 }

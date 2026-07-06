@@ -608,20 +608,20 @@ visible sur les touches.
 
 ## Récapitulatif d'implémentation
 
-| Écran   | App        | Composants métier critiques                     | Endpoint API                    |
-| ------- | ---------- | ----------------------------------------------- | ------------------------------- |
-| PC-01   | citizen    | NinaInput, LanguageSelector                     | —                               |
-| PC-02   | citizen    | CitizenCard, NinaDisplay                        | GET /citizens/by-nina/:nina     |
-| PC-03   | citizen    | AiScorePanel, UploadZone, Stepper               | POST /correction-requests       |
-| PC-04   | citizen    | MaliMap, PrioritySlot, Calendar                 | POST /appointments              |
-| PC-05   | citizen    | CorrectionTimeline                              | GET /me/requests                |
-| PC-06   | citizen    | WhistleblowerForm                               | POST /alerts/anonymous          |
-| AD-01   | admin      | KPI Cards, MaliHeatmap, AlertSeverityBadge feed | GET /admin/dashboard            |
-| AD-02   | admin      | DataGrid, AiScorePanel, CorrectionTimeline      | GET / PATCH /corrections        |
-| AD-03   | admin      | MaliHeatmap, IntegrityScoreGauge, alerts feed   | GET /alerts, GET /agents/scores |
-| GOV-01  | governance | SignedMessageBubble                             | GET / POST /messages            |
-| GOV-02  | governance | DirectiveCard (Kanban)                          | GET / PATCH /directives         |
-| USSD-01 | dev tool   | UssdSimulator, KioskKeyboard                    | POST /ussd                      |
+| Écran   | App        | Composants métier critiques                     | Endpoint API                      |
+| ------- | ---------- | ----------------------------------------------- | --------------------------------- |
+| PC-01   | citizen    | NinaInput, LanguageSelector                     | —                                 |
+| PC-02   | citizen    | CitizenCard, NinaDisplay                        | GET /citizens/:nina               |
+| PC-03   | citizen    | AiScorePanel, UploadZone, Stepper               | POST /correction-requests         |
+| PC-04   | citizen    | MaliMap, PrioritySlot, Calendar                 | POST /appointments                |
+| PC-05   | citizen    | CorrectionTimeline                              | GET /corrections/me               |
+| PC-06   | citizen    | WhistleblowerForm                               | POST /sigac/whistleblower/reports |
+| AD-01   | admin      | KPI Cards, MaliHeatmap, AlertSeverityBadge feed | GET /admin/dashboard              |
+| AD-02   | admin      | DataGrid, AiScorePanel, CorrectionTimeline      | GET / PATCH /corrections          |
+| AD-03   | admin      | MaliHeatmap, IntegrityScoreGauge, alerts feed   | GET /sigac/whistleblower/queue    |
+| GOV-01  | governance | SignedMessageBubble                             | GET / POST /messages              |
+| GOV-02  | governance | DirectiveCard (Kanban)                          | GET / PATCH /directives           |
+| USSD-01 | dev tool   | UssdSimulator, KioskKeyboard                    | POST /ussd                        |
 
 **Ordre d'implémentation recommandé** (PROMPT 5.x) : PC-01 → PC-02 → PC-03 → PC-05 → AD-02 → PC-04 →
 AD-01 → AD-03 → GOV-02 → GOV-01 → PC-06 → USSD-01.

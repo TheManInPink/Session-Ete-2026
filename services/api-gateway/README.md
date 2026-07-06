@@ -16,22 +16,56 @@ internes.
 
 ## 2. Responsabilités
 
-| Responsabilité   | Implémentation                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------- |
-| Routing          | Table statique → 14 services + route locale `/api/v1/api-gateway` (`proxy.routes.ts`) |
-| Circuit breaker  | Opossum, un par service aval (état exposé sur `/api/v1/api-gateway/breakers`)         |
-| Authentification | JWT RS256 vérifié **une fois** (JWKS) au bord — `GatewayAuthGuard`                    |
-| Contexte propagé | `X-User-Context` **signé JWS HS256** (TTL 60 s) + purge des en-têtes usurpés          |
-| Rate limiting    | **Redis** (`RedisRateLimitGuard`), par utilisateur sinon IP, fail-open                |
-| Compression      | gzip / brotli (`compression`)                                                         |
-| Sécurité HTTP    | Helmet (CSP, HSTS, X-Frame-Options)                                                   |
-| CORS             | Liste blanche d'origines via env                                                      |
-| Corrélation      | `X-Request-Id` + `traceparent` propagés (`@nina-aes/logger`)                          |
-| Logs             | Pino structuré JSON + masquage PII                                                    |
-| Métriques        | `/metrics` Prometheus (`@nina-aes/observability`), traces OTel **opt-in**             |
-| Erreurs          | `AllExceptionsFilter` → `ErrorResponse` normalisée                                    |
-| Swagger          | natif `/api/docs` + **agrégé** `/api/v1/api-gateway/openapi.json`                     |
-| Healthcheck      | liveness `/health` · readiness `/health/ready` · agrégateur `/health/downstreams`     |
+| Responsabilité   | Implémentation                                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| Routing          | Table statique — 18 préfixes → 14 services + route locale `/api/v1/api-gateway` (`proxy.routes.ts`, voir §2.1) |
+| Circuit breaker  | Opossum, un par service aval (état exposé sur `/api/v1/api-gateway/breakers`)                                  |
+| Authentification | JWT RS256 vérifié **une fois** (JWKS) au bord — `GatewayAuthGuard`                                             |
+| Contexte propagé | `X-User-Context` **signé JWS HS256** (TTL 60 s) + purge des en-têtes usurpés                                   |
+| Rate limiting    | **Redis** (`RedisRateLimitGuard`), par utilisateur sinon IP, fail-open                                         |
+| Compression      | gzip / brotli (`compression`)                                                                                  |
+| Sécurité HTTP    | Helmet (CSP, HSTS, X-Frame-Options)                                                                            |
+| CORS             | Liste blanche d'origines via env                                                                               |
+| Corrélation      | `X-Request-Id` + `traceparent` propagés (`@nina-aes/logger`)                                                   |
+| Logs             | Pino structuré JSON + masquage PII                                                                             |
+| Métriques        | `/metrics` Prometheus (`@nina-aes/observability`), traces OTel **opt-in**                                      |
+| Erreurs          | `AllExceptionsFilter` → `ErrorResponse` normalisée                                                             |
+| Swagger          | natif `/api/docs` + **agrégé** `/api/v1/api-gateway/openapi.json`                                              |
+| Healthcheck      | liveness `/health` · readiness `/health/ready` · agrégateur `/health/downstreams`                              |
+
+### 2.1 Table de routage (`proxy.routes.ts`)
+
+Le proxy forwarde le chemin **inchangé** (aucune réécriture d'URL) : chaque préfixe public est donc
+**identique** au préfixe exposé par les controllers du service aval. 18 préfixes pour 14 services
+distincts.
+
+| Préfixe(s) public(s)                                             | Service aval (port)   | Endpoints publics (sans JWT)                                                                                      | Timeout |
+| ---------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------- | ------- |
+| `/api/v1/citizens` · `/api/v1/corrections` · `/api/v1/locations` | identity (3001)       | —                                                                                                                 | 5 s     |
+| `/api/v1/auth`                                                   | auth (3002)           | `/auth/login` · `/auth/register` · `/auth/refresh`                                                                | 5 s     |
+| `/api/v1/ai`                                                     | ai (3003)             | —                                                                                                                 | 15 s    |
+| `/api/v1/documents`                                              | document (3004)       | —                                                                                                                 | 30 s    |
+| `/api/v1/notifications`                                          | notification (3005)   | —                                                                                                                 | 5 s     |
+| `/api/v1/aes`                                                    | interop (3006)        | —                                                                                                                 | 5 s     |
+| `/api/v1/audit`                                                  | audit (3007)          | —                                                                                                                 | 5 s     |
+| `/api/v1/appointments`                                           | appointment (3008)    | —                                                                                                                 | 5 s     |
+| `/api/v1/sigac`                                                  | anticorruption (3009) | `/sigac/whistleblower/public-key` · `/sigac/whistleblower/reports` · `/sigac/whistleblower/reports/:token/status` | 5 s     |
+| `/api/v1/sgogt` · `/api/v1/directives` · `/api/v1/elections`     | governance (3010)     | —                                                                                                                 | 5 s     |
+| `/api/v1/vulnerable`                                             | vulnerability (3011)  | —                                                                                                                 | 5 s     |
+| `/api/v1/biometric`                                              | biometric (3012)      | —                                                                                                                 | 5 s     |
+| `/api/v1/enrollment`                                             | enrollment (3013)     | —                                                                                                                 | 5 s     |
+| `/api/v1/ussd`                                                   | ussd (3014)           | `/ussd/callback` (webhook Africa's Talking)                                                                       | 5 s     |
+
+Notes :
+
+- **Endpoints publics** : déclaration littérale = matching par **préfixe** ; déclaration à segments
+  `:param` (ex. token de suivi lanceur d'alerte) = matching **exact segment par segment** (un
+  `:param` accepte exactement un segment non vide — fail-closed sinon).
+- Le préfixe `/api/v1/governance` (mort : aucun controller aval ne l'expose, le proxy ne réécrit pas
+  l'URL) a été **retiré** au profit des trois préfixes réels `/sgogt`, `/directives`, `/elections`.
+- Les anciens endpoints publics `/api/v1/sigac/alerts*` (routes inexistantes côté
+  anticorruption-service) ont été **remplacés** par les trois vraies routes anonymes du canal
+  lanceur d'alerte (`app/main.py`).
 
 ---
 

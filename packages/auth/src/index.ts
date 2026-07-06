@@ -23,6 +23,7 @@
  */
 
 export type { Role, UserProfile, Session, AuthMode, AuthConfig } from './types';
+export { resolveAuthMode } from './auth-mode';
 export { getSession, requireSession, requireRole, hasRole, isOwnerOf } from './session';
 export { buildLoginHandler } from './handlers/login';
 export { buildCallbackHandler } from './handlers/callback';
