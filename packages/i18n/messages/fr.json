@@ -337,22 +337,108 @@
     "appointments": {
       "title": "Rendez-vous",
       "subtitle": "Planification et suivi des rendez-vous CTDEC / RAVEC.",
-      "soonTitle": "Module en préparation",
-      "soonBody": "La gestion des rendez-vous côté agent se connectera à appointment-service (port 3008, doc 09). En attendant, les citoyens prennent leurs rendez-vous depuis le portail citoyen."
+      "today": "Aujourd'hui",
+      "centerLabel": "Centre",
+      "kpis": {
+        "total": "RDV du jour",
+        "confirmed": "Confirmés",
+        "waiting": "En attente",
+        "priority": "Prioritaires (P1)",
+        "completed": "Terminés",
+        "noShow": "Absents"
+      },
+      "nextUp": {
+        "title": "Prochain appel",
+        "queue": "File n°{n}",
+        "call": "Appeler le citoyen",
+        "empty": "Aucun rendez-vous à appeler pour le moment.",
+        "pendingBackend": "L'appel de file sera activé avec appointment-service (doc 09)."
+      },
+      "table": {
+        "title": "Planning du jour",
+        "subtitle": "Rendez-vous du centre, triés par heure d'appel",
+        "time": "Heure",
+        "queue": "File",
+        "priority": "Priorité",
+        "citizen": "Citoyen",
+        "reason": "Motif",
+        "status": "Statut"
+      },
+      "priority": {
+        "P1": "Prioritaire",
+        "P2": "Semi-prioritaire",
+        "P3": "Standard"
+      },
+      "status": {
+        "REQUESTED": "Demandé",
+        "SCHEDULED": "Planifié",
+        "CONFIRMED": "Confirmé",
+        "COMPLETED": "Terminé",
+        "CANCELLED": "Annulé",
+        "NO_SHOW": "Absent"
+      },
+      "privacyNote": "Identités partiellement masquées (prénom + initiale) — minimisation des données à l'affichage.",
+      "demo": {
+        "title": "Données de démonstration",
+        "body": "Le planning ci-dessous est un jeu déterministe. La vue agent temps réel se connectera à appointment-service (port 3008, doc 09) ; les citoyens prennent déjà rendez-vous depuis le portail citoyen."
+      },
+      "unavailable": {
+        "title": "Vue agent indisponible",
+        "body": "L'agrégation des rendez-vous par centre côté agent n'est pas encore exposée par appointment-service (doc 09). Les prises de rendez-vous citoyens restent disponibles sur le portail citoyen."
+      }
     },
     "settings": {
       "title": "Paramètres",
-      "subtitle": "Profil de l'agent et préférences de la console.",
+      "subtitle": "Profil de l'agent, préférences et sécurité de la session.",
+      "readOnly": "Lecture seule",
       "profile": "Profil agent",
       "name": "Nom",
+      "email": "E-mail",
       "matricule": "Matricule",
       "center": "Centre",
+      "rolesLabel": "Habilitations",
       "preferences": "Préférences",
       "language": "Langue de l'interface",
+      "theme": "Thème",
+      "themeSystem": "Système",
       "notifEmail": "Alertes par e-mail",
       "notifSms": "Alertes par SMS",
       "on": "Activé",
       "off": "Désactivé",
+      "roleLabels": {
+        "AGENT": "Agent",
+        "SUPERVISOR": "Superviseur",
+        "AUDITOR": "Auditeur",
+        "ADMIN": "Administrateur",
+        "ANTICORRUPTION_INSPECTOR": "Inspecteur anti-corruption (OCLEI)",
+        "MINISTER": "Ministre",
+        "CABINET": "Cabinet",
+        "CITIZEN": "Citoyen",
+        "VULNERABLE": "Citoyen vulnérable"
+      },
+      "security": {
+        "title": "Sécurité & session",
+        "subtitle": "État de votre authentification et bonnes pratiques.",
+        "authMode": "Mode d'authentification",
+        "authModeMock": "Démonstration (mock)",
+        "authModeKeycloak": "SSO Keycloak",
+        "authModeMockNote": "Session de démonstration : aucune vérification de jeton. Ce mode est interdit en production (kill-switch fail-closed).",
+        "authModeKeycloakNote": "Identité vérifiée via Keycloak (OIDC) — jeton d'accès signé et contrôlé à chaque requête.",
+        "sessionToken": "Jeton de session",
+        "sessionTokenNote": "Jeton d'accès à durée courte (~15 min), stocké en cookie httpOnly et renouvelé silencieusement côté serveur.",
+        "compartment": "Cloisonnement",
+        "compartmentNote": "Le rôle Inspecteur anti-corruption (OCLEI) est isolé : lui seul accède à la file des signalements scellés (compartimentation vis-à-vis Superviseur / Auditeur / Administrateur).",
+        "tracing": "Traçabilité",
+        "tracingNote": "Toutes vos actions sont journalisées (audit-service, doc 12) : horodatage, agent, ressource consultée.",
+        "actionsTitle": "Actions de session",
+        "revokeOthers": "Déconnecter les autres sessions",
+        "rotateTokens": "Régénérer les jetons",
+        "actionsPending": "Disponible avec auth-service (doc 08).",
+        "recommendationsTitle": "Bonnes pratiques",
+        "rec1": "Verrouillez votre poste dès que vous vous en éloignez.",
+        "rec2": "Ne partagez jamais votre session ni vos identifiants.",
+        "rec3": "Signalez toute anomalie ou tentative de pression via la file SIGAC."
+      },
       "comingSoonTitle": "Édition à venir",
       "comingSoonBody": "La modification des paramètres sera activée avec auth-service (doc 08). Cette console est en lecture seule pour l'instant."
     },
@@ -438,6 +524,61 @@
         "newAlert": "Nouvelle alerte",
         "investigate": "Investiguer",
         "empty": "Aucune alerte ne correspond à vos filtres."
+      },
+      "agentDetail": {
+        "back": "Retour au dashboard SIGAC",
+        "breadcrumb": "Dossier agent",
+        "matriculeLabel": "Matricule",
+        "centerLabel": "Centre",
+        "band": {
+          "good": "Conforme",
+          "watch": "À surveiller",
+          "critical": "Critique"
+        },
+        "overview": {
+          "title": "Score d'intégrité",
+          "subtitle": "Agrégat IA — 30 derniers jours (ADR-023)",
+          "processed": "Opérations 30 j",
+          "flaggedRate": "Taux signalé",
+          "openSignals": "Signaux ouverts",
+          "lastReview": "Dernière revue"
+        },
+        "history": {
+          "title": "Évolution du score",
+          "subtitle": "30 derniers jours"
+        },
+        "criteria": {
+          "title": "Décomposition du score",
+          "subtitle": "Pondération des 5 critères d'intégrité (ADR-023)",
+          "weight": "poids"
+        },
+        "operations": {
+          "title": "Opérations récentes",
+          "subtitle": "30 derniers jours — les lignes signalées pèsent sur le score",
+          "when": "Quand",
+          "type": "Type",
+          "detail": "Détail",
+          "status": "Statut",
+          "flagged": "Signalée",
+          "ok": "Conforme"
+        },
+        "actions": {
+          "title": "Actions d'investigation",
+          "subtitle": "Cloisonnées — réservées à l'inspection anti-corruption (OCLEI)",
+          "openCase": "Ouvrir un dossier d'enquête",
+          "requestAudit": "Demander un audit ciblé",
+          "freeze": "Suspendre les habilitations",
+          "pendingBackend": "Disponible une fois le module d'investigation (Bloc D) branché.",
+          "restricted": "Compartimenté : seul un inspecteur anti-corruption (OCLEI) habilité peut ouvrir une action d'investigation nominative. Votre rôle donne accès à la lecture du dossier, pas aux actions."
+        },
+        "demo": {
+          "title": "Projection démonstration",
+          "body": "En mode démonstration, la décomposition du score, l'historique et les opérations sont dérivés de façon déterministe du score agrégé : ils illustrent la maquette d'investigation. Les données nominatives réelles proviendront du module de scoring (Bloc D / ADR-023)."
+        },
+        "unavailable": {
+          "title": "Dossier d'intégrité indisponible",
+          "body": "Le scoring d'intégrité des agents (ADR-023) n'est pas encore branché — module Bloc D à venir. Aucun dossier nominatif ne peut être affiché en l'absence de source backend."
+        }
       }
     },
     "login": {
@@ -681,14 +822,78 @@
     "performance": {
       "title": "Performance institutionnelle",
       "subtitle": "Traçabilité et réactivité par institution.",
-      "soonTitle": "Module en préparation",
-      "soonBody": "Les métriques de performance se connecteront à governance-service (port 3010, doc 22)."
+      "demoBanner": "Données de démonstration — les métriques par institution sont un jeu déterministe. En production, elles proviendront de governance-service (port 3010, doc 22).",
+      "kpis": {
+        "institutions": "Institutions suivies",
+        "avgCompletion": "Taux d'exécution moyen",
+        "avgResponse": "Délai moyen de réponse",
+        "overdue": "Directives en retard"
+      },
+      "days": "{n} j",
+      "highlight": {
+        "least": "Institution la moins traçable",
+        "most": "Institution la mieux traçable",
+        "overdueLabel": "En retard",
+        "escalationsLabel": "Escalades",
+        "responseLabel": "Délai moyen"
+      },
+      "table": {
+        "title": "Classement par traçabilité",
+        "subtitle": "Institutions triées de la plus à la moins traçable",
+        "institution": "Institution",
+        "directives": "Directives",
+        "completion": "Exécution",
+        "response": "Délai moy.",
+        "overdue": "Retard",
+        "escalations": "Escalades",
+        "traceability": "Traçabilité",
+        "trend": "Tendance"
+      },
+      "band": {
+        "good": "Bonne",
+        "watch": "À surveiller",
+        "critical": "Faible"
+      },
+      "unavailable": {
+        "title": "Métriques indisponibles",
+        "body": "Les métriques de performance institutionnelle seront fournies par governance-service (port 3010, doc 22). Aucune donnée agrégée n'est disponible en l'absence de cette source."
+      }
     },
     "rapports": {
       "title": "Rapports",
       "subtitle": "Synthèses mensuelles de gouvernance et d'exécution.",
-      "soonTitle": "Module en préparation",
-      "soonBody": "La génération de rapports mensuels (institutions les moins traçables) sera activée avec governance-service (port 3010)."
+      "demoBanner": "Données de démonstration — les synthèses mensuelles sont un jeu déterministe. En production, la génération PDF signée sera produite par governance-service (port 3010, doc 22).",
+      "status": {
+        "PUBLISHED": "Publié",
+        "DRAFT": "En cours"
+      },
+      "download": "Télécharger le PDF",
+      "downloadPending": "La génération PDF signée sera activée avec governance-service (doc 22).",
+      "featured": {
+        "label": "Dernier rapport publié",
+        "directives": "Directives traitées",
+        "completion": "Taux d'exécution",
+        "alerts": "Institutions en alerte",
+        "response": "Délai moyen"
+      },
+      "leastTraceable": {
+        "title": "Institutions les moins traçables",
+        "subtitle": "Classement du mois — à prioriser pour un audit de traçabilité"
+      },
+      "list": {
+        "title": "Rapports mensuels",
+        "period": "Période",
+        "status": "Statut",
+        "directives": "Directives",
+        "completion": "Exécution",
+        "alerts": "En alerte",
+        "pages": "Pages",
+        "action": "Action"
+      },
+      "unavailable": {
+        "title": "Rapports indisponibles",
+        "body": "La génération des synthèses mensuelles sera fournie par governance-service (port 3010, doc 22). Aucun rapport n'est disponible en l'absence de cette source."
+      }
     }
   }
 }
