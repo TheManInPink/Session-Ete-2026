@@ -28,6 +28,11 @@ describe('proxy.routes — matchRoute', () => {
     expect(matchRoute('/api/v1/ussd/callback')?.serviceName).toBe('ussd');
   });
 
+  it('route /api/v1/centers vers appointment (répertoire public PC-04)', () => {
+    expect(matchRoute('/api/v1/centers')?.serviceName).toBe('appointment');
+    expect(matchRoute('/api/v1/centers/abc/availability')?.targetBaseUrl).toContain('3008');
+  });
+
   it.each(['/api/v1/sgogt/messages', '/api/v1/directives', '/api/v1/elections/export'])(
     'route %s vers governance (port 3010, préfixes réels des controllers)',
     (path) => {
@@ -64,6 +69,12 @@ describe('proxy.routes — isPublicEndpoint', () => {
   it('expose le webhook USSD sans auth', () => {
     const ussd = GATEWAY_ROUTES.find((r) => r.serviceName === 'ussd')!;
     expect(isPublicEndpoint('/api/v1/ussd/callback', ussd)).toBe(true);
+  });
+
+  it('expose le répertoire des centres (PC-04) sans JWT', () => {
+    const centers = GATEWAY_ROUTES.find((r) => r.publicPrefix === '/api/v1/centers')!;
+    expect(isPublicEndpoint('/api/v1/centers', centers)).toBe(true);
+    expect(isPublicEndpoint('/api/v1/centers/abc/availability', centers)).toBe(true);
   });
 });
 

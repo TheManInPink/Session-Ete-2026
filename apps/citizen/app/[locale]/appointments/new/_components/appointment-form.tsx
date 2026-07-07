@@ -169,7 +169,10 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
   /** Régions distinctes ayant au moins un centre (triées). */
   const regions = useMemo(() => {
     const byCode = new Map<string, string>();
-    for (const c of centers) byCode.set(c.regionCode, c.regionName);
+    for (const c of centers) {
+      if (!c.regionCode) continue; // centre sans région dérivable → non listable
+      byCode.set(c.regionCode, c.regionName ?? c.regionCode);
+    }
     return [...byCode.entries()]
       .map(([code, name]) => ({ code, name }))
       .sort((a, b) => a.name.localeCompare(b.name, locale));
@@ -397,7 +400,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                 <p className="font-medium">{selectedCenter.name}</p>
                 <p className="mt-1 flex items-center gap-1.5 text-fg-muted">
                   <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
-                  {selectedCenter.regionName}
+                  {selectedCenter.regionName ?? selectedCenter.regionCode ?? ''}
                   {selectedCenter.cercleName ? ` · ${selectedCenter.cercleName}` : ''}
                 </p>
               </div>

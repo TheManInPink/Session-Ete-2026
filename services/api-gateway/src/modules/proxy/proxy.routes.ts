@@ -100,6 +100,17 @@ export const GATEWAY_ROUTES: readonly GatewayRoute[] = [
     serviceName: 'appointment',
   },
   {
+    // Répertoire public des centres CTDEC / antennes RAVEC (PC-04) — servi par
+    // appointment-service. Le controller `centers.controller.ts` est `@Public()`
+    // (lecture seule, aucune donnée sensible) → pas de JWT exigé au bord ; le
+    // ThrottlerGuard aval limite le débit. Même service aval que /appointments
+    // (dédupliqué par `distinctDownstreams`, donc pas de nouveau downstream santé).
+    publicPrefix: '/api/v1/centers',
+    targetBaseUrl: getEnvOr('APPOINTMENT_SERVICE_URL', 'http://appointment-service:3008'),
+    serviceName: 'appointment',
+    publicEndpoints: ['/api/v1/centers'],
+  },
+  {
     publicPrefix: '/api/v1/sigac',
     targetBaseUrl: getEnvOr('ANTICORRUPTION_SERVICE_URL', 'http://anticorruption-service:3009'),
     serviceName: 'anticorruption',

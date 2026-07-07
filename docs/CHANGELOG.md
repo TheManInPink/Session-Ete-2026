@@ -3,13 +3,36 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-07 (**PC-04 prise de rendez-vous** — parcours centre → date →
-> créneau : `Select` région→centre sur les 6 centres réels seedés, `Calendar` (jours sans créneau
-> grisés), grille `PrioritySlot`, engagement pièce d'identité + export `.ics` ; QR décoratif. Voir
-> 0octovicies. Précédent : 0septvicies — PC-03 wizard de correction enrichi + `AiScorePanel.bands`)
+> **Dernière mise à jour** : 2026-07-07 (**api-gateway route `/api/v1/centers`** — liste des centres
+> PC-04 câblée en live via le gateway + schéma `CenterSummary` aligné (nullable). Voir 0novemvicies.
+> Précédent : 0octovicies — PC-04 sélecteur centre + calendrier + `PrioritySlot`)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0novemvicies. Patch 2026-07-07 — api-gateway : route `/api/v1/centers` (liste centres live PC-04)
+
+Câblage **live** de la liste des centres (suite de 0octovicies) : le sélecteur région→centre de
+PC-04 peut désormais consommer les vrais centres via le gateway, pas seulement le mock.
+
+- **api-gateway** — nouvelle entrée de routage `/api/v1/centers` → `appointment-service` (même aval
+  que `/api/v1/appointments`, dédupliqué par `distinctDownstreams` → pas de nouveau downstream
+  santé). Marquée **publique** : le `centers.controller.ts` aval est `@Public()` (répertoire en
+  lecture seule, aucune donnée sensible ; le `ThrottlerGuard` aval limite le débit). BFF citoyen
+  inchangé (catch-all pass-through) → `listCenters` (déjà pointé sur `/api/v1/centers`) atteint le
+  service en live.
+- **api-client** — le schéma `CenterSummary` aligne sa nullabilité sur le contrat backend
+  (`regionCode` / `regionName` `nullable`) → parse robuste des réponses live (les clés surnuméraires
+  `openNow` / `latitude` / `distanceKm`… sont ignorées). Le formulaire PC-04 écarte du sélecteur les
+  centres sans région dérivable.
+- **Reste en suivi** — **disponibilité** (`/centers/:id/availability`) et **réservation** (`create`,
+  réservé AGENT) live pas encore réconciliées : le parcours complet reste cohérent en mock ; seule
+  la **liste des centres** est désormais live-capable.
+
+Gates : `check-types` + ESLint `--max-warnings=0` (api-client, citizen, api-gateway) **verts** ;
+tests gateway `proxy.routes` **26/26** (2 nouveaux cas `/centers`) ; parse Zod d'une charge
+`CenterSummary` live (nullable + clés en trop) validé. Docs : `screens.md` PC-04 (mention live) + ce
+CHANGELOG.
 
 ### 0octovicies. Patch 2026-07-07 — PC-04 (prise de rendez-vous) : sélecteur centre + calendrier + `PrioritySlot`
 

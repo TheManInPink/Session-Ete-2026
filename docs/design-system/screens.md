@@ -242,10 +242,11 @@ supporte le clavier (Espace ouvre le file picker).
 > puis récap + motif + **engagement pièce d'identité** (`Checkbox`). Modale : **QR décoratif** +
 > **export `.ics`** (RFC 5545, rappel `VALARM` 24 h, côté client). Route réelle
 > `/[locale]/appointments/new` (pas `/rendez-vous?nina=`). **Écarts assumés (données honnêtes)** :
-> pas de carte `MaliMap` D3 (composant existant mais non câblé ici) ; **flux cohérent en mode mock**
-> (l'api-gateway ne route pas encore `/api/v1/centers`, et `slots`/`create` citoyen divergent du
-> backend — `create` réservé AGENT → réconciliation = suivi) ; disponibilité mock **déterministe**
-> par centre/jour ; files **P1/P2 décidées côté serveur** ; NINA de démo à lettre de contrôle **V**.
+> pas de carte `MaliMap` D3 (composant existant mais non câblé ici) ; **liste des centres désormais
+> routée live** (gateway `/api/v1/centers`, cf. CHANGELOG 0novemvicies) mais **disponibilité +
+> réservation** encore cohérentes en mock (`slots`/`create` citoyen divergent du backend, `create`
+> réservé AGENT → réconciliation = suivi) ; disponibilité mock **déterministe** par centre/jour ;
+> files **P1/P2 décidées côté serveur** ; NINA de démo à lettre de contrôle **V**.
 
 **Layout** :
 

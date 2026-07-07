@@ -30,8 +30,8 @@ export const CenterSummarySchema = z.object({
   /** Type de centre (ex. `CTDEC`, `ANTENNE_RAVEC`). */
   type: z.string(),
   address: z.string().nullable().optional(),
-  regionCode: z.string(),
-  regionName: z.string(),
+  regionCode: z.string().nullable(),
+  regionName: z.string().nullable(),
   cercleName: z.string().nullable().optional(),
   servicesOffered: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
