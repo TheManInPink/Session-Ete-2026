@@ -12,20 +12,22 @@ import { Check, ChevronDown } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '../../lib/utils';
+import { CountryFlag, type AESCountryCode } from '../brand/country-flag';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 /** Codes internes alignés sur l'enum `Language` de @nina-aes/shared-types. */
 export type LanguageCode = 'FR' | 'BM' | 'SNK' | 'FF' | 'TMQ' | 'HAU' | 'MOS' | 'DJE';
 
-const LANGUAGES: { code: LanguageCode; native: string; flag: string }[] = [
-  { code: 'FR', native: 'Français', flag: '🇲🇱' },
-  { code: 'BM', native: 'Bamanankan', flag: '🇲🇱' },
-  { code: 'SNK', native: 'Soninké', flag: '🇲🇱' },
-  { code: 'FF', native: 'Fulfulde', flag: '🇲🇱' },
-  { code: 'TMQ', native: 'Tamasəḥt', flag: '🇲🇱' },
-  { code: 'HAU', native: 'Hausa', flag: '🇲🇱' },
-  { code: 'MOS', native: 'Mòoré', flag: '🇧🇫' },
-  { code: 'DJE', native: 'Zarma', flag: '🇳🇪' },
+/** Pays « porteur » de chaque langue (pour le drapeau affiché). */
+const LANGUAGES: { code: LanguageCode; native: string; country: AESCountryCode }[] = [
+  { code: 'FR', native: 'Français', country: 'MLI' },
+  { code: 'BM', native: 'Bamanankan', country: 'MLI' },
+  { code: 'SNK', native: 'Soninké', country: 'MLI' },
+  { code: 'FF', native: 'Fulfulde', country: 'MLI' },
+  { code: 'TMQ', native: 'Tamasəḥt', country: 'MLI' },
+  { code: 'HAU', native: 'Hausa', country: 'MLI' },
+  { code: 'MOS', native: 'Mòoré', country: 'BFA' },
+  { code: 'DJE', native: 'Zarma', country: 'NER' },
 ];
 
 export interface LanguageSelectorProps {
@@ -51,7 +53,7 @@ export function LanguageSelector({ value, onValueChange, className }: LanguageSe
             className,
           )}
         >
-          <span aria-hidden="true">{current.flag}</span>
+          <CountryFlag country={current.country} size={18} />
           <span className="flex-1 text-left">{current.native}</span>
           <ChevronDown className="size-4 text-fg-muted" aria-hidden="true" />
         </button>
@@ -75,7 +77,7 @@ export function LanguageSelector({ value, onValueChange, className }: LanguageSe
                     selected ? 'bg-primary/10 text-primary' : 'text-fg hover:bg-bg-muted',
                   )}
                 >
-                  <span aria-hidden="true">{l.flag}</span>
+                  <CountryFlag country={l.country} size={18} />
                   <span className="flex-1 text-left">{l.native}</span>
                   {selected && <Check className="size-4" aria-hidden="true" />}
                 </button>

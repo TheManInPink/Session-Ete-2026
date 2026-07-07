@@ -48,6 +48,7 @@
     "./components/charts/area-chart": "./src/components/charts/area-chart.tsx",
     "./components/charts/integrity-gauge": "./src/components/charts/integrity-gauge.tsx",
     "./components/brand/aes-logo": "./src/components/brand/aes-logo.tsx",
+    "./components/brand/country-flag": "./src/components/brand/country-flag.tsx",
     "./components/forms/nina-input": "./src/components/forms/nina-input.tsx",
     "./components/business/nina-display": "./src/components/business/nina-display.tsx",
     "./components/business/citizen-card": "./src/components/business/citizen-card.tsx",
