@@ -2,7 +2,7 @@
  * @file        site-header.tsx
  * @description En-tête public/citoyen (charte §3) : barre sticky sombre
  *              `bg-primary`, logo NINA-AES, navigation centrale (Accueil /
- *              Suivi de demande / Signalement) et, à droite, sélecteur de langue
+ *              Centres CTDEC / Aide) et, à droite, sélecteur de langue
  *              + (selon la session) bouton « Se connecter » OU menu utilisateur
  *              avec avatar, identité et **déconnexion**.
  *

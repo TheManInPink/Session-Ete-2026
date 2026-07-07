@@ -13,6 +13,12 @@
 
 ### PC-01 — Accueil
 
+> **MàJ 2026-07-06 (CHANGELOG 0sexvicies)** — Implémenté avec nav hybride (Accueil / Centres CTDEC /
+> Aide ; `/centres` + `/aide` créées), hero clair tricolore (drapeaux + accroche qualitative **sans
+> chiffre fabriqué**), cartes décrites, section « Comment ça marche » et **FAQ** (`Accordion`,
+> partagée avec /aide). Recherche : route `/nina/[nina]` conservée (pas `/recherche?nina=`). NINA
+> d'exemple : `18903102015042V` (lettre de contrôle **V**).
+
 **Objectif** : page d'entrée publique. Doit signer immédiatement l'identité AES, proposer la
 recherche NINA en grand, et expliquer la valeur du portail.
 
@@ -78,6 +84,12 @@ recherche NINA en grand, et expliquer la valeur du portail.
 ---
 
 ### PC-02 — Résultat de recherche NINA
+
+> **MàJ 2026-07-06 (CHANGELOG 0sexvicies)** — Implémenté avec chrome (SiteHeader/SiteFooter),
+> données en `Tabs` (Identité / Lieu de naissance / Filiation) + `Alert` info. Écarts assumés
+> (principe données honnêtes) : onglet « Résidence » et score de confiance IA **omis** (non encodés
+> dans le NINA / fabriqués) ; téléchargement FDI **désactivé** (document-service non câblé). Route
+> `/nina/[nina]`.
 
 **Objectif** : afficher la fiche d'identité après une recherche réussie, permettre de télécharger la
 FDI ou de signaler une erreur.

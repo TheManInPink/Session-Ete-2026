@@ -3,13 +3,43 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-06 (**Fix hydratation CSP + drawer AD-02** — 2 bugs attrapés
-> par les tests e2e mock : CSP statique sans nonce cassait l'hydratation des 3 apps ; Tailwind v4 ne
-> scannait pas `packages/ui` → drawer mal positionné. Voir 0quinvicies. Précédent : 0quattuorvicies
-> — Autorisation objet + RBAC SIGAC)
+> **Dernière mise à jour** : 2026-07-06 (**Alignement charte §1–§3 + chrome + PC-01/PC-02** —
+> retheme palette (accent bleu, neutres slate, primary navy) + police display Geist + sidebar
+> responsive (burger mobile) + header/footer citoyen + PC-01 (nav hybride, /centres, /aide, FAQ) +
+> PC-02 (Tabs). Voir 0sexvicies. Précédent : 0quinvicies — Fix hydratation CSP + drawer AD-02)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0sexvicies. Patch 2026-07-06 — Alignement charte §1.1/§1.2/§3 + chrome + PC-01/PC-02
+
+Alignement du frontend sur la charte graphique fournie (couleurs, typographie, layout citoyen),
+décidé **écran par écran** avec l'utilisateur ; principe **données honnêtes** préservé (aucun
+chiffre fabriqué ; NINA de démo avec lettre de contrôle **V** = `18903102015042V`).
+
+- **Palette (§1.1)** — `tokens.json` régénéré (`pnpm --filter @nina-aes/ui tokens:build`) : accent
+  turquoise `180°` → **bleu `#2E75B6`** (accent-500) ; neutres chauds `30°` → **slate froid**
+  (`#F8FAFC`/`#64748B`/`#E2E8F0`) ; primary → **bleu marine `#1B3A5C`** (`--primary` = primary-700 ;
+  hover 600 `#274D73`, dark 800 `#122841`) ; `--ring` → accent ; drapeaux AES ravivés (Mali
+  `#14B53A`, Burkina `#EF3340`, Niger `#FF7F00`). `tokens.css` régénéré (idempotent).
+- **Typographie (§1.2)** — stack `--font-display` Bricolage Grotesque → **Geist**. ⚠️ Constat :
+  aucune police n'est réellement chargée (`@fontsource`/`next/font` absents des 3 apps) → tout tombe
+  en fallback système ; le passage à Geist est une déclaration de stack (câblage des polices =
+  suivi).
+- **Chrome (§3)** — `AppSidebar` (design system) responsive : desktop fixe + **burger mobile** →
+  drawer `Sheet` (referme au clic d'un item). `AppFooter` partagé. Citoyen : `SiteHeader` sombre
+  (nav centrale + menu user + **logout** via form POST) + `SiteFooter` 3 colonnes + bande tricolore
+  AES. Consoles admin/gov : app-shell (sidebar + contenu scrollable + footer).
+- **PC-01** — nav hybride (Accueil / **Centres CTDEC** / **Aide** ; `/centres` + `/aide` créées en
+  stubs honnêtes, bannière démo) ; hero clair tricolore (drapeaux + accroche qualitative **sans
+  chiffre**) ; cartes décrites ; section « Comment ça marche » ; **FAQ** (`Accordion`, partagée
+  home + /aide). Route de recherche `/nina/[nina]` conservée (pas de migration `/recherche?nina=`).
+- **PC-02** — chrome ajouté ; données en `Tabs` (Identité / Lieu de naissance / Filiation) + `Alert`
+  info « source des données ». Onglet « Résidence » et **score de confiance IA omis** (non encodés
+  dans le NINA / fabriqués) ; PDF FDI reste **désactivé** (document-service non câblé).
+
+Gates : typecheck + ESLint `--max-warnings=0` + `next build` citizen **verts**. Docs synchronisés :
+`design-system.md` (§1, §2.2, §8, §11) + `screens.md` (PC-01/PC-02).
 
 ### 0quinvicies. Patch 2026-07-06 — Fix hydratation CSP à nonce + drawer AD-02 (2 bugs e2e)
 

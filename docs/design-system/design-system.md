@@ -9,9 +9,10 @@
 
 ## 1. Principes directeurs
 
-1. **Identité distinctive AES, pas du Bootstrap admin** — la palette primary (bleu profond `213°`) +
-   accent (turquoise lumineux `180°`) signe visuellement le projet ; pas un seul gris neutre froid
-   (saturation 4–10 % pour adoucir).
+1. **Identité AES alignée sur la charte §1.1** — palette primary bleu marine (`211°`, `#1B3A5C`) +
+   accent bleu (`207°`, `#2E75B6`) ; neutres **slate** froid (`#F8FAFC` / `#64748B` / `#E2E8F0`).
+   Source de vérité unique : `tokens.json` → régénère `tokens.css` via
+   `pnpm --filter @nina-aes/ui tokens:build`.
 2. **Mobile-first vrai** — chaque écran est conçu d'abord à `360 px` de large (cible : téléphone
    Android bas de gamme malien), puis enrichi vers les breakpoints supérieurs.
 3. **Accessibilité WCAG 2.2 AA dès la conception** — contraste ≥ 4.5:1 sur texte, 3:1 sur gros texte
@@ -65,8 +66,12 @@ officielles du drapeau correspondant (cf. `tokens.json` → `color.aes.*`).
 | Token            | Famille                 | Usage                      |
 | ---------------- | ----------------------- | -------------------------- |
 | `family.sans`    | Inter Variable          | UI, body, labels           |
-| `family.display` | Bricolage Grotesque     | Hero, H1/H2 marquants      |
+| `family.display` | Geist (Geist Sans)      | Hero, H1/H2 marquants      |
 | `family.mono`    | JetBrains Mono Variable | NINA, code, IDs techniques |
+
+> ⚠️ Ces familles sont **déclarées** dans les stacks CSS (`globals.css` → `@theme inline`) mais
+> **aucun fichier de police n'est chargé** (`@fontsource`/`next/font`) : le rendu tombe en fallback
+> système jusqu'au câblage effectif des polices.
 
 **Échelle modulaire** (Perfect Fourth, ratio 1.25) — 12 tailles de 12 à 96 px ; voir `tokens.json` →
 `typography.size`. Hauteurs de ligne par défaut : `relaxed` (1.75) sur body texte, `tight` (1.15)
@@ -398,17 +403,17 @@ composants n'utilisent **jamais** de couleurs hex en dur — toujours via tokens
 
 ```css
 :root {
-  --color-bg: hsl(30, 8%, 98%); /* neutral.50 */
+  --color-bg: hsl(210, 40%, 98%); /* neutral.50 */
   --color-bg-card: hsl(0, 0%, 100%);
-  --color-text: hsl(30, 8%, 12%); /* neutral.900 */
-  --color-text-mute: hsl(30, 4%, 46%); /* neutral.500 */
+  --color-text: hsl(222, 47%, 11%); /* neutral.900 */
+  --color-text-mute: hsl(215, 16%, 47%); /* neutral.500 */
 }
 
 :root[data-theme='dark'] {
-  --color-bg: hsl(30, 10%, 6%); /* neutral.950 */
-  --color-bg-card: hsl(30, 8%, 12%); /* neutral.900 */
-  --color-text: hsl(30, 8%, 95%); /* neutral.100 */
-  --color-text-mute: hsl(30, 4%, 60%); /* neutral.400 */
+  --color-bg: hsl(229, 63%, 7%); /* neutral.950 */
+  --color-bg-card: hsl(222, 47%, 11%); /* neutral.900 */
+  --color-text: hsl(210, 40%, 96%); /* neutral.100 */
+  --color-text-mute: hsl(215, 20%, 65%); /* neutral.400 */
 }
 ```
 
@@ -470,24 +475,24 @@ partagé.
 
 ## 11. Charte graphique — récap exécutif
 
-| Élément              | Valeur                                                     |
-| -------------------- | ---------------------------------------------------------- |
-| **Primary**          | `hsl(213, 60%, 42%)` — bleu profond AES                    |
-| **Accent**           | `hsl(180, 75%, 42%)` — turquoise lumineux                  |
-| **Success**          | `hsl(142, 71%, 45%)`                                       |
-| **Warning**          | `hsl(38, 92%, 50%)`                                        |
-| **Danger**           | `hsl(0, 84%, 60%)`                                         |
-| **Sans**             | Inter Variable                                             |
-| **Display**          | Bricolage Grotesque                                        |
-| **Mono**             | JetBrains Mono Variable                                    |
-| **Échelle taille**   | 1.250 (Perfect Fourth)                                     |
-| **Espacement base**  | 4 px                                                       |
-| **Rayon par défaut** | 8 px (`radius.base`)                                       |
-| **Ombre par défaut** | `shadow.sm`                                                |
-| **Durée hover**      | 150 ms                                                     |
-| **Bibliothèque UI**  | shadcn/ui (Radix + Tailwind) + 18 composants métier custom |
-| **Icônes**           | Lucide React + 5 maliennes custom                          |
-| **Mobile-first**     | Breakpoint racine 360 px                                   |
+| Élément              | Valeur                                                          |
+| -------------------- | --------------------------------------------------------------- |
+| **Primary**          | `hsl(211, 55%, 23%)` — bleu marine AES (`#1B3A5C`, primary-700) |
+| **Accent**           | `hsl(207, 60%, 45%)` — bleu (`#2E75B6`, accent-500)             |
+| **Success**          | `hsl(142, 64%, 38%)`                                            |
+| **Warning**          | `hsl(43, 82%, 50%)`                                             |
+| **Danger**           | `hsl(0, 84%, 55%)`                                              |
+| **Sans**             | Inter Variable                                                  |
+| **Display**          | Geist (Geist Sans)                                              |
+| **Mono**             | JetBrains Mono Variable                                         |
+| **Échelle taille**   | 1.250 (Perfect Fourth)                                          |
+| **Espacement base**  | 4 px                                                            |
+| **Rayon par défaut** | 8 px (`radius.base`)                                            |
+| **Ombre par défaut** | `shadow.sm`                                                     |
+| **Durée hover**      | 150 ms                                                          |
+| **Bibliothèque UI**  | shadcn/ui (Radix + Tailwind) + 18 composants métier custom      |
+| **Icônes**           | Lucide React + 5 maliennes custom                               |
+| **Mobile-first**     | Breakpoint racine 360 px                                        |
 
 ---
 
