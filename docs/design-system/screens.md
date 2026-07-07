@@ -154,6 +154,17 @@ sont focusables, badge IA expose son score via `aria-label`.
 
 ### PC-03 — Demande de correction (wizard 4 étapes)
 
+> **MàJ 2026-07-06 (CHANGELOG 0septvicies)** — Wizard enrichi : `Stepper` partagé (libellés courts),
+> carte « Fiche concernée », étape 2 en 2 colonnes (formulaire + **comparaison avant/après** avec la
+> valeur actuelle réelle issue de la fiche) et `UploadZone` partagé (zone de dépôt) + vignette
+> honnête « non envoyé ». **Score IA** rendu honnête : similarité **Jaro-Winkler calculée
+> localement** (module `similarity.ts`, déterministe, sans réseau ni modèle), affichée via
+> `AiScorePanel` avec disclaimer « pas le score définitif ». Écarts assumés (données honnêtes) : pas
+> de debounce/mutation IA serveur ni redirect PC-05 (→ `/dashboard`) ; justificatif validé
+> localement mais **non envoyé** (document-service non câblé) ; champs sans valeur actuelle connue
+> (résidence en démo) → comparaison « indisponible », rien de fabriqué. Route
+> `/nina/[nina]/correction`.
+
 **Layout** :
 
 ```

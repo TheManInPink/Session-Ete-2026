@@ -193,16 +193,19 @@
     },
     "steps": {
       "ariaLabel": "Étapes du formulaire",
-      "1": { "title": "Choisissez le champ à corriger" },
+      "1": { "title": "Choisissez le champ à corriger", "short": "Champ" },
       "2": {
         "title": "Indiquez la nouvelle valeur",
+        "short": "Valeur",
         "subtitle": "Champ sélectionné : {field}",
+        "currentLabel": "Valeur actuelle",
         "proposedValue": "Nouvelle valeur",
         "reason": "Motif de la correction",
         "reasonHelp": "Décrivez précisément l'erreur observée (minimum 10 caractères)."
       },
       "3": {
         "title": "Justificatif (facultatif)",
+        "short": "Justificatif",
         "subtitle": "Téléversez une pièce justificative pour accélérer le traitement.",
         "dropPrompt": "Glissez votre justificatif ici, ou cliquez pour parcourir",
         "formats": "PDF, JPG ou PNG — 5 Mo maximum",
@@ -214,7 +217,25 @@
         "errorSize": "Fichier trop volumineux (5 Mo maximum).",
         "optional": "Vous pouvez passer cette étape."
       },
-      "4": { "title": "Confirmez votre demande" }
+      "4": { "title": "Confirmez votre demande", "short": "Confirmation" }
+    },
+    "citizenCard": {
+      "title": "Fiche concernée",
+      "birthLabel": "Naissance",
+      "demoBadge": "Démo"
+    },
+    "ai": {
+      "title": "Pré-analyse de similarité",
+      "caption": "Indicateur calculé sur votre appareil (distance Jaro-Winkler entre l'ancienne et la nouvelle valeur). Ce n'est pas le score IA définitif : l'analyse officielle est réalisée par le service au moment de la soumission.",
+      "bandHigh": "Forte similarité",
+      "bandMedium": "Similarité moyenne",
+      "bandLow": "Faible similarité",
+      "typePrompt": "Saisissez une nouvelle valeur pour lancer la comparaison.",
+      "unavailable": "La valeur actuelle de ce champ n'est pas renseignée : comparaison indisponible.",
+      "hintHigh": "Changement mineur — probable correction de saisie.",
+      "hintLow": "Changement important — un justificatif est vivement recommandé.",
+      "summaryLabel": "Similarité estimée",
+      "summaryHint": "indicatif"
     },
     "fields": {
       "firstName": { "label": "Prénom", "help": "Tel qu'inscrit sur votre acte de naissance" },

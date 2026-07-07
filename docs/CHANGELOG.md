@@ -3,13 +3,40 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-06 (**Alignement charte §1–§3 + chrome + PC-01/PC-02** —
-> retheme palette (accent bleu, neutres slate, primary navy) + police display Geist + sidebar
-> responsive (burger mobile) + header/footer citoyen + PC-01 (nav hybride, /centres, /aide, FAQ) +
-> PC-02 (Tabs). Voir 0sexvicies. Précédent : 0quinvicies — Fix hydratation CSP + drawer AD-02)
+> **Dernière mise à jour** : 2026-07-06 (**PC-03 wizard de correction enrichi** — `Stepper` +
+> `UploadZone` + carte fiche + comparaison avant/après + score de similarité **Jaro-Winkler local**
+> (honnête, avec disclaimer) + prop `AiScorePanel.bands`. Voir 0septvicies. Précédent : 0sexvicies —
+> Alignement charte §1–§3 + chrome + PC-01/PC-02)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0septvicies. Patch 2026-07-06 — PC-03 (wizard de correction) enrichi + `AiScorePanel.bands`
+
+Amélioration du contenu et de la disposition du wizard de correction (`/nina/[nina]/correction`), en
+préservant le principe **données honnêtes** (aucun chiffre fabriqué).
+
+- **Composants du design system** — le wizard adopte enfin `Stepper` (libellés courts Champ / Valeur
+  / Justificatif / Confirmation) et `UploadZone` (zone de dépôt partagée, a11y clavier). Nouvelle
+  **carte « Fiche concernée »** (initiales + nom + NINA + naissance). Étape 2 réagencée en **2
+  colonnes** (`lg:`) : formulaire + panneau de pré-analyse.
+- **Comparaison avant/après** — l'étape 2 affiche la **valeur actuelle réelle** du champ (récupérée
+  via `fetchCitizenFiche`, best-effort — si live 401/403/indispo, le wizard tourne sans comparaison)
+  ; le récap final montre l'ancienne valeur barrée → la nouvelle.
+- **« Score IA » rendu honnête** — nouveau module `similarity.ts` = **Jaro-Winkler** calculé
+  **localement** (déterministe, sans réseau ni modèle ; casse/accents ignorés), l'algorithme cité
+  par la spec elle-même. Affiché via `AiScorePanel` avec **disclaimer** « pas le score définitif ;
+  l'analyse officielle est faite par le service à la soumission ». Pas de breakdown (la similarité
+  est un scalaire, pas une décomposition). Champs sans valeur actuelle (résidence en démo) → «
+  comparaison indisponible ».
+- **`AiScorePanel.bands`** (packages/ui) — nouvelle prop **optionnelle rétro-compatible** : libellés
+  de paliers surchargeables. PC-03 passe « Forte / Moyenne / Faible similarité » au lieu du « …
+  confiance » codé en dur (qui aurait été un faux verdict). Défaut inchangé → AD-02 non impacté.
+- **Honnêteté préservée** — justificatif validé localement mais **non envoyé** (document-service non
+  câblé) ; soumission → `/dashboard` (pas de PC-05).
+
+Gates : `check-types` + ESLint `--max-warnings=0` + `next build` citizen **verts**. Docs
+synchronisés : `screens.md` (note PC-03) + `design-system.md` (§4.4 `bands`).
 
 ### 0sexvicies. Patch 2026-07-06 — Alignement charte §1.1/§1.2/§3 + chrome + PC-01/PC-02
 
