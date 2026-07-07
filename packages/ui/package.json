@@ -58,6 +58,8 @@
     "./components/business/priority-slot": "./src/components/business/priority-slot.tsx",
     "./components/business/language-selector": "./src/components/business/language-selector.tsx",
     "./components/business/aes-country-switcher": "./src/components/business/aes-country-switcher.tsx",
+    "./components/business/app-sidebar": "./src/components/business/app-sidebar.tsx",
+    "./components/business/app-footer": "./src/components/business/app-footer.tsx",
     "./components/business/directive-card": "./src/components/business/directive-card.tsx",
     "./components/business/signed-message-bubble": "./src/components/business/signed-message-bubble.tsx",
     "./components/business/upload-zone": "./src/components/business/upload-zone.tsx",
