@@ -19,6 +19,8 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { createApiClient, createMockApiClient, type ApiClient } from '@nina-aes/api-client';
 import { gatewayInternalUrl, resolveApiMode } from './config';
+import { buildMockPerformance, type PerformanceOverview } from '../performance/institutions';
+import { buildMockReports, type ReportsOverview } from '../reports/monthly';
 
 /** Construit un client API réel lié à la session serveur (cookie → Bearer). */
 function liveServerApi(): ApiClient {
@@ -38,4 +40,27 @@ function liveServerApi(): ApiClient {
  */
 export function serverApi(): ApiClient {
   return resolveApiMode() === 'mock' ? createMockApiClient() : liveServerApi();
+}
+
+/**
+ * GOV — Performance institutionnelle : métriques de traçabilité/réactivité par
+ * institution.
+ *
+ * Contrat honnête : `governance-service` (doc 22) n'expose pas encore
+ * d'agrégation de performance. En mode live on renvoie `null` (la page rend un
+ * état « indisponible ») ; en mode mock, un jeu déterministe de démonstration.
+ */
+export function fetchInstitutionPerformance(): PerformanceOverview | null {
+  return resolveApiMode() === 'mock' ? buildMockPerformance() : null;
+}
+
+/**
+ * GOV — Rapports : synthèses mensuelles de gouvernance et d'exécution.
+ *
+ * Contrat honnête : la génération de rapports par `governance-service` (doc 22)
+ * n'existe pas encore. En mode live on renvoie `null` (état « indisponible ») ;
+ * en mode mock, un jeu déterministe de démonstration.
+ */
+export function fetchGovernanceReports(): ReportsOverview | null {
+  return resolveApiMode() === 'mock' ? buildMockReports() : null;
 }
