@@ -1,38 +1,28 @@
 /**
  * @file        admin-sidebar.tsx
- * @description Sidebar fixe de la console agent — 5 sections principales +
- *              footer avec profil agent + bouton déconnexion.
- *
- *              Responsive : sur `<lg`, devient un drawer ouvrable via bouton
- *              burger (Session 3+ : non-bloquant pour le MVP, le DataGrid
- *              reste utilisable mobile sans la sidebar).
+ * @description Wrapper de la sidebar admin — résout l'i18n `admin.sidebar` +
+ *              les icônes (côté client, non sérialisables via RSC) puis délègue
+ *              le rendu à `AppSidebar` (design system, partagé avec gouvernance).
  *
  * @module      @nina-aes/admin
  */
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import {
+  CalendarDays,
   LayoutDashboard,
   PencilLine,
-  CalendarDays,
-  ShieldAlert,
   Settings,
-  LogOut,
+  ShieldAlert,
   type LucideIcon,
 } from 'lucide-react';
-import { cn } from '@nina-aes/ui/lib/utils';
+import { AppSidebar, type AppSidebarNavItem } from '@nina-aes/ui/components/business/app-sidebar';
 
-interface NavItem {
-  key: 'dashboard' | 'corrections' | 'appointments' | 'sigac' | 'settings';
-  href: string;
-  icon: LucideIcon;
-}
-
-const NAV_ITEMS: NavItem[] = [
+const NAV: { key: string; href: string; icon: LucideIcon }[] = [
   { key: 'dashboard', href: 'dashboard', icon: LayoutDashboard },
   { key: 'corrections', href: 'corrections', icon: PencilLine },
   { key: 'appointments', href: 'appointments', icon: CalendarDays },
@@ -40,70 +30,65 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'settings', href: 'settings', icon: Settings },
 ];
 
+/** Libellés lisibles des centres connus ; fallback : id « joliifié ». */
+const CENTER_LABELS: Record<string, string> = {
+  'ctdec-bamako': 'CTDEC Bamako',
+  'ctdec-sikasso': 'CTDEC Sikasso',
+  'ctdec-segou': 'CTDEC Ségou',
+  'ravec-kayes': 'RAVEC Kayes',
+  'ravec-mopti': 'RAVEC Mopti',
+  dnec: 'DNEC',
+};
+
+function formatCenter(id: string): string {
+  return CENTER_LABELS[id] ?? id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? (parts[parts.length - 1]![0] ?? '') : '';
+  return (first + last).toUpperCase() || '?';
+}
+
 export function AdminSidebar({
   locale,
   agent,
 }: {
   locale: string;
-  agent: { name: string; matricule: string | null; centerId: string | null };
+  agent: { name: string; matricule: string | null; centerId: string | null; roleLabel: string };
 }) {
   const t = useTranslations('admin.sidebar');
   const pathname = usePathname() ?? '';
 
+  const items: AppSidebarNavItem[] = NAV.map(({ key, href, icon }) => ({
+    key,
+    href: `/${locale}/${href}`,
+    label: t(`items.${key}`),
+    icon,
+  }));
+
+  const metaLines = [
+    agent.matricule ? `${t('matricule')} ${agent.matricule}` : null,
+    agent.centerId ? formatCenter(agent.centerId) : null,
+  ].filter((line): line is string => Boolean(line));
+
   return (
-    <aside className="admin-sidebar hidden h-screen w-60 shrink-0 flex-col lg:flex">
-      {/* Logo + titre */}
-      <div className="border-b border-white/10 px-4 py-5">
-        <p className="text-xs uppercase tracking-wider text-white/60">{t('brand')}</p>
-        <p className="mt-1 text-lg font-bold">NINA-AES</p>
-        <p className="text-xs text-white/50">{t('subtitle')}</p>
-      </div>
-
-      {/* Nav items */}
-      <nav className="flex-1 space-y-1 px-2 py-4" aria-label={t('navLabel')}>
-        {NAV_ITEMS.map(({ key, href, icon: Icon }) => {
-          const fullHref = `/${locale}/${href}`;
-          const isActive = pathname === fullHref || pathname.startsWith(`${fullHref}/`);
-          return (
-            <Link
-              key={key}
-              href={fullHref}
-              aria-current={isActive ? 'page' : undefined}
-              className={cn(
-                'flex items-center gap-3 rounded-base px-3 py-2 text-sm transition-colors',
-                'hover:bg-white/10',
-                isActive ? 'bg-white/15 font-medium' : 'text-white/80',
-              )}
-            >
-              <Icon className="size-4 shrink-0" aria-hidden="true" />
-              <span>{t(`items.${key}`)}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Footer agent + logout */}
-      <div className="border-t border-white/10 px-3 py-4">
-        <div className="mb-3">
-          <p className="text-sm font-medium">{agent.name}</p>
-          {agent.matricule && (
-            <p className="text-xs text-white/50">
-              {t('matricule')} {agent.matricule}
-            </p>
-          )}
-          {agent.centerId && <p className="text-xs text-white/50">{agent.centerId}</p>}
-        </div>
-        {/* Déconnexion = navigation vers une route API serveur (form GET), pas une page Next. */}
-        <form action="/api/auth/logout">
-          <button
-            type="submit"
-            className="flex w-full items-center gap-2 rounded-base px-3 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-            <span>{t('logout')}</span>
-          </button>
-        </form>
-      </div>
-    </aside>
+    <AppSidebar
+      className="admin-sidebar"
+      brandEyebrow={t('brand')}
+      brandSubtitle={t('subtitle')}
+      navLabel={t('navLabel')}
+      items={items}
+      profile={{
+        initials: initialsOf(agent.name),
+        name: agent.name,
+        roleLabel: agent.roleLabel,
+        metaLines,
+      }}
+      logoutLabel={t('logout')}
+      pathname={pathname}
+      linkComponent={Link}
+    />
   );
 }
