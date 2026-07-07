@@ -10,6 +10,8 @@
     "loading": "Chargement…",
     "signIn": "Se connecter",
     "signOut": "Se déconnecter",
+    "dashboard": "Tableau de bord",
+    "myAccount": "Mon compte",
     "language": "Langue",
     "search": "Rechercher",
     "appName": "NINA-AES"
@@ -19,12 +21,88 @@
       "title": "Mon identité, mon NINA, mon AES",
       "subtitle": "Le portail numérique souverain de l'Alliance des États du Sahel",
       "searchCta": "Rechercher mon NINA",
+      "trustBadge": "Données chiffrées · Souveraineté numérique AES",
       "actions": {
         "viewCard": "Voir ma fiche",
         "requestCorrection": "Demander une correction",
         "bookAppointment": "Prendre un rendez-vous",
         "reportCorruption": "Signaler une corruption"
+      },
+      "actionsDesc": {
+        "viewCard": "Consultez votre fiche d'identité numérique.",
+        "requestCorrection": "Signalez une erreur sur votre fiche.",
+        "bookAppointment": "Réservez un créneau dans un centre CTDEC.",
+        "reportCorruption": "Signalement strictement anonyme et sécurisé."
+      },
+      "howItWorks": {
+        "title": "Comment ça marche",
+        "step1Title": "Recherchez votre NINA",
+        "step1Body": "Saisissez votre numéro d'identification nationale : 14 chiffres + 1 lettre de contrôle.",
+        "step2Title": "Vérifiez vos informations",
+        "step2Body": "Consultez votre fiche complète et repérez les erreurs éventuelles.",
+        "step3Title": "Demandez une correction",
+        "step3Body": "Le module IA vérifie votre demande, puis un agent CTDEC la traite sous 24–48 h."
+      },
+      "faq": {
+        "title": "Questions fréquentes",
+        "q1": "Qu'est-ce que le numéro NINA ?",
+        "a1": "Le NINA (Numéro d'Identification Nationale) est votre identifiant unique d'état civil dans l'espace AES : 14 chiffres encodant votre état civil, suivis d'une lettre de contrôle.",
+        "q2": "Comment obtenir mon NINA pour la première fois ?",
+        "a2": "Présentez-vous dans un centre CTDEC ou une antenne mobile RAVEC muni d'un acte de naissance ; l'enrôlement biométrique y est réalisé.",
+        "q3": "Combien de temps prend une correction ?",
+        "a3": "Une demande est analysée par le module IA puis validée par un agent assermenté, généralement sous 24 à 48 heures.",
+        "q4": "Le service est-il gratuit ?",
+        "a4": "La consultation de votre fiche et les demandes de correction en ligne sont gratuites. Certains actes délivrés en centre peuvent être payants selon la tarification en vigueur.",
+        "q5": "Puis-je utiliser ce portail depuis l'étranger ?",
+        "a5": "Oui, le portail est accessible depuis n'importe quelle connexion. Les démarches nécessitant une présence physique se font au consulat ou lors d'un retour au pays."
       }
+    },
+    "chrome": {
+      "nav": {
+        "label": "Navigation principale",
+        "home": "Accueil",
+        "centres": "Centres CTDEC",
+        "aide": "Aide"
+      },
+      "footer": {
+        "tagline": "Le portail numérique souverain de l'état civil — Alliance des États du Sahel.",
+        "infoTitle": "Informations",
+        "infoCtdec": "CTDEC — Centre de Traitement des Données de l'État Civil",
+        "infoDnec": "DNEC — Direction Nationale de l'État Civil",
+        "linksTitle": "Liens rapides",
+        "contactTitle": "Contact",
+        "contactHours": "Lun.–Ven. 7h30–16h00",
+        "contactEmail": "contact@ctdec.ml",
+        "legal": "Mentions légales",
+        "privacy": "Confidentialité",
+        "copyright": "© 2026 CTDEC — Direction Nationale de l'État Civil du Mali",
+        "sovereignty": "Souveraineté numérique · AES",
+        "links": {
+          "home": "Accueil",
+          "tracking": "Suivi de demande",
+          "report": "Signalement",
+          "centres": "Centres CTDEC",
+          "aide": "Aide"
+        }
+      }
+    },
+    "centres": {
+      "title": "Centres CTDEC",
+      "subtitle": "Centres de Traitement des Données de l'État Civil et antennes mobiles RAVEC.",
+      "demoTitle": "Données illustratives",
+      "demoBody": "Cette liste est fournie à titre indicatif en mode démonstration. La cartographie officielle sera publiée par la DNEC.",
+      "hoursLabel": "Horaires",
+      "hours": "Lun.–Ven. 7h30–16h00",
+      "typeCtdec": "Centre CTDEC",
+      "typeRavec": "Antenne mobile RAVEC"
+    },
+    "aide": {
+      "title": "Aide & assistance",
+      "subtitle": "Questions fréquentes et moyens de contact.",
+      "contactTitle": "Besoin d'aide supplémentaire ?",
+      "contactBody": "Contactez le CTDEC par courriel, ou présentez-vous dans un centre CTDEC.",
+      "contactEmail": "contact@ctdec.ml",
+      "contactHours": "Lun.–Ven. 7h30–16h00"
     },
     "search": {
       "title": "Rechercher mon NINA",
@@ -64,6 +142,9 @@
       "maritalDIVORCED": "Divorcé(e)",
       "maritalWIDOWED": "Veuf / Veuve",
       "sectionFamily": "Filiation",
+      "tabsLabel": "Sections de la fiche",
+      "infoTitle": "Source des données",
+      "infoBody": "Les informations affichées proviennent de la base NINA du CTDEC. Si vous constatez une erreur, demandez une correction : elle sera vérifiée par le module IA puis validée par un agent assermenté.",
       "syntheticBadge": "Données synthétiques",
       "region": "Région",
       "regionCode": "Code région",
