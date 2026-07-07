@@ -3,13 +3,52 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-06 (**PC-03 wizard de correction enrichi** — `Stepper` +
-> `UploadZone` + carte fiche + comparaison avant/après + score de similarité **Jaro-Winkler local**
-> (honnête, avec disclaimer) + prop `AiScorePanel.bands`. Voir 0septvicies. Précédent : 0sexvicies —
-> Alignement charte §1–§3 + chrome + PC-01/PC-02)
+> **Dernière mise à jour** : 2026-07-07 (**PC-04 prise de rendez-vous** — parcours centre → date →
+> créneau : `Select` région→centre sur les 6 centres réels seedés, `Calendar` (jours sans créneau
+> grisés), grille `PrioritySlot`, engagement pièce d'identité + export `.ics` ; QR décoratif. Voir
+> 0octovicies. Précédent : 0septvicies — PC-03 wizard de correction enrichi + `AiScorePanel.bands`)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0octovicies. Patch 2026-07-07 — PC-04 (prise de rendez-vous) : sélecteur centre + calendrier + `PrioritySlot`
+
+Refonte du contenu et de la disposition de l'écran de prise de rendez-vous
+(`/[locale]/appointments/new`) en un parcours **centre → date → créneau** à 2 colonnes, en
+préservant le principe **données honnêtes** (aucun chiffre fabriqué).
+
+- **Sélecteur région → centre (données réelles)** — nouvelle capacité `listCenters` dans
+  `@nina-aes/api-client` : schéma `CenterSummary`, client live `GET /api/v1/centers`, **mock miroir
+  des 6 centres réellement seedés** (`packages/database/prisma/seed.ts` : CTDEC Bamako + 5 antennes
+  RAVEC Kati / Kayes / Sikasso / Ségou / Mopti), hook `useCenters`. Les régions proposées =
+  **seulement celles qui ont un centre** (pas la liste de 11 régions périmée d'avant-2023). `Select`
+  région → `Select` centre dépendant (auto-sélection si la région n'a qu'un centre).
+- **Calendrier mensuel** — `Calendar` (`packages/ui`) étendu d'une prop **`disabled(date)`
+  rétro-compatible** : jours passés / week-ends / **sans créneau** grisés et non cliquables. La
+  disponibilité vient des créneaux (`useAvailableSlots` par centre, fenêtre J → J+60) ; en mode mock
+  elle est **déterministe par centre/jour** (démo, non fabriquée).
+- **Grille horaire + `PrioritySlot`** — après sélection d'un jour : section **file prioritaire
+  (07:30–09:00)** + **créneaux standard**, rendus par **`PrioritySlot`** (composant conçu pour
+  PC-04, jusqu'ici jamais câblé). La file P1/P2 est décidée **côté serveur** selon la vulnérabilité.
+- **Récap + engagement + confirmation** — à la sélection d'un créneau : récap (centre / date /
+  heure), motif (≥ 5 car.) et **`Checkbox` d'engagement à présenter une pièce d'identité**
+  (conditionne l'envoi). La confirmation ouvre une modale : **QR décoratif** (aperçu ; le QR signé
+  JWT ressort de `document-service`, doc 10) + **export `.ics`** réel (iCalendar RFC 5545, rappel
+  `VALARM` -P1D, généré côté client sans requête).
+- **Écarts assumés (données honnêtes)** — pas de carte `MaliMap` D3 (composant existant mais non
+  câblé ici) ; **flux cohérent en mode mock** : l'api-gateway ne route pas encore `/api/v1/centers`
+  et les chemins `slots`/`create` du client citoyen divergent du backend (`create` réservé AGENT) →
+  liste centres live + réservation live = **suivi** (réconciliation gateway/DTO). Pas de bouton SMS
+  (notification-service non relié à l'écran).
+
+Gates : `check-types` (api-client, ui, citizen) + ESLint `--max-warnings=0` (api-client, ui,
+citizen)
+
+- `next build` citizen **verts** (107/107 pages) ; 53 messages ICU `appointments.*` validés. e2e
+  PC-04 réécrit (région → centre → jour → créneau → engagement) — **non exécuté** (nécessite l'app
+  lancée + navigateurs). Docs synchronisés : `screens.md` (note PC-04 + wireframe) + i18n `fr.json`
+  (`appointments.select` / `calendar` / `slots` / `recap` / `aside`, `form.pledge`,
+  `confirm.addToCalendar` / `ics*`).
 
 ### 0septvicies. Patch 2026-07-06 — PC-03 (wizard de correction) enrichi + `AiScorePanel.bands`
 

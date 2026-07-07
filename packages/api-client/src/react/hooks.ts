@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApiClient } from './context';
 import { queryKeys } from './query-keys';
 import type {
+  CentersQuery,
   CorrectionListParams,
   DirectiveListParams,
   IdentitySearchParams,
@@ -139,6 +140,17 @@ export function useRejectCorrection() {
 }
 
 // ── appointment-service ───────────────────────────────────────────────────────
+
+/** PC-04 — centres d'enrôlement (optionnellement filtrés par région `ML-XX`). */
+export function useCenters(params: CentersQuery = {}, options: QueryOptions = {}) {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.appointments.centers(params.region),
+    queryFn: () => api.appointment.listCenters(params),
+    enabled: options.enabled ?? true,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 /** PC-04 — créneaux disponibles pour une plage de dates / un centre. */
 export function useAvailableSlots(params: SlotsQuery, options: QueryOptions = {}) {

@@ -5,19 +5,34 @@
  */
 
 import type { HttpClient } from '../core/http-client';
-import type { AppointmentApi, SlotsQuery } from '../core/client.types';
+import type { AppointmentApi, CentersQuery, SlotsQuery } from '../core/client.types';
 import {
   AppointmentListSchema,
   AppointmentSchema,
+  CentersListSchema,
   SlotsListSchema,
   type Appointment,
   type AppointmentList,
+  type CenterSummary,
   type CreateAppointmentDto,
   type SlotsList,
 } from './appointment.schema';
 
 export class AppointmentClient implements AppointmentApi {
   constructor(private readonly http: HttpClient) {}
+
+  /**
+   * Liste les centres d'enrôlement (CTDEC / antennes RAVEC), optionnellement
+   * filtrés par région (`ML-XX`). Public côté backend (aucun secret).
+   */
+  async listCenters(params: CentersQuery = {}): Promise<CenterSummary[]> {
+    return this.http.request<CenterSummary[]>({
+      method: 'GET',
+      path: '/api/v1/centers',
+      query: params,
+      schema: CentersListSchema,
+    });
+  }
 
   /**
    * Liste les créneaux disponibles pour une plage de dates et un centre.

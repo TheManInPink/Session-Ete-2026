@@ -1,15 +1,19 @@
 /**
  * @file        appointment-form.tsx
- * @description Formulaire de prise de RDV — sélection d'un créneau disponible
- *              (groupés par jour) + motif, suivi d'une modale de confirmation
- *              avec récapitulatif et QR code de rendez-vous.
+ * @description Formulaire de prise de RDV en 2 colonnes :
+ *              — GAUCHE : choix du centre (Select région → Select centre dépendant,
+ *                alimentés par les 6 centres réels — CTDEC Bamako + antennes RAVEC),
+ *                fiche centre, encadré file prioritaire / déroulement, « à apporter ».
+ *              — DROITE : `Calendar` mensuel (jours sans créneau / week-ends / passé
+ *                grisés), grille horaire (file prioritaire 07:30–09:00 + standard,
+ *                via `PrioritySlot`), puis récap + motif + engagement pièce d'identité.
  *
- *              Les créneaux proviennent de `useAvailableSlots` (mock → fixtures,
- *              live → appointment-service via le BFF). Chaque créneau porte son
- *              centre (la file prioritaire éventuelle est décidée côté serveur
- *              selon la vulnérabilité). La création passe par
- *              `useCreateAppointment`. Le QR signé réel sera émis par
- *              `document-service` (cf. doc 10) — ici un aperçu décoratif.
+ *              La confirmation ouvre une modale (QR décoratif + récap + export `.ics`
+ *              réel côté client). Les centres viennent de `useCenters`, les créneaux
+ *              de `useAvailableSlots` (mock → fixtures déterministes mirrorant le seed,
+ *              live → appointment-service via le BFF). La file P1/P2 est décidée côté
+ *              serveur selon la vulnérabilité. Le QR signé réel sera émis par
+ *              `document-service` (doc 10) — ici un aperçu décoratif.
  * @module      @nina-aes/citizen
  */
 
@@ -19,15 +23,34 @@ import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { formatNina } from '@nina-aes/utils';
-import { useAvailableSlots, useCreateAppointment } from '@nina-aes/api-client/react';
-import type { Slot } from '@nina-aes/api-client';
+import { useCenters, useAvailableSlots, useCreateAppointment } from '@nina-aes/api-client/react';
+import type { CenterSummary, Slot } from '@nina-aes/api-client';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
-import { Badge } from '@nina-aes/ui/components/badge';
+import { Checkbox } from '@nina-aes/ui/components/checkbox';
 import { Skeleton } from '@nina-aes/ui/components/skeleton';
-import { Calendar, MapPin, Send, Loader2, CheckCircle2 } from 'lucide-react';
-import { cn } from '@nina-aes/ui/lib/utils';
+import { Calendar } from '@nina-aes/ui/components/calendar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@nina-aes/ui/components/select';
+import { PrioritySlot } from '@nina-aes/ui/components/business/priority-slot';
+import {
+  Building2,
+  CalendarDays,
+  CalendarPlus,
+  CheckCircle2,
+  Info,
+  Loader2,
+  MapPin,
+  PackageCheck,
+  Send,
+  ShieldCheck,
+} from 'lucide-react';
 
 /** Hash déterministe (FNV-1a) d'une chaîne → entier non signé 32 bits. */
 function hashString(value: string): number {
@@ -97,63 +120,168 @@ function DemoQrCode({ value, size = 132 }: { value: string; size?: number }) {
 interface AppointmentFormProps {
   locale: string;
   nina: string;
+  /** Citoyen identifié comme vulnérable → file prioritaire (décidée serveur). */
+  isVulnerable?: boolean;
 }
 
 interface Confirmation {
   centerName: string;
   dateLabel: string;
   time: string;
+  /** Horodatage ISO du créneau — sert à l'export .ics. */
+  startsAt: string;
   queue: number;
   reference: string;
 }
 
 /** Clé stable d'un créneau (centre + horodatage). */
 const slotKey = (s: Slot) => `${s.centerId}|${s.startsAt}`;
-/** Date `YYYY-MM-DD` locale d'un `Date`. */
-const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+/** Date `YYYY-MM-DD` en composantes LOCALES (cohérent avec le calendrier). */
+const localIso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export function AppointmentForm({ locale, nina }: AppointmentFormProps) {
+export function AppointmentForm({ locale, nina, isVulnerable = false }: AppointmentFormProps) {
   const t = useTranslations('appointments');
   const router = useRouter();
 
-  // Plage de recherche : aujourd'hui → +7 jours (calcul client, hors render serveur).
-  const { fromDate, toDate } = useMemo(() => {
+  // Fenêtre de recherche : aujourd'hui → +60 jours (couvre le mois courant + suivant).
+  const { fromDate, toDate, windowMin, windowMax } = useMemo(() => {
     const now = new Date();
-    const to = new Date(now);
-    to.setDate(to.getDate() + 7);
-    return { fromDate: isoDay(now), toDate: isoDay(to) };
+    const min = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const max = new Date(min);
+    max.setDate(max.getDate() + 60);
+    return { fromDate: localIso(min), toDate: localIso(max), windowMin: min, windowMax: max };
   }, []);
 
-  const slotsQuery = useAvailableSlots({ fromDate, toDate });
-  const createAppointment = useCreateAppointment();
+  const centersQuery = useCenters();
+  const centers = useMemo(() => centersQuery.data ?? [], [centersQuery.data]);
 
+  const [selectedRegion, setSelectedRegion] = useState<string>('');
+  const [selectedCenterId, setSelectedCenterId] = useState<string>('');
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedKey, setSelectedKey] = useState<string>('');
   const [reason, setReason] = useState<string>('');
+  const [pledge, setPledge] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
+  /** Régions distinctes ayant au moins un centre (triées). */
+  const regions = useMemo(() => {
+    const byCode = new Map<string, string>();
+    for (const c of centers) byCode.set(c.regionCode, c.regionName);
+    return [...byCode.entries()]
+      .map(([code, name]) => ({ code, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, locale));
+  }, [centers, locale]);
+
+  const centersInRegion = useMemo(
+    () => centers.filter((c) => c.regionCode === selectedRegion),
+    [centers, selectedRegion],
+  );
+  const selectedCenter: CenterSummary | null =
+    centers.find((c) => c.id === selectedCenterId) ?? null;
+
+  const slotsQuery = useAvailableSlots(
+    { fromDate, toDate, centerId: selectedCenterId },
+    { enabled: selectedCenterId.length > 0 },
+  );
   const slots = useMemo(() => slotsQuery.data?.slots ?? [], [slotsQuery.data]);
-  const selectedSlot = slots.find((s) => slotKey(s) === selectedKey) ?? null;
 
-  /** Créneaux regroupés par jour. */
-  const slotsByDay = useMemo(() => {
-    return slots.reduce<Record<string, Slot[]>>((acc, s) => {
-      const day = s.startsAt.slice(0, 10);
-      (acc[day] ??= []).push(s);
-      return acc;
-    }, {});
-  }, [slots]);
+  /** Jours (YYYY-MM-DD) ayant au moins un créneau. */
+  const availableDays = useMemo(() => new Set(slots.map((s) => s.startsAt.slice(0, 10))), [slots]);
 
+  const daySlots = useMemo(
+    () =>
+      selectedDay ? slots.filter((s) => s.startsAt.slice(0, 10) === localIso(selectedDay)) : [],
+    [slots, selectedDay],
+  );
+  const prioritySlots = daySlots.filter((s) => s.priority !== 'P3');
+  const standardSlots = daySlots.filter((s) => s.priority === 'P3');
+  const selectedSlot = daySlots.find((s) => slotKey(s) === selectedKey) ?? null;
+
+  const createAppointment = useCreateAppointment();
   const canSubmit =
-    selectedSlot !== null && reason.trim().length >= 5 && !createAppointment.isPending;
+    selectedSlot !== null && reason.trim().length >= 5 && pledge && !createAppointment.isPending;
 
   const finish = () => router.push(`/${locale}/dashboard?appointment=1`);
 
   const timeOf = (iso: string) =>
     new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const dayLabel = (day: string) =>
-    new Date(day).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+    new Date(`${day}T00:00:00`).toLocaleDateString(locale, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+
+  // ── Sélections en cascade (réinitialisent l'aval) ─────────────────────────
+  const onRegionChange = (region: string) => {
+    setSelectedRegion(region);
+    setSelectedDay(null);
+    setSelectedKey('');
+    const inRegion = centers.filter((c) => c.regionCode === region);
+    const only = inRegion.length === 1 ? inRegion[0] : undefined;
+    setSelectedCenterId(only ? only.id : '');
+  };
+  const onCenterChange = (id: string) => {
+    setSelectedCenterId(id);
+    setSelectedDay(null);
+    setSelectedKey('');
+  };
+  const onDaySelect = (d: Date) => {
+    setSelectedDay(d);
+    setSelectedKey('');
+  };
+
+  /** Construit un événement iCalendar (RFC 5545) à partir du RDV confirmé. */
+  const buildIcs = (c: Confirmation): string => {
+    const esc = (s: string) =>
+      s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    const toUtc = (iso: string) =>
+      new Date(iso)
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}/, '');
+    const start = toUtc(c.startsAt);
+    const end = toUtc(new Date(new Date(c.startsAt).getTime() + 30 * 60_000).toISOString());
+    const stamp = toUtc(new Date().toISOString());
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//NINA-AES//RDV//FR',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${c.reference}@nina-aes`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${start}`,
+      `DTEND:${end}`,
+      `SUMMARY:${esc(t('confirm.icsSummary', { center: c.centerName }))}`,
+      `LOCATION:${esc(c.centerName)}`,
+      `DESCRIPTION:${esc(t('confirm.icsDescription', { reference: c.reference, queue: c.queue }))}`,
+      'BEGIN:VALARM',
+      'TRIGGER:-P1D',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${esc(t('confirm.icsReminder'))}`,
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+  };
+
+  /** Télécharge le RDV confirmé au format .ics (client-only, aucune requête). */
+  const downloadIcs = (c: Confirmation) => {
+    const blob = new Blob([buildIcs(c)], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${c.reference}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   // Fermeture de la modale au clavier (Échap) + focus à l'ouverture.
   useEffect(() => {
@@ -181,6 +309,7 @@ export function AppointmentForm({ locale, nina }: AppointmentFormProps) {
         centerName: appt.centerName,
         dateLabel: dayLabel(appt.scheduledAt.slice(0, 10)),
         time: timeOf(appt.scheduledAt),
+        startsAt: appt.scheduledAt,
         queue: appt.queueNumber,
         reference: `RDV-${appt.id.slice(0, 8).toUpperCase()}`,
       });
@@ -189,114 +318,268 @@ export function AppointmentForm({ locale, nina }: AppointmentFormProps) {
     }
   };
 
+  const renderSlot = (s: Slot) => {
+    const key = slotKey(s);
+    return (
+      <PrioritySlot
+        key={key}
+        time={timeOf(s.startsAt)}
+        priority={s.priority}
+        state={selectedKey === key ? 'selected' : 'available'}
+        onClick={() => setSelectedKey(key)}
+        aria-label={`${timeOf(s.startsAt)} — ${s.centerName}`}
+      />
+    );
+  };
+
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Sélection du créneau (chaque créneau porte son centre) */}
-        <fieldset>
-          <legend className="mb-3 flex items-center gap-2 text-sm font-medium">
-            <Calendar className="size-4" aria-hidden="true" />
-            {t('form.slot')}
-          </legend>
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
+          {/* ── Colonne GAUCHE : choix du centre ─────────────────────────── */}
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-sm font-medium">
+              <Building2 className="size-4" aria-hidden="true" />
+              {t('select.title')}
+            </h2>
 
-          {slotsQuery.isLoading ? (
-            <div className="space-y-3" aria-busy="true">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : slotsQuery.isError ? (
-            <Alert variant="danger">
-              <AlertTitle>{t('form.error')}</AlertTitle>
-              <AlertDescription>
-                {slotsQuery.error instanceof Error ? slotsQuery.error.message : ''}
-              </AlertDescription>
-            </Alert>
-          ) : slots.length === 0 ? (
-            <Alert>
-              <AlertDescription>{t('form.noSlots')}</AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(slotsByDay).map(([day, daySlots]) => (
-                <div key={day}>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
-                    {dayLabel(day)}
-                  </p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {daySlots.map((s) => {
-                      const key = slotKey(s);
-                      return (
-                        <label
-                          key={key}
-                          className={cn(
-                            'flex cursor-pointer items-center justify-between gap-2 rounded-base border p-3 text-sm transition-colors',
-                            'hover:border-primary hover:bg-primary-50/30',
-                            selectedKey === key ? 'border-primary bg-primary-50' : 'border-border',
-                          )}
-                        >
-                          <span className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name="slot"
-                              value={key}
-                              checked={selectedKey === key}
-                              onChange={() => setSelectedKey(key)}
-                              className="size-4 accent-primary"
-                              aria-label={`${dayLabel(day)} ${timeOf(s.startsAt)} — ${s.centerName}`}
-                            />
-                            <span className="font-mono font-medium">{timeOf(s.startsAt)}</span>
-                            <span className="flex items-center gap-1 text-xs text-fg-muted">
-                              <MapPin className="size-3" aria-hidden="true" />
-                              {s.centerName}
-                            </span>
-                          </span>
-                          {s.priority !== 'P3' && (
-                            <Badge className="bg-success-50 px-1.5 py-0 text-xs text-success-700">
-                              {s.priority}
-                            </Badge>
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
+            {centersQuery.isLoading ? (
+              <div className="space-y-3" aria-busy="true">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : centersQuery.isError ? (
+              <Alert variant="danger">
+                <AlertDescription>{t('form.error')}</AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="region">{t('select.region')}</Label>
+                  <Select value={selectedRegion} onValueChange={onRegionChange}>
+                    <SelectTrigger id="region" aria-label={t('select.region')} className="mt-1">
+                      <SelectValue placeholder={t('select.regionPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {regions.map((r) => (
+                        <SelectItem key={r.code} value={r.code}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ))}
+
+                <div>
+                  <Label htmlFor="center">{t('select.center')}</Label>
+                  <Select
+                    value={selectedCenterId}
+                    onValueChange={onCenterChange}
+                    disabled={!selectedRegion}
+                  >
+                    <SelectTrigger id="center" aria-label={t('select.center')} className="mt-1">
+                      <SelectValue placeholder={t('select.centerPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centersInRegion.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
+            {selectedCenter && (
+              <div className="rounded-base border border-border p-3 text-sm">
+                <p className="font-medium">{selectedCenter.name}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-fg-muted">
+                  <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
+                  {selectedCenter.regionName}
+                  {selectedCenter.cercleName ? ` · ${selectedCenter.cercleName}` : ''}
+                </p>
+              </div>
+            )}
+
+            {isVulnerable ? (
+              <div className="rounded-base border border-border bg-success-50 p-3 text-sm">
+                <p className="flex items-center gap-2 font-medium text-success-700">
+                  <ShieldCheck className="size-4" aria-hidden="true" />
+                  {t('aside.priorityTitle')}
+                </p>
+                <p className="mt-1 text-fg-muted">{t('aside.priorityBody')}</p>
+              </div>
+            ) : (
+              <div className="rounded-base border border-border bg-bg-muted/40 p-3 text-sm">
+                <p className="flex items-center gap-2 font-medium">
+                  <Info className="size-4" aria-hidden="true" />
+                  {t('aside.standardTitle')}
+                </p>
+                <p className="mt-1 text-fg-muted">{t('aside.standardBody')}</p>
+              </div>
+            )}
+
+            <div className="rounded-base border border-border p-3 text-sm">
+              <p className="flex items-center gap-2 font-medium">
+                <PackageCheck className="size-4" aria-hidden="true" />
+                {t('aside.bringTitle')}
+              </p>
+              <ul className="mt-2 space-y-1.5 text-fg-muted">
+                {[t('aside.bring1'), t('aside.bring2'), t('aside.bring3')].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2
+                      className="mt-0.5 size-3.5 shrink-0 text-success-700"
+                      aria-hidden="true"
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          )}
-        </fieldset>
+          </div>
 
-        {/* Motif */}
-        <div>
-          <Label htmlFor="reason">{t('form.reason')}</Label>
-          <textarea
-            id="reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-            minLength={5}
-            maxLength={500}
-            required
-            placeholder={t('form.reasonPlaceholder')}
-            className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          />
+          {/* ── Colonne DROITE : date & créneau ──────────────────────────── */}
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-sm font-medium">
+              <CalendarDays className="size-4" aria-hidden="true" />
+              {t('calendar.title')}
+            </h2>
+
+            {!selectedCenterId ? (
+              <Alert>
+                <AlertDescription>{t('select.chooseCenterFirst')}</AlertDescription>
+              </Alert>
+            ) : slotsQuery.isLoading ? (
+              <div className="space-y-3" aria-busy="true">
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : slotsQuery.isError ? (
+              <Alert variant="danger">
+                <AlertTitle>{t('form.error')}</AlertTitle>
+                <AlertDescription>
+                  {slotsQuery.error instanceof Error ? slotsQuery.error.message : ''}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="rounded-base border border-border p-2">
+                  <Calendar
+                    selected={selectedDay ?? undefined}
+                    onSelect={onDaySelect}
+                    min={windowMin}
+                    max={windowMax}
+                    disabled={(d) => !availableDays.has(localIso(d))}
+                    locale={locale}
+                    className="w-full"
+                  />
+                </div>
+                <p className="text-xs text-fg-muted">{t('calendar.legend')}</p>
+
+                {!selectedDay ? (
+                  <Alert>
+                    <AlertDescription>{t('slots.pickDayFirst')}</AlertDescription>
+                  </Alert>
+                ) : daySlots.length === 0 ? (
+                  <Alert>
+                    <AlertDescription>{t('slots.noneToday')}</AlertDescription>
+                  </Alert>
+                ) : (
+                  <fieldset className="space-y-4">
+                    <legend className="sr-only">{t('form.slot')}</legend>
+                    {prioritySlots.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-success-700">
+                          {t('slots.priorityTitle')}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {prioritySlots.map(renderSlot)}
+                        </div>
+                      </div>
+                    )}
+                    {standardSlots.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
+                          {t('slots.standardTitle')}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {standardSlots.map(renderSlot)}
+                        </div>
+                      </div>
+                    )}
+                  </fieldset>
+                )}
+
+                {selectedSlot && (
+                  <div className="space-y-3 rounded-base border border-primary/40 bg-primary-50/40 p-4">
+                    <p className="flex items-center gap-2 font-medium">
+                      <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
+                      {t('recap.title')}
+                    </p>
+                    <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-sm">
+                      <dt className="text-fg-muted">{t('confirm.center')}</dt>
+                      <dd className="font-medium">{selectedSlot.centerName}</dd>
+                      <dt className="text-fg-muted">{t('confirm.date')}</dt>
+                      <dd className="font-medium capitalize">
+                        {selectedDay ? dayLabel(localIso(selectedDay)) : ''}
+                      </dd>
+                      <dt className="text-fg-muted">{t('confirm.slot')}</dt>
+                      <dd className="font-mono font-medium">{timeOf(selectedSlot.startsAt)}</dd>
+                    </dl>
+
+                    <div>
+                      <Label htmlFor="reason">{t('form.reason')}</Label>
+                      <textarea
+                        id="reason"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        rows={3}
+                        minLength={5}
+                        maxLength={500}
+                        required
+                        placeholder={t('form.reasonPlaceholder')}
+                        className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      />
+                    </div>
+
+                    <div className="flex items-start gap-3 rounded-base border border-border bg-bg-card p-3">
+                      <Checkbox
+                        id="pledge"
+                        checked={pledge}
+                        onCheckedChange={(checked) => setPledge(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="pledge"
+                        className="text-sm font-normal leading-snug text-fg-muted"
+                      >
+                        {t('form.pledge')}
+                      </Label>
+                    </div>
+
+                    {error && (
+                      <Alert variant="danger">
+                        <AlertTitle>{t('form.error')}</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
+                      {createAppointment.isPending ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Send className="size-4" aria-hidden="true" />
+                      )}
+                      {t('form.submit')}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
-
-        {error && (
-          <Alert variant="danger">
-            <AlertTitle>{t('form.error')}</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
-          {createAppointment.isPending ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Send className="size-4" aria-hidden="true" />
-          )}
-          {t('form.submit')}
-        </Button>
       </form>
 
       {/* Modale de confirmation + QR de rendez-vous */}
@@ -349,9 +632,21 @@ export function AppointmentForm({ locale, nina }: AppointmentFormProps) {
               )}
             </dl>
 
-            <Button onClick={finish} className="mt-6 w-full" size="lg">
-              {t('confirm.done')}
-            </Button>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={() => downloadIcs(confirmation)}
+              >
+                <CalendarPlus className="size-4" aria-hidden="true" />
+                {t('confirm.addToCalendar')}
+              </Button>
+              <Button onClick={finish} className="w-full" size="lg">
+                {t('confirm.done')}
+              </Button>
+            </div>
           </div>
         </div>
       )}

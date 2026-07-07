@@ -17,6 +17,29 @@ export const AppointmentStatusSchema = z.enum([
 
 export const PriorityLevelSchema = z.enum(['P1', 'P2', 'P3']);
 
+/**
+ * Résumé d'un centre d'enrôlement (CTDEC / antenne RAVEC) pour le sélecteur PC-04.
+ * Aligné sur `CenterSummary` d'`appointment-service` (`GET /api/v1/centers`) : les
+ * clés supplémentaires renvoyées par le backend (coords, distanceKm, openNow…)
+ * sont ignorées au parse (schéma non `strict`).
+ */
+export const CenterSummarySchema = z.object({
+  id: z.uuid(),
+  code: z.string(),
+  name: z.string(),
+  /** Type de centre (ex. `CTDEC`, `ANTENNE_RAVEC`). */
+  type: z.string(),
+  address: z.string().nullable().optional(),
+  regionCode: z.string(),
+  regionName: z.string(),
+  cercleName: z.string().nullable().optional(),
+  servicesOffered: z.array(z.string()).default([]),
+  isActive: z.boolean().default(true),
+});
+
+/** Liste de centres (réponse de `GET /api/v1/centers`). */
+export const CentersListSchema = z.array(CenterSummarySchema);
+
 /** Créneau disponible côté serveur. */
 export const SlotSchema = z.object({
   startsAt: z.iso.datetime(),
@@ -59,6 +82,7 @@ export const AppointmentListSchema = z.object({
 
 export type AppointmentStatus = z.infer<typeof AppointmentStatusSchema>;
 export type PriorityLevel = z.infer<typeof PriorityLevelSchema>;
+export type CenterSummary = z.infer<typeof CenterSummarySchema>;
 export type Slot = z.infer<typeof SlotSchema>;
 export type Appointment = z.infer<typeof AppointmentSchema>;
 export type CreateAppointmentDto = z.infer<typeof CreateAppointmentDtoSchema>;

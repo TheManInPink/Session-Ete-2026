@@ -60,6 +60,7 @@ export type {
   IdentitySearchParams,
   CorrectionListParams,
   SlotsQuery,
+  CentersQuery,
   SgogtInboxParams,
   DirectiveListParams,
 } from './core/client.types';
@@ -98,11 +99,14 @@ export type {
 export {
   AppointmentStatusSchema,
   PriorityLevelSchema,
+  CenterSummarySchema,
+  CentersListSchema,
   CreateAppointmentDtoSchema,
 } from './appointment/appointment.schema';
 export type {
   AppointmentStatus,
   PriorityLevel,
+  CenterSummary,
   Slot,
   Appointment,
   CreateAppointmentDto,

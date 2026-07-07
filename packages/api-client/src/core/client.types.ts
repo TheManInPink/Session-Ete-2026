@@ -24,6 +24,7 @@ import type {
 import type {
   Appointment,
   AppointmentList,
+  CenterSummary,
   CreateAppointmentDto,
   SlotsList,
 } from '../appointment/appointment.schema';
@@ -84,6 +85,11 @@ export type SlotsQuery = {
   centerId?: string;
 };
 
+/** Filtre de listing des centres d'enrôlement (par code de région `ML-XX`). */
+export type CentersQuery = {
+  region?: string;
+};
+
 /** Pagination de la boîte de réception SGOGT (défauts serveur : 1 / 50). */
 export type SgogtInboxParams = {
   page?: number;
@@ -120,6 +126,8 @@ export interface CorrectionApi {
 
 /** Contrat appointment-service (RDV CTDEC / antennes RAVEC). */
 export interface AppointmentApi {
+  /** Liste les centres d'enrôlement (optionnellement filtrés par région). */
+  listCenters(params?: CentersQuery): Promise<CenterSummary[]>;
   getAvailableSlots(params: SlotsQuery): Promise<SlotsList>;
   create(dto: CreateAppointmentDto): Promise<Appointment>;
   listMine(): Promise<AppointmentList>;

@@ -23,6 +23,7 @@ export {
   useCancelCorrection,
   useApproveCorrection,
   useRejectCorrection,
+  useCenters,
   useAvailableSlots,
   useMyAppointments,
   useCreateAppointment,

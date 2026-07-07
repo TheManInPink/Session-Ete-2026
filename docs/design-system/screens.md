@@ -232,66 +232,103 @@ supporte le clavier (Espace ouvre le file picker).
 
 ### PC-04 — Prise de rendez-vous
 
+> **MàJ 2026-07-07 (CHANGELOG 0octovicies)** — Parcours **centre → date → créneau** en 2 colonnes.
+> **GAUCHE** : `Select` **région → centre** alimentés par les **6 centres réellement seedés**
+> (capacité `listCenters` + hook `useCenters`, mock miroir de `prisma/seed.ts`) ; les régions
+> proposées = **seules celles qui ont un centre** (pas la liste de 11 régions périmée d'avant-2023)
+> ; fiche centre + encadré file prioritaire / déroulement + « À apporter ». **DROITE** : `Calendar`
+> mensuel (prop `disabled` rétro-compatible : passé / week-ends / **jours sans créneau** grisés),
+> grille horaire **file prioritaire (07:30–09:00) + standard** via **`PrioritySlot`** (enfin câblé),
+> puis récap + motif + **engagement pièce d'identité** (`Checkbox`). Modale : **QR décoratif** +
+> **export `.ics`** (RFC 5545, rappel `VALARM` 24 h, côté client). Route réelle
+> `/[locale]/appointments/new` (pas `/rendez-vous?nina=`). **Écarts assumés (données honnêtes)** :
+> pas de carte `MaliMap` D3 (composant existant mais non câblé ici) ; **flux cohérent en mode mock**
+> (l'api-gateway ne route pas encore `/api/v1/centers`, et `slots`/`create` citoyen divergent du
+> backend — `create` réservé AGENT → réconciliation = suivi) ; disponibilité mock **déterministe**
+> par centre/jour ; files **P1/P2 décidées côté serveur** ; NINA de démo à lettre de contrôle **V**.
+
 **Layout** :
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ [Header]                                                                 │
-├──────────────────────────────────────────────────────────────────────────┤
-│ Prendre rendez-vous                                                       │
-│                                                                          │
-│ ┌──────────────────────────────┐  ┌──────────────────────────────────┐  │
-│ │  Choisissez votre centre :   │  │  Date et créneau                 │  │
-│ │                              │  │                                  │  │
-│ │  [MaliMap interactif]        │  │  ┌──────────────────┐             │  │
-│ │   régions cliquables          │  │  │ Mai 2026          │             │  │
-│ │                              │  │  │  L M M J V S D    │             │  │
-│ │  ⊙ CTDEC Bamako (89 km)      │  │  │   1 2 3 4 5 6 7   │             │  │
-│ │  ○ Mairie Comm. IV          │  │  │   8 9 10 ◉ 12 …   │             │  │
-│ │  ○ Antenne mobile Sikasso   │  │  └──────────────────┘             │  │
-│ │                              │  │                                  │  │
-│ │                              │  │  ⚡ P1 (vous êtes prioritaire)    │  │
-│ │                              │  │  • 07h30 ◉                       │  │
-│ │                              │  │  • 07h45                         │  │
-│ │                              │  │                                  │  │
-│ │                              │  │  Standard P3                     │  │
-│ │                              │  │  • 09h00                         │  │
-│ │                              │  │  • 09h15                         │  │
-│ │                              │  │  • 09h30                         │  │
-│ │                              │  │                                  │  │
-│ │                              │  │  [Confirmer le RDV →]            │  │
-│ └──────────────────────────────┘  └──────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ [Header]                                                       │
+├──────────────────────────────────────────────────────────────┤
+│ Prendre un rendez-vous                                         │
+│ [ File prioritaire activée ]  ← si citoyen vulnérable          │
+│                                                                │
+│ ┌── Choisir le centre ──────┐  ┌── Date & créneau ──────────┐ │
+│ │ Région  [ Bamako      ▾ ] │  │  ‹    Mai 2026    ›         │ │
+│ │ Centre  [ CTDEC Bko   ▾ ] │  │  L M M J V (S D grisés)     │ │
+│ │                          │  │  … 12 ⬚ 14 15 ⬚ …           │ │
+│ │ Fiche : CTDEC Bamako     │  │  (jours sans créneau grisés) │ │
+│ │        Bamako · District  │  │                            │ │
+│ │ ▸ File prioritaire /      │  │  Prioritaire 07:30–09:00   │ │
+│ │   déroulement             │  │   [07:30][07:45][08:00]    │ │
+│ │ ▸ À apporter le jour J    │  │  Standard                  │ │
+│ │                          │  │   [09:00][09:30][10:00]…   │ │
+│ │                          │  │  ┌ Récap + motif + ☑ + → ┐  │ │
+│ └──────────────────────────┘  └────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Modal de confirmation** : QR code du RDV + détails + bouton « Ajouter au calendrier » (.ics) et «
-Envoyer par SMS ».
+**Modale de confirmation** : QR de rendez-vous (aperçu **décoratif**) + récap (centre · date ·
+créneau · n° de file · référence `RDV-…` · NINA) + boutons « **Ajouter à mon agenda** » (`.ics`) et
+« Terminer ».
 
-**Composants** : `MaliMap` (D3) · `Card` (centre sélectionné) · `Calendar` (shadcn) · `PrioritySlot`
-· `Button` solid · `Dialog` (confirmation) · QR code SVG.
+**Composants** : `Select` (région + centre dépendants) · `Calendar` (prop `disabled`) ·
+`PrioritySlot` (grille horaire) · `Checkbox` (engagement) · `textarea` (motif) · `Alert` /
+`Skeleton` (états) · `Button` solid + outline · modale `role="dialog"` · QR code SVG **décoratif** ·
+export **`.ics`**.
 
-**Données fictives** : centres seedés (CTDEC Bamako, Mairie Comm. IV, Gouvernorat Kayes) ; créneaux
-fictifs.
+**Sélection du centre** (colonne gauche) — **valeurs réelles** (miroir des 6 `EnrollmentCenter`
+seedés, `prisma/seed.ts`) ; seules les régions dotées d'un centre sont proposées :
+
+| Région    | Centre (`Select` dépendant) |
+| --------- | --------------------------- |
+| Bamako    | CTDEC Bamako                |
+| Koulikoro | Antenne RAVEC de Kati       |
+| Kayes     | Antenne RAVEC de Kayes      |
+| Sikasso   | Antenne RAVEC de Sikasso    |
+| Ségou     | Antenne RAVEC de Ségou      |
+| Mopti     | Antenne RAVEC de Mopti      |
+
+**Données fictives** : disponibilité mock **déterministe** par centre/jour sur J → J+60 (jours
+ouvrés, ~1 jour sur 6 « complet », quelques créneaux « pris » retirés) ; créneaux **07:30–09:00 =
+file prioritaire**, sinon **standard** ; création → statut `SCHEDULED`, référence `RDV-XXXXXXXX`. En
+live, la disponibilité viendra d'`appointment-service`.
 
 **Interactions** :
 
-- Click région → centres filtrés + map zoom
-- Click créneau → met en surbrillance + active le bouton confirmer
-- Confirmation → mutation API + ouverture modal QR code
+- Sélection **région** → charge les centres de la région (auto-sélection si un seul)
+- Sélection **centre** → charge les créneaux (`useAvailableSlots`, J → J+60) → calendrier actif
+- Clic sur un **jour** disponible → grille horaire (prioritaire + standard)
+- Clic sur un **créneau** (`PrioritySlot`, `aria-pressed`) → récap + motif + engagement
+- **Confirmer** (actif si créneau **et** motif ≥ 5 car. **et** engagement coché) →
+  `useCreateAppointment` → modale (QR + récap + `.ics`)
+- « Ajouter à mon agenda » → `.ics` (RFC 5545, `VALARM` -P1D) côté client ; « Terminer » / Échap /
+  clic hors modale → `/dashboard?appointment=1`
 
 **States** :
 
-- _empty_ : « Aucun créneau disponible cette semaine — proposer la suivante »
-- _vulnérable_ : badge automatique « Vous êtes prioritaire » si `vulnerabilityCategory` présent sur
-  le profil
+- _loading_ : `Skeleton` (centres, puis calendrier)
+- _error_ : `Alert` danger (échec de chargement ou de création)
+- _empty (centre non choisi)_ : « Choisissez d'abord une région et un centre… »
+- _empty (jour sans créneau)_ : jour grisé non cliquable ; « Aucun créneau disponible ce jour » en
+  secours
+- _vulnérable_ : badge d'en-tête « File prioritaire activée (vulnérabilité) » + encadré prioritaire
+  (rôle `VULNERABLE`)
 
 **Responsive** :
 
-- `xs` : map en haut, calendrier dessous (full width)
-- `lg` : layout 2 colonnes ci-dessus
+- `< lg` : une colonne — choix du centre, puis calendrier / créneaux ; grille horaire 2 colonnes (3
+  ≥ `sm`)
+- `lg` : 2 colonnes — choix du centre (≈ 340 px) + date/créneau (`flex-1`)
 
-**A11y** : la map est aussi accessible via une liste équivalente (toggle), créneaux sélectionnables
-au clavier (flèches haut/bas).
+**A11y** : `Select` Radix (navigation clavier, `aria-label` région/centre) ; `Calendar`
+`role="grid"` navigable (flèches / Home / End / PageUp-Down), jours désactivés non focusables ;
+créneaux = `PrioritySlot` `aria-pressed` + `aria-label` (heure + centre) ; `Checkbox` liée à son
+`<label>` ; modale `role="dialog" aria-modal` (focus à l'ouverture + Échap) ; QR `role="img"`
+étiqueté « aperçu ».
 
 ---
 

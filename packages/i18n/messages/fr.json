@@ -289,7 +289,42 @@
       "submit": "Confirmer le rendez-vous",
       "error": "La création du rendez-vous a échoué",
       "loadingSlots": "Chargement des créneaux disponibles…",
-      "noSlots": "Aucun créneau disponible pour le moment. Réessayez plus tard."
+      "noSlots": "Aucun créneau disponible pour le moment. Réessayez plus tard.",
+      "slotHint": "Choisissez un créneau : l'heure, le centre et la file (P1/P2 prioritaire, P3 standard) sont indiqués.",
+      "pledge": "Je m'engage à présenter une pièce d'identité originale le jour du rendez-vous."
+    },
+    "aside": {
+      "priorityTitle": "File prioritaire",
+      "priorityBody": "Vous êtes identifié comme prioritaire. Un créneau vous est réservé et votre passage est appelé avant la file standard.",
+      "standardTitle": "Comment ça se passe",
+      "standardBody": "Choisissez un créneau, indiquez le motif, puis présentez-vous à l'accueil avec votre QR code : un numéro de file vous est attribué.",
+      "bringTitle": "À apporter le jour J",
+      "bring1": "Une pièce d'identité originale (ancienne CNI, passeport ou acte de naissance).",
+      "bring2": "Votre NINA ou ce récapitulatif (QR code de rendez-vous).",
+      "bring3": "Le cas échéant, les justificatifs liés à votre demande.",
+      "selectedTitle": "Créneau choisi",
+      "selectedNone": "Aucun créneau sélectionné pour l'instant."
+    },
+    "select": {
+      "title": "Choisissez votre centre",
+      "region": "Région",
+      "regionPlaceholder": "Choisissez une région",
+      "center": "Centre",
+      "centerPlaceholder": "Choisissez un centre",
+      "chooseCenterFirst": "Choisissez d'abord une région et un centre pour afficher les disponibilités."
+    },
+    "calendar": {
+      "title": "Date et créneau",
+      "legend": "Les week-ends, les jours passés et les jours sans créneau sont grisés."
+    },
+    "slots": {
+      "priorityTitle": "File prioritaire (07:30–09:00)",
+      "standardTitle": "Créneaux standard",
+      "pickDayFirst": "Sélectionnez un jour disponible dans le calendrier.",
+      "noneToday": "Aucun créneau disponible ce jour."
+    },
+    "recap": {
+      "title": "Récapitulatif du rendez-vous"
     },
     "confirm": {
       "title": "Rendez-vous confirmé",
@@ -302,6 +337,10 @@
       "reference": "Référence",
       "qrCaption": "QR de rendez-vous",
       "qrNote": "Aperçu démo — le code signé sera émis par document-service.",
+      "addToCalendar": "Ajouter à mon agenda",
+      "icsSummary": "Rendez-vous NINA-AES — {center}",
+      "icsDescription": "Référence {reference}. File n° {queue}. Présentez votre QR code et une pièce d'identité originale à l'accueil.",
+      "icsReminder": "Rappel : rendez-vous NINA-AES demain.",
       "done": "Terminer"
     }
   },

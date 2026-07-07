@@ -32,6 +32,7 @@ export const queryKeys = {
   },
   appointments: {
     all: ['appointments'] as const,
+    centers: (region?: string) => ['appointments', 'centers', region ?? 'all'] as const,
     slots: (params: SlotsQuery) => ['appointments', 'slots', params] as const,
     mine: () => ['appointments', 'mine'] as const,
   },
