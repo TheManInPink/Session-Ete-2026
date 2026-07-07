@@ -9,6 +9,7 @@
  */
 
 import { AesLogo } from '@nina-aes/ui/components/brand/aes-logo';
+import { CountryFlag } from '@nina-aes/ui/components/brand/country-flag';
 import { Card, CardContent, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
 import { Calendar, FileSearch, MessageSquareWarning, PencilLine } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -116,7 +117,12 @@ function HomeContent({ locale }: { locale: ReturnType<typeof normalizeLocale> })
         <div className="mx-auto max-w-5xl px-4 py-6 text-sm text-fg-muted sm:px-6 lg:px-8">
           <p>
             © 2026 NINA-AES · <span className="font-medium">{tCommon('appName')}</span> · CTDEC ·
-            DNEC · <span className="font-mono text-xs">🇲🇱 🇧🇫 🇳🇪</span>
+            DNEC ·{' '}
+            <span className="inline-flex items-center gap-1 align-middle">
+              <CountryFlag country="MLI" label="Mali" size={16} />
+              <CountryFlag country="BFA" label="Burkina Faso" size={16} />
+              <CountryFlag country="NER" label="Niger" size={16} />
+            </span>
           </p>
         </div>
       </footer>
