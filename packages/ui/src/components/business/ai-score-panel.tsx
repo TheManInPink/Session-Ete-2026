@@ -21,6 +21,8 @@ export interface AiScorePanelProps extends React.HTMLAttributes<HTMLDivElement> 
   breakdown?: AiScoreFactor[];
   /** Seuils de couleur (défaut high=85, medium=60). */
   thresholds?: { high: number; medium: number };
+  /** Libellés qualitatifs par palier (défaut : confiance IA). */
+  bands?: AiScoreBands;
   orientation?: 'vertical' | 'horizontal';
 }
 
@@ -33,10 +35,28 @@ function colorClass(score: number, t: { high: number; medium: number }): string 
   return 'text-destructive';
 }
 
-function confidenceLabel(score: number, t: { high: number; medium: number }): string {
-  if (score >= t.high) return 'Haute confiance';
-  if (score >= t.medium) return 'Confiance moyenne';
-  return 'Faible confiance';
+/** Libellés qualitatifs par palier de score (haut / moyen / bas). */
+export interface AiScoreBands {
+  high: string;
+  medium: string;
+  low: string;
+}
+
+/** Paliers par défaut : confiance IA (préserve le comportement historique). */
+const DEFAULT_BANDS: AiScoreBands = {
+  high: 'Haute confiance',
+  medium: 'Confiance moyenne',
+  low: 'Faible confiance',
+};
+
+function bandLabel(
+  score: number,
+  t: { high: number; medium: number },
+  bands: AiScoreBands,
+): string {
+  if (score >= t.high) return bands.high;
+  if (score >= t.medium) return bands.medium;
+  return bands.low;
 }
 
 /** Jauge de score IA + ventilation par facteur. */
@@ -44,6 +64,7 @@ export function AiScorePanel({
   score,
   breakdown = [],
   thresholds = { high: 85, medium: 60 },
+  bands = DEFAULT_BANDS,
   orientation = 'vertical',
   className,
   ...props
@@ -51,7 +72,7 @@ export function AiScorePanel({
   const clamped = Math.max(0, Math.min(100, Math.round(score)));
   const offset = CIRCUMFERENCE * (1 - clamped / 100);
   const color = colorClass(clamped, thresholds);
-  const label = confidenceLabel(clamped, thresholds);
+  const label = bandLabel(clamped, thresholds, bands);
 
   return (
     <div

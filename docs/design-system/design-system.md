@@ -236,6 +236,12 @@ Jauge circulaire 0-100 + breakdown 5 facteurs (barres horizontales). Couleurs :
 
 Accessibilité : `role="meter"` + `aria-valuetext` annonçant le score en mots.
 
+**Prop `bands`** (2026-07-06) — libellés qualitatifs des paliers surchargeables (défaut « Haute /
+Confiance moyenne / Faible confiance »). PC-03 les passe à « Forte / Moyenne / Faible **similarité**
+» pour son indicateur Jaro-Winkler local (le mot « confiance » aurait été un faux verdict).
+`breakdown` est optionnel (défaut vide) ; PC-03 n'affiche que la jauge — la similarité est un
+scalaire, pas une somme de facteurs. Défaut inchangé → AD-02 non impacté.
+
 ### 4.5 UploadZone
 
 Drag-and-drop avec preview, validation taille (10 Mo max), formats (PDF/JPG/PNG/HEIC), progress (XHR
