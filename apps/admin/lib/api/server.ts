@@ -23,6 +23,7 @@ import {
   type CorrectionListParams,
 } from '@nina-aes/api-client';
 import { gatewayInternalUrl, resolveApiMode } from './config';
+import { buildMockCenterSchedule, type CenterSchedule } from '../appointments/schedule';
 
 /** Construit un client API réel lié à la session serveur (cookie → Bearer). */
 function liveServerApi(): ApiClient {
@@ -65,4 +66,16 @@ export async function fetchCorrectionsPage(
   params: CorrectionListParams = {},
 ): Promise<CorrectionList> {
   return serverApi().correction.list(params);
+}
+
+/**
+ * AD — Rendez-vous : planning du jour du centre, vue agent.
+ *
+ * Contrat honnête : `appointment-service` (doc 09) n'expose que des méthodes
+ * citoyen-scopées — aucune agrégation « file du centre » côté agent. En mode
+ * live on renvoie donc `null` (la page rend un état « indisponible ») ; en mode
+ * mock, un planning déterministe de démonstration (`buildMockCenterSchedule`).
+ */
+export async function fetchCenterScheduleToday(): Promise<CenterSchedule | null> {
+  return resolveApiMode() === 'mock' ? buildMockCenterSchedule() : null;
 }
