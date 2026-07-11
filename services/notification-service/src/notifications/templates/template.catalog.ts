@@ -71,6 +71,13 @@ export const TEMPLATES: readonly TemplateDef[] = [
     requiredVars: ['ref'],
     description: 'Confirmation courte d’une opération initiée via USSD.',
   },
+  {
+    key: 'priority-queue-turn',
+    channels: [SMS],
+    requiredVars: [],
+    description:
+      'Appel « c’est votre tour » de la file prioritaire d’enrôlement (personnes vulnérables).',
+  },
 ] as const;
 
 /** Index clé → définition (lookup O(1)). */

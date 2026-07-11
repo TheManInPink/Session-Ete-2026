@@ -343,6 +343,7 @@ export type {
   EnrollmentCenter,
   PriorityQueueEntry,
   MobileAgent,
+  DeliveryMission,
   OfflineEnrollmentBatch,
   OfflineEnrollmentRecord,
   BiometricTemplate,

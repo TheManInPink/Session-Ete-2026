@@ -3,17 +3,85 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-11 (**PC-04 réservation self-service citoyen** — backend
-> `appointment-service` : nouveaux endpoints `POST` / `GET /appointments/me` +
-> `PUT /appointments/me/:id/cancel` réservés au rôle **CITIZEN**, avec `citizenId` **dérivé du NINA
-> du token** (anti-IDOR, à l'image de `POST /corrections`) ; `POST /appointments` (médié) reste
-> AGENT-only — **ADR-028 intact**. Client `@nina-aes/api-client` aligné (schéma RDV honnête :
-> `queueNumber` nullable, `AppointmentList` `{ page, pageSize, items }`, DTO `slot` /
-> `reason ≤ 100`). Bouton live encore **désactivé** (émetteur de token web Keycloak ↔ backend
-> auth-service non réconcilié). Voir 0untricies. Précédent : 0tricies — disponibilité live.)
+> **Dernière mise à jour** : 2026-07-11 (**vulnerability-service — réconciliation PROMPT 6.1 (Bloc
+> C1)** : (1) **livraison à domicile** `DeliveryMission` — SLA **15 j**, dispatch ADMIN/SUP vers
+> agent actif, **confirmation réservée à l'agent affecté** (ownership sub JWT → `User.id` →
+> `MobileAgent`) avec preuve de réception **hashée** + attestation **chiffrée** + GPS (jamais le
+> gabarit brut) ; (2) **politique de validation par catégorie** — `GET /categories` + auto-ELDERLY
+> 60+ (âge dérivé de `birthDate`), self-déclaré (PREGNANT/ILLITERATE/DIASPORA) vs certificat
+> (DISABLED/CHRONIC_ILL) ; (3) appel **SMS « c'est votre tour »** de la file (`notify-next`,
+> idempotent, best-effort). Schéma **additif** (table `delivery_missions` + colonne `notified_at`)
+>
+> - **ADR-035**. **Pas** de nouveau `UserRole` plateforme. **Durci après revue adversariale** :
+>   anti-BOLA sur la liste des missions, **baseline de migrations** Bloc C1 (`migrate deploy`
+>   réparé), template SMS `priority-queue-turn` enregistré, garde « agent suspendu » sur `fail()`,
+>   attribution d'audit (`entity_id`) corrigée. Voir 0duotricies. Précédent : 0untricies —
+>   self-service `/appointments/me`.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0duotricies. Patch 2026-07-11 — vulnerability-service : réconciliation PROMPT 6.1 (livraison à domicile, validation par catégorie, appel SMS de file)
+
+Réconciliation **complète** du `vulnerability-service` (Bloc C1) avec la spec PROMPT 6.1 : 4 écarts
+fonctionnels comblés **sans casser** les décisions actées (ADR-022 : 2 services Bloc C ; ADR-027 :
+guards locaux ; queue Postgres ; préfixe `/vulnerability/*`). **ADR-035** consigne les décisions.
+
+- **Livraison à domicile** — nouveau sous-domaine `services/vulnerability-service/src/deliveries/` +
+  modèle Prisma **additif** `DeliveryMission` (+ enums `DeliveryStatus`/`DeliverySignatureType`,
+  migration `20260711120000_vulnerability_delivery_missions`). Cycle
+  `REQUESTED → ASSIGNED → (IN_TRANSIT) → DELIVERED | FAILED`, **SLA 15 j**
+  (`dueAt = demande + DELIVERY_SLA_DAYS`). Dispatch ADMIN/SUP vers un agent **actif** ;
+  **confirmation réservée à l'agent affecté** (ownership : sub JWT → `User.id` → `MobileAgent`,
+  **403** sinon) avec preuve de réception **hashée** (biométrie/empreinte — jamais le gabarit brut),
+  photo d'attestation **chiffrée** (URL MinIO) + GPS. **Pas** de nouveau `UserRole` plateforme
+  (ADR-035 D1).
+- **Politique de validation par catégorie** — `GET /vulnerability/categories` (référentiel
+  d'éligibilité) + application à `declare` : ELDERLY **auto-vérifié** dès 60 ans (âge dérivé de
+  `Citizen.birthDate`, **422** sinon — pas d'auto-déclaration) ; DISABLED/CHRONIC_ILL **preuve
+  obligatoire** + revue agent CTDEC (**422** sans preuve) ; PREGNANT/ILLITERATE/DIASPORA
+  **auto-déclarés** (acceptés sans preuve).
+- **Appel SMS « c'est votre tour »** — `POST /vulnerability/priority-queue/notify-next` publie un
+  job SMS vers notification-service (exchange `nina.notifications`, même contrat qu'appointment-
+  service), idempotent (colonne `priority_queue_entries.notified_at`), **best-effort** (bus
+  indisponible ⇒ appel rejouable, opération non bloquée). La **fenêtre 7h-9h dédiée** aux P1 reste
+  portée par `EnrollmentCenter.priorityFrom/To/Quota` et consommée par l'appointment-service — **non
+  dupliquée** ici.
+- **Schéma additif / réversible** — colonne `notified_at` nullable + table `delivery_missions`
+  (aucune colonne existante modifiée, aucune donnée touchée). Client Prisma régénéré +
+  `@nina-aes/database` rebuild. `NODE_ENV` gates inchangés ; aucun secret en clair ; NINA jamais en
+  clair (UUID `citizenId` uniquement).
+- **Durcissements post-revue adversariale** (multi-agents sur le diff — défauts invisibles aux
+  gates) :
+  - **Anti-BOLA** sur `GET /vulnerability/deliveries` : un AGENT est **forcé à ses propres
+    missions** (adresses domicile de citoyens vulnérables) — `agentId` fourni ignoré ; supervision
+    (SUP/ADMIN/AUDITOR) inchangée. Query de liste **validée** (Zod) : `status`/`page` invalides →
+    **400** au lieu de 500 SQL. Cf. **ADR-035 D6**.
+  - **Chaîne de migrations réparée** : les tables Bloc C1 (créées jadis par `db push` sans
+    migration) sont matérialisées par une **baseline** `20260709120000_vulnerability_bloc_c1_base`
+    **avant** `20260711120000_vulnerability_delivery_missions` (qui les référence) — sinon
+    `migrate deploy` échouait sur une base fraîche. Les deux migrations régénérées depuis le SQL
+    canonique Prisma (id `UUID` **sans** `DEFAULT`, génération applicative Prisma 7).
+    `migrate diff --from-migrations` (base fantôme) ne laisse que la dérive orthogonale
+    **préexistante** (Bloc B `aes_partners`, `aes_verification_logs`/`biometric_consents`,
+    `id DROP DEFAULT`) — **hors périmètre**. **Base fraîche** (CI/prod) : `migrate deploy` suffit.
+    **DEV** (tables + `notified_at` déjà là via `db push`) : `prisma migrate resolve --applied` sur
+    les **deux** migrations (pas `migrate deploy` seul, qui rejouerait `ADD COLUMN notified_at`), ou
+    `migrate reset`. `prisma.config.ts` accepte un `shadowDatabaseUrl` optionnel
+    (`SHADOW_DATABASE_URL`, inerte sinon).
+  - **Template SMS `priority-queue-turn`** enregistré au catalogue notification-service (+
+    `locales/fr.json`) et clé alignée côté publisher : `notify-next` référençait un template
+    inexistant (`priority_queue_turn` → `TEMPLATE_NOT_FOUND`).
+  - **`fail()`** exige désormais l'agent **ACTIVE** (comme `confirm()`) : un agent suspendu ne peut
+    plus saboter sa mission. **Audit** : `entityType`/`entityId`/`actorType`/`ipAddress` hissés à la
+    **racine** de l'enveloppe (le normalizer audit-service les y lit — `entity_id` n'est plus NULL).
+
+Gates : `check-types` + ESLint `--max-warnings=0` + `test` **verts** — `vulnerability-service` **80
+tests** (dont : livraison SLA/priorité dérivée/ownership de confirmation & d'échec/tournée RBAC +
+auditeur/**liste anti-BOLA**, auto-ELDERLY + 422 preuve/âge, idempotence & motifs de `notify-next`,
+bornes du calcul d'âge, référentiel catégories) + `notification-service` **25 tests** (catalogue à
+10 templates). Docs : header + cette entrée + **ADR-035** (D6 + durcissements) + `DOCUMENTATION-MAP`
+(35 ADRs) + README service + doc 22.
 
 ### 0untricies. Patch 2026-07-11 — PC-04 : réservation self-service citoyen (backend `/appointments/me` + client honnête)
 

@@ -41,5 +41,8 @@
   },
   "ussd-confirmation": {
     "sms": "NINA-AES : opération {ref} enregistrée avec succès. Merci."
+  },
+  "priority-queue-turn": {
+    "sms": "NINA-AES : c'est votre tour. Merci de vous présenter maintenant au guichet de votre centre d'enrôlement (accueil prioritaire). Ce message est automatique."
   }
 }

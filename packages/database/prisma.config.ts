@@ -63,5 +63,11 @@ export default defineConfig({
   schema: path.join(__dirname, 'prisma', 'schema.prisma'),
   datasource: {
     url: DATABASE_URL,
+    // Base fantôme pour `prisma migrate diff --from-migrations` / `migrate dev`
+    // (rejoue les migrations sur une base jetable). Optionnelle : non requise en
+    // production (`migrate deploy` n'en a pas besoin).
+    ...(process.env.SHADOW_DATABASE_URL
+      ? { shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL }
+      : {}),
   },
 });

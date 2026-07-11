@@ -245,6 +245,7 @@ model Citizen {
   electoralPseudonym       ElectoralPseudonym?
   notifications            Notification[]
   priorityQueueEntries     PriorityQueueEntry[]
+  deliveryMissions         DeliveryMission[]
   offlineEnrollmentRecords OfflineEnrollmentRecord[]
   biometricTemplates       BiometricTemplate[]
   biometricConsents        BiometricConsent[]
@@ -1159,6 +1160,11 @@ model PriorityQueueEntry {
   active         Boolean               @default(true)
   enqueuedAt     DateTime              @default(now()) @map("enqueued_at") @db.Timestamptz(6)
   servedAt       DateTime?             @map("served_at") @db.Timestamptz(6)
+  /// Date d'envoi de la notification « c'est votre tour » (SMS via notification-
+  /// service). `null` tant que le citoyen n'a pas été appelé au guichet : sert
+  /// d'IDEMPOTENCE à l'appel (un même tour n'est notifié qu'une fois, cf.
+  /// `POST /vulnerability/priority-queue/notify-next`, doc 22 §4.2ter).
+  notifiedAt     DateTime?             @map("notified_at") @db.Timestamptz(6)
   /// Acteur ayant inscrit le citoyen en file (User.id ou origine système).
   enqueuedBy     String                @map("enqueued_by") @db.VarChar(100)
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -1208,6 +1214,7 @@ model MobileAgent {
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   collectedBatches OfflineEnrollmentBatch[] @relation("BatchMobileAgent")
+  deliveries       DeliveryMission[]        @relation("AgentDeliveries")
 
   @@index([status])
   @@index([zones])
@@ -1325,6 +1332,98 @@ model VulnerabilityAccessLog {
   @@index([occurredAt])
   @@index([relayed])
   @@map("vulnerability_access_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  C1.5 — DELIVERY_MISSIONS — livraison à domicile des documents (doc 22 §4.2ter)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Cycle de vie d'une mission de livraison à domicile (personne vulnérable ne
+/// pouvant se déplacer au guichet). Délai garanti : `dueAt` = demande + 15 jours.
+enum DeliveryStatus {
+  /// Créée, en attente d'affectation à un agent mobile.
+  REQUESTED
+  /// Affectée à un agent mobile assermenté.
+  ASSIGNED
+  /// Agent en tournée (document emporté).
+  IN_TRANSIT
+  /// Livrée et confirmée (preuve de réception + attestation + GPS).
+  DELIVERED
+  /// Échec (citoyen absent, adresse introuvable, refus).
+  FAILED
+  /// Annulée (doublon, demande caduque).
+  CANCELLED
+
+  @@map("delivery_status")
+}
+
+/// Type de preuve de réception recueillie à la livraison.
+enum DeliverySignatureType {
+  /// Capture biométrique via kit (empreinte digitale) — HASH uniquement.
+  BIOMETRIC
+  /// Empreinte de pouce encrée sur attestation papier, photographiée.
+  THUMBPRINT
+
+  @@map("delivery_signature_type")
+}
+
+/// Mission de livraison à domicile d'un document (FDI, carte NINA) pour une
+/// personne vulnérable. Confirmée par l'agent mobile ASSERMENTÉ affecté :
+/// preuve de réception (`signatureType` + `signatureHash` — JAMAIS le gabarit
+/// biométrique brut), photo d'attestation (URL MinIO chiffrée) et coordonnées
+/// GPS. Pas de FK cross-service vers document-service : `documentId` est un
+/// simple identifiant nullable (lecture partagée, même principe qu'appointmentId).
+model DeliveryMission {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  citizenId           String                 @map("citizen_id") @db.Uuid
+  /// Nature du document livré (ex. FDI, NINA_CARD, ATTESTATION).
+  documentType        String                 @map("document_type") @db.VarChar(40)
+  /// Référence document-service (optionnelle) — pas de FK cross-domaine.
+  documentId          String?                @map("document_id") @db.Uuid
+  status              DeliveryStatus         @default(REQUESTED)
+  /// Priorité opérationnelle (dérivée de la vulnérabilité du citoyen).
+  priority            PriorityLevel          @default(P3)
+  /// Adresse de livraison en clair (texte libre) telle que déclarée.
+  addressLine         String                 @map("address_line") @db.VarChar(300)
+  /// Zone administrative (code Location libre) — routage vers un agent de zone.
+  zone                String                 @db.VarChar(60)
+  /// Acteur ayant créé la demande (sub JWT — pas de FK, cf. `enqueuedBy`).
+  requestedByUserId   String                 @map("requested_by_user_id") @db.VarChar(100)
+  /// Coordonnées GPS demandées (optionnelles).
+  requestedLat        Decimal?               @map("requested_lat") @db.Decimal(10, 7)
+  requestedLng        Decimal?               @map("requested_lng") @db.Decimal(10, 7)
+  notes               String?                @db.Text
+  /// SLA : date limite de livraison garantie (demande + 15 jours, doc 22 §4.2ter).
+  dueAt               DateTime               @map("due_at") @db.Timestamptz(6)
+  /// Agent mobile assermenté affecté (MobileAgent.id) — nullable tant que REQUESTED.
+  assignedAgentId     String?                @map("assigned_agent_id") @db.Uuid
+  /// Acteur ayant procédé à l'affectation (dispatch) — sub JWT, pas de FK.
+  assignedByUserId    String?                @map("assigned_by_user_id") @db.VarChar(100)
+  assignedAt          DateTime?              @map("assigned_at") @db.Timestamptz(6)
+  /// Confirmation de livraison.
+  confirmedAt         DateTime?              @map("confirmed_at") @db.Timestamptz(6)
+  signatureType       DeliverySignatureType? @map("signature_type")
+  /// SHA-256 (hex) de la preuve de réception — JAMAIS le gabarit brut
+  /// (souveraineté + minimisation des données, doc 22 §5).
+  signatureHash       String?                @map("signature_hash") @db.VarChar(64)
+  /// URL MinIO CHIFFRÉE de la photo d'attestation (jamais le binaire en clair).
+  attestationPhotoUrl String?                @map("attestation_photo_url") @db.VarChar(500)
+  /// GPS relevé au moment de la confirmation.
+  confirmedLat        Decimal?               @map("confirmed_lat") @db.Decimal(10, 7)
+  confirmedLng        Decimal?               @map("confirmed_lng") @db.Decimal(10, 7)
+  /// Motif d'échec (si status = FAILED).
+  failureReason       String?                @map("failure_reason") @db.Text
+  createdAt           DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  citizen       Citizen      @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+  assignedAgent MobileAgent? @relation("AgentDeliveries", fields: [assignedAgentId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([assignedAgentId, status])
+  @@index([citizenId])
+  @@index([dueAt])
+  @@map("delivery_missions")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
