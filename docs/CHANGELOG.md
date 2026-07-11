@@ -3,16 +3,58 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-11 (**PC-04 disponibilité live** — `getAvailability` réconcilié
-> sur `GET /centers/:id/availability` (contrat `CenterAvailability` fidèle : `kind`
-> STANDARD/PRIORITAIRE
->
-> - places restantes réelles, ni file ni P1/P2/P3 fabriqués) ; réservation citoyen encore mock
->   (backend AGENT-only, ADR-028). Voir 0tricies. Précédent : 0novemvicies — route gateway
->   `/api/v1/centers`.)
+> **Dernière mise à jour** : 2026-07-11 (**PC-04 réservation self-service citoyen** — backend
+> `appointment-service` : nouveaux endpoints `POST` / `GET /appointments/me` +
+> `PUT /appointments/me/:id/cancel` réservés au rôle **CITIZEN**, avec `citizenId` **dérivé du NINA
+> du token** (anti-IDOR, à l'image de `POST /corrections`) ; `POST /appointments` (médié) reste
+> AGENT-only — **ADR-028 intact**. Client `@nina-aes/api-client` aligné (schéma RDV honnête :
+> `queueNumber` nullable, `AppointmentList` `{ page, pageSize, items }`, DTO `slot` /
+> `reason ≤ 100`). Bouton live encore **désactivé** (émetteur de token web Keycloak ↔ backend
+> auth-service non réconcilié). Voir 0untricies. Précédent : 0tricies — disponibilité live.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0untricies. Patch 2026-07-11 — PC-04 : réservation self-service citoyen (backend `/appointments/me` + client honnête)
+
+Suite de 0tricies (disponibilité live). La **réservation** de PC-04, jusqu'ici gardée en démo faute
+de chemin autorisé, s'ouvre au citoyen **pour lui-même** — sans affaiblir ADR-028 : l'identité est
+**dérivée du token**, jamais fournie par le client (anti-IDOR/BOLA), exactement comme
+`POST /corrections`.
+
+- **`appointment-service` — endpoints self-service** : `POST /appointments/me`,
+  `GET /appointments/me`, `PUT /appointments/me/:id/cancel`, réservés au rôle **CITIZEN**. Le
+  `citizenId` est **résolu côté serveur** depuis le NINA porté par le token (`findCitizenIdByNina`)
+  : **403** si le token ne porte pas de NINA, **404** si aucun citoyen ne correspond. La création
+  réutilise le cœur `create()` (blacklist no-show, vulnérabilité, quotas) ; l'annulation vérifie la
+  **propriété AVANT toute action** et renvoie un **404 uniforme** si le RDV n'existe pas OU
+  n'appartient pas au citoyen (pas d'oracle d'énumération). `POST /appointments` (médié, `citizenId`
+  explicite) reste **AGENT/SUPERVISOR/ADMIN** : **ADR-028 inchangé**.
+- **Propagation du NINA** — `AuthSubject` (`@nina-aes/auth-guards`) porte désormais un `nina?`
+  optionnel (rétro-compatible) ; le vérificateur JWKS d'`appointment-service` le projette depuis la
+  charge du token. **Aucun credential de service** introduit.
+- **Client `@nina-aes/api-client` aligné (données honnêtes)** — le schéma RDV cesse d'inventer :
+  `queueNumber` devient **nullable** (numéro de passage assigné au **check-in**, `null` à la
+  réservation) ; le champ `notes` (**inexistant** côté backend, qui renvoie `purpose`) est
+  **supprimé** ; `AppointmentList` passe de `{ items, total }` à `{ page, pageSize, items }` (miroir
+  exact de `list()`) ; `CreateAppointmentDto` devient `{ centerId, slot, reason ≤ 100 }` et
+  `create()` cible **`POST /appointments/me`** (plus de `citizenId`). Le **mock** reflète fidèlement
+  (numéro de file `null` à la création, liste paginée). La **confirmation** de PC-04 n'affiche donc
+  plus de numéro de file fabriqué mais « Attribué à votre arrivée au centre ».
+- **Bouton de réservation live encore désactivé** — la **couture d'émetteur de token** n'est pas
+  réconciliée (login web émis par **Keycloak**, mais gateway + `appointment-service` vérifient le
+  JWKS d'**auth-service**) : aucun appel citoyen authentifié n'atteint donc encore le backend. Le
+  portail reste en **démo (mock)** pour la réservation ; l'endpoint est prêt côté serveur. La
+  réconciliation d'émetteur est le **prérequis** (chantier de suivi).
+- **Audit signé (chantier de suivi)** — l'événement d'audit **signé** vers `audit-service`
+  (`nina.audit`, origine authentifiée exigée par `AUDIT_REQUIRE_SIGNED_ORIGIN`) sur la création
+  self-service reste à câbler ; en attendant, l'acte est tracé par **log structuré** (acteur = le
+  citoyen). Aucune garantie d'auditabilité / intégrité existante affaiblie.
+
+Gates : `check-types` + ESLint `--max-warnings=0` + `test` **verts** — `appointment-service`
+**71/71** (dont **6 nouveaux** tests self-service : dérivation d'identité, 403/404, portée de la
+liste, ownership anti-IDOR sur l'annulation) et `auth-guards` ; `check-types` + ESLint des apps
+**citizen / admin / governance** verts. Docs : header + cette entrée.
 
 ### 0tricies. Patch 2026-07-11 — PC-04 : disponibilité (créneaux) réconciliée live + réservation gardée honnête
 

@@ -41,6 +41,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards/index.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { AppointmentsService } from './appointments.service.js';
 import { CreateAppointmentDto } from './dto/create-appointment.dto.js';
+import { CreateSelfAppointmentDto } from './dto/create-self-appointment.dto.js';
 import { ListAppointmentsQuery } from './dto/list-appointments.query.js';
 
 @ApiTags('appointments')
@@ -80,6 +81,53 @@ export class AppointmentsController {
       page: q.page,
       pageSize: q.pageSize,
     });
+  }
+
+  /**
+   * POST /api/v1/appointments/me — le citoyen prend RDV pour LUI-MÊME.
+   *
+   * Self-service : le `citizenId` est dérivé du NINA porté par le token (jamais
+   * fourni par le client → anti-IDOR). C'est le pendant citoyen de `POST /` (médié
+   * par le personnel) ; il ne relâche PAS la contrainte d'ADR-028 (le citoyen ne
+   * peut agir que pour lui-même), à l'image de `POST /corrections` (identity).
+   */
+  @Post('me')
+  @Roles(UserRole.CITIZEN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Prise de rendez-vous par le citoyen lui-même (self-service).' })
+  createMine(@Body() dto: CreateSelfAppointmentDto, @CurrentUser() user: AuthSubject) {
+    return this.service.createForCitizen(user.nina, {
+      centerId: dto.centerId,
+      slot: dto.slot,
+      reason: dto.reason,
+      vulnerabilityCategory: dto.vulnerabilityCategory,
+    });
+  }
+
+  /**
+   * GET /api/v1/appointments/me — les rendez-vous du citoyen authentifié.
+   * Portée dérivée du NINA du token ; un `citizenId` de requête serait ignoré.
+   * (Déclaré AVANT `:id` pour ne pas être capté par le paramètre.)
+   */
+  @Get('me')
+  @Roles(UserRole.CITIZEN)
+  @ApiOperation({ summary: 'Liste des rendez-vous du citoyen authentifié (self-scoped).' })
+  listMine(@CurrentUser() user: AuthSubject, @Query() q: ListAppointmentsQuery) {
+    return this.service.listForCitizen(user.nina, {
+      status: q.status,
+      page: q.page,
+      pageSize: q.pageSize,
+    });
+  }
+
+  /** PUT /api/v1/appointments/me/:id/cancel — annulation d'un RDV du citoyen (contrôle de propriété). */
+  @Put('me/:id/cancel')
+  @Roles(UserRole.CITIZEN)
+  @ApiOperation({
+    summary: 'Annule un rendez-vous du citoyen authentifié (ownership fail-closed).',
+  })
+  cancelMine(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: AuthSubject) {
+    return this.service.cancelForCitizen(id, user.nina);
   }
 
   /** GET /api/v1/appointments/queue/:centerId — file d'attente du jour (AGENT). */

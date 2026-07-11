@@ -315,6 +315,16 @@ export class AppointmentRepository {
   }
 
   /**
+   * Résout l'`id` interne d'un citoyen depuis son **NINA** (self-service citoyen :
+   * l'identité provient du token, jamais d'un `citizenId` fourni par le client).
+   * `null` si aucun citoyen ne correspond.
+   */
+  async findCitizenIdByNina(nina: string): Promise<string | null> {
+    const c = await prisma.citizen.findFirst({ where: { nina }, select: { id: true } });
+    return c?.id ?? null;
+  }
+
+  /**
    * Vérifie qu'une fiche de vulnérabilité ACTIVE existe pour ce citoyen et cette
    * catégorie (source de vérité du domaine vulnérabilité, partagée en base —
    * équivalent et compatible avec un futur appel HTTP à vulnerability-service).

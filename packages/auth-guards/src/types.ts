@@ -26,6 +26,13 @@ export interface AuthSubject {
   mfa: boolean;
   email?: string;
   kcSub?: string;
+  /**
+   * NINA du citoyen — présent dans les tokens de rôle `citizen` (émis par
+   * auth-service). Permet aux services d'offrir des routes **self-service**
+   * scopées au citoyen (ex. `POST /appointments/me`) sans qu'un `citizenId`
+   * soit fourni par le client : l'identité vient du token (anti-IDOR).
+   */
+  nina?: string;
 }
 
 /**
