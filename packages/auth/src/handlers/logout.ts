@@ -41,10 +41,17 @@ export function buildLogoutHandler(config: AuthConfig) {
       redirectUrl = new URL(`/${locale}/login`, req.url).toString();
     }
 
+    // Expiration alignée sur les PATH posés au callback (`access_token` = `/`,
+    // `refresh_token` = `/api/auth/refresh`, `id_token` = `/api/auth/logout`). Un
+    // `delete(name)` utilise le path par défaut `/` et ne purgerait donc PAS les
+    // deux cookies au scope plus étroit : ils survivraient à la déconnexion — et un
+    // `refresh_token` résiduel encore valide pourrait re-forger une session.
+    const secure = process.env.NODE_ENV === 'production';
+    const kill = { httpOnly: true, secure, sameSite: 'lax' as const, maxAge: 0 };
     const res = NextResponse.redirect(redirectUrl);
-    res.cookies.delete('access_token');
-    res.cookies.delete('refresh_token');
-    res.cookies.delete('id_token');
+    res.cookies.set('access_token', '', { ...kill, path: '/' });
+    res.cookies.set('refresh_token', '', { ...kill, path: '/api/auth/refresh' });
+    res.cookies.set('id_token', '', { ...kill, path: '/api/auth/logout' });
     return res;
   }
 
