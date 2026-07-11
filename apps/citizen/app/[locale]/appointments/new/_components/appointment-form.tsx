@@ -141,7 +141,8 @@ interface Confirmation {
   time: string;
   /** Horodatage ISO du créneau — sert à l'export .ics. */
   startsAt: string;
-  queue: number;
+  /** Numéro de passage — `null` à la réservation (assigné au check-in au centre). */
+  queue: number | null;
   reference: string;
 }
 
@@ -285,7 +286,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
       `DTEND:${end}`,
       `SUMMARY:${esc(t('confirm.icsSummary', { center: c.centerName }))}`,
       `LOCATION:${esc(c.centerName)}`,
-      `DESCRIPTION:${esc(t('confirm.icsDescription', { reference: c.reference, queue: c.queue }))}`,
+      `DESCRIPTION:${esc(t('confirm.icsDescription', { reference: c.reference }))}`,
       'BEGIN:VALARM',
       'TRIGGER:-P1D',
       'ACTION:DISPLAY',
@@ -328,7 +329,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     try {
       const appt = await createAppointment.mutateAsync({
         centerId: selectedCenterId,
-        scheduledAt: selectedSlot.start,
+        slot: selectedSlot.start,
         reason: reason.trim(),
       });
       setConfirmation({
@@ -569,7 +570,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                             onChange={(e) => setReason(e.target.value)}
                             rows={3}
                             minLength={5}
-                            maxLength={500}
+                            maxLength={100}
                             required
                             placeholder={t('form.reasonPlaceholder')}
                             className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -660,7 +661,9 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
               <dt className="text-fg-muted">{t('confirm.slot')}</dt>
               <dd className="font-mono font-medium">{confirmation.time}</dd>
               <dt className="text-fg-muted">{t('confirm.queue')}</dt>
-              <dd className="font-medium">#{confirmation.queue}</dd>
+              <dd className="font-medium">
+                {confirmation.queue != null ? `#${confirmation.queue}` : t('confirm.queuePending')}
+              </dd>
               <dt className="text-fg-muted">{t('confirm.reference')}</dt>
               <dd className="font-mono">{confirmation.reference}</dd>
               {nina && (

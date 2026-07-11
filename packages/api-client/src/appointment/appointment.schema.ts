@@ -93,23 +93,37 @@ export const AppointmentSchema = z.object({
   centerName: z.string(),
   status: AppointmentStatusSchema,
   priority: PriorityLevelSchema,
-  queueNumber: z.number().int().positive(),
+  /**
+   * Numéro de passage — `null` tant que le citoyen n'a pas fait son check-in au
+   * centre (assigné à l'arrivée, PAS à la réservation). Aligné sur
+   * `AppointmentView.queueNumber` d'appointment-service (`number | null`).
+   */
+  queueNumber: z.number().int().positive().nullable(),
   scheduledAt: z.iso.datetime(),
   completedAt: z.iso.datetime().nullable(),
-  notes: z.string().nullable(),
   createdAt: z.iso.datetime(),
 });
 
-/** DTO de prise de rendez-vous. */
+/**
+ * DTO de prise de rendez-vous en self-service citoyen (`POST /appointments/me`).
+ * Le `citizenId` n'y figure JAMAIS : l'identité est dérivée du NINA du token côté
+ * serveur (anti-IDOR). Aligné sur `CreateSelfAppointmentDto` d'appointment-service
+ * (`slot` ISO 8601, `reason` non vide ≤ 100).
+ */
 export const CreateAppointmentDtoSchema = z.object({
   centerId: z.uuid(),
-  scheduledAt: z.iso.datetime(),
-  reason: z.string().trim().min(5).max(500),
+  slot: z.iso.datetime(),
+  reason: z.string().trim().min(5).max(100),
 });
 
+/**
+ * Réponse paginée de `GET /appointments/me` — alignée sur `list()`
+ * d'appointment-service (`{ page, pageSize, items }`, sans total agrégé).
+ */
 export const AppointmentListSchema = z.object({
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
   items: z.array(AppointmentSchema),
-  total: z.number().int().nonnegative(),
 });
 
 export type AppointmentStatus = z.infer<typeof AppointmentStatusSchema>;

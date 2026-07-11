@@ -338,13 +338,14 @@
       "date": "Date",
       "slot": "Créneau",
       "queue": "Numéro de file",
+      "queuePending": "Attribué à votre arrivée au centre",
       "nina": "NINA",
       "reference": "Référence",
       "qrCaption": "QR de rendez-vous",
       "qrNote": "Aperçu démo — le code signé sera émis par document-service.",
       "addToCalendar": "Ajouter à mon agenda",
       "icsSummary": "Rendez-vous NINA-AES — {center}",
-      "icsDescription": "Référence {reference}. File n° {queue}. Présentez votre QR code et une pièce d'identité originale à l'accueil.",
+      "icsDescription": "Référence {reference}. Présentez votre QR code et une pièce d'identité originale à l'accueil.",
       "icsReminder": "Rappel : rendez-vous NINA-AES demain.",
       "done": "Terminer"
     }

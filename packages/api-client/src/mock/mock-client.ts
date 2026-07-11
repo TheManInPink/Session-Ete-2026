@@ -165,7 +165,6 @@ function buildAppointment(
   scheduledAt: string,
   overrides: Partial<Appointment> = {},
 ): Appointment {
-  const seed = seedOf(`${centerId}-${scheduledAt}`);
   const candidate: Appointment = {
     id: overrides.id ?? uuidFrom(`appt-${centerId}-${scheduledAt}`),
     citizenId: overrides.citizenId ?? uuidFrom('citizen-self'),
@@ -173,10 +172,11 @@ function buildAppointment(
     centerName: overrides.centerName ?? 'CTDEC Bamako',
     status: overrides.status ?? 'SCHEDULED',
     priority: overrides.priority ?? 'P3',
-    queueNumber: overrides.queueNumber ?? (seed % 40) + 1,
+    // Fidèle au backend : pas de numéro de passage à la réservation (assigné au
+    // check-in). Reste surchargeable pour les fixtures d'un RDV déjà en file.
+    queueNumber: overrides.queueNumber ?? null,
     scheduledAt,
     completedAt: overrides.completedAt ?? null,
-    notes: overrides.notes ?? null,
     createdAt: overrides.createdAt ?? FIXED_NOW,
   };
   return AppointmentSchema.parse(candidate);
@@ -646,20 +646,20 @@ export function createMockApiClient(): ApiClient {
       },
       async create(dto: CreateAppointmentDto): Promise<Appointment> {
         const center = MOCK_CENTERS.find((c) => c.id === dto.centerId);
-        return buildAppointment(dto.centerId, dto.scheduledAt, {
-          notes: dto.reason,
+        return buildAppointment(dto.centerId, dto.slot, {
           centerName: center?.name ?? 'CTDEC Bamako',
         });
       },
       async listMine(): Promise<AppointmentList> {
         const candidate: AppointmentList = {
+          page: 1,
+          pageSize: 50,
           items: [
             buildAppointment(uuidFrom('center-ctdec-bamako'), '2026-05-20T09:00:00.000Z', {
               centerName: 'CTDEC Bamako',
               status: 'SCHEDULED',
             }),
           ],
-          total: 1,
         };
         return AppointmentListSchema.parse(candidate);
       },

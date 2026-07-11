@@ -53,22 +53,24 @@ export class AppointmentClient implements AppointmentApi {
   }
 
   /**
-   * Crée un rendez-vous (status initial : `SCHEDULED`).
+   * Crée un rendez-vous pour le citoyen AUTHENTIFIÉ (self-service, status initial
+   * `SCHEDULED`) via `POST /api/v1/appointments/me`. Le `citizenId` n'est jamais
+   * envoyé : le backend le dérive du NINA porté par le token (anti-IDOR), à
+   * l'image de `POST /corrections`. Ne relâche donc PAS ADR-028 (le citoyen ne
+   * peut agir que pour lui-même).
    *
-   * ⚠️ Réservé côté backend au personnel / portail de confiance
-   * (`POST /api/v1/appointments`, rôles AGENT/SUPERVISOR/ADMIN — le rôle CITIZEN
-   * est **volontairement exclu**, cf. ADR-028 : pas encore de liaison forte
-   * `JWT.sub ↔ Citizen.id`). L'ouverture de la réservation en self-service
-   * citoyen fait l'objet d'un chantier dédié (BFF médié résolvant l'identité
-   * côté serveur).
+   * ⚠️ Le portail ne câble ce bouton en mode **live** qu'une fois la couture de
+   * jetons réconciliée (aujourd'hui le login web est émis par Keycloak, mais la
+   * gateway/appointment-service vérifient le JWKS d'auth-service) — cf. scope
+   * booking-live. En attendant, l'écran PC-04 reste en démo (mock).
    */
   async create(dto: CreateAppointmentDto): Promise<Appointment> {
     return this.http.request<Appointment>({
       method: 'POST',
-      path: '/api/v1/appointments',
+      path: '/api/v1/appointments/me',
       body: dto,
       schema: AppointmentSchema,
-      idempotencyKey: `appt-${dto.centerId}-${dto.scheduledAt}`,
+      idempotencyKey: `appt-${dto.centerId}-${dto.slot}`,
     });
   }
 
