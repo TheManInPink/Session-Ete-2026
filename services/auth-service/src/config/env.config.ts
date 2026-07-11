@@ -39,6 +39,21 @@ export const EnvSchema = z.object({
   KEYCLOAK_CLIENT_SECRET: z.string().min(1),
   KEYCLOAK_ADMIN: z.string().min(1),
   KEYCLOAK_ADMIN_PASSWORD: z.string().min(1),
+  /**
+   * Émetteur (`iss`) attendu dans le token Keycloak présenté à
+   * `POST /auth/sso/exchange` — c'est l'issuer VU PAR LE NAVIGATEUR
+   * (ex. `http://localhost:8080/realms/nina-aes`). En déploiement
+   * « split-horizon » il peut différer de `KEYCLOAK_URL` (URL interne
+   * atteignable par le service pour récupérer le JWKS). Absent ⇒ dérivé de
+   * `KEYCLOAK_URL`/`KEYCLOAK_REALM` (cas mono-hôte du dev). @see ADR-036
+   */
+  KEYCLOAK_ISSUER: z.url().optional(),
+  /**
+   * Client Keycloak dont les tokens sont acceptés par l'échange SSO citoyen
+   * (claim `azp`). Scope l'endpoint au portail citoyen : un token émis pour un
+   * autre client est rejeté. @see ADR-036
+   */
+  KEYCLOAK_SSO_CLIENT_ID: z.string().min(1).default('nina-citizen'),
 
   // ─── JWT (clés via Vault, métadonnées ici) ──────────────────────
   VAULT_JWT_KEYS_PATH: z.string().min(1).default('auth/jwt'),
@@ -98,6 +113,9 @@ export const EnvSchema = z.object({
   // ─── Throttle login ─────────────────────────────────────────────
   THROTTLE_LOGIN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   THROTTLE_LOGIN_LIMIT: z.coerce.number().int().positive().default(5),
+  /** Rate-limit `POST /auth/sso/exchange` : fenêtre (s) + plafond par IP (ADR-036). */
+  THROTTLE_SSO_EXCHANGE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+  THROTTLE_SSO_EXCHANGE_LIMIT: z.coerce.number().int().positive().default(10),
 
   // ─── Observabilité ──────────────────────────────────────────────
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
