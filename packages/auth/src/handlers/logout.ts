@@ -52,6 +52,8 @@ export function buildLogoutHandler(config: AuthConfig) {
     res.cookies.set('access_token', '', { ...kill, path: '/' });
     res.cookies.set('refresh_token', '', { ...kill, path: '/api/auth/refresh' });
     res.cookies.set('id_token', '', { ...kill, path: '/api/auth/logout' });
+    // Session applicative citoyenne (ADR-036) — posée au scope `/` au callback.
+    res.cookies.set('backend_access_token', '', { ...kill, path: '/' });
     return res;
   }
 

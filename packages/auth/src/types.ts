@@ -74,4 +74,12 @@ export interface AuthConfig {
    *  générique « Utilisateur fictif ». Permet aux apps d'injecter un
    *  citoyen ou un agent réaliste. */
   mockProfile?: UserProfile;
+  /**
+   * URL COMPLÈTE de l'échange SSO auth-service (`…/api/v1/auth/sso/exchange`).
+   * Défini UNIQUEMENT par l'app **citoyen** : quand présent, `callback`/`refresh`
+   * échangent le token Keycloak contre une session applicative (cookie
+   * `backend_access_token`) transmise au backend. Absent (admin/gouvernance) ⇒
+   * aucun échange (no-op). @see ADR-036
+   */
+  backendExchangeUrl?: string;
 }

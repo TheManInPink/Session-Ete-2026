@@ -3,9 +3,10 @@
  * @description BFF (Backend-for-Frontend) — proxy d'API **authentifié**.
  *
  *              Les composants client appellent ce route handler same-origin ;
- *              il lit le cookie httpOnly `access_token`, l'injecte en
- *              `Authorization: Bearer` et relaie vers le gateway interne. Le
- *              token n'est donc jamais accessible au JavaScript (anti-XSS).
+ *              il lit le cookie httpOnly `backend_access_token` (session applicative
+ *              auth-service — ADR-036), l'injecte en `Authorization: Bearer` et
+ *              relaie vers le gateway interne. Le token n'est donc jamais accessible
+ *              au JavaScript (anti-XSS).
  *
  *              ⚠️ Les en-têtes `Authorization` venant du client sont ignorés :
  *              seul le cookie httpOnly fait foi (on ne fait pas confiance au
@@ -40,7 +41,8 @@ async function forward(
     );
   }
 
-  const token = req.cookies.get('access_token')?.value;
+  // Session applicative auth-service (ADR-036) — PAS le token Keycloak (rejeté aval).
+  const token = req.cookies.get('backend_access_token')?.value;
 
   // Reconstruit le chemin cible (segments décodés par Next → on ré-encode).
   const target = `${gatewayInternalUrl()}/api/v1/${path
