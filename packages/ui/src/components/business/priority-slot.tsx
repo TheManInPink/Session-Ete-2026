@@ -24,15 +24,21 @@ export interface PrioritySlotProps extends Omit<
 > {
   /** Heure affichée en gros (ex. « 07h30 »). */
   time: string;
-  /** Sous-libellé optionnel (ex. centre). */
+  /** Sous-libellé optionnel (ex. places restantes). */
   label?: string;
   priority: SlotPriority;
   state?: SlotState;
+  /**
+   * Libellé du badge (défaut : le code de priorité). Permet un libellé honnête
+   * — ex. « Prioritaire » / « Standard » — quand la nature du créneau est binaire
+   * (le niveau P1/P2/P3 n'étant décidé qu'à la réservation).
+   */
+  badge?: React.ReactNode;
 }
 
 /** Bouton de sélection d'un créneau horaire. */
 export const PrioritySlot = React.forwardRef<HTMLButtonElement, PrioritySlotProps>(
-  ({ time, label, priority, state = 'available', className, disabled, ...props }, ref) => {
+  ({ time, label, priority, state = 'available', badge, className, disabled, ...props }, ref) => {
     const booked = state === 'booked';
     return (
       <button
@@ -60,7 +66,7 @@ export const PrioritySlot = React.forwardRef<HTMLButtonElement, PrioritySlotProp
           {label && <span className="text-xs text-fg-muted">{label}</span>}
         </span>
         <span className="rounded-full bg-bg-muted px-2 py-0.5 text-xs font-semibold text-fg-muted">
-          {booked ? 'Pris' : priority}
+          {booked ? 'Pris' : (badge ?? priority)}
         </span>
       </button>
     );

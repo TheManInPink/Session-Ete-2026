@@ -3,7 +3,7 @@
  * @description View-model DÉTERMINISTE du planning de rendez-vous du jour, côté
  *              agent (AD — Rendez-vous). Le contrat `appointment-service` (doc 09)
  *              n'expose, à ce jour, que des méthodes citoyen-scopées
- *              (`getAvailableSlots` / `create` / `listMine` / `cancel`) — aucune
+ *              (`getAvailability` / `create` / `listMine` / `cancel`) — aucune
  *              agrégation « file du centre » côté agent. Cette couche fournit un
  *              planning de démonstration reproductible pour matérialiser l'écran.
  *

@@ -31,9 +31,9 @@ l'utilisateur : **garder le client fait-main + ajouter une couche de hooks** (ch
 
 ### 1. Hooks React Query au sous-chemin `@nina-aes/api-client/react`
 
-Les hooks (`useCitizenByNina`, `useSubmitCorrection`, `useAvailableSlots`, `useSubmitAlert`, …) +
-`ApiClientProvider`/`useApiClient` + une fabrique de query-keys vivent dans un **sous-chemin** dédié
-; `react` et `@tanstack/react-query` sont des **peerDependencies optionnelles**.
+Les hooks (`useCitizenByNina`, `useSubmitCorrection`, `useCenterAvailability`, `useSubmitAlert`,
+…) + `ApiClientProvider`/`useApiClient` + une fabrique de query-keys vivent dans un **sous-chemin**
+dédié ; `react` et `@tanstack/react-query` sont des **peerDependencies optionnelles**.
 
 - **Pourquoi** : le cœur reste **framework-agnostique** (consommable par USSD, scripts Node, mobile)
   tout en exposant des hooks « prêts à l'emploi » côté React, comme demandé par PROMPT 5.1.
@@ -87,8 +87,8 @@ Les **codes** structurels (région/cercle/commune, lettre de contrôle) sont dé
 
 - Les écrans citoyens importent leurs hooks depuis `@nina-aes/api-client/react`.
 - **Tranche 1 (app citizen) livrée + vérifiée** — les 5 écrans citoyen branchés :
-  - PC-02 (lecture `fetchCitizenFiche`), PC-03 (`useSubmitCorrection`), PC-04 (`useAvailableSlots` +
-    `useCreateAppointment`, créneaux porteurs de leur centre), PC-05 (dashboard via
+  - PC-02 (lecture `fetchCitizenFiche`), PC-03 (`useSubmitCorrection`), PC-04
+    (`useCenterAvailability` + `useCreateAppointment`), PC-05 (dashboard via
     `fetchMyCorrections`/`fetchMyAppointments`), PC-06 (anonyme `useSubmitAlert`).
   - Vérif : typecheck api-client+citizen, lint citizen, **e2e citizen 13/13** (mock), `verify:repo`.
   - Revue adversariale du socle (16 agents) → 3 correctifs (anti-traversée BFF, 401 anonyme via

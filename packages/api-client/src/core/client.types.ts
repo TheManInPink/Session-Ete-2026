@@ -24,9 +24,9 @@ import type {
 import type {
   Appointment,
   AppointmentList,
+  CenterAvailability,
   CenterSummary,
   CreateAppointmentDto,
-  SlotsList,
 } from '../appointment/appointment.schema';
 import type {
   SigacPublicKey,
@@ -76,13 +76,17 @@ export type CorrectionListParams = {
   pageSize?: number;
 };
 
-/** Plage de dates pour la recherche de créneaux de RDV. */
-export type SlotsQuery = {
+/**
+ * Fenêtre de disponibilité d'un centre (dates `YYYY-MM-DD`). Le `centerId` est
+ * REQUIS (c'est un segment de l'URL `GET /centers/:id/availability`).
+ */
+export type AvailabilityQuery = {
+  /** Centre ciblé (UUID = Institution.id). */
+  centerId: string;
   /** Borne basse au format `YYYY-MM-DD`. */
   fromDate: string;
-  /** Borne haute au format `YYYY-MM-DD`. */
+  /** Borne haute `YYYY-MM-DD` (≤ horizon serveur `APPOINTMENT_BOOKING_HORIZON_DAYS`). */
   toDate: string;
-  centerId?: string;
 };
 
 /** Filtre de listing des centres d'enrôlement (par code de région `ML-XX`). */
@@ -128,7 +132,8 @@ export interface CorrectionApi {
 export interface AppointmentApi {
   /** Liste les centres d'enrôlement (optionnellement filtrés par région). */
   listCenters(params?: CentersQuery): Promise<CenterSummary[]>;
-  getAvailableSlots(params: SlotsQuery): Promise<SlotsList>;
+  /** Disponibilités d'un centre (créneaux STANDARD/PRIORITAIRE par jour). */
+  getAvailability(params: AvailabilityQuery): Promise<CenterAvailability>;
   create(dto: CreateAppointmentDto): Promise<Appointment>;
   listMine(): Promise<AppointmentList>;
   cancel(id: string): Promise<Appointment>;

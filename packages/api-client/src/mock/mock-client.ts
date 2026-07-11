@@ -36,14 +36,15 @@ import {
 import {
   AppointmentListSchema,
   AppointmentSchema,
+  CenterAvailabilitySchema,
   CentersListSchema,
-  SlotsListSchema,
   type Appointment,
   type AppointmentList,
+  type AvailabilitySlot,
+  type CenterAvailability,
   type CenterSummary,
   type CreateAppointmentDto,
-  type Slot,
-  type SlotsList,
+  type DayAvailability,
 } from '../appointment/appointment.schema';
 import {
   SigacPublicKeySchema,
@@ -79,12 +80,12 @@ import {
 import { type AdminDashboardStats } from '../admin-dashboard/admin-dashboard.schema';
 import type {
   ApiClient,
+  AvailabilityQuery,
   CentersQuery,
   CorrectionListParams,
   DirectiveListParams,
   IdentitySearchParams,
   SgogtInboxParams,
-  SlotsQuery,
 } from '../core/client.types';
 import { ApiError } from '../core/errors';
 import { FIXED_NOW, hexFrom, isoHoursFrom, seedOf, uuidFrom } from './deterministic';
@@ -276,6 +277,8 @@ const MOCK_STANDARD_TIMES = [
   '15:00',
   '15:30',
 ] as const;
+/** Guichets parallèles simulés (= capacité offerte par créneau). */
+const MOCK_SLOT_CAPACITY = 2;
 
 /** Ajoute `n` jours à une date `YYYY-MM-DD` (UTC, déterministe). */
 function addDaysIso(iso: string, n: number): string {
@@ -290,39 +293,73 @@ function isoWeekday(iso: string): number {
 }
 
 /**
- * Disponibilité de démo DÉTERMINISTE d'un centre sur `[fromDate, toDate]` : jours
- * ouvrés uniquement, ~1 jour sur 6 « complet » (aucun créneau) et quelques
- * créneaux « déjà pris » retirés — de quoi exercer le calendrier (jours grisés)
- * et la grille horaire, sans aucune donnée réelle inventée. Les créneaux de la
- * fenêtre 07:30–09:00 sont marqués prioritaires (P1).
+ * Disponibilité de démo DÉTERMINISTE d'un centre sur `[fromDate, toDate]`, à la
+ * forme EXACTE du backend (`DayAvailability` d'appointment-service) : jours de
+ * semaine ouverts, week-ends fermés, ~1 jour sur 6 « complet » (tout réservé),
+ * avec un `booked`/`remaining` déterministe par créneau — de quoi exercer le
+ * calendrier (jours grisés) et la grille horaire, SANS donnée fabriquée (ni
+ * numéro de file ni niveau P1/P2/P3 à ce stade). Les créneaux 07:30–09:00 sont
+ * de nature PRIORITAIRE, les autres STANDARD.
  */
-function buildMockSlots(center: CenterSummary, fromDate: string, toDate: string): Slot[] {
-  const slots: Slot[] = [];
+function buildMockAvailability(
+  center: CenterSummary,
+  fromDate: string,
+  toDate: string,
+): DayAvailability[] {
+  const days: DayAvailability[] = [];
   let day = fromDate;
   let guard = 0;
   while (day <= toDate && guard < 120) {
     guard += 1;
     const dow = isoWeekday(day);
-    const weekend = dow === 0 || dow === 6;
-    const full = seedOf(`${center.code}-${day}`) % 6 === 0;
-    if (!weekend && !full) {
-      [...MOCK_PRIORITY_TIMES, ...MOCK_STANDARD_TIMES].forEach((time, i) => {
-        if (seedOf(`${center.code}-${day}-${time}`) % 5 === 0) return; // créneau déjà pris
-        const priority = (MOCK_PRIORITY_TIMES as readonly string[]).includes(time)
-          ? ('P1' as const)
-          : ('P3' as const);
-        slots.push({
-          startsAt: `${day}T${time}:00.000Z`,
-          centerId: center.id,
-          centerName: center.name,
-          priority,
-          queueNumber: i + 1,
-        });
+    if (dow === 0 || dow === 6) {
+      days.push({
+        date: day,
+        open: false,
+        slots: [],
+        summary: { standardRemaining: 0, priorityRemaining: 0, capacityRemaining: 0 },
       });
+      day = addDaysIso(day, 1);
+      continue;
     }
+    const full = seedOf(`${center.code}-${day}`) % 6 === 0;
+    const slots: AvailabilitySlot[] = [...MOCK_PRIORITY_TIMES, ...MOCK_STANDARD_TIMES].map(
+      (time) => {
+        const kind = (MOCK_PRIORITY_TIMES as readonly string[]).includes(time)
+          ? ('PRIORITY' as const)
+          : ('STANDARD' as const);
+        const booked = full
+          ? MOCK_SLOT_CAPACITY
+          : seedOf(`${center.code}-${day}-${time}`) % (MOCK_SLOT_CAPACITY + 1);
+        const remaining = Math.max(0, MOCK_SLOT_CAPACITY - booked);
+        return {
+          start: `${day}T${time}:00.000Z`,
+          kind,
+          capacity: MOCK_SLOT_CAPACITY,
+          booked,
+          remaining,
+        };
+      },
+    );
+    const priorityRemaining = slots
+      .filter((s) => s.kind === 'PRIORITY')
+      .reduce((n, s) => n + s.remaining, 0);
+    const standardRemaining = slots
+      .filter((s) => s.kind === 'STANDARD')
+      .reduce((n, s) => n + s.remaining, 0);
+    days.push({
+      date: day,
+      open: true,
+      slots,
+      summary: {
+        standardRemaining,
+        priorityRemaining,
+        capacityRemaining: priorityRemaining + standardRemaining,
+      },
+    });
     day = addDaysIso(day, 1);
   }
-  return slots;
+  return days;
 }
 
 /**
@@ -597,11 +634,14 @@ export function createMockApiClient(): ApiClient {
           : MOCK_CENTERS;
         return CentersListSchema.parse(list);
       },
-      async getAvailableSlots(params: SlotsQuery): Promise<SlotsList> {
+      async getAvailability(params: AvailabilityQuery): Promise<CenterAvailability> {
         const center = MOCK_CENTERS.find((c) => c.id === params.centerId) ?? MOCK_CENTERS[0];
-        if (!center) return SlotsListSchema.parse({ slots: [] });
-        return SlotsListSchema.parse({
-          slots: buildMockSlots(center, params.fromDate, params.toDate),
+        if (!center) {
+          return CenterAvailabilitySchema.parse({ centerId: params.centerId, days: [] });
+        }
+        return CenterAvailabilitySchema.parse({
+          centerId: center.id,
+          days: buildMockAvailability(center, params.fromDate, params.toDate),
         });
       },
       async create(dto: CreateAppointmentDto): Promise<Appointment> {

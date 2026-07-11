@@ -3,12 +3,57 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-07 (**api-gateway route `/api/v1/centers`** — liste des centres
-> PC-04 câblée en live via le gateway + schéma `CenterSummary` aligné (nullable). Voir 0novemvicies.
-> Précédent : 0octovicies — PC-04 sélecteur centre + calendrier + `PrioritySlot`)
+> **Dernière mise à jour** : 2026-07-11 (**PC-04 disponibilité live** — `getAvailability` réconcilié
+> sur `GET /centers/:id/availability` (contrat `CenterAvailability` fidèle : `kind`
+> STANDARD/PRIORITAIRE
+>
+> - places restantes réelles, ni file ni P1/P2/P3 fabriqués) ; réservation citoyen encore mock
+>   (backend AGENT-only, ADR-028). Voir 0tricies. Précédent : 0novemvicies — route gateway
+>   `/api/v1/centers`.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0tricies. Patch 2026-07-11 — PC-04 : disponibilité (créneaux) réconciliée live + réservation gardée honnête
+
+Suite de 0novemvicies (liste des centres live). La **disponibilité** de PC-04 est désormais
+réconciliée sur le contrat réel d'`appointment-service` ; la **réservation** citoyen reste
+volontairement en démo (mock), faute de chemin autorisé côté backend.
+
+- **Contrat `CenterAvailability` fidèle** (`@nina-aes/api-client`) — l'ancien `Slot` / `SlotsList`
+  (forme inventée par le mock : `queueNumber`, `centerName`, niveaux `P1/P2/P3`) est remplacé par
+  `AvailabilitySlot` / `DayAvailability` / `CenterAvailability`, **miroir exact** des types
+  d'`appointment-service` : `{ start, kind: STANDARD|PRIORITY, capacity, booked, remaining }`
+  groupés par jour (`{ date, open, slots, summary }`). **Aucune donnée fabriquée** : ni numéro de
+  file (attribué au check-in) ni niveau P1/P2/P3 (décidé à la réservation selon la vulnérabilité) au
+  stade de la disponibilité.
+- **Client live rewiré** — `getAvailableSlots` (`/appointments/slots`, route **inexistante** → 404)
+  devient `getAvailability` → `GET /api/v1/centers/:id/availability?from&to` (public, déjà routé par
+  le gateway `/api/v1/centers`). Hook `useAvailableSlots` → `useCenterAvailability`. Le **mock**
+  produit la **même forme** (déterministe, `booked` / `remaining` réels, week-ends fermés). Fenêtre
+  ramenée de J+60 à **J+30** pour rester dans l'horizon backend (`APPOINTMENT_BOOKING_HORIZON_DAYS`,
+  30 j par défaut ; au-delà `GET /availability` renvoie 400).
+- **`PrioritySlot`** (`packages/ui`) — prop **`badge`** optionnelle (rétro-compatible) : la nature
+  du créneau s'affiche honnêtement « Prioritaire » / « Standard » (au lieu du code `P1/P2/P3`,
+  désormais hors-sujet en disponibilité). Le formulaire mappe `kind` → accent visuel + sous-libellé
+  « N places restantes » (réel).
+- **Réservation gardée honnête** — `POST /appointments` est **réservé AGENT/SUPERVISOR/ADMIN**
+  (CITIZEN exclu par conception, ADR-028 : pas de liaison forte `JWT.sub ↔ Citizen.id`). En mode
+  **live**, le formulaire n'affiche donc **pas** de bouton de réservation (qui renverrait 403) mais
+  un encart « réservation en ligne bientôt disponible » ; en mode **démo (mock)**, le parcours
+  complet + confirmation `.ics` reste joué. **Aucune autorisation affaiblie** côté serveur.
+- **Chantier de suivi (Phase 2, hors périmètre)** — l'ouverture de la réservation citoyen fait
+  l'objet d'un scope dédié (investigation menée) : soit la voie « BFF de confiance » (réconciliation
+  d'émetteur de token web Keycloak ↔ backend auth-service, résolution NINA→`Citizen.id` côté BFF,
+  mécanisme d'auth de service **à construire**, + événement d'audit sur `create`), soit
+  l'alternative **plus légère** « self-service dérivé du token » (grant CITIZEN sur
+  `POST /appointments/me` liant à la `nina` du token — à l'image de `POST /corrections` déjà en
+  place — sans credential de service). Décision + sign-off requis.
+
+Gates : `check-types` (api-client, ui, citizen, admin) + ESLint `--max-warnings=0` (fichiers
+api-client) **verts** ; parse Zod runtime d'une charge `CenterAvailability` **live** (clés en trop
+ignorées, `kind` fabriqué / `start` non-ISO **rejetés**, fail-closed). Docs : `screens.md` PC-04 +
+ADR-031 + doc 12.
 
 ### 0novemvicies. Patch 2026-07-07 — api-gateway : route `/api/v1/centers` (liste centres live PC-04)
 

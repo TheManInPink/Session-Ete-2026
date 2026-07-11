@@ -10,11 +10,11 @@
  */
 
 import type {
+  AvailabilityQuery,
   CorrectionListParams,
   DirectiveListParams,
   IdentitySearchParams,
   SgogtInboxParams,
-  SlotsQuery,
 } from '../core/client.types';
 
 /** Arborescence des clés de cache, regroupées par domaine. */
@@ -33,7 +33,7 @@ export const queryKeys = {
   appointments: {
     all: ['appointments'] as const,
     centers: (region?: string) => ['appointments', 'centers', region ?? 'all'] as const,
-    slots: (params: SlotsQuery) => ['appointments', 'slots', params] as const,
+    availability: (params: AvailabilityQuery) => ['appointments', 'availability', params] as const,
     mine: () => ['appointments', 'mine'] as const,
   },
   sigac: {

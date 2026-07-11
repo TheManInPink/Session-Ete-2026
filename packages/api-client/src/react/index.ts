@@ -24,7 +24,7 @@ export {
   useApproveCorrection,
   useRejectCorrection,
   useCenters,
-  useAvailableSlots,
+  useCenterAvailability,
   useMyAppointments,
   useCreateAppointment,
   useCancelAppointment,

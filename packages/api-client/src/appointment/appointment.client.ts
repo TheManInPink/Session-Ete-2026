@@ -5,17 +5,17 @@
  */
 
 import type { HttpClient } from '../core/http-client';
-import type { AppointmentApi, CentersQuery, SlotsQuery } from '../core/client.types';
+import type { AppointmentApi, AvailabilityQuery, CentersQuery } from '../core/client.types';
 import {
   AppointmentListSchema,
   AppointmentSchema,
+  CenterAvailabilitySchema,
   CentersListSchema,
-  SlotsListSchema,
   type Appointment,
   type AppointmentList,
+  type CenterAvailability,
   type CenterSummary,
   type CreateAppointmentDto,
-  type SlotsList,
 } from './appointment.schema';
 
 export class AppointmentClient implements AppointmentApi {
@@ -35,20 +35,33 @@ export class AppointmentClient implements AppointmentApi {
   }
 
   /**
-   * Liste les créneaux disponibles pour une plage de dates et un centre.
-   * Si le citoyen est marqué `vulnerable`, le serveur renverra automatiquement
-   * les créneaux prioritaires (P1 / P2) en plus des standards.
+   * Disponibilités d'un centre sur une fenêtre de dates : créneaux STANDARD /
+   * PRIORITAIRE par jour, avec le nombre de places réellement restantes. Public
+   * côté backend (`GET /api/v1/centers/:id/availability`, lecture seule). La
+   * fenêtre `[fromDate, toDate]` doit rester dans l'horizon serveur
+   * (`APPOINTMENT_BOOKING_HORIZON_DAYS`, 30 j par défaut), sinon le backend
+   * renvoie 400.
    */
-  async getAvailableSlots(params: SlotsQuery): Promise<SlotsList> {
-    return this.http.request<SlotsList>({
+  async getAvailability(params: AvailabilityQuery): Promise<CenterAvailability> {
+    const { centerId, fromDate, toDate } = params;
+    return this.http.request<CenterAvailability>({
       method: 'GET',
-      path: '/api/v1/appointments/slots',
-      query: params,
-      schema: SlotsListSchema,
+      path: `/api/v1/centers/${encodeURIComponent(centerId)}/availability`,
+      query: { from: fromDate, to: toDate },
+      schema: CenterAvailabilitySchema,
     });
   }
 
-  /** Crée un rendez-vous (status initial : `SCHEDULED`). */
+  /**
+   * Crée un rendez-vous (status initial : `SCHEDULED`).
+   *
+   * ⚠️ Réservé côté backend au personnel / portail de confiance
+   * (`POST /api/v1/appointments`, rôles AGENT/SUPERVISOR/ADMIN — le rôle CITIZEN
+   * est **volontairement exclu**, cf. ADR-028 : pas encore de liaison forte
+   * `JWT.sub ↔ Citizen.id`). L'ouverture de la réservation en self-service
+   * citoyen fait l'objet d'un chantier dédié (BFF médié résolvant l'identité
+   * côté serveur).
+   */
   async create(dto: CreateAppointmentDto): Promise<Appointment> {
     return this.http.request<Appointment>({
       method: 'POST',

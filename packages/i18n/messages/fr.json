@@ -290,8 +290,10 @@
       "error": "La création du rendez-vous a échoué",
       "loadingSlots": "Chargement des créneaux disponibles…",
       "noSlots": "Aucun créneau disponible pour le moment. Réessayez plus tard.",
-      "slotHint": "Choisissez un créneau : l'heure, le centre et la file (P1/P2 prioritaire, P3 standard) sont indiqués.",
-      "pledge": "Je m'engage à présenter une pièce d'identité originale le jour du rendez-vous."
+      "slotHint": "Choisissez un créneau : l'heure et la nature (prioritaire ou standard) sont indiquées.",
+      "pledge": "Je m'engage à présenter une pièce d'identité originale le jour du rendez-vous.",
+      "liveUnavailableTitle": "Réservation en ligne bientôt disponible",
+      "liveUnavailableBody": "La prise de rendez-vous en ligne n'est pas encore ouverte aux citoyens. Notez ce créneau, puis présentez-vous au centre choisi ou contactez-le pour réserver."
     },
     "aside": {
       "priorityTitle": "File prioritaire",
@@ -318,8 +320,11 @@
       "legend": "Les week-ends, les jours passés et les jours sans créneau sont grisés."
     },
     "slots": {
-      "priorityTitle": "File prioritaire (07:30–09:00)",
+      "priorityTitle": "Créneaux prioritaires",
       "standardTitle": "Créneaux standard",
+      "priorityBadge": "Prioritaire",
+      "standardBadge": "Standard",
+      "remaining": "{count, plural, one {# place restante} other {# places restantes}}",
       "pickDayFirst": "Sélectionnez un jour disponible dans le calendrier.",
       "noneToday": "Aucun créneau disponible ce jour."
     },

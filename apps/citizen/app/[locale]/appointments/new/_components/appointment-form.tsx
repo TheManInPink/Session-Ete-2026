@@ -5,15 +5,21 @@
  *                alimentés par les 6 centres réels — CTDEC Bamako + antennes RAVEC),
  *                fiche centre, encadré file prioritaire / déroulement, « à apporter ».
  *              — DROITE : `Calendar` mensuel (jours sans créneau / week-ends / passé
- *                grisés), grille horaire (file prioritaire 07:30–09:00 + standard,
+ *                grisés), grille horaire (nature PRIORITAIRE 07:30–09:00 + STANDARD,
  *                via `PrioritySlot`), puis récap + motif + engagement pièce d'identité.
  *
- *              La confirmation ouvre une modale (QR décoratif + récap + export `.ics`
- *              réel côté client). Les centres viennent de `useCenters`, les créneaux
- *              de `useAvailableSlots` (mock → fixtures déterministes mirrorant le seed,
- *              live → appointment-service via le BFF). La file P1/P2 est décidée côté
- *              serveur selon la vulnérabilité. Le QR signé réel sera émis par
- *              `document-service` (doc 10) — ici un aperçu décoratif.
+ *              Les centres viennent de `useCenters`, les disponibilités de
+ *              `useCenterAvailability` (mock → fixtures déterministes mirrorant le
+ *              seed ; live → appointment-service `GET /centers/:id/availability` via
+ *              le BFF). Les créneaux portent leur nature (STANDARD/PRIORITAIRE) et
+ *              leurs places restantes RÉELLES — pas de numéro de file ni de niveau
+ *              P1/P2/P3 à ce stade (décidés à la réservation / au check-in).
+ *
+ *              La RÉSERVATION (`create`) est réservée côté backend au personnel /
+ *              portail de confiance (ADR-028) : en mode **live** on n'offre donc pas
+ *              (encore) le bouton de confirmation citoyen — un chantier BFF médié est
+ *              requis. En mode **démo (mock)**, le parcours complet est joué et la
+ *              confirmation ouvre une modale (QR décoratif + export `.ics` réel).
  * @module      @nina-aes/citizen
  */
 
@@ -23,8 +29,12 @@ import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { formatNina } from '@nina-aes/utils';
-import { useCenters, useAvailableSlots, useCreateAppointment } from '@nina-aes/api-client/react';
-import type { CenterSummary, Slot } from '@nina-aes/api-client';
+import {
+  useCenters,
+  useCenterAvailability,
+  useCreateAppointment,
+} from '@nina-aes/api-client/react';
+import type { AvailabilitySlot, CenterSummary } from '@nina-aes/api-client';
 import { Button } from '@nina-aes/ui/components/button';
 import { Label } from '@nina-aes/ui/components/label';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
@@ -51,6 +61,7 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react';
+import { isMockMode } from '../../../../../lib/api/config';
 
 /** Hash déterministe (FNV-1a) d'une chaîne → entier non signé 32 bits. */
 function hashString(value: string): number {
@@ -134,22 +145,25 @@ interface Confirmation {
   reference: string;
 }
 
-/** Clé stable d'un créneau (centre + horodatage). */
-const slotKey = (s: Slot) => `${s.centerId}|${s.startsAt}`;
-/** Date `YYYY-MM-DD` en composantes LOCALES (cohérent avec le calendrier). */
+/** Date `YYYY-MM-DD` en composantes LOCALES (cohérent avec le calendrier ; Mali = UTC+0). */
 const localIso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export function AppointmentForm({ locale, nina, isVulnerable = false }: AppointmentFormProps) {
   const t = useTranslations('appointments');
   const router = useRouter();
+  // En mode démo (mock) on joue le parcours complet ; en live, la réservation
+  // citoyen n'est pas encore ouverte (backend AGENT-only, ADR-028).
+  const mockMode = isMockMode();
 
-  // Fenêtre de recherche : aujourd'hui → +60 jours (couvre le mois courant + suivant).
+  // Fenêtre de recherche : aujourd'hui → +30 jours. Bornée à l'horizon de
+  // réservation du backend (`APPOINTMENT_BOOKING_HORIZON_DAYS`, 30 j par défaut) :
+  // au-delà, `GET /centers/:id/availability` renvoie 400.
   const { fromDate, toDate, windowMin, windowMax } = useMemo(() => {
     const now = new Date();
     const min = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const max = new Date(min);
-    max.setDate(max.getDate() + 60);
+    max.setDate(max.getDate() + 30);
     return { fromDate: localIso(min), toDate: localIso(max), windowMin: min, windowMax: max };
   }, []);
 
@@ -185,23 +199,32 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
   const selectedCenter: CenterSummary | null =
     centers.find((c) => c.id === selectedCenterId) ?? null;
 
-  const slotsQuery = useAvailableSlots(
-    { fromDate, toDate, centerId: selectedCenterId },
+  const availability = useCenterAvailability(
+    { centerId: selectedCenterId, fromDate, toDate },
     { enabled: selectedCenterId.length > 0 },
   );
-  const slots = useMemo(() => slotsQuery.data?.slots ?? [], [slotsQuery.data]);
+  const days = useMemo(() => availability.data?.days ?? [], [availability.data]);
 
-  /** Jours (YYYY-MM-DD) ayant au moins un créneau. */
-  const availableDays = useMemo(() => new Set(slots.map((s) => s.startsAt.slice(0, 10))), [slots]);
-
-  const daySlots = useMemo(
+  /** Jours (YYYY-MM-DD) ouverts ayant au moins un créneau avec place restante. */
+  const availableDays = useMemo(
     () =>
-      selectedDay ? slots.filter((s) => s.startsAt.slice(0, 10) === localIso(selectedDay)) : [],
-    [slots, selectedDay],
+      new Set(
+        days.filter((d) => d.open && d.slots.some((s) => s.remaining > 0)).map((d) => d.date),
+      ),
+    [days],
   );
-  const prioritySlots = daySlots.filter((s) => s.priority !== 'P3');
-  const standardSlots = daySlots.filter((s) => s.priority === 'P3');
-  const selectedSlot = daySlots.find((s) => slotKey(s) === selectedKey) ?? null;
+
+  /** Créneaux réservables du jour sélectionné (place restante > 0). */
+  const daySlots = useMemo(() => {
+    if (!selectedDay) return [];
+    const key = localIso(selectedDay);
+    const day = days.find((d) => d.date === key);
+    return (day?.slots ?? []).filter((s) => s.remaining > 0);
+  }, [days, selectedDay]);
+
+  const prioritySlots = daySlots.filter((s) => s.kind === 'PRIORITY');
+  const standardSlots = daySlots.filter((s) => s.kind === 'STANDARD');
+  const selectedSlot = daySlots.find((s) => s.start === selectedKey) ?? null;
 
   const createAppointment = useCreateAppointment();
   const canSubmit =
@@ -304,8 +327,8 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     setError(null);
     try {
       const appt = await createAppointment.mutateAsync({
-        centerId: selectedSlot.centerId,
-        scheduledAt: selectedSlot.startsAt,
+        centerId: selectedCenterId,
+        scheduledAt: selectedSlot.start,
         reason: reason.trim(),
       });
       setConfirmation({
@@ -321,16 +344,20 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     }
   };
 
-  const renderSlot = (s: Slot) => {
-    const key = slotKey(s);
+  const renderSlot = (s: AvailabilitySlot) => {
+    const isPriority = s.kind === 'PRIORITY';
     return (
       <PrioritySlot
-        key={key}
-        time={timeOf(s.startsAt)}
-        priority={s.priority}
-        state={selectedKey === key ? 'selected' : 'available'}
-        onClick={() => setSelectedKey(key)}
-        aria-label={`${timeOf(s.startsAt)} — ${s.centerName}`}
+        key={s.start}
+        time={timeOf(s.start)}
+        // La barre de couleur n'est qu'un accent visuel de la fenêtre prioritaire ;
+        // le niveau P1/P2/P3 d'un RDV n'est décidé qu'à la réservation.
+        priority={isPriority ? 'P2' : 'P3'}
+        badge={isPriority ? t('slots.priorityBadge') : t('slots.standardBadge')}
+        label={t('slots.remaining', { count: s.remaining })}
+        state={selectedKey === s.start ? 'selected' : 'available'}
+        onClick={() => setSelectedKey(s.start)}
+        aria-label={`${timeOf(s.start)} — ${selectedCenter?.name ?? ''}`}
       />
     );
   };
@@ -454,16 +481,16 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
               <Alert>
                 <AlertDescription>{t('select.chooseCenterFirst')}</AlertDescription>
               </Alert>
-            ) : slotsQuery.isLoading ? (
+            ) : availability.isLoading ? (
               <div className="space-y-3" aria-busy="true">
                 <Skeleton className="h-64 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : slotsQuery.isError ? (
+            ) : availability.isError ? (
               <Alert variant="danger">
                 <AlertTitle>{t('form.error')}</AlertTitle>
                 <AlertDescription>
-                  {slotsQuery.error instanceof Error ? slotsQuery.error.message : ''}
+                  {availability.error instanceof Error ? availability.error.message : ''}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -523,60 +550,69 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                     </p>
                     <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-sm">
                       <dt className="text-fg-muted">{t('confirm.center')}</dt>
-                      <dd className="font-medium">{selectedSlot.centerName}</dd>
+                      <dd className="font-medium">{selectedCenter?.name ?? ''}</dd>
                       <dt className="text-fg-muted">{t('confirm.date')}</dt>
                       <dd className="font-medium capitalize">
                         {selectedDay ? dayLabel(localIso(selectedDay)) : ''}
                       </dd>
                       <dt className="text-fg-muted">{t('confirm.slot')}</dt>
-                      <dd className="font-mono font-medium">{timeOf(selectedSlot.startsAt)}</dd>
+                      <dd className="font-mono font-medium">{timeOf(selectedSlot.start)}</dd>
                     </dl>
 
-                    <div>
-                      <Label htmlFor="reason">{t('form.reason')}</Label>
-                      <textarea
-                        id="reason"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        rows={3}
-                        minLength={5}
-                        maxLength={500}
-                        required
-                        placeholder={t('form.reasonPlaceholder')}
-                        className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      />
-                    </div>
+                    {mockMode ? (
+                      <>
+                        <div>
+                          <Label htmlFor="reason">{t('form.reason')}</Label>
+                          <textarea
+                            id="reason"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            rows={3}
+                            minLength={5}
+                            maxLength={500}
+                            required
+                            placeholder={t('form.reasonPlaceholder')}
+                            className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          />
+                        </div>
 
-                    <div className="flex items-start gap-3 rounded-base border border-border bg-bg-card p-3">
-                      <Checkbox
-                        id="pledge"
-                        checked={pledge}
-                        onCheckedChange={(checked) => setPledge(checked === true)}
-                        className="mt-0.5"
-                      />
-                      <Label
-                        htmlFor="pledge"
-                        className="text-sm font-normal leading-snug text-fg-muted"
-                      >
-                        {t('form.pledge')}
-                      </Label>
-                    </div>
+                        <div className="flex items-start gap-3 rounded-base border border-border bg-bg-card p-3">
+                          <Checkbox
+                            id="pledge"
+                            checked={pledge}
+                            onCheckedChange={(checked) => setPledge(checked === true)}
+                            className="mt-0.5"
+                          />
+                          <Label
+                            htmlFor="pledge"
+                            className="text-sm font-normal leading-snug text-fg-muted"
+                          >
+                            {t('form.pledge')}
+                          </Label>
+                        </div>
 
-                    {error && (
-                      <Alert variant="danger">
-                        <AlertTitle>{t('form.error')}</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
+                        {error && (
+                          <Alert variant="danger">
+                            <AlertTitle>{t('form.error')}</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                          </Alert>
+                        )}
+
+                        <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
+                          {createAppointment.isPending ? (
+                            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <Send className="size-4" aria-hidden="true" />
+                          )}
+                          {t('form.submit')}
+                        </Button>
+                      </>
+                    ) : (
+                      <Alert>
+                        <AlertTitle>{t('form.liveUnavailableTitle')}</AlertTitle>
+                        <AlertDescription>{t('form.liveUnavailableBody')}</AlertDescription>
                       </Alert>
                     )}
-
-                    <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
-                      {createAppointment.isPending ? (
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Send className="size-4" aria-hidden="true" />
-                      )}
-                      {t('form.submit')}
-                    </Button>
                   </div>
                 )}
               </>
@@ -585,7 +621,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
         </div>
       </form>
 
-      {/* Modale de confirmation + QR de rendez-vous */}
+      {/* Modale de confirmation + QR de rendez-vous (mode démo uniquement) */}
       {confirmation && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"

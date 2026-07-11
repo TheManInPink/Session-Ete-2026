@@ -40,13 +40,49 @@ export const CenterSummarySchema = z.object({
 /** Liste de centres (réponse de `GET /api/v1/centers`). */
 export const CentersListSchema = z.array(CenterSummarySchema);
 
-/** Créneau disponible côté serveur. */
-export const SlotSchema = z.object({
-  startsAt: z.iso.datetime(),
+/**
+ * Nature d'un créneau — binaire, alignée sur `SlotKind` d'appointment-service.
+ * Le niveau P1/P2/P3 d'un RDV est décidé À LA RÉSERVATION selon la vulnérabilité :
+ * il n'existe donc PAS au stade de la disponibilité.
+ */
+export const SlotKindSchema = z.enum(['STANDARD', 'PRIORITY']);
+
+/**
+ * Un créneau de disponibilité tel que renvoyé par
+ * `GET /api/v1/centers/:id/availability` — aligné sur `AvailabilitySlot`
+ * d'appointment-service. Données RÉELLES, non fabriquées : `capacity`/`booked`/
+ * `remaining` viennent du serveur ; il n'y a NI numéro de file (attribué au
+ * check-in) NI niveau P1/P2/P3 à ce stade.
+ */
+export const AvailabilitySlotSchema = z.object({
+  /** Début du créneau (ISO 8601 UTC). */
+  start: z.iso.datetime(),
+  kind: SlotKindSchema,
+  /** Places offertes sur ce créneau (= guichets parallèles). */
+  capacity: z.number().int().nonnegative(),
+  /** Places déjà réservées. */
+  booked: z.number().int().nonnegative(),
+  /** Places restantes (≥ 0). */
+  remaining: z.number().int().nonnegative(),
+});
+
+/** Disponibilités d'une journée (créneaux + récapitulatif des quotas). */
+export const DayAvailabilitySchema = z.object({
+  /** Jour `YYYY-MM-DD` (clé de jour UTC côté serveur). */
+  date: z.string(),
+  open: z.boolean(),
+  slots: z.array(AvailabilitySlotSchema),
+  summary: z.object({
+    standardRemaining: z.number().int().nonnegative(),
+    priorityRemaining: z.number().int().nonnegative(),
+    capacityRemaining: z.number().int().nonnegative(),
+  }),
+});
+
+/** Réponse de `GET /api/v1/centers/:id/availability`. */
+export const CenterAvailabilitySchema = z.object({
   centerId: z.uuid(),
-  centerName: z.string(),
-  priority: PriorityLevelSchema,
-  queueNumber: z.number().int().positive(),
+  days: z.array(DayAvailabilitySchema),
 });
 
 /** Rendez-vous existant. */
@@ -71,10 +107,6 @@ export const CreateAppointmentDtoSchema = z.object({
   reason: z.string().trim().min(5).max(500),
 });
 
-export const SlotsListSchema = z.object({
-  slots: z.array(SlotSchema),
-});
-
 export const AppointmentListSchema = z.object({
   items: z.array(AppointmentSchema),
   total: z.number().int().nonnegative(),
@@ -83,8 +115,10 @@ export const AppointmentListSchema = z.object({
 export type AppointmentStatus = z.infer<typeof AppointmentStatusSchema>;
 export type PriorityLevel = z.infer<typeof PriorityLevelSchema>;
 export type CenterSummary = z.infer<typeof CenterSummarySchema>;
-export type Slot = z.infer<typeof SlotSchema>;
+export type SlotKind = z.infer<typeof SlotKindSchema>;
+export type AvailabilitySlot = z.infer<typeof AvailabilitySlotSchema>;
+export type DayAvailability = z.infer<typeof DayAvailabilitySchema>;
+export type CenterAvailability = z.infer<typeof CenterAvailabilitySchema>;
 export type Appointment = z.infer<typeof AppointmentSchema>;
 export type CreateAppointmentDto = z.infer<typeof CreateAppointmentDtoSchema>;
-export type SlotsList = z.infer<typeof SlotsListSchema>;
 export type AppointmentList = z.infer<typeof AppointmentListSchema>;

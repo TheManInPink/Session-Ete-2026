@@ -238,15 +238,19 @@ supporte le clavier (Espace ouvre le file picker).
 > proposées = **seules celles qui ont un centre** (pas la liste de 11 régions périmée d'avant-2023)
 > ; fiche centre + encadré file prioritaire / déroulement + « À apporter ». **DROITE** : `Calendar`
 > mensuel (prop `disabled` rétro-compatible : passé / week-ends / **jours sans créneau** grisés),
-> grille horaire **file prioritaire (07:30–09:00) + standard** via **`PrioritySlot`** (enfin câblé),
+> grille horaire **créneaux prioritaires (fenêtre 07:30–09:00) + standard** via **`PrioritySlot`**,
 > puis récap + motif + **engagement pièce d'identité** (`Checkbox`). Modale : **QR décoratif** +
 > **export `.ics`** (RFC 5545, rappel `VALARM` 24 h, côté client). Route réelle
-> `/[locale]/appointments/new` (pas `/rendez-vous?nina=`). **Écarts assumés (données honnêtes)** :
-> pas de carte `MaliMap` D3 (composant existant mais non câblé ici) ; **liste des centres désormais
-> routée live** (gateway `/api/v1/centers`, cf. CHANGELOG 0novemvicies) mais **disponibilité +
-> réservation** encore cohérentes en mock (`slots`/`create` citoyen divergent du backend, `create`
-> réservé AGENT → réconciliation = suivi) ; disponibilité mock **déterministe** par centre/jour ;
-> files **P1/P2 décidées côté serveur** ; NINA de démo à lettre de contrôle **V**.
+> `/[locale]/appointments/new` (pas `/rendez-vous?nina=`). **MàJ 2026-07-11 (CHANGELOG 0tricies)** :
+> la **disponibilité** est réconciliée **live** — `useCenterAvailability` →
+> `GET /centers/:id/availability` (contrat `CenterAvailability` fidèle : `kind`
+> STANDARD/PRIORITAIRE + places restantes réelles, ni file ni P1/P2/P3 fabriqués), fenêtre **J →
+> J+30** (horizon backend). **Écarts assumés (données honnêtes)** : pas de carte `MaliMap` D3
+> (composant existant mais non câblé ici) ; la **réservation** citoyen (`create`) reste
+> **volontairement mock** — `POST /appointments` est **AGENT-only** (ADR-028) : en **live** le bloc
+> de réservation est remplacé par un encart « bientôt disponible » (pas de 403), en **mock** le
+> parcours complet + `.ics` est joué ; ouverture réservation = **Phase 2** (scope dédié). Files
+> **P1/P2 décidées côté serveur** ; NINA de démo à lettre de contrôle **V**.
 
 **Layout** :
 
@@ -293,19 +297,24 @@ seedés, `prisma/seed.ts`) ; seules les régions dotées d'un centre sont propos
 | Ségou     | Antenne RAVEC de Ségou      |
 | Mopti     | Antenne RAVEC de Mopti      |
 
-**Données fictives** : disponibilité mock **déterministe** par centre/jour sur J → J+60 (jours
-ouvrés, ~1 jour sur 6 « complet », quelques créneaux « pris » retirés) ; créneaux **07:30–09:00 =
-file prioritaire**, sinon **standard** ; création → statut `SCHEDULED`, référence `RDV-XXXXXXXX`. En
-live, la disponibilité viendra d'`appointment-service`.
+**Données fictives (mode démo)** : disponibilité mock **déterministe** par centre/jour sur J → J+30
+(jours ouvrés, week-ends fermés, ~1 jour sur 6 « complet », `booked`/`remaining` déterministes) — à
+la **forme exacte du backend** (`CenterAvailability`) ; créneaux **07:30–09:00 = PRIORITAIRE**,
+sinon **STANDARD** ; création (mock) → statut `SCHEDULED`, référence `RDV-XXXXXXXX`. En **live**, la
+disponibilité vient d'`appointment-service` (`GET /centers/:id/availability`) ; la réservation
+citoyen reste en suivi (Phase 2, backend AGENT-only).
 
 **Interactions** :
 
 - Sélection **région** → charge les centres de la région (auto-sélection si un seul)
-- Sélection **centre** → charge les créneaux (`useAvailableSlots`, J → J+60) → calendrier actif
+- Sélection **centre** → charge la disponibilité (`useCenterAvailability`, J → J+30) → calendrier
+  actif
 - Clic sur un **jour** disponible → grille horaire (prioritaire + standard)
 - Clic sur un **créneau** (`PrioritySlot`, `aria-pressed`) → récap + motif + engagement
-- **Confirmer** (actif si créneau **et** motif ≥ 5 car. **et** engagement coché) →
-  `useCreateAppointment` → modale (QR + récap + `.ics`)
+- **Confirmer** (**mode démo** ; actif si créneau **et** motif ≥ 5 car. **et** engagement coché) →
+  `useCreateAppointment` → modale (QR + récap + `.ics`). En **mode live**, la réservation citoyen
+  n'étant pas encore ouverte (backend AGENT-only), ce bloc est remplacé par un encart « bientôt
+  disponible ».
 - « Ajouter à mon agenda » → `.ics` (RFC 5545, `VALARM` -P1D) côté client ; « Terminer » / Échap /
   clic hors modale → `/dashboard?appointment=1`
 
