@@ -156,13 +156,22 @@ export function SiteHeader({ locale, user }: { locale: string; user: SiteHeaderU
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  asChild
                   className="text-danger-700 focus:bg-danger-50 focus:text-danger-700"
+                  onSelect={() => {
+                    // Un <button type="submit"> imbriqué dans un DropdownMenuItem
+                    // Radix ne soumet PAS (Radix gère la sélection/fermeture et
+                    // annule le submit natif). On soumet donc programmatiquement le
+                    // form POST caché (déclaré hors du menu, l. ~70) : requestSubmit
+                    // déclenche la navigation POST → /api/auth/logout purge la
+                    // session (cookies + Keycloak end_session). On garde le POST
+                    // (jamais un <Link> GET : Next le préchargerait au survol).
+                    (
+                      document.getElementById('citizen-logout') as HTMLFormElement | null
+                    )?.requestSubmit();
+                  }}
                 >
-                  <button type="submit" form="citizen-logout" className="w-full">
-                    <LogOut className="size-4" aria-hidden="true" />
-                    {t('signOut')}
-                  </button>
+                  <LogOut className="size-4" aria-hidden="true" />
+                  {t('signOut')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
