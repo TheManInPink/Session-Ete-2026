@@ -15,11 +15,13 @@
  *              leurs places restantes RÉELLES — pas de numéro de file ni de niveau
  *              P1/P2/P3 à ce stade (décidés à la réservation / au check-in).
  *
- *              La RÉSERVATION (`create`) est réservée côté backend au personnel /
- *              portail de confiance (ADR-028) : en mode **live** on n'offre donc pas
- *              (encore) le bouton de confirmation citoyen — un chantier BFF médié est
- *              requis. En mode **démo (mock)**, le parcours complet est joué et la
- *              confirmation ouvre une modale (QR décoratif + export `.ics` réel).
+ *              La RÉSERVATION citoyen passe désormais par le self-service
+ *              `POST /appointments/me` (identité dérivée du NINA du token côté
+ *              serveur ; ADR-028 intact — cf. `@nina-aes/api-client`). En mode
+ *              **live** le bouton reste toutefois masqué tant que la couture
+ *              d'émetteur de token web (Keycloak) ↔ backend (auth-service) n'est
+ *              pas réconciliée ; en mode **démo (mock)**, le parcours complet est
+ *              joué et la confirmation ouvre une modale (QR décoratif + `.ics` réel).
  * @module      @nina-aes/citizen
  */
 
@@ -153,8 +155,9 @@ const localIso = (d: Date) =>
 export function AppointmentForm({ locale, nina, isVulnerable = false }: AppointmentFormProps) {
   const t = useTranslations('appointments');
   const router = useRouter();
-  // En mode démo (mock) on joue le parcours complet ; en live, la réservation
-  // citoyen n'est pas encore ouverte (backend AGENT-only, ADR-028).
+  // En mode démo (mock) on joue le parcours complet ; en live, le bouton reste
+  // masqué tant que l'émetteur de token web (Keycloak) et le backend (auth-service)
+  // ne sont pas réconciliés — l'endpoint self-service /appointments/me, lui, existe.
   const mockMode = isMockMode();
 
   // Fenêtre de recherche : aujourd'hui → +30 jours. Bornée à l'horizon de

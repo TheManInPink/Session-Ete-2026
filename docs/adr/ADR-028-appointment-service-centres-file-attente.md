@@ -84,6 +84,19 @@ et est **paginé** (≤ 200/page) pour interdire tout vidage de masse. Les route
 > rouvrir un self-service CITIZEN **scopé à sa propre identité** (dériver le `citizenId` du token,
 > vérifier la propriété de la ligne sur get/cancel).
 
+> **MàJ 2026-07-11 (self-service ouvert — CHANGELOG 0untricies)** — Le self-service anticipé
+> ci-dessus est **livré** sur des routes **dédiées** : `POST` / `GET /appointments/me` +
+> `PUT /appointments/me/:id/cancel` (rôle **CITIZEN**). Le `citizenId` est **dérivé du NINA porté
+> par le token** (`findCitizenIdByNina`), jamais fourni par le client ; la propriété est vérifiée
+> côté serveur (annulation fail-closed : **404 uniforme** anti-énumération). La décision principale
+> est **inchangée** : les routes **médiées** `POST /appointments`, `GET /appointments`,
+> `/appointments/:id/*` restent **AGENT / SUPERVISOR / ADMIN** (le `citizenId` explicite n'est
+> accepté que d'un appelant de confiance). On ne dépend pas d'un binding `JWT.sub ↔ Citizen.id` : on
+> s'appuie sur le claim **`nina`** (identifiant citoyen) émis par auth-service, à l'image de
+> `POST /corrections`. **Réserve d'exploitation** : le login **web** est émis par Keycloak alors que
+> gateway + appointment-service vérifient la **JWKS d'auth-service** — la **réconciliation
+> d'émetteur** est le prérequis avant de servir un citoyen en **live**.
+
 ### 6. Fuseau horaire : tout en UTC
 
 Le Mali est à **UTC+0 toute l'année** (pas de changement d'heure). Toute l'arithmétique de créneaux,

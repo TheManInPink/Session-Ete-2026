@@ -246,11 +246,14 @@ supporte le clavier (Espace ouvre le file picker).
 > `GET /centers/:id/availability` (contrat `CenterAvailability` fidèle : `kind`
 > STANDARD/PRIORITAIRE + places restantes réelles, ni file ni P1/P2/P3 fabriqués), fenêtre **J →
 > J+30** (horizon backend). **Écarts assumés (données honnêtes)** : pas de carte `MaliMap` D3
-> (composant existant mais non câblé ici) ; la **réservation** citoyen (`create`) reste
-> **volontairement mock** — `POST /appointments` est **AGENT-only** (ADR-028) : en **live** le bloc
-> de réservation est remplacé par un encart « bientôt disponible » (pas de 403), en **mock** le
-> parcours complet + `.ics` est joué ; ouverture réservation = **Phase 2** (scope dédié). Files
-> **P1/P2 décidées côté serveur** ; NINA de démo à lettre de contrôle **V**.
+> (composant existant mais non câblé ici). **MàJ 2026-07-11 (CHANGELOG 0untricies)** : la
+> **réservation** citoyen (`create`) passe désormais par le self-service **`POST /appointments/me`**
+> (identité **dérivée du NINA du token** côté serveur ; `POST /appointments` reste **AGENT-only** —
+> ADR-028 intact). En **live** le bloc reste toutefois remplacé par un encart « bientôt disponible »
+> (pas de 403) tant que l'**émetteur de token** (web Keycloak ↔ backend auth-service) n'est pas
+> réconcilié ; en **mock** le parcours complet + `.ics` est joué. Le **numéro de file** n'est
+> **pas** affiché à la réservation (**attribué au check-in**). Files **P1/P2 décidées côté serveur**
+> ; NINA de démo à lettre de contrôle **V**.
 
 **Layout** :
 
@@ -277,8 +280,8 @@ supporte le clavier (Espace ouvre le file picker).
 ```
 
 **Modale de confirmation** : QR de rendez-vous (aperçu **décoratif**) + récap (centre · date ·
-créneau · n° de file · référence `RDV-…` · NINA) + boutons « **Ajouter à mon agenda** » (`.ics`) et
-« Terminer ».
+créneau · n° de file **au check-in** · référence `RDV-…` · NINA) + boutons « **Ajouter à mon
+agenda** » (`.ics`) et « Terminer ».
 
 **Composants** : `Select` (région + centre dépendants) · `Calendar` (prop `disabled`) ·
 `PrioritySlot` (grille horaire) · `Checkbox` (engagement) · `textarea` (motif) · `Alert` /
@@ -302,7 +305,8 @@ seedés, `prisma/seed.ts`) ; seules les régions dotées d'un centre sont propos
 la **forme exacte du backend** (`CenterAvailability`) ; créneaux **07:30–09:00 = PRIORITAIRE**,
 sinon **STANDARD** ; création (mock) → statut `SCHEDULED`, référence `RDV-XXXXXXXX`. En **live**, la
 disponibilité vient d'`appointment-service` (`GET /centers/:id/availability`) ; la réservation
-citoyen reste en suivi (Phase 2, backend AGENT-only).
+citoyen vise le self-service `POST /appointments/me` (identité dérivée du token), bouton live masqué
+tant que l'émetteur de token (web Keycloak ↔ backend auth-service) n'est pas réconcilié.
 
 **Interactions** :
 
@@ -312,9 +316,9 @@ citoyen reste en suivi (Phase 2, backend AGENT-only).
 - Clic sur un **jour** disponible → grille horaire (prioritaire + standard)
 - Clic sur un **créneau** (`PrioritySlot`, `aria-pressed`) → récap + motif + engagement
 - **Confirmer** (**mode démo** ; actif si créneau **et** motif ≥ 5 car. **et** engagement coché) →
-  `useCreateAppointment` → modale (QR + récap + `.ics`). En **mode live**, la réservation citoyen
-  n'étant pas encore ouverte (backend AGENT-only), ce bloc est remplacé par un encart « bientôt
-  disponible ».
+  `useCreateAppointment` → modale (QR + récap + `.ics`). En **mode live**, le bouton citoyen reste
+  masqué tant que l'émetteur de token (web Keycloak ↔ backend auth-service) n'est pas réconcilié ;
+  ce bloc est alors remplacé par un encart « bientôt disponible ».
 - « Ajouter à mon agenda » → `.ics` (RFC 5545, `VALARM` -P1D) côté client ; « Terminer » / Échap /
   clic hors modale → `/dashboard?appointment=1`
 
@@ -683,7 +687,7 @@ visible sur les touches.
 | PC-01   | citizen    | NinaInput, LanguageSelector                     | —                                 |
 | PC-02   | citizen    | CitizenCard, NinaDisplay                        | GET /citizens/:nina               |
 | PC-03   | citizen    | AiScorePanel, UploadZone, Stepper               | POST /correction-requests         |
-| PC-04   | citizen    | MaliMap, PrioritySlot, Calendar                 | POST /appointments                |
+| PC-04   | citizen    | MaliMap, PrioritySlot, Calendar                 | POST /appointments/me             |
 | PC-05   | citizen    | CorrectionTimeline                              | GET /corrections/me               |
 | PC-06   | citizen    | WhistleblowerForm                               | POST /sigac/whistleblower/reports |
 | AD-01   | admin      | KPI Cards, MaliHeatmap, AlertSeverityBadge feed | GET /admin/dashboard              |
