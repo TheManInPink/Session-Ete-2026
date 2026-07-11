@@ -25,6 +25,7 @@ import { AuthService } from './auth.service.js';
 const buildService = (
   over: {
     verify?: jest.Mock;
+    validatePassword?: jest.Mock;
     findByKeycloakId?: jest.Mock;
     updateLastLogin?: jest.Mock;
     findCitizenNinaByEmail?: jest.Mock;
@@ -32,6 +33,10 @@ const buildService = (
 ) => {
   const keycloakVerifier = {
     verify: over.verify ?? jest.fn().mockResolvedValue({ sub: 'kc-123' }),
+  };
+  const keycloakAuth = {
+    validatePassword:
+      over.validatePassword ?? jest.fn().mockResolvedValue({ keycloakSub: 'kc-123' }),
   };
   const users = {
     findByKeycloakId:
@@ -46,6 +51,9 @@ const buildService = (
     signRefresh: jest
       .fn()
       .mockReturnValue({ token: 'refresh.jwt', jti: 'jti-1', family: 'fam-1', expiresAt: 1 }),
+    signMfaChallenge: jest
+      .fn()
+      .mockReturnValue({ token: 'challenge.jwt', jti: 'ch-1', expiresAt: 1 }),
   };
   const refreshSvc = { persist: jest.fn().mockResolvedValue(undefined) };
 
@@ -53,14 +61,14 @@ const buildService = (
     undefined as never, // otp
     users as never,
     undefined as never, // keycloakAdmin
-    undefined as never, // keycloakAuth
+    keycloakAuth as never,
     keycloakVerifier as never,
     jwt as never,
     undefined as never, // redis
     refreshSvc as never,
     undefined as never, // sms
   );
-  return { service, keycloakVerifier, users, jwt, refreshSvc };
+  return { service, keycloakVerifier, keycloakAuth, users, jwt, refreshSvc };
 };
 
 describe('AuthService.exchangeSsoToken', () => {
@@ -122,5 +130,45 @@ describe('AuthService.exchangeSsoToken', () => {
     });
     const session = await service.exchangeSsoToken({ keycloakToken: 't' });
     expect(session.access).toBe('access.jwt');
+  });
+});
+
+describe('AuthService.login (normalisation du rôle DB)', () => {
+  it('un rôle interne (agent) engage la MFA — challenge signé en casse basse, pas de session', async () => {
+    const { service, jwt } = buildService({
+      findByKeycloakId: jest.fn().mockResolvedValue({
+        id: 'a1',
+        email: 'agent@ctdec.ml',
+        role: 'AGENT',
+        mfaEnabled: true,
+        mfaSecret: 'enc',
+        phoneNumber: '+22370000000',
+      }),
+    });
+
+    const result = await service.login({ identifier: 'agent@ctdec.ml', password: 'x' });
+
+    expect(result).toMatchObject({ mfaRequired: true, challenge: 'challenge.jwt' });
+    expect((result as { methods: string[] }).methods).toEqual(
+      expect.arrayContaining(['totp', 'sms']),
+    );
+    // Le rôle DB 'AGENT' doit être normalisé 'agent' AVANT le test MFA + la signature
+    // du challenge — sinon MFA_REQUIRED_ROLES.has('AGENT') serait faux (bypass).
+    expect(jwt.signMfaChallenge).toHaveBeenCalledWith(
+      expect.objectContaining({ role: UserRole.AGENT }),
+    );
+    expect(jwt.signAccess).not.toHaveBeenCalled();
+  });
+
+  it('un citoyen obtient une session complète avec nina (pas de MFA)', async () => {
+    const { service, jwt } = buildService(); // findByKeycloakId → role 'CITIZEN' par défaut
+
+    const result = await service.login({ identifier: 'aissata@example.ml', password: 'x' });
+
+    expect(result).toMatchObject({ access: 'access.jwt', refresh: 'refresh.jwt' });
+    expect(jwt.signMfaChallenge).not.toHaveBeenCalled();
+    expect(jwt.signAccess).toHaveBeenCalledWith(
+      expect.objectContaining({ role: UserRole.CITIZEN, nina: '1234567890123' }),
+    );
   });
 });

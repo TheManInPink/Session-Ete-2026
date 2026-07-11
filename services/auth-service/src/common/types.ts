@@ -30,6 +30,26 @@ export const MFA_REQUIRED_ROLES: ReadonlySet<UserRole> = new Set([
   UserRole.ANTICORRUPTION_INSPECTOR,
 ]);
 
+/**
+ * Projette un rôle **Prisma** (`User.role`, casse HAUTE : `CITIZEN`, `AGENT`, …)
+ * vers l'enum applicatif {@link UserRole} (casse basse). Les deux jeux de valeurs
+ * sont identiques modulo la casse. TOUT le contrat applicatif est en casse basse :
+ * le claim `role`, le `RolesGuard` aval (`@Roles(UserRole.CITIZEN)`),
+ * {@link MFA_REQUIRED_ROLES}, et le gate de résolution NINA de `issueSession`.
+ * Toute projection d'un rôle **lu en base** DOIT passer par ici — sinon la MFA ne
+ * s'engage pas (`has('AGENT')` est faux) et les tokens citoyens sortent sans `nina`.
+ *
+ * @throws Error si la valeur ne correspond à aucun rôle connu (garde-fou : un rôle
+ *         inconnu ne doit pas être silencieusement transformé en token mal typé).
+ */
+export function normalizeUserRole(dbRole: string): UserRole {
+  const lowered = dbRole.toLowerCase();
+  if (!(Object.values(UserRole) as string[]).includes(lowered)) {
+    throw new Error(`Rôle utilisateur inconnu: ${dbRole}`);
+  }
+  return lowered as UserRole;
+}
+
 /** Payload du JWT d'accès (RS256, TTL 15 min). */
 export interface JwtAccessPayload {
   /** Subject = userId interne (UUID). */

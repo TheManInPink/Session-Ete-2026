@@ -25,7 +25,7 @@ import {
 import { Prisma } from '@nina-aes/database';
 
 import { AUTH_ERRORS } from '../../common/constants.js';
-import { MFA_REQUIRED_ROLES, UserRole } from '../../common/types.js';
+import { MFA_REQUIRED_ROLES, normalizeUserRole, UserRole } from '../../common/types.js';
 import { JwtCryptoService } from '../../crypto/jwt.service.js';
 import { KeycloakAdminService } from '../../keycloak/keycloak-admin.service.js';
 import { KeycloakAuthService } from '../../keycloak/keycloak-auth.service.js';
@@ -176,7 +176,10 @@ export class AuthService {
       throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
     }
 
-    const role = user.role as unknown as UserRole;
+    // Rôle DB (Prisma, casse HAUTE) → enum applicatif (casse basse). SANS cette
+    // normalisation, `MFA_REQUIRED_ROLES.has('AGENT')` serait faux (MFA contournée)
+    // et un token citoyen sortirait sans `nina`. Cf. normalizeUserRole.
+    const role = normalizeUserRole(user.role);
     if (MFA_REQUIRED_ROLES.has(role)) {
       const challenge = this.jwt.signMfaChallenge({
         userId: user.id,
@@ -363,7 +366,7 @@ export class AuthService {
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role as unknown as UserRole,
+      role: normalizeUserRole(user.role),
       phoneNumber: user.phoneNumber,
       preferredLanguage: user.preferredLanguage,
       mfaEnabled: user.mfaEnabled,
@@ -408,14 +411,10 @@ export class AuthService {
       throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
     }
 
-    // `User.role` (Prisma) est en CASSE HAUTE (`CITIZEN`, `AGENT`, …) tandis que
-    // le contrat de token (auth-guards `UserRole` + claim `role`) est en casse
-    // BASSE (`citizen`, …). On normalise donc explicitement en casse basse : c'est
-    // cette valeur qui (1) déclenche la résolution du `nina` dans `issueSession`
-    // et (2) est acceptée par le `RolesGuard` aval (`@Roles(UserRole.CITIZEN)`).
-    // Émettre la casse Prisma brute produirait un token citoyen SANS `nina` et
-    // refusé côté services aval.
-    const role = (user.role as string).toLowerCase() as UserRole;
+    // Rôle DB (Prisma, casse HAUTE) → enum applicatif (casse basse) : requis pour
+    // (1) le gate de résolution NINA de `issueSession` et (2) l'acceptation par le
+    // `RolesGuard` aval. Cf. normalizeUserRole.
+    const role = normalizeUserRole(user.role);
     // Citoyen UNIQUEMENT. `role !== CITIZEN` ⇔ `MFA_REQUIRED_ROLES.has(role)`
     // (seul CITIZEN est hors MFA) : refuser tout rôle interne garantit qu'aucune
     // session à MFA obligatoire n'est émise sans que la MFA ait été présentée.
