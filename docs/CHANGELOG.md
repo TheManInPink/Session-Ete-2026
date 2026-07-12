@@ -3,18 +3,43 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-11 (**PC-04 — réconciliation d'émetteur de token (ADR-036)** :
-> échange SSO citoyen (token Keycloak → session applicative auth-service) levant la réserve
-> d'ADR-028. Trois volets : (1) endpoint `POST /auth/sso/exchange` — vérif Keycloak fail-closed
-> (RS256, `iss`, `azp`, `typ`, `exp`), rôle **DB jamais du token**, citoyen-only (pas de bypass
-> MFA), `nina` gravé DB ; (2) correctif de **casse de rôle** (`normalizeUserRole`) — MFA jadis
-> contournable au login password et tokens citoyens sans `nina` ; (3) **dual-token** portail citoyen
-> (cookie `backend_access_token`, `getSession` Keycloak inchangé → admin/gouvernance intacts). Gate
-> live PC-04 **non basculé** (revue et e2e requis). Voir 0tretricies. Précédent : 0duotricies —
-> vulnerability-service PROMPT 6.1.)
+> **Dernière mise à jour** : 2026-07-12 (**appointment-service — audit de la réservation citoyen** :
+> la prise et l'annulation self-service (`/appointments/me`) émettent désormais un **événement
+> d'audit capté** par audit-service (`nina.events` → hash-chain, routing `appointment.booking.*`) au
+> lieu d'un simple log — clôt le « audit signé de `create()` » resté en suspens dans 0tretricies.
+> Parité avec les publishers existants ; signature Ed25519 de message = chantier plate-forme (Phase
+> 2). Sans NINA, best-effort. Voir 0quattuortricies. Précédent : 0tretricies — PC-04 réconciliation
+> d'émetteur (SSO exchange, ADR-036).)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quattuortricies. Patch 2026-07-12 — appointment-service : audit capté de la réservation citoyen (PC-04)
+
+Le self-service citoyen (`createForCitizen` / `cancelForCitizen`, endpoints `/appointments/me`) ne
+laissait qu'une **ligne de log** — aucun artefact d'audit (0untricies l'avait acté « chantier de
+suivi », et 0tretricies le listait encore sous « Reste »). Désormais la prise et l'annulation
+émettent un **événement d'audit** relayé vers audit-service.
+
+- **Nouveau `AuditPublisher`** (`appointments/messaging/audit.publisher.ts`) : publie sur l'exchange
+  topic `nina.events` (routing `appointment.booking.created` / `appointment.booking.cancelled`),
+  capté par le binding `appointment.#` déjà présent d'audit-service puis chaîné (hash-chain SHA-256,
+  doc 09). Champs d'audit **au niveau racine** (`action` / `entityType` / `entityId` / `actorType`)
+  comme les autres publishers — le normalizer les lit sur `b.*`, pas sous `payload` (sinon
+  `entity_id` NULL). En-têtes d'origine `appId` et `x-nina-source` (émetteur résolvable). Réutilise
+  la connexion RabbitMQ partagée ; **best-effort** (un échec ne casse pas la réservation déjà
+  persistée) ; désactivable via `APPOINTMENT_AUDIT_ENABLED`.
+- **Imputabilité sans NINA** : l'entité est le RDV (UUID), l'acteur le citoyen (UUID) ; le **NINA
+  n'apparaît jamais** dans l'événement (asserté en test).
+- **Signature d'origine** : la signature Ed25519 de message (`x-nina-signature`) reste un **chantier
+  plate-forme (Phase 2)** — aucun publisher ne signe encore (`AUDIT_PUBLISHER_KEYS` vide,
+  audit-service en fail-open dev). Ce publisher est **prêt** (émetteur tracé) : l'activer exige de
+  provisionner les clés et d'enregistrer `appointment-service:<hex>` côté audit-service.
+
+Env : `RABBITMQ_EVENTS_EXCHANGE` (déjà dans `turbo.json`) et `APPOINTMENT_AUDIT_ENABLED`. Gates :
+`appointment-service` **75/75** tests (nouveau `audit.publisher.spec` et service étendu),
+`tsc --noEmit` vert. Docs : header et cette entrée. Précédent : 0tretricies — PC-04 SSO exchange
+(ADR-036).
 
 ### 0tretricies. Patch 2026-07-11 — PC-04 : réconciliation d'émetteur de token (SSO exchange, ADR-036) et casse de rôle
 

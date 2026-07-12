@@ -57,6 +57,10 @@ export const envSchema = z.looseObject({
   RABBITMQ_NOTIFICATIONS_EXCHANGE: z.string().default('nina.notifications'),
   /** Active la publication RabbitMQ (désactivable en test/CI). */
   APPOINTMENT_NOTIFICATIONS_ENABLED: zBool(true),
+  /** Exchange topic des événements métier consommé par audit-service (hash-chain). */
+  RABBITMQ_EVENTS_EXCHANGE: z.string().default('nina.events'),
+  /** Active la publication des événements d'audit vers audit-service (test/CI off). */
+  APPOINTMENT_AUDIT_ENABLED: zBool(true),
 
   // ── Politique de rendez-vous ──────────────────────────────────────────
   /** Délai de grâce (min) après l'heure prévue avant de marquer NO_SHOW. */
