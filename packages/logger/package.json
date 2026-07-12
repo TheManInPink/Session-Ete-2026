@@ -24,7 +24,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "pino": "^9.5.0",
+    "pino": "^10.3.1",
     "pino-http": "^10.3.0",
     "pino-pretty": "^11.3.0",
     "uuid": "^11.0.0"
