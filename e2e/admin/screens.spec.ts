@@ -60,10 +60,12 @@ test.describe('AD-03 — Dashboard SIGAC', () => {
 });
 
 test.describe('Admin — écrans secondaires', () => {
-  test('Rendez-vous est un stub honnête « module en préparation »', async ({ page }) => {
+  test('Rendez-vous affiche un écran mock (données de démonstration)', async ({ page }) => {
     await page.goto('/fr/appointments');
     await expect(page.getByRole('heading', { level: 1, name: 'Rendez-vous' })).toBeVisible();
-    await expect(page.getByText('Module en préparation').first()).toBeVisible();
+    // Écran réécrit en vrai mock déterministe : bannière « données de démonstration »
+    // (le stub « module en préparation » n'existe plus).
+    await expect(page.getByText('Données de démonstration').first()).toBeVisible();
   });
 
   test('Paramètres affiche le profil agent en lecture seule', async ({ page }) => {

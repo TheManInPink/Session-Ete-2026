@@ -21,8 +21,9 @@ test.describe('PC-01 — Accueil citoyen', () => {
     // LanguageSwitcher présent
     await expect(page.getByLabel(/Langue|kan/i)).toBeVisible();
 
-    // Bouton sign in
-    await expect(page.getByRole('link', { name: /se connecter/i })).toBeVisible();
+    // Session mock authentifiée (Fatoumata Diallo) : l'en-tête rend le menu
+    // compte, pas le lien « Se connecter » (réservé à l'anonyme).
+    await expect(page.getByRole('button', { name: /mon compte/i })).toBeVisible();
   });
 
   test('racine `/` redirige vers une locale supportée', async ({ page }) => {
@@ -35,7 +36,11 @@ test.describe('PC-01 — Accueil citoyen', () => {
 
   test('change de langue via le LanguageSwitcher', async ({ page }) => {
     await page.goto('/fr');
-    await page.locator('select').selectOption('bm');
+    // Le LanguageSwitcher n'est pas un <select> natif mais un Popover Radix :
+    // bouton déclencheur (aria-label « Langue ») + liste role="listbox"
+    // d'options role="option". On l'ouvre puis on choisit Bamanankan (bm).
+    await page.getByRole('button', { name: /langue/i }).click();
+    await page.getByRole('option', { name: 'Bamanankan' }).click();
     await expect(page).toHaveURL(/\/bm/);
   });
 });

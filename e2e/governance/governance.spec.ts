@@ -241,19 +241,19 @@ test.describe('GOV-02 — Directives (Kanban)', () => {
   });
 });
 
-test.describe('Gouvernance — stubs honnêtes', () => {
-  test('Performance est un « module en préparation »', async ({ page }) => {
+test.describe('Gouvernance — écrans mock (données de démonstration)', () => {
+  test('Performance affiche un écran mock (données de démonstration)', async ({ page }) => {
     await page.goto('/fr/performance');
     await expect(
       page.getByRole('heading', { level: 1, name: 'Performance institutionnelle' }),
     ).toBeVisible();
-    await expect(page.getByText('Module en préparation').first()).toBeVisible();
+    await expect(page.getByText('Données de démonstration').first()).toBeVisible();
   });
 
-  test('Rapports est un « module en préparation »', async ({ page }) => {
+  test('Rapports affiche un écran mock (données de démonstration)', async ({ page }) => {
     await page.goto('/fr/rapports');
     await expect(page.getByRole('heading', { level: 1, name: 'Rapports' })).toBeVisible();
-    await expect(page.getByText('Module en préparation').first()).toBeVisible();
+    await expect(page.getByText('Données de démonstration').first()).toBeVisible();
   });
 });
 
