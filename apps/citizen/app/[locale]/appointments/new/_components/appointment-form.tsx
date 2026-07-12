@@ -202,12 +202,20 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     () => centers.filter((c) => c.regionCode === selectedRegion),
     [centers, selectedRegion],
   );
+  // Centre effectivement retenu pour charger les disponibilités : la sélection
+  // explicite, ou — si la région n'a qu'un seul centre — ce centre unique.
+  // DÉRIVÉ au rendu (et non posé via un effet ni calculé dans le seul handler
+  // `onRegionChange`, qui peut capturer un `centers` obsolète et laisser la
+  // sélection vide → disponibilités jamais chargées, calendrier jamais affiché
+  // pour toute région mono-centre, ex. Bamako).
+  const effectiveCenterId =
+    selectedCenterId || (centersInRegion.length === 1 ? (centersInRegion[0]?.id ?? '') : '');
   const selectedCenter: CenterSummary | null =
-    centers.find((c) => c.id === selectedCenterId) ?? null;
+    centers.find((c) => c.id === effectiveCenterId) ?? null;
 
   const availability = useCenterAvailability(
-    { centerId: selectedCenterId, fromDate, toDate },
-    { enabled: selectedCenterId.length > 0 },
+    { centerId: effectiveCenterId, fromDate, toDate },
+    { enabled: effectiveCenterId.length > 0 },
   );
   const days = useMemo(() => availability.data?.days ?? [], [availability.data]);
 
@@ -252,9 +260,10 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     setSelectedRegion(region);
     setSelectedDay(null);
     setSelectedKey('');
-    const inRegion = centers.filter((c) => c.regionCode === region);
-    const only = inRegion.length === 1 ? inRegion[0] : undefined;
-    setSelectedCenterId(only ? only.id : '');
+    // Réinitialise la sélection explicite ; l'auto-sélection d'une région
+    // mono-centre est DÉRIVÉE au rendu (`effectiveCenterId`), donc robuste au
+    // chargement asynchrone de `centers` (contrairement à un calcul ici).
+    setSelectedCenterId('');
   };
   const onCenterChange = (id: string) => {
     setSelectedCenterId(id);
@@ -333,7 +342,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     setError(null);
     try {
       const appt = await createAppointment.mutateAsync({
-        centerId: selectedCenterId,
+        centerId: effectiveCenterId,
         slot: selectedSlot.start,
         reason: reason.trim(),
       });
@@ -409,7 +418,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                 <div>
                   <Label htmlFor="center">{t('select.center')}</Label>
                   <Select
-                    value={selectedCenterId}
+                    value={effectiveCenterId}
                     onValueChange={onCenterChange}
                     disabled={!selectedRegion}
                   >
@@ -483,7 +492,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
               {t('calendar.title')}
             </h2>
 
-            {!selectedCenterId ? (
+            {!effectiveCenterId ? (
               <Alert>
                 <AlertDescription>{t('select.chooseCenterFirst')}</AlertDescription>
               </Alert>
