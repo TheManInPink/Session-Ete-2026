@@ -334,6 +334,7 @@
     "confirm": {
       "title": "Rendez-vous confirmé",
       "subtitle": "Présentez ce QR code à l'accueil du centre le jour J.",
+      "subtitleLive": "Présentez ce récapitulatif et une pièce d'identité originale à l'accueil du centre le jour J.",
       "center": "Centre",
       "date": "Date",
       "slot": "Créneau",

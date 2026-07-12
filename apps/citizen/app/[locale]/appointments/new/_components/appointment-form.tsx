@@ -625,7 +625,8 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
         </div>
       </form>
 
-      {/* Modale de confirmation + QR de rendez-vous (mode démo uniquement) */}
+      {/* Modale de confirmation ; le QR décoratif est réservé au mode démo — en
+          live, on ne montre pas de QR tant que document-service n'émet pas le QR signé. */}
       {confirmation && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -646,15 +647,21 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                 <h2 id="confirm-title" className="text-lg font-semibold">
                   {t('confirm.title')}
                 </h2>
-                <p className="text-sm text-fg-muted">{t('confirm.subtitle')}</p>
+                <p className="text-sm text-fg-muted">
+                  {mockMode ? t('confirm.subtitle') : t('confirm.subtitleLive')}
+                </p>
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 py-2">
-              <DemoQrCode value={confirmation.reference} />
-              <p className="text-xs font-medium">{t('confirm.qrCaption')}</p>
-              <p className="text-center text-[11px] text-fg-muted">{t('confirm.qrNote')}</p>
-            </div>
+            {/* QR décoratif : mode démo uniquement (le QR signé réel viendra de
+                document-service). En live, aucun QR trompeur n'est présenté. */}
+            {mockMode && (
+              <div className="flex flex-col items-center gap-2 py-2">
+                <DemoQrCode value={confirmation.reference} />
+                <p className="text-xs font-medium">{t('confirm.qrCaption')}</p>
+                <p className="text-center text-[11px] text-fg-muted">{t('confirm.qrNote')}</p>
+              </div>
+            )}
 
             <dl className="mt-4 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
               <dt className="text-fg-muted">{t('confirm.center')}</dt>
