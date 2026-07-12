@@ -17,11 +17,12 @@
  *
  *              La RÉSERVATION citoyen passe désormais par le self-service
  *              `POST /appointments/me` (identité dérivée du NINA du token côté
- *              serveur ; ADR-028 intact — cf. `@nina-aes/api-client`). En mode
- *              **live** le bouton reste toutefois masqué tant que la couture
- *              d'émetteur de token web (Keycloak) ↔ backend (auth-service) n'est
- *              pas réconciliée ; en mode **démo (mock)**, le parcours complet est
- *              joué et la confirmation ouvre une modale (QR décoratif + `.ics` réel).
+ *              serveur ; ADR-028 intact — cf. `@nina-aes/api-client`). L'émetteur
+ *              de token web (Keycloak) ↔ backend (auth-service) est réconcilié via
+ *              l'échange SSO dual-token (ADR-036), validé bout-en-bout : le parcours
+ *              de réservation est actif en **live** comme en **démo (mock)**. La
+ *              confirmation ouvre une modale (`.ics` réel) ; le QR décoratif reste
+ *              réservé au démo (le QR signé viendra de document-service).
  * @module      @nina-aes/citizen
  */
 
@@ -155,9 +156,10 @@ const localIso = (d: Date) =>
 export function AppointmentForm({ locale, nina, isVulnerable = false }: AppointmentFormProps) {
   const t = useTranslations('appointments');
   const router = useRouter();
-  // En mode démo (mock) on joue le parcours complet ; en live, le bouton reste
-  // masqué tant que l'émetteur de token web (Keycloak) et le backend (auth-service)
-  // ne sont pas réconciliés — l'endpoint self-service /appointments/me, lui, existe.
+  // `mockMode` ne conditionne PLUS l'affichage du bouton de réservation (l'échange
+  // SSO dual-token — ADR-036 — est réconcilié et validé) : le parcours est joué en
+  // live comme en démo. Il ne distingue plus que le QR de confirmation (décoratif en
+  // démo, absent en live tant que document-service n'émet pas le QR signé).
   const mockMode = isMockMode();
 
   // Fenêtre de recherche : aujourd'hui → +30 jours. Bornée à l'horizon de
@@ -563,60 +565,53 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                       <dd className="font-mono font-medium">{timeOf(selectedSlot.start)}</dd>
                     </dl>
 
-                    {mockMode ? (
-                      <>
-                        <div>
-                          <Label htmlFor="reason">{t('form.reason')}</Label>
-                          <textarea
-                            id="reason"
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            rows={3}
-                            minLength={5}
-                            maxLength={100}
-                            required
-                            placeholder={t('form.reasonPlaceholder')}
-                            className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          />
-                        </div>
+                    {/* Réservation active en live comme en démo : l'échange SSO
+                        dual-token (ADR-036) est réconcilié et validé bout-en-bout. */}
+                    <div>
+                      <Label htmlFor="reason">{t('form.reason')}</Label>
+                      <textarea
+                        id="reason"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        rows={3}
+                        minLength={5}
+                        maxLength={100}
+                        required
+                        placeholder={t('form.reasonPlaceholder')}
+                        className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      />
+                    </div>
 
-                        <div className="flex items-start gap-3 rounded-base border border-border bg-bg-card p-3">
-                          <Checkbox
-                            id="pledge"
-                            checked={pledge}
-                            onCheckedChange={(checked) => setPledge(checked === true)}
-                            className="mt-0.5"
-                          />
-                          <Label
-                            htmlFor="pledge"
-                            className="text-sm font-normal leading-snug text-fg-muted"
-                          >
-                            {t('form.pledge')}
-                          </Label>
-                        </div>
+                    <div className="flex items-start gap-3 rounded-base border border-border bg-bg-card p-3">
+                      <Checkbox
+                        id="pledge"
+                        checked={pledge}
+                        onCheckedChange={(checked) => setPledge(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="pledge"
+                        className="text-sm font-normal leading-snug text-fg-muted"
+                      >
+                        {t('form.pledge')}
+                      </Label>
+                    </div>
 
-                        {error && (
-                          <Alert variant="danger">
-                            <AlertTitle>{t('form.error')}</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                          </Alert>
-                        )}
-
-                        <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
-                          {createAppointment.isPending ? (
-                            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                          ) : (
-                            <Send className="size-4" aria-hidden="true" />
-                          )}
-                          {t('form.submit')}
-                        </Button>
-                      </>
-                    ) : (
-                      <Alert>
-                        <AlertTitle>{t('form.liveUnavailableTitle')}</AlertTitle>
-                        <AlertDescription>{t('form.liveUnavailableBody')}</AlertDescription>
+                    {error && (
+                      <Alert variant="danger">
+                        <AlertTitle>{t('form.error')}</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
                       </Alert>
                     )}
+
+                    <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
+                      {createAppointment.isPending ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Send className="size-4" aria-hidden="true" />
+                      )}
+                      {t('form.submit')}
+                    </Button>
                   </div>
                 )}
               </>

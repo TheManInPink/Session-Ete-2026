@@ -3,16 +3,42 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-12 (**appointment-service — audit de la réservation citoyen** :
-> la prise et l'annulation self-service (`/appointments/me`) émettent désormais un **événement
-> d'audit capté** par audit-service (`nina.events` → hash-chain, routing `appointment.booking.*`) au
-> lieu d'un simple log — clôt le « audit signé de `create()` » resté en suspens dans 0tretricies.
-> Parité avec les publishers existants ; signature Ed25519 de message = chantier plate-forme (Phase
-> 2). Sans NINA, best-effort. Voir 0quattuortricies. Précédent : 0tretricies — PC-04 réconciliation
-> d'émetteur (SSO exchange, ADR-036).)
+> **Dernière mise à jour** : 2026-07-12 (**PC-04 — réservation citoyen LIVE** : le bouton de
+> réservation s'affiche désormais en **live** (plus seulement en démo). L'échange SSO dual-token
+> (ADR-036) est validé bout-en-bout sur stack réelle (ROPC → `/sso/exchange` 200 →
+> `/appointments/me` 201) après réconciliation Keycloak (scope `basic` → claim `sub`) et seed.
+> Confirmation honnête (QR décoratif réservé au démo). Voir 0quinquetricies. Précédent :
+> 0quattuortricies — audit capté de la réservation citoyen.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0quinquetricies. Patch 2026-07-12 — PC-04 : réservation citoyen LIVE (bascule du gate + validation e2e)
+
+Le parcours de réservation était joué **uniquement en démo (mock)**, le bouton restant masqué en
+**live** faute de réconciliation d'émetteur validée. Cette entrée regroupe la mise en service live
+et sa validation bout-en-bout sur stack réelle.
+
+- **Confirmation honnête** (`b9824f3`, `appointment-form.tsx` + `fr.json`) : le QR décoratif
+  (`DemoQrCode`) et « présentez ce QR » ne s'affichent qu'en démo ; en live → `confirm.subtitleLive`
+  (récapitulatif + pièce d'identité, **aucun QR trompeur** ; le QR signé viendra de
+  document-service).
+- **Réconciliation stack** (`27c3a33`) : bloqueur trouvé sur stack réelle — le client Keycloak
+  `nina-citizen` omettait le scope `basic` → **aucun claim `sub`** dans le token →
+  `/auth/sso/exchange` aurait renvoyé 401. Fix : `basic` ajouté aux `defaultClientScopes` (realm
+  import) + `id` du user démo pinné ; seed aligné (keycloakId réel, email, **row Citizen** NINA
+  18903102015042V).
+- **Bascule du gate** (`appointment-form.tsx`) : le formulaire (motif, engagement, bouton
+  `Confirmer`) s'affiche désormais en live comme en démo (retrait de la garde `isMockMode` sur cette
+  branche et de l'alerte « bientôt disponible »). `mockMode` ne pilote plus que le QR de
+  confirmation.
+- **Validation e2e** (Docker, stack réelle) : ROPC citoyen → `POST /auth/sso/exchange` **200** (JWT
+  `role: citizen` + `nina` résolu depuis la DB) → `POST /api/v1/appointments/me` **201** (RDV créé,
+  événement d'audit publié sans erreur).
+
+Sécurité/charte : identité toujours dérivée du NINA du token côté serveur (ADR-028 intact) ; «
+données honnêtes » préservée. Gates : ESLint `--max-warnings=0`, `check-types` (citizen + database)
+verts. Précédent : 0quattuortricies — audit capté de la réservation.
 
 ### 0quattuortricies. Patch 2026-07-12 — appointment-service : audit capté de la réservation citoyen (PC-04)
 
