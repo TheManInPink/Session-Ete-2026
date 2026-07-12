@@ -468,8 +468,10 @@ const ENROLLMENT_CENTERS: Array<{
 ];
 
 /**
- * 6 utilisateurs système (un par rôle UserRole). keycloakId placeholders —
- * seront remplacés par les vrais `sub` Keycloak lors de l'intégration (doc 08).
+ * 6 utilisateurs système (un par rôle UserRole). Le CITOYEN de démo porte le
+ * `sub` Keycloak réel (pinné dans le realm import pour `citoyen.demo`) afin que
+ * l'échange SSO PC-04 résolve `findByKeycloakId` ; les autres keycloakId restent
+ * des placeholders (doc 08).
  */
 const USERS: Array<{
   keycloakId: string;
@@ -481,8 +483,8 @@ const USERS: Array<{
   institutionCode?: string;
 }> = [
   {
-    keycloakId: 'seed-citizen-001',
-    email: 'citoyen.demo@nina-aes.ml',
+    keycloakId: '8bff2324-471d-42b8-a351-33da8aa46161',
+    email: 'fatoumata.diallo@nina-aes.demo',
     username: 'citoyen.demo',
     firstName: 'Fatoumata',
     lastName: 'Diallo',
@@ -700,6 +702,37 @@ async function main(): Promise<void> {
     });
   }
   console.log(`✅ [seed] ${USERS.length} utilisateurs (1 par rôle UserRole)`);
+
+  // ------- Citoyen de démonstration (PC-04 self-service RDV) ----------------
+  // Lie le compte Keycloak `citoyen.demo` (sub pinné dans le realm import) à un
+  // enregistrement Citizen : requis par l'échange SSO (résolution du `nina` par
+  // email, cf. findCitizenNinaByEmail) ET par la prise de RDV self-service
+  // (`/appointments/me`, qui dérive le citizenId du NINA). birthPlace/residence
+  // pointent sur une Location déjà seedée (commune si dispo, sinon région).
+  const demoLocation =
+    (await prisma.location.findFirst({ where: { level: 3 }, select: { id: true } })) ??
+    (await prisma.location.findFirstOrThrow({ where: { level: 1 }, select: { id: true } }));
+  await prisma.citizen.upsert({
+    where: { nina: '18903102015042V' },
+    create: {
+      nina: '18903102015042V',
+      firstName: 'Fatoumata',
+      lastName: 'Diallo',
+      firstNameAscii: 'Fatoumata',
+      lastNameAscii: 'Diallo',
+      birthDate: new Date('1989-03-10'),
+      sex: 'FEMALE',
+      email: 'fatoumata.diallo@nina-aes.demo',
+      phoneNumber: '+22370000000',
+      birthPlaceId: demoLocation.id,
+      residenceId: demoLocation.id,
+    },
+    update: {
+      email: 'fatoumata.diallo@nina-aes.demo',
+      phoneNumber: '+22370000000',
+    },
+  });
+  console.log('✅ [seed] citoyen de démonstration (NINA 18903102015042V ↔ citoyen.demo)');
 
   console.log('🌱 [seed] terminé avec succès.');
 }
