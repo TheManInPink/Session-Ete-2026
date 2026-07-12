@@ -36,6 +36,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install --with-deps chromium",
+    "//test:e2e:pc04-live": "E2E stack réelle du parcours PC-04 (ROPC Keycloak → SSO exchange → réservation → annulation). Requiert la stack démarrée (docker:up + auth-service 3002 + appointment-service 3008) et KC_DEMO_PASSWORD. SKIP (sortie 0) si la variable est absente.",
+    "test:e2e:pc04-live": "node scripts/e2e-pc04-live.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "clean": "turbo run clean && rm -rf node_modules .turbo",

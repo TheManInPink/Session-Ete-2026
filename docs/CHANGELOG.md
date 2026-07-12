@@ -3,15 +3,36 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-12 (**PC-04 — réservation citoyen LIVE** : le bouton de
-> réservation s'affiche désormais en **live** (plus seulement en démo). L'échange SSO dual-token
-> (ADR-036) est validé bout-en-bout sur stack réelle (ROPC → `/sso/exchange` 200 →
-> `/appointments/me` 201) après réconciliation Keycloak (scope `basic` → claim `sub`) et seed.
-> Confirmation honnête (QR décoratif réservé au démo). Voir 0quinquetricies. Précédent :
-> 0quattuortricies — audit capté de la réservation citoyen.)
+> **Dernière mise à jour** : 2026-07-12 (**PC-04 — e2e « stack réelle » automatisé** : nouveau
+> script `test:e2e:pc04-live` (`scripts/e2e-pc04-live.mjs`) qui rejoue le parcours de bout en bout
+> (ROPC Keycloak → `/sso/exchange` → réservation → annulation) contre les services **réellement
+> démarrés**, sans mock ni token forgé (7/7 assertions vertes). Voir 0sextricies. Précédent :
+> 0quinquetricies — bascule du gate live ; 0quattuortricies — audit capté de la réservation.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0sextricies. Patch 2026-07-12 — PC-04 : e2e « stack réelle » automatisé (script rejouable)
+
+La bascule live (0quinquetricies) avait été validée bout-en-bout **manuellement**. Cette entrée en
+fait un artefact **rejouable**, complémentaire des tests Playwright existants qui, eux, tournent en
+`NINA_AUTH_MODE=mock` (cf. `e2e/README.md`).
+
+- **Nouveau `scripts/e2e-pc04-live.mjs`** + script racine `test:e2e:pc04-live` : rejoue le parcours
+  complet contre la stack réelle (aucun mock, aucun token forgé) — (1) ROPC Keycloak
+  (`nina-citizen`) → (2) `POST /auth/sso/exchange` (JWT backend RS256, rôle + NINA depuis la DB) →
+  (3) `GET /centers` → (4) `GET .../availability` (créneau STANDARD réservable) → (5)
+  `POST /appointments/me` (201) → (6) `PUT /appointments/me/:id/cancel`. L'annulation sert de
+  **nettoyage** (ne laisse aucune donnée résiduelle) et couvre le chemin d'annulation + son
+  événement d'audit. Chaque étape est **assertée** (sortie non-nulle au premier échec).
+- **Sécurité** : aucun secret en dur — le mot de passe du citoyen de démo (realm de dev) est lu
+  depuis `KC_DEMO_PASSWORD` ; sans cette variable, le script se met en **SKIP (sortie 0)** au lieu
+  d'échouer (compatible CI). Identité toujours dérivée du token côté serveur (ADR-028 intact).
+- **Résultat** : 7/7 assertions vertes sur la stack de dev (RDV créé puis annulé ; `citizenName` «
+  Fatoumata Diallo » renvoyé par le backend — cf. seed `98c725c`).
+
+Gates : ESLint `--max-warnings=0` vert (règle `turbo/no-undeclared-env-vars` désactivée au niveau
+fichier — script runtime hors pipeline turbo). Précédent : 0quinquetricies — bascule du gate live.
 
 ### 0quinquetricies. Patch 2026-07-12 — PC-04 : réservation citoyen LIVE (bascule du gate + validation e2e)
 
