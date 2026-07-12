@@ -728,6 +728,11 @@ async function main(): Promise<void> {
       residenceId: demoLocation.id,
     },
     update: {
+      // Ancre l'identité de démo même si le NINA existait déjà (données de test).
+      firstName: 'Fatoumata',
+      lastName: 'Diallo',
+      firstNameAscii: 'Fatoumata',
+      lastNameAscii: 'Diallo',
       email: 'fatoumata.diallo@nina-aes.demo',
       phoneNumber: '+22370000000',
     },
