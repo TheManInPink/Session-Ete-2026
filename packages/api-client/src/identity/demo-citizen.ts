@@ -19,6 +19,8 @@
  * @module      @nina-aes/api-client
  */
 
+import { DEFAULT_MOCK_NINA, DEFAULT_MOCK_CITIZEN_IDENTITY } from '../mock/personas';
+
 /** Relation d'un parent (sous-ensemble de `parentSchema`). */
 export interface DemoParent {
   firstName: string;
@@ -175,6 +177,22 @@ const REGIONS: Record<string, string> = {
   '9': 'Bamako (District)',
 };
 
+// ── Surcharges d'identité par NINA ───────────────────────────────────────────
+
+/**
+ * Surcharges d'identité, par NINA normalisé, appliquées PAR-DESSUS le profil
+ * dérivé du hash. Nécessaire parce que le générateur ne connaît pas les personas
+ * de session (`packages/auth` + `apps/<app>/lib/auth/session.ts`) : pour le
+ * citoyen de démo par défaut, la fiche DOIT afficher la même identité que la
+ * session, sinon session « Fatoumata Diallo » ↔ fiche « Yacouba Sissoko ».
+ */
+const DEMO_PERSONA_OVERRIDES: Record<
+  string,
+  Partial<Pick<DemoCitizen, 'firstName' | 'lastName' | 'sex' | 'profession'>>
+> = {
+  [DEFAULT_MOCK_NINA]: DEFAULT_MOCK_CITIZEN_IDENTITY,
+};
+
 // ── Générateur ───────────────────────────────────────────────────────────────
 
 /**
@@ -186,13 +204,17 @@ const REGIONS: Record<string, string> = {
 export function generateDemoCitizen(nina: string): DemoCitizen {
   const n = (nina ?? '').replace(/[\s\-_.]+/g, '').toUpperCase();
 
-  const sex: 'MALE' | 'FEMALE' = n[0] === '2' ? 'FEMALE' : 'MALE';
+  // Persona explicite pour ce NINA (sinon : profil dérivé du hash). La surcharge
+  // prime sur le sexe déduit du 1er chiffre, la profession et les noms.
+  const override = DEMO_PERSONA_OVERRIDES[n];
+
+  const sex: 'MALE' | 'FEMALE' = override?.sex ?? (n[0] === '2' ? 'FEMALE' : 'MALE');
   const firstNamePool = sex === 'FEMALE' ? FIRST_NAMES_F : FIRST_NAMES_M;
 
-  const firstName = pick(firstNamePool, n, 'first');
-  const lastName = pick(LAST_NAMES, n, 'last');
+  const firstName = override?.firstName ?? pick(firstNamePool, n, 'first');
+  const lastName = override?.lastName ?? pick(LAST_NAMES, n, 'last');
   const prof = pick(PROFESSIONS, n, 'prof');
-  const profession = sex === 'FEMALE' ? prof.f : prof.m;
+  const profession = override?.profession ?? (sex === 'FEMALE' ? prof.f : prof.m);
   const maritalStatus = pick(MARITAL, n, 'marital');
 
   const regionCode = n.substring(5, 6) || '0';

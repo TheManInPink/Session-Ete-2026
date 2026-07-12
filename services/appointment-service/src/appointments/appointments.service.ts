@@ -42,6 +42,7 @@ import { CentersService } from '../centers/centers.service.js';
 import { RedisService } from '../infrastructure/redis/redis.service.js';
 import { QueueService, type QueuePosition } from './queue.service.js';
 import { NotificationPublisher } from './messaging/notification.publisher.js';
+import { AuditPublisher, AuditAction } from './messaging/audit.publisher.js';
 import {
   AppointmentRepository,
   SlotFullError,
@@ -94,6 +95,7 @@ export class AppointmentsService implements OnModuleInit {
     private readonly queue: QueueService,
     private readonly publisher: NotificationPublisher,
     private readonly redis: RedisService,
+    private readonly audit: AuditPublisher,
   ) {
     this.noShowWindowDays = cfg.get('APPOINTMENT_NOSHOW_WINDOW_DAYS', { infer: true });
     this.noShowThreshold = cfg.get('APPOINTMENT_NOSHOW_THRESHOLD', { infer: true });
@@ -297,12 +299,21 @@ export class AppointmentsService implements OnModuleInit {
   ): Promise<AppointmentView> {
     const citizenId = await this.resolveCitizenId(nina);
     const view = await this.create({ ...input, citizenId }, now);
-    // Trace d'imputabilité (l'acteur EST le citoyen). L'événement d'audit SIGNÉ
-    // vers audit-service (`nina.audit`, origine authentifiée) est un chantier de
-    // suivi — cf. CHANGELOG 0untricies.
-    this.logger.log(
-      `RDV self-service créé (citizen=${citizenId}, center=${input.centerId}, appt=${view.id})`,
-    );
+    // Trace d'imputabilité (l'acteur EST le citoyen) : événement d'audit relayé
+    // best-effort vers audit-service (`nina.events` → hash-chain, doc 09). Le RDV
+    // est identifié par son UUID ; le NINA n'apparaît JAMAIS dans l'événement.
+    await this.audit.publish({
+      action: AuditAction.BOOKING_CREATED,
+      entityType: 'Appointment',
+      entityId: view.id,
+      actorId: citizenId,
+      actorType: 'citizen',
+      metadata: {
+        centerId: view.centerId,
+        scheduledAt: view.scheduledAt,
+        priority: view.priority,
+      },
+    });
     return view;
   }
 
@@ -328,7 +339,15 @@ export class AppointmentsService implements OnModuleInit {
       throw new NotFoundException('Rendez-vous introuvable');
     }
     const view = await this.cancel(id);
-    this.logger.log(`RDV self-service annulé (citizen=${citizenId}, appt=${id})`);
+    // Trace d'imputabilité de l'annulation self-service (best-effort, sans NINA).
+    await this.audit.publish({
+      action: AuditAction.BOOKING_CANCELLED,
+      entityType: 'Appointment',
+      entityId: id,
+      actorId: citizenId,
+      actorType: 'citizen',
+      metadata: { centerId: view.centerId },
+    });
     return view;
   }
 

@@ -3,18 +3,114 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-11 (**PC-04 — réconciliation d'émetteur de token (ADR-036)** :
-> échange SSO citoyen (token Keycloak → session applicative auth-service) levant la réserve
-> d'ADR-028. Trois volets : (1) endpoint `POST /auth/sso/exchange` — vérif Keycloak fail-closed
-> (RS256, `iss`, `azp`, `typ`, `exp`), rôle **DB jamais du token**, citoyen-only (pas de bypass
-> MFA), `nina` gravé DB ; (2) correctif de **casse de rôle** (`normalizeUserRole`) — MFA jadis
-> contournable au login password et tokens citoyens sans `nina` ; (3) **dual-token** portail citoyen
-> (cookie `backend_access_token`, `getSession` Keycloak inchangé → admin/gouvernance intacts). Gate
-> live PC-04 **non basculé** (revue et e2e requis). Voir 0tretricies. Précédent : 0duotricies —
-> vulnerability-service PROMPT 6.1.)
+> **Dernière mise à jour** : 2026-07-12 (**Fiche citoyen mock — identité alignée sur la session** :
+> en mode démo (mock), la « Fiche citoyen » PC-02 affichait « Yacouba Sissoko » (identité
+> **synthétisée par hash du NINA**) au lieu du persona de session « Fatoumata Diallo ». Corrigé par
+> une surcharge d'identité par NINA (`c958f3b`). Voir 0septentricies. Précédent : 0sextricies — e2e
+> stack réelle PC-04.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0septentricies. Patch 2026-07-12 — Fiche citoyen mock : identité alignée sur la session (bug persona)
+
+En mode données **mock**, la « Fiche citoyen » (PC-02, `/[locale]/nina/[nina]`) affichait « Yacouba
+Sissoko » pour la session « Fatoumata Diallo ». Cause : la fiche n'est pas lue depuis un persona
+indexé par NINA mais **synthétisée par hash du NINA** (`generateDemoCitizen`, FNV-1a → pools de
+noms), qui pour `18903102015042V` produit déterministiquement « Yacouba Sissoko ». Deux sources de
+vérité divergentes pour le même NINA — **pas** un bug de routing/IDOR (le lien « Voir ma fiche NINA
+» = `/{locale}/nina/${session.user.nina}` utilise bien le NINA de la session).
+
+- **Fix** (`c958f3b`) : persona canonique `DEFAULT_MOCK_CITIZEN_IDENTITY`
+  (`packages/api-client/src/mock/personas.ts`) — source de vérité côté données mock, alignée sur
+  `MOCK_CITIZEN` (`apps/citizen/lib/auth/session.ts`) et l'utilisateur `citoyen.demo` du realm —
+  appliqué en **surcharge par NINA** dans `generateDemoCitizen`
+  (`packages/api-client/src/identity/demo-citizen.ts`). Les autres NINA restent dérivés du hash.
+- **Cohérence RAVEC** : le 1er chiffre du NINA encode le sexe (`2` = féminin, sinon masculin) ; le
+  NINA de démo commence par `1` (lu MALE) alors que Fatoumata est une femme → `sex` forcé `FEMALE` +
+  profession au féminin, pour une fiche interne cohérente.
+- **Portée** : mode démo (mock) uniquement. Le chemin live (identity-service / seed) était déjà
+  correct depuis `98c725c`.
+
+Gates : ESLint `--max-warnings=0` + `tsc --noEmit` (api-client) verts. Trois sources d'identité du
+citoyen de démo à garder alignées : auth `MOCK_CITIZEN`, données mock `personas.ts`, seed DB.
+Précédent : 0sextricies — e2e « stack réelle » PC-04.
+
+### 0sextricies. Patch 2026-07-12 — PC-04 : e2e « stack réelle » automatisé (script rejouable)
+
+La bascule live (0quinquetricies) avait été validée bout-en-bout **manuellement**. Cette entrée en
+fait un artefact **rejouable**, complémentaire des tests Playwright existants qui, eux, tournent en
+`NINA_AUTH_MODE=mock` (cf. `e2e/README.md`).
+
+- **Nouveau `scripts/e2e-pc04-live.mjs`** + script racine `test:e2e:pc04-live` : rejoue le parcours
+  complet contre la stack réelle (aucun mock, aucun token forgé) — (1) ROPC Keycloak
+  (`nina-citizen`) → (2) `POST /auth/sso/exchange` (JWT backend RS256, rôle + NINA depuis la DB) →
+  (3) `GET /centers` → (4) `GET .../availability` (créneau STANDARD réservable) → (5)
+  `POST /appointments/me` (201) → (6) `PUT /appointments/me/:id/cancel`. L'annulation sert de
+  **nettoyage** (ne laisse aucune donnée résiduelle) et couvre le chemin d'annulation + son
+  événement d'audit. Chaque étape est **assertée** (sortie non-nulle au premier échec).
+- **Sécurité** : aucun secret en dur — le mot de passe du citoyen de démo (realm de dev) est lu
+  depuis `KC_DEMO_PASSWORD` ; sans cette variable, le script se met en **SKIP (sortie 0)** au lieu
+  d'échouer (compatible CI). Identité toujours dérivée du token côté serveur (ADR-028 intact).
+- **Résultat** : 7/7 assertions vertes sur la stack de dev (RDV créé puis annulé ; `citizenName` «
+  Fatoumata Diallo » renvoyé par le backend — cf. seed `98c725c`).
+
+Gates : ESLint `--max-warnings=0` vert (règle `turbo/no-undeclared-env-vars` désactivée au niveau
+fichier — script runtime hors pipeline turbo). Précédent : 0quinquetricies — bascule du gate live.
+
+### 0quinquetricies. Patch 2026-07-12 — PC-04 : réservation citoyen LIVE (bascule du gate + validation e2e)
+
+Le parcours de réservation était joué **uniquement en démo (mock)**, le bouton restant masqué en
+**live** faute de réconciliation d'émetteur validée. Cette entrée regroupe la mise en service live
+et sa validation bout-en-bout sur stack réelle.
+
+- **Confirmation honnête** (`b9824f3`, `appointment-form.tsx` + `fr.json`) : le QR décoratif
+  (`DemoQrCode`) et « présentez ce QR » ne s'affichent qu'en démo ; en live → `confirm.subtitleLive`
+  (récapitulatif + pièce d'identité, **aucun QR trompeur** ; le QR signé viendra de
+  document-service).
+- **Réconciliation stack** (`27c3a33`) : bloqueur trouvé sur stack réelle — le client Keycloak
+  `nina-citizen` omettait le scope `basic` → **aucun claim `sub`** dans le token →
+  `/auth/sso/exchange` aurait renvoyé 401. Fix : `basic` ajouté aux `defaultClientScopes` (realm
+  import) + `id` du user démo pinné ; seed aligné (keycloakId réel, email, **row Citizen** NINA
+  18903102015042V).
+- **Bascule du gate** (`appointment-form.tsx`) : le formulaire (motif, engagement, bouton
+  `Confirmer`) s'affiche désormais en live comme en démo (retrait de la garde `isMockMode` sur cette
+  branche et de l'alerte « bientôt disponible »). `mockMode` ne pilote plus que le QR de
+  confirmation.
+- **Validation e2e** (Docker, stack réelle) : ROPC citoyen → `POST /auth/sso/exchange` **200** (JWT
+  `role: citizen` + `nina` résolu depuis la DB) → `POST /api/v1/appointments/me` **201** (RDV créé,
+  événement d'audit publié sans erreur).
+
+Sécurité/charte : identité toujours dérivée du NINA du token côté serveur (ADR-028 intact) ; «
+données honnêtes » préservée. Gates : ESLint `--max-warnings=0`, `check-types` (citizen + database)
+verts. Précédent : 0quattuortricies — audit capté de la réservation.
+
+### 0quattuortricies. Patch 2026-07-12 — appointment-service : audit capté de la réservation citoyen (PC-04)
+
+Le self-service citoyen (`createForCitizen` / `cancelForCitizen`, endpoints `/appointments/me`) ne
+laissait qu'une **ligne de log** — aucun artefact d'audit (0untricies l'avait acté « chantier de
+suivi », et 0tretricies le listait encore sous « Reste »). Désormais la prise et l'annulation
+émettent un **événement d'audit** relayé vers audit-service.
+
+- **Nouveau `AuditPublisher`** (`appointments/messaging/audit.publisher.ts`) : publie sur l'exchange
+  topic `nina.events` (routing `appointment.booking.created` / `appointment.booking.cancelled`),
+  capté par le binding `appointment.#` déjà présent d'audit-service puis chaîné (hash-chain SHA-256,
+  doc 09). Champs d'audit **au niveau racine** (`action` / `entityType` / `entityId` / `actorType`)
+  comme les autres publishers — le normalizer les lit sur `b.*`, pas sous `payload` (sinon
+  `entity_id` NULL). En-têtes d'origine `appId` et `x-nina-source` (émetteur résolvable). Réutilise
+  la connexion RabbitMQ partagée ; **best-effort** (un échec ne casse pas la réservation déjà
+  persistée) ; désactivable via `APPOINTMENT_AUDIT_ENABLED`.
+- **Imputabilité sans NINA** : l'entité est le RDV (UUID), l'acteur le citoyen (UUID) ; le **NINA
+  n'apparaît jamais** dans l'événement (asserté en test).
+- **Signature d'origine** : la signature Ed25519 de message (`x-nina-signature`) reste un **chantier
+  plate-forme (Phase 2)** — aucun publisher ne signe encore (`AUDIT_PUBLISHER_KEYS` vide,
+  audit-service en fail-open dev). Ce publisher est **prêt** (émetteur tracé) : l'activer exige de
+  provisionner les clés et d'enregistrer `appointment-service:<hex>` côté audit-service.
+
+Env : `RABBITMQ_EVENTS_EXCHANGE` (déjà dans `turbo.json`) et `APPOINTMENT_AUDIT_ENABLED`. Gates :
+`appointment-service` **75/75** tests (nouveau `audit.publisher.spec` et service étendu),
+`tsc --noEmit` vert. Docs : header et cette entrée. Précédent : 0tretricies — PC-04 SSO exchange
+(ADR-036).
 
 ### 0tretricies. Patch 2026-07-11 — PC-04 : réconciliation d'émetteur de token (SSO exchange, ADR-036) et casse de rôle
 

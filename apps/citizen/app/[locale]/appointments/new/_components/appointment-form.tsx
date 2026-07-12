@@ -17,11 +17,12 @@
  *
  *              La RÉSERVATION citoyen passe désormais par le self-service
  *              `POST /appointments/me` (identité dérivée du NINA du token côté
- *              serveur ; ADR-028 intact — cf. `@nina-aes/api-client`). En mode
- *              **live** le bouton reste toutefois masqué tant que la couture
- *              d'émetteur de token web (Keycloak) ↔ backend (auth-service) n'est
- *              pas réconciliée ; en mode **démo (mock)**, le parcours complet est
- *              joué et la confirmation ouvre une modale (QR décoratif + `.ics` réel).
+ *              serveur ; ADR-028 intact — cf. `@nina-aes/api-client`). L'émetteur
+ *              de token web (Keycloak) ↔ backend (auth-service) est réconcilié via
+ *              l'échange SSO dual-token (ADR-036), validé bout-en-bout : le parcours
+ *              de réservation est actif en **live** comme en **démo (mock)**. La
+ *              confirmation ouvre une modale (`.ics` réel) ; le QR décoratif reste
+ *              réservé au démo (le QR signé viendra de document-service).
  * @module      @nina-aes/citizen
  */
 
@@ -155,9 +156,10 @@ const localIso = (d: Date) =>
 export function AppointmentForm({ locale, nina, isVulnerable = false }: AppointmentFormProps) {
   const t = useTranslations('appointments');
   const router = useRouter();
-  // En mode démo (mock) on joue le parcours complet ; en live, le bouton reste
-  // masqué tant que l'émetteur de token web (Keycloak) et le backend (auth-service)
-  // ne sont pas réconciliés — l'endpoint self-service /appointments/me, lui, existe.
+  // `mockMode` ne conditionne PLUS l'affichage du bouton de réservation (l'échange
+  // SSO dual-token — ADR-036 — est réconcilié et validé) : le parcours est joué en
+  // live comme en démo. Il ne distingue plus que le QR de confirmation (décoratif en
+  // démo, absent en live tant que document-service n'émet pas le QR signé).
   const mockMode = isMockMode();
 
   // Fenêtre de recherche : aujourd'hui → +30 jours. Bornée à l'horizon de
@@ -200,12 +202,20 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     () => centers.filter((c) => c.regionCode === selectedRegion),
     [centers, selectedRegion],
   );
+  // Centre effectivement retenu pour charger les disponibilités : la sélection
+  // explicite, ou — si la région n'a qu'un seul centre — ce centre unique.
+  // DÉRIVÉ au rendu (et non posé via un effet ni calculé dans le seul handler
+  // `onRegionChange`, qui peut capturer un `centers` obsolète et laisser la
+  // sélection vide → disponibilités jamais chargées, calendrier jamais affiché
+  // pour toute région mono-centre, ex. Bamako).
+  const effectiveCenterId =
+    selectedCenterId || (centersInRegion.length === 1 ? (centersInRegion[0]?.id ?? '') : '');
   const selectedCenter: CenterSummary | null =
-    centers.find((c) => c.id === selectedCenterId) ?? null;
+    centers.find((c) => c.id === effectiveCenterId) ?? null;
 
   const availability = useCenterAvailability(
-    { centerId: selectedCenterId, fromDate, toDate },
-    { enabled: selectedCenterId.length > 0 },
+    { centerId: effectiveCenterId, fromDate, toDate },
+    { enabled: effectiveCenterId.length > 0 },
   );
   const days = useMemo(() => availability.data?.days ?? [], [availability.data]);
 
@@ -250,9 +260,10 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     setSelectedRegion(region);
     setSelectedDay(null);
     setSelectedKey('');
-    const inRegion = centers.filter((c) => c.regionCode === region);
-    const only = inRegion.length === 1 ? inRegion[0] : undefined;
-    setSelectedCenterId(only ? only.id : '');
+    // Réinitialise la sélection explicite ; l'auto-sélection d'une région
+    // mono-centre est DÉRIVÉE au rendu (`effectiveCenterId`), donc robuste au
+    // chargement asynchrone de `centers` (contrairement à un calcul ici).
+    setSelectedCenterId('');
   };
   const onCenterChange = (id: string) => {
     setSelectedCenterId(id);
@@ -331,7 +342,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
     setError(null);
     try {
       const appt = await createAppointment.mutateAsync({
-        centerId: selectedCenterId,
+        centerId: effectiveCenterId,
         slot: selectedSlot.start,
         reason: reason.trim(),
       });
@@ -407,7 +418,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                 <div>
                   <Label htmlFor="center">{t('select.center')}</Label>
                   <Select
-                    value={selectedCenterId}
+                    value={effectiveCenterId}
                     onValueChange={onCenterChange}
                     disabled={!selectedRegion}
                   >
@@ -481,7 +492,7 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
               {t('calendar.title')}
             </h2>
 
-            {!selectedCenterId ? (
+            {!effectiveCenterId ? (
               <Alert>
                 <AlertDescription>{t('select.chooseCenterFirst')}</AlertDescription>
               </Alert>
@@ -563,60 +574,53 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                       <dd className="font-mono font-medium">{timeOf(selectedSlot.start)}</dd>
                     </dl>
 
-                    {mockMode ? (
-                      <>
-                        <div>
-                          <Label htmlFor="reason">{t('form.reason')}</Label>
-                          <textarea
-                            id="reason"
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            rows={3}
-                            minLength={5}
-                            maxLength={100}
-                            required
-                            placeholder={t('form.reasonPlaceholder')}
-                            className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          />
-                        </div>
+                    {/* Réservation active en live comme en démo : l'échange SSO
+                        dual-token (ADR-036) est réconcilié et validé bout-en-bout. */}
+                    <div>
+                      <Label htmlFor="reason">{t('form.reason')}</Label>
+                      <textarea
+                        id="reason"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        rows={3}
+                        minLength={5}
+                        maxLength={100}
+                        required
+                        placeholder={t('form.reasonPlaceholder')}
+                        className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      />
+                    </div>
 
-                        <div className="flex items-start gap-3 rounded-base border border-border bg-bg-card p-3">
-                          <Checkbox
-                            id="pledge"
-                            checked={pledge}
-                            onCheckedChange={(checked) => setPledge(checked === true)}
-                            className="mt-0.5"
-                          />
-                          <Label
-                            htmlFor="pledge"
-                            className="text-sm font-normal leading-snug text-fg-muted"
-                          >
-                            {t('form.pledge')}
-                          </Label>
-                        </div>
+                    <div className="flex items-start gap-3 rounded-base border border-border bg-bg-card p-3">
+                      <Checkbox
+                        id="pledge"
+                        checked={pledge}
+                        onCheckedChange={(checked) => setPledge(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="pledge"
+                        className="text-sm font-normal leading-snug text-fg-muted"
+                      >
+                        {t('form.pledge')}
+                      </Label>
+                    </div>
 
-                        {error && (
-                          <Alert variant="danger">
-                            <AlertTitle>{t('form.error')}</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                          </Alert>
-                        )}
-
-                        <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
-                          {createAppointment.isPending ? (
-                            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                          ) : (
-                            <Send className="size-4" aria-hidden="true" />
-                          )}
-                          {t('form.submit')}
-                        </Button>
-                      </>
-                    ) : (
-                      <Alert>
-                        <AlertTitle>{t('form.liveUnavailableTitle')}</AlertTitle>
-                        <AlertDescription>{t('form.liveUnavailableBody')}</AlertDescription>
+                    {error && (
+                      <Alert variant="danger">
+                        <AlertTitle>{t('form.error')}</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
                       </Alert>
                     )}
+
+                    <Button type="submit" disabled={!canSubmit} className="w-full" size="lg">
+                      {createAppointment.isPending ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Send className="size-4" aria-hidden="true" />
+                      )}
+                      {t('form.submit')}
+                    </Button>
                   </div>
                 )}
               </>
@@ -625,7 +629,8 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
         </div>
       </form>
 
-      {/* Modale de confirmation + QR de rendez-vous (mode démo uniquement) */}
+      {/* Modale de confirmation ; le QR décoratif est réservé au mode démo — en
+          live, on ne montre pas de QR tant que document-service n'émet pas le QR signé. */}
       {confirmation && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -646,15 +651,21 @@ export function AppointmentForm({ locale, nina, isVulnerable = false }: Appointm
                 <h2 id="confirm-title" className="text-lg font-semibold">
                   {t('confirm.title')}
                 </h2>
-                <p className="text-sm text-fg-muted">{t('confirm.subtitle')}</p>
+                <p className="text-sm text-fg-muted">
+                  {mockMode ? t('confirm.subtitle') : t('confirm.subtitleLive')}
+                </p>
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 py-2">
-              <DemoQrCode value={confirmation.reference} />
-              <p className="text-xs font-medium">{t('confirm.qrCaption')}</p>
-              <p className="text-center text-[11px] text-fg-muted">{t('confirm.qrNote')}</p>
-            </div>
+            {/* QR décoratif : mode démo uniquement (le QR signé réel viendra de
+                document-service). En live, aucun QR trompeur n'est présenté. */}
+            {mockMode && (
+              <div className="flex flex-col items-center gap-2 py-2">
+                <DemoQrCode value={confirmation.reference} />
+                <p className="text-xs font-medium">{t('confirm.qrCaption')}</p>
+                <p className="text-center text-[11px] text-fg-muted">{t('confirm.qrNote')}</p>
+              </div>
+            )}
 
             <dl className="mt-4 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
               <dt className="text-fg-muted">{t('confirm.center')}</dt>

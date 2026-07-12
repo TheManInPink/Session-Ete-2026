@@ -78,6 +78,7 @@ function build(
     queue?: Record<string, unknown>;
     publisher?: Record<string, unknown>;
     redis?: Record<string, unknown>;
+    audit?: Record<string, unknown>;
   } = {},
 ) {
   const repo = {
@@ -128,6 +129,7 @@ function build(
     ...overrides.queue,
   };
   const publisher = { publish: jest.fn().mockResolvedValue(true), ...overrides.publisher };
+  const audit = { publish: jest.fn().mockResolvedValue(true), ...overrides.audit };
   const redis = {
     isBlacklisted: jest.fn().mockResolvedValue(false),
     ttl: jest.fn().mockResolvedValue(-2),
@@ -151,8 +153,9 @@ function build(
     queue as never,
     publisher as never,
     redis as never,
+    audit as never,
   );
-  return { service, repo, centers, queue, publisher, redis };
+  return { service, repo, centers, queue, publisher, redis, audit };
 }
 
 const baseInput = {
@@ -451,7 +454,7 @@ describe('AppointmentsService self-service citoyen', () => {
   const NINA = '18903102015042V';
 
   it('createForCitizen : dérive le citizenId du NINA puis crée le RDV', async () => {
-    const { service, repo } = build({
+    const { service, repo, audit } = build({
       repo: { findCitizenIdByNina: jest.fn().mockResolvedValue('cit-1') },
     });
     const view = await service.createForCitizen(
@@ -462,6 +465,15 @@ describe('AppointmentsService self-service citoyen', () => {
     expect(repo.findCitizenIdByNina).toHaveBeenCalledWith(NINA);
     expect(repo.createBookingAtomic.mock.calls[0][0].citizenId).toBe('cit-1');
     expect(view.status).toBe('SCHEDULED');
+    // Événement d'audit d'imputabilité émis — et SANS le NINA en clair.
+    expect(audit.publish).toHaveBeenCalledTimes(1);
+    expect(audit.publish.mock.calls[0][0]).toMatchObject({
+      action: 'booking.created',
+      entityType: 'Appointment',
+      actorId: 'cit-1',
+      actorType: 'citizen',
+    });
+    expect(JSON.stringify(audit.publish.mock.calls[0][0])).not.toContain(NINA);
   });
 
   it('createForCitizen : 403 si le token ne porte pas de NINA (aucun accès base)', async () => {
@@ -502,7 +514,7 @@ describe('AppointmentsService self-service citoyen', () => {
   });
 
   it('cancelForCitizen : annule un RDV appartenant au citoyen', async () => {
-    const { service, repo, queue } = build({
+    const { service, repo, queue, audit } = build({
       repo: {
         findCitizenIdByNina: jest.fn().mockResolvedValue('cit-1'),
         findById: jest.fn().mockResolvedValue(makeRow({ citizenId: 'cit-1' })),
@@ -516,6 +528,13 @@ describe('AppointmentsService self-service citoyen', () => {
       'CANCELLED',
     );
     expect(queue.remove).toHaveBeenCalled();
+    expect(audit.publish).toHaveBeenCalledTimes(1);
+    expect(audit.publish.mock.calls[0][0]).toMatchObject({
+      action: 'booking.cancelled',
+      entityType: 'Appointment',
+      entityId: 'appt-1',
+      actorType: 'citizen',
+    });
   });
 
   it('cancelForCitizen : 404 anti-IDOR si le RDV appartient à un AUTRE citoyen', async () => {

@@ -156,7 +156,7 @@
         "use.refresh.tokens": "true",
         "client.use.lightweight.access.token.enabled": "false"
       },
-      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email", "basic"],
       "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
       "protocolMappers": [
         {
@@ -205,6 +205,7 @@
       }
     },
     {
+      "id": "8bff2324-471d-42b8-a351-33da8aa46161",
       "username": "citoyen.demo",
       "enabled": true,
       "emailVerified": true,

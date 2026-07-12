@@ -18,6 +18,7 @@ import { QueueService } from './queue.service.js';
 import { AppointmentsCron } from './appointments.cron.js';
 import { RabbitConnection } from './messaging/rabbit.connection.js';
 import { NotificationPublisher } from './messaging/notification.publisher.js';
+import { AuditPublisher } from './messaging/audit.publisher.js';
 
 @Module({
   imports: [CentersModule],
@@ -27,6 +28,7 @@ import { NotificationPublisher } from './messaging/notification.publisher.js';
     QueueService,
     RabbitConnection,
     NotificationPublisher,
+    AuditPublisher,
     AppointmentsCron,
     AppointmentsService,
   ],

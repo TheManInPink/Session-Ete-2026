@@ -52,8 +52,11 @@ pnpm run test:e2e:ui --project=admin
 
 ## Limites connues
 
-- **Pas de tests data API** : les services backend (correction-service, identity-service, etc.) ne
-  sont pas requis. Tout est en mock.
+- **Pas de tests data API _dans cette suite Playwright_** : les services backend ne sont pas requis
+  ici — tout est en mock (`NINA_AUTH_MODE=mock`). **Exception** : le parcours PC-04 dispose d'un e2e
+  « stack réelle » séparé, `pnpm run test:e2e:pc04-live` (`scripts/e2e-pc04-live.mjs`), qui rejoue
+  ROPC Keycloak → `/sso/exchange` → réservation → annulation contre les services réellement démarrés
+  (requiert `pnpm docker:up` + auth-service 3002 + appointment-service 3008 + `KC_DEMO_PASSWORD`).
 - **Pas de tests visuels (snapshot)** : on assert sur le DOM et les rôles ARIA. Les snapshots seront
   ajoutés Session 6+ quand les écrans seront stables.
 - **Pas de CI GitHub Actions** : la config root supporte le mode CI (`workers=1`, `reporter=github`)
