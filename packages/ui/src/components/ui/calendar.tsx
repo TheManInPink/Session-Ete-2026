@@ -35,6 +35,11 @@ export interface CalendarProps {
   min?: Date;
   /** Borne maximale sélectionnable (incluse). */
   max?: Date;
+  /**
+   * Prédicat de désactivation par jour, appliqué en plus de `min`/`max`
+   * (ex. griser les week-ends ou les jours sans créneau disponible).
+   */
+  disabled?: (date: Date) => boolean;
   /** Classes additionnelles sur le conteneur racine. */
   className?: string;
 }
@@ -90,6 +95,7 @@ export const Calendar = (props: CalendarProps) => {
     weekStartsOn = 1,
     min,
     max,
+    disabled: disabledDay,
     className,
   } = props;
 
@@ -131,9 +137,10 @@ export const Calendar = (props: CalendarProps) => {
       const day = startOfDay(d);
       if (minDay && day.getTime() < minDay.getTime()) return true;
       if (maxDay && day.getTime() > maxDay.getTime()) return true;
+      if (disabledDay?.(day)) return true;
       return false;
     },
-    [minDay, maxDay],
+    [minDay, maxDay, disabledDay],
   );
 
   // Formatteurs Intl mémoïsés (recréés seulement si la locale change).

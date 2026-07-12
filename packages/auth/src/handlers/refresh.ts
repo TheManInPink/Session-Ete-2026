@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
+import { exchangeBackendToken } from './backend-exchange';
 import type { AuthConfig } from '../types';
 
 const RefreshResponseSchema = z.object({
@@ -42,6 +43,7 @@ export function buildRefreshHandler(config: AuthConfig) {
       res.cookies.delete('access_token');
       res.cookies.delete('refresh_token');
       res.cookies.delete('id_token');
+      res.cookies.delete('backend_access_token');
       return res;
     }
 
@@ -67,6 +69,28 @@ export function buildRefreshHandler(config: AuthConfig) {
       path: '/api/auth/refresh',
       maxAge: tokens.refresh_expires_in,
     });
+
+    // Rafraîchit la session applicative (ADR-036) en ré-échangeant le nouveau
+    // token Keycloak. Non-fatal (cf. callback) : sur échec, on purge le cookie.
+    const backend = await exchangeBackendToken(config, tokens.access_token);
+    if (backend) {
+      res.cookies.set('backend_access_token', backend.access, {
+        httpOnly: true,
+        secure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: backend.expiresIn,
+      });
+    } else if (config.backendExchangeUrl) {
+      res.cookies.set('backend_access_token', '', {
+        httpOnly: true,
+        secure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 0,
+      });
+    }
+
     return res;
   };
 }

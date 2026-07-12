@@ -19,11 +19,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApiClient } from './context';
 import { queryKeys } from './query-keys';
 import type {
+  AvailabilityQuery,
+  CentersQuery,
   CorrectionListParams,
   DirectiveListParams,
   IdentitySearchParams,
   SgogtInboxParams,
-  SlotsQuery,
 } from '../core/client.types';
 import type { CreateCorrectionDto } from '../correction/correction.schema';
 import type { CreateAppointmentDto } from '../appointment/appointment.schema';
@@ -140,13 +141,24 @@ export function useRejectCorrection() {
 
 // ── appointment-service ───────────────────────────────────────────────────────
 
-/** PC-04 — créneaux disponibles pour une plage de dates / un centre. */
-export function useAvailableSlots(params: SlotsQuery, options: QueryOptions = {}) {
+/** PC-04 — centres d'enrôlement (optionnellement filtrés par région `ML-XX`). */
+export function useCenters(params: CentersQuery = {}, options: QueryOptions = {}) {
   const api = useApiClient();
   return useQuery({
-    queryKey: queryKeys.appointments.slots(params),
-    queryFn: () => api.appointment.getAvailableSlots(params),
-    enabled: (options.enabled ?? true) && params.fromDate.length > 0,
+    queryKey: queryKeys.appointments.centers(params.region),
+    queryFn: () => api.appointment.listCenters(params),
+    enabled: options.enabled ?? true,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** PC-04 — disponibilités d'un centre (créneaux STANDARD/PRIORITAIRE par jour). */
+export function useCenterAvailability(params: AvailabilityQuery, options: QueryOptions = {}) {
+  const api = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.appointments.availability(params),
+    queryFn: () => api.appointment.getAvailability(params),
+    enabled: (options.enabled ?? true) && params.centerId.length > 0 && params.fromDate.length > 0,
   });
 }
 

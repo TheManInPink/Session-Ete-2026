@@ -6,42 +6,60 @@
  *              divulguer le NINA dans l'historique de navigation. La soumission
  *              finale appelle `clientApi.correction.submit()` via TanStack Query.
  *
+ *              **Comparaison avant/après + pré-analyse (étape 2)** : quand la fiche
+ *              est disponible (`citizen`), l'étape 2 affiche la valeur actuelle du
+ *              champ et un indicateur de **similarité Jaro-Winkler** calculé
+ *              localement (cf. `similarity.ts`). Ce n'est **pas** un score IA : il
+ *              n'y a ni modèle ni appel réseau ; l'analyse officielle est faite par
+ *              le service à la soumission. Sans fiche, l'étape 2 reste en une colonne.
+ *
  *              **Mode démo** : si aucune API n'est joignable, on simule un succès
- *              et on redirige vers `/dashboard` avec un message toast simulé.
- *              L'étape 3 (justificatif) valide le fichier localement mais ne
- *              l'envoie pas (document-service non connecté, cf. doc 10).
+ *              et on redirige vers `/dashboard`. L'étape 3 (justificatif) valide le
+ *              fichier localement mais ne l'envoie pas (document-service non
+ *              connecté, cf. doc 10) — on réutilise la zone de dépôt partagée
+ *              `UploadZone` mais on rend nous-mêmes une vignette honnête (« non
+ *              envoyé ») plutôt que son statut « Téléversement réussi ».
  * @module      @nina-aes/citizen
  */
 
 'use client';
 
-import { useState, useRef, type SyntheticEvent } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { formatNina } from '@nina-aes/utils';
 import { Button } from '@nina-aes/ui/components/button';
 import { Input } from '@nina-aes/ui/components/input';
 import { Label } from '@nina-aes/ui/components/label';
+import { Badge } from '@nina-aes/ui/components/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@nina-aes/ui/components/card';
 import { Alert, AlertDescription, AlertTitle } from '@nina-aes/ui/components/alert';
 import { Checkbox } from '@nina-aes/ui/components/checkbox';
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Send,
-  Loader2,
-  AlertCircle,
-  UploadCloud,
-  FileText,
-  X,
-} from 'lucide-react';
+import { Stepper } from '@nina-aes/ui/components/stepper';
+import { AiScorePanel } from '@nina-aes/ui/components/business/ai-score-panel';
+import { UploadZone } from '@nina-aes/ui/components/business/upload-zone';
+import { ChevronLeft, ChevronRight, Send, Loader2, AlertCircle, FileText, X } from 'lucide-react';
 import { cn } from '@nina-aes/ui/lib/utils';
 import type { CorrectionField } from '@nina-aes/api-client';
 import { useSubmitCorrection } from '@nina-aes/api-client/react';
+import { similarityScore } from './similarity';
+
+/** Carte d'identité compacte + valeurs actuelles (comparaison avant/après). */
+export interface CorrectionCitizen {
+  fullName: string;
+  initials: string;
+  birthLabel: string;
+  /** Vrai si les données proviennent du mode démo (déterministe). */
+  synthetic: boolean;
+  /** Valeur actuelle par champ corrigible (absente si non renseignée). */
+  currentValues: Partial<Record<CorrectionField, string>>;
+}
 
 interface WizardProps {
   nina: string;
   locale: string;
+  /** Fiche courante (best-effort) pour l'avant/après + la pré-analyse. */
+  citizen?: CorrectionCitizen;
 }
 
 /** Champs autorisés à la correction côté citoyen (la liste serveur fait foi). */
@@ -80,7 +98,7 @@ const INITIAL_STATE: WizardState = {
   certified: false,
 };
 
-export function CorrectionWizard({ nina, locale }: WizardProps) {
+export function CorrectionWizard({ nina, locale, citizen }: WizardProps) {
   const t = useTranslations('correction');
   const router = useRouter();
   const [state, setState] = useState<WizardState>(INITIAL_STATE);
@@ -89,9 +107,7 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
   const isSubmitting = submitCorrection.isPending;
 
   // ── Justificatif (étape 3) — upload mock : validé localement, jamais envoyé ─
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const setField = (field: CorrectionField) => setState((s) => ({ ...s, field }));
@@ -101,9 +117,9 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
     setState((s) => ({ ...s, step: Math.max(1, s.step - 1) as WizardState['step'] }));
 
   /** Valide puis « accepte » localement un fichier (aucun appel réseau). */
-  const handleFiles = (list: FileList | null) => {
+  const handleFiles = (files: File[]) => {
     setUploadError(null);
-    const f = list?.[0];
+    const f = files[0];
     if (!f) return;
     if (!ACCEPTED_TYPES.includes(f.type)) {
       setUploadError(t('steps.3.errorFormat'));
@@ -122,7 +138,6 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
     setFile(null);
     setUploadError(null);
     setState((s) => ({ ...s, justificationDocUrl: null }));
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   /** Formate une taille d'octets en Ko/Mo lisible. */
@@ -131,6 +146,22 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
       ? `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
       : `${Math.max(1, Math.round(bytes / 1024))} Ko`;
 
+  // ── Pré-analyse locale (étape 2) — similarité entre valeur actuelle et proposée.
+  const currentValue = state.field ? citizen?.currentValues[state.field] : undefined;
+  const proposedTrimmed = state.proposedValue.trim();
+  const comparison =
+    currentValue !== undefined && proposedTrimmed.length > 0
+      ? { score: similarityScore(currentValue, proposedTrimmed) }
+      : null;
+  const hint =
+    comparison === null
+      ? null
+      : comparison.score >= 85
+        ? t('ai.hintHigh')
+        : comparison.score < 60
+          ? t('ai.hintLow')
+          : null;
+
   const canContinue =
     (state.step === 1 && state.field !== null) ||
     (state.step === 2 &&
@@ -138,6 +169,13 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
       state.reason.trim().length >= 10) ||
     state.step === 3 ||
     state.step === 4;
+
+  const stepperSteps = [
+    { label: t('steps.1.short') },
+    { label: t('steps.2.short') },
+    { label: t('steps.3.short') },
+    { label: t('steps.4.short') },
+  ];
 
   /** Soumet la correction au backend (mock → fixture, live → gateway via BFF). */
   const handleSubmit = async (e: SyntheticEvent) => {
@@ -167,23 +205,38 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      {/* Stepper visuel */}
-      <ol className="mb-8 flex items-center justify-between" aria-label={t('steps.ariaLabel')}>
-        {[1, 2, 3, 4].map((step) => (
-          <li
-            key={step}
-            className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors',
-              step < state.step && 'border-primary bg-primary text-primary-fg',
-              step === state.step && 'border-primary text-primary',
-              step > state.step && 'border-border text-fg-muted',
-            )}
-            aria-current={step === state.step ? 'step' : undefined}
+      {/* Carte « fiche concernée » — contexte de la correction. */}
+      {citizen && (
+        <div className="mb-6 flex items-center gap-4 rounded-lg border border-border bg-bg-card p-4">
+          <div
+            className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-primary-50 text-lg font-semibold text-primary"
+            aria-hidden="true"
           >
-            {step < state.step ? <Check className="size-4" aria-hidden="true" /> : step}
-          </li>
-        ))}
-      </ol>
+            {citizen.initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-wide text-fg-muted">
+              {t('citizenCard.title')}
+            </p>
+            <p className="truncate font-semibold text-fg">{citizen.fullName}</p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-fg-muted">
+              <span className="font-mono">{formatNina(nina)}</span>
+              <span>
+                {t('citizenCard.birthLabel')} : {citizen.birthLabel}
+              </span>
+            </div>
+          </div>
+          {citizen.synthetic && <Badge variant="muted">{t('citizenCard.demoBadge')}</Badge>}
+        </div>
+      )}
+
+      {/* Fil d'étapes (composant partagé, libellés courts). */}
+      <Stepper
+        steps={stepperSteps}
+        current={state.step - 1}
+        className="mb-8"
+        aria-label={t('steps.ariaLabel')}
+      />
 
       <Card>
         {/* ── Étape 1 — Choix du champ ───────────────────────────────────── */}
@@ -218,7 +271,7 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
           </>
         )}
 
-        {/* ── Étape 2 — Nouvelle valeur + motif ───────────────────────────── */}
+        {/* ── Étape 2 — Nouvelle valeur + motif + pré-analyse ─────────────── */}
         {state.step === 2 && state.field && (
           <>
             <CardHeader>
@@ -227,34 +280,81 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
                 {t('steps.2.subtitle', { field: t(`fields.${state.field}.label`) })}
               </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="proposedValue">{t('steps.2.proposedValue')}</Label>
-                <Input
-                  id="proposedValue"
-                  value={state.proposedValue}
-                  onChange={(e) => setState((s) => ({ ...s, proposedValue: e.target.value }))}
-                  maxLength={200}
-                  required
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="reason">{t('steps.2.reason')}</Label>
-                <textarea
-                  id="reason"
-                  value={state.reason}
-                  onChange={(e) => setState((s) => ({ ...s, reason: e.target.value }))}
-                  rows={4}
-                  minLength={10}
-                  maxLength={2000}
-                  required
-                  className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-describedby="reason-help"
-                />
-                <p id="reason-help" className="mt-1 text-xs text-fg-muted">
-                  {t('steps.2.reasonHelp')} ({state.reason.length}/2000)
-                </p>
+            <CardContent>
+              <div className={cn('grid gap-6', citizen && 'lg:grid-cols-[1fr_19rem]')}>
+                {/* Colonne formulaire */}
+                <div className="space-y-4">
+                  {/* Valeur actuelle (lecture seule) — la moitié « avant ». */}
+                  {currentValue !== undefined && (
+                    <div>
+                      <span className="text-xs font-medium uppercase tracking-wide text-fg-muted">
+                        {t('steps.2.currentLabel')}
+                      </span>
+                      <p className="mt-1 rounded-base border border-border bg-bg-muted px-3 py-2 font-medium text-fg">
+                        {currentValue}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="proposedValue">{t('steps.2.proposedValue')}</Label>
+                    <Input
+                      id="proposedValue"
+                      value={state.proposedValue}
+                      onChange={(e) => setState((s) => ({ ...s, proposedValue: e.target.value }))}
+                      maxLength={200}
+                      required
+                      autoComplete="off"
+                      placeholder={currentValue ?? undefined}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="reason">{t('steps.2.reason')}</Label>
+                    <textarea
+                      id="reason"
+                      value={state.reason}
+                      onChange={(e) => setState((s) => ({ ...s, reason: e.target.value }))}
+                      rows={4}
+                      minLength={10}
+                      maxLength={2000}
+                      required
+                      className="mt-1 flex w-full rounded-base border border-border bg-bg-card px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-describedby="reason-help"
+                    />
+                    <p id="reason-help" className="mt-1 text-xs text-fg-muted">
+                      {t('steps.2.reasonHelp')} ({state.reason.length}/2000)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Colonne pré-analyse (similarité locale) — seulement si fiche connue. */}
+                {citizen && (
+                  <aside className="lg:border-l lg:border-border lg:pl-6">
+                    <h3 className="text-sm font-semibold text-fg">{t('ai.title')}</h3>
+                    {comparison ? (
+                      <div className="mt-4 space-y-3">
+                        <AiScorePanel
+                          score={comparison.score}
+                          bands={{
+                            high: t('ai.bandHigh'),
+                            medium: t('ai.bandMedium'),
+                            low: t('ai.bandLow'),
+                          }}
+                        />
+                        {hint && <p className="text-xs text-fg-muted">{hint}</p>}
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm text-fg-muted">
+                        {currentValue === undefined ? t('ai.unavailable') : t('ai.typePrompt')}
+                      </p>
+                    )}
+                    <p className="mt-4 border-t border-border pt-3 text-xs text-fg-muted">
+                      {t('ai.caption')}
+                    </p>
+                  </aside>
+                )}
               </div>
             </CardContent>
           </>
@@ -268,41 +368,17 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
               <p className="text-sm text-fg-muted">{t('steps.3.subtitle')}</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Input fichier réel, masqué — déclenché par la zone ci-dessous. */}
-              <input
-                ref={fileInputRef}
-                type="file"
+              {/* Zone de dépôt partagée (a11y clavier + glisser-déposer). On ne
+                  passe PAS `files` : son statut « Téléversement réussi » serait
+                  mensonger (le fichier n'est jamais envoyé) → vignette honnête ci-dessous. */}
+              <UploadZone
+                onFilesSelected={handleFiles}
                 accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                className="sr-only"
-                onChange={(e) => handleFiles(e.target.files)}
+                labelText={t('steps.3.dropPrompt')}
+                hintText={t('steps.3.formats')}
               />
 
-              {!file ? (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragging(true);
-                  }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragging(false);
-                    handleFiles(e.dataTransfer.files);
-                  }}
-                  className={cn(
-                    'flex w-full flex-col items-center justify-center gap-2 rounded-base border-2 border-dashed p-8 text-center transition-colors',
-                    'hover:border-primary hover:bg-primary-50/30',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    isDragging ? 'border-primary bg-primary-50/50' : 'border-border',
-                  )}
-                >
-                  <UploadCloud className="size-8 text-fg-muted" aria-hidden="true" />
-                  <span className="font-medium">{t('steps.3.dropPrompt')}</span>
-                  <span className="text-xs text-fg-muted">{t('steps.3.formats')}</span>
-                </button>
-              ) : (
+              {file && (
                 <div className="flex items-center gap-3 rounded-base border border-border bg-primary-50/30 p-4">
                   <FileText className="size-8 shrink-0 text-primary" aria-hidden="true" />
                   <div className="min-w-0 flex-1">
@@ -341,12 +417,29 @@ export function CorrectionWizard({ nina, locale }: WizardProps) {
                 <dd className="font-mono">{nina}</dd>
                 <dt className="text-fg-muted">{t('summary.field')}</dt>
                 <dd className="font-medium">{t(`fields.${state.field}.label`)}</dd>
+                {currentValue !== undefined && (
+                  <>
+                    <dt className="text-fg-muted">{t('steps.2.currentLabel')}</dt>
+                    <dd className="text-fg-muted line-through decoration-fg-muted/40">
+                      {currentValue}
+                    </dd>
+                  </>
+                )}
                 <dt className="text-fg-muted">{t('summary.newValue')}</dt>
                 <dd className="font-medium">{state.proposedValue}</dd>
                 <dt className="text-fg-muted">{t('summary.reason')}</dt>
                 <dd className="whitespace-pre-wrap">{state.reason}</dd>
                 <dt className="text-fg-muted">{t('summary.justification')}</dt>
                 <dd className="font-medium">{file ? file.name : t('summary.justificationNone')}</dd>
+                {comparison && (
+                  <>
+                    <dt className="text-fg-muted">{t('ai.summaryLabel')}</dt>
+                    <dd className="font-medium">
+                      {comparison.score}/100{' '}
+                      <span className="font-normal text-fg-muted">({t('ai.summaryHint')})</span>
+                    </dd>
+                  </>
+                )}
               </dl>
               <Alert>
                 <AlertTitle>{t('summary.processingTitle')}</AlertTitle>

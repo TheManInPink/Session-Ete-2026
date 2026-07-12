@@ -381,6 +381,43 @@ connexion rétablie. Détaillé dans doc 13 (mobile app) + ce doc §4.2.bis.
 
 ---
 
+### Étape 4.2ter — AS-BUILT : réconciliation PROMPT 6.1 (validation par catégorie · appel SMS de file · livraison à domicile)
+
+> Consigne l'implémentation réelle (**ADR-035**) qui complète le `vulnerability-service` au-delà du
+> squelette §4.2. Changements de schéma **additifs** (table `delivery_missions` + colonne
+> `priority_queue_entries.notified_at`) ; **aucun** nouveau `UserRole` plateforme.
+
+**(a) Politique de validation par catégorie** — `GET /vulnerability/categories` expose le
+référentiel ; `POST /vulnerability/profiles` l'applique :
+
+- `ELDERLY` → `AUTO_AGE` : âge ≥ 60 dérivé de `Citizen.birthDate` ⇒ **auto-vérifié** ; **422** sinon
+  (pas d'auto-déclaration d'un âge non atteint).
+- `DISABLED`, `CHRONIC_ILL` → `MANUAL_CERT` : `proofUrl` **obligatoire** + revue agent CTDEC
+  (**422** sans preuve).
+- `PREGNANT`, `ILLITERATE`, `DIASPORA` → `SELF_DECLARED` : auto-déclaration **acceptée** (vérifiée).
+
+**(b) Appel SMS « c'est votre tour »** — `POST /vulnerability/priority-queue/notify-next` publie un
+job SMS vers notification-service (`nina.notifications`), **idempotent** via
+`priority_queue_entries.notified_at`, **best-effort** (bus indisponible ⇒ appel rejouable). La
+fenêtre **7h-9h** dédiée aux P1 reste portée par `EnrollmentCenter.priority_window_from/to` +
+`priority_quota_per_day` (consommée par appointment-service) — **non redéfinie** ici.
+
+**(c) Livraison à domicile** — table additive `delivery_missions` (+ enums `delivery_status`,
+`delivery_signature_type`). Cycle `REQUESTED → ASSIGNED → (IN_TRANSIT) → DELIVERED | FAILED`, **SLA
+15 j** (`due_at = demande + DELIVERY_SLA_DAYS`). Dispatch ADMIN/SUP → agent **actif** ;
+**confirmation réservée à l'agent affecté** (ownership `sub JWT → User.id → mobile_agents`, **403**
+sinon) avec preuve de réception **hashée** (jamais le gabarit biométrique brut), photo d'attestation
+**chiffrée** (MinIO) + GPS. L'« agent mobile » reste une **entité** (`MobileAgent`), pas un rôle
+plateforme (ADR-035 D1).
+
+Endpoints livraison : `POST` / `GET /vulnerability/deliveries` (**liste anti-BOLA** : un simple
+AGENT est forcé à SES missions — les adresses domicile ne sont pas énumérables ; supervision
+SUP/ADMIN/AUDITOR = vue complète, ADR-035 D6), `GET /vulnerability/deliveries/agent/:agentId`
+(tournée, ownership), `PUT /vulnerability/deliveries/:id/{assign,confirm,fail}` (`fail` exige aussi
+l'agent **actif**).
+
+---
+
 ### Étape 4.3 — Sous-module C2 : SGOGT (messagerie officielle)
 
 ```ts

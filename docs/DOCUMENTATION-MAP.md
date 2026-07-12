@@ -7,13 +7,15 @@
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
 > **Dernière mise à jour** : 25 juin 2026 · **Status** : ✅ initialisé (27 docs + 12 docs
-> thématiques + **34 ADRs** — ADR-031 (data layer frontend mock/live/BFF), ADR-032 (design system),
-> ADR-033 (pipeline de tokens Style Dictionary) et **ADR-034 (sécurité hardening — Vault, mTLS,
-> OWASP)** ajoutés depuis ; ADR-030 couvre le module IA : pipeline d'entraînement
-> `ai-models/training`, bundle joblib auto-suffisant anti-fuite, générateur de dataset restauré et
-> intégration `ai-service` — PROMPT 4.3. **Consolidation PHASE 1 (audit contenu + sécurité des 27
-> docs) livrée le 2026-06-25** : 12 docs thématiques créés, correctifs crypto SIGAC/biométrie,
-> docs/security/ rempli, 2 orphelins archivés — cf. §11).
+> thématiques + **36 ADRs** — ADR-031 (data layer frontend mock/live/BFF), ADR-032 (design system),
+> ADR-033 (pipeline de tokens Style Dictionary), **ADR-034 (sécurité hardening — Vault, mTLS,
+> OWASP)**, **ADR-035 (livraison à domicile + validation par catégorie — vulnerability-service)** et
+> **ADR-036 (échange SSO Keycloak → session applicative auth-service)** ajoutés depuis ; ADR-030
+> couvre le module IA : pipeline d'entraînement `ai-models/training`, bundle joblib auto-suffisant
+> anti-fuite, générateur de dataset restauré et intégration `ai-service` — PROMPT 4.3.
+> **Consolidation PHASE 1 (audit contenu + sécurité des 27 docs) livrée le 2026-06-25** : 12 docs
+> thématiques créés, correctifs crypto SIGAC/biométrie, docs/security/ rempli, 2 orphelins archivés
+> — cf. §11).
 
 ---
 
@@ -46,9 +48,9 @@
                               │
                               ▼ Justifie
 ┌──────────────────────────────────────────────────────────────────┐
-│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…034)   │
+│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…036)   │
 │  ─────────────────────────────────────────────────────────────   │
-│  34 ADRs (001 à 034) — décisions stratégiques avec :             │
+│  36 ADRs (001 à 036) — décisions stratégiques avec :             │
 │   • Contexte document (lien vers doc Tier 2 associée)            │
 │   • Décision + Conséquences positives / négatives                │
 │   • Note souveraineté + Alternatives rejetées                    │
@@ -214,7 +216,7 @@ clôturé.
 
 ## 4. Tier 3 — ADRs (graphe de dépendances)
 
-### 4.1 Couverture 34 ADRs (001–034)
+### 4.1 Couverture 36 ADRs (001–036)
 
 | ADR | Sujet                                               | Doc parent | "Complète" refs                                              |
 | --: | --------------------------------------------------- | ---------- | ------------------------------------------------------------ |
@@ -252,6 +254,8 @@ clôturé.
 | 032 | Design system                                       | doc 12     | ADR-031                                                      |
 | 033 | Pipeline de tokens Style Dictionary                 | doc 12     | ADR-032                                                      |
 | 034 | Sécurité hardening — Vault, mTLS, OWASP             | doc 15     | ADR-013, ADR-014, ADR-026 (comble l'ADR-015 fautif)          |
+| 035 | Livraison à domicile + validation par catégorie     | doc 22     | ADR-022, ADR-027, ADR-028                                    |
+| 036 | Échange SSO Keycloak → session applicative auth-svc | doc 08     | ADR-028, ADR-029, ADR-034                                    |
 
 ### 4.2 ⚠️ Refs ADR cassées (sévérité P0)
 
@@ -366,20 +370,21 @@ automatiquement → risque de drift silencieuse.
 
 ## 6. Synthèse des dérives (à jour 16 mai 2026)
 
-|   # | Drift                                                                                                                                | Sévérité | Fichier(s)                                                                                                           | Action                             |
-| --: | ------------------------------------------------------------------------------------------------------------------------------------ | :------: | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-|   1 | ADR-024 réf cassée vers ADR-013 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-024-*.md` ligne 5                                                                                      | Fix immédiat                       |
-|   2 | ADR-025 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-025-*.md` ligne 6                                                                                      | Fix immédiat                       |
-|   3 | ADR-020 réf cassée vers ADR-015 (mauvais titre)                                                                                      |  🔴 P0   | `docs/adr/ADR-020-*.md` ligne 5-6                                                                                    | Fix immédiat                       |
-|   4 | ~~2 docs orphelins (01-fondations + 02-infrastructure)~~ ✅ Archivés vers `docs/_archive/` le 2026-06-25 (PHASE 1, Wave 1 `e3c7335`) |    ✅    | `docs/_archive/01-fondations-monorepo-outillage-dx.md`, `docs/_archive/02-infrastructure-docker-services-donnees.md` | —                                  |
-|   5 | ~~graphify-out snapshot 5 mai = stale 11 jours~~ ✅ Résolu 17 mai 2026 (`graphify update` → 613 nodes / 598 edges / 183 communautés) |    ✅    | `graphify-out/`                                                                                                      | —                                  |
-|   6 | AGENTS.md ne mentionne pas `verify:repo`                                                                                             |  🟡 P1   | `AGENTS.md`                                                                                                          | Aligner sur copilot                |
-|   7 | README.md ne référence pas MAINTENANCE.md                                                                                            |  🟡 P1   | `README.md`                                                                                                          | Enrichir                           |
-|   8 | ADR-013 (Mobile Expo) manquant                                                                                                       |  🟡 P1   | (à créer)                                                                                                            | Reporté V2                         |
-|   9 | ADR-015 réelle (Security Hardening) manquante                                                                                        |  🟡 P1   | (à créer)                                                                                                            | Reporté V2                         |
-|  10 | ADRs 001-013 sans header "Complète"                                                                                                  |  🟢 P2   | 13 ADRs                                                                                                              | Backfill possible                  |
-|  11 | `docs/api/`, `docs/security/`, `docs/observability/` vides                                                                           |  🟢 P2   | dossiers                                                                                                             | Remplir au fil des implémentations |
-|  12 | `docs-sync-check.mjs` enforce seulement 10 refs                                                                                      |  🟢 P2   | `scripts/docs-sync-check.mjs`                                                                                        | Étendre progressivement            |
+|   # | Drift                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |   Sévérité    | Fichier(s)                                                                                                           | Action                              |
+| --: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----------: | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+|   1 | ADR-024 réf cassée vers ADR-013 (mauvais titre)                                                                                                                                                                                                                                                                                                                                                                                                                                                 |     🔴 P0     | `docs/adr/ADR-024-*.md` ligne 5                                                                                      | Fix immédiat                        |
+|   2 | ADR-025 réf cassée vers ADR-015 (mauvais titre)                                                                                                                                                                                                                                                                                                                                                                                                                                                 |     🔴 P0     | `docs/adr/ADR-025-*.md` ligne 6                                                                                      | Fix immédiat                        |
+|   3 | ADR-020 réf cassée vers ADR-015 (mauvais titre)                                                                                                                                                                                                                                                                                                                                                                                                                                                 |     🔴 P0     | `docs/adr/ADR-020-*.md` ligne 5-6                                                                                    | Fix immédiat                        |
+|   4 | ~~2 docs orphelins (01-fondations + 02-infrastructure)~~ ✅ Archivés vers `docs/_archive/` le 2026-06-25 (PHASE 1, Wave 1 `e3c7335`)                                                                                                                                                                                                                                                                                                                                                            |      ✅       | `docs/_archive/01-fondations-monorepo-outillage-dx.md`, `docs/_archive/02-infrastructure-docker-services-donnees.md` | —                                   |
+|   5 | ~~graphify-out snapshot 5 mai = stale 11 jours~~ ✅ Résolu 17 mai 2026 (`graphify update` → 613 nodes / 598 edges / 183 communautés)                                                                                                                                                                                                                                                                                                                                                            |      ✅       | `graphify-out/`                                                                                                      | —                                   |
+|   6 | AGENTS.md ne mentionne pas `verify:repo`                                                                                                                                                                                                                                                                                                                                                                                                                                                        |     🟡 P1     | `AGENTS.md`                                                                                                          | Aligner sur copilot                 |
+|   7 | README.md ne référence pas MAINTENANCE.md                                                                                                                                                                                                                                                                                                                                                                                                                                                       |     🟡 P1     | `README.md`                                                                                                          | Enrichir                            |
+|   8 | ADR-013 (Mobile Expo) manquant                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |     🟡 P1     | (à créer)                                                                                                            | Reporté V2                          |
+|   9 | ADR-015 réelle (Security Hardening) manquante                                                                                                                                                                                                                                                                                                                                                                                                                                                   |     🟡 P1     | (à créer)                                                                                                            | Reporté V2                          |
+|  10 | ADRs 001-013 sans header "Complète"                                                                                                                                                                                                                                                                                                                                                                                                                                                             |     🟢 P2     | 13 ADRs                                                                                                              | Backfill possible                   |
+|  11 | `docs/api/`, `docs/security/`, `docs/observability/` vides                                                                                                                                                                                                                                                                                                                                                                                                                                      |     🟢 P2     | dossiers                                                                                                             | Remplir au fil des implémentations  |
+|  12 | `docs-sync-check.mjs` enforce seulement 10 refs                                                                                                                                                                                                                                                                                                                                                                                                                                                 |     🟢 P2     | `scripts/docs-sync-check.mjs`                                                                                        | Étendre progressivement             |
+|  13 | **Lignée de migrations désynchronisée du schéma** : tables ajoutées par `db push` sans migration (Bloc C1 `mobile_agents`/`priority_queue_entries`/`offline_*`/`vulnerability_access_logs` ; Bloc B `aes_partners` ; colonnes `aes_verification_logs`/`biometric_consents` ; `id DROP DEFAULT` Prisma 7). `migrate deploy` sur base fraîche ⇒ schéma divergent. **Bloc C1 réconcilié** (baseline `20260709120000_vulnerability_bloc_c1_base`, ADR-035) ; le **reste orthogonal** à réconcilier. | 🔴 P0 (C1 ✅) | `packages/database/prisma/migrations/`, `schema.prisma`                                                              | Baseline globale des blocs restants |
 
 ---
 
@@ -556,7 +561,7 @@ Cadence recommandée : revue trimestrielle + à chaque release majeure (tag Git 
                                   deployment/{DRP-RUNBOOK,OPS-RUNBOOK}, governance/{SGOGT-PROTOCOL,ELECTIONS-EXPORT-CONTRACT})
 ```
 
-État final : **27/27 docs canoniques + 12 docs thématiques + 34 ADRs + 6 gouvernance + 7 catalogues
+État final : **27/27 docs canoniques + 12 docs thématiques + 36 ADRs + 6 gouvernance + 7 catalogues
 transversaux + 1 carte (ce doc) = ~30 000 lignes de documentation cohérente.** Contrôles non
 implémentés dans le code marqués ⏳ « conçu, Phase 2 » ; gate pré-commit `verify:repo` vert à chaque
 commit de la PHASE 1.

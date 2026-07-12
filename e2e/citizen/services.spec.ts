@@ -19,30 +19,38 @@ test.describe('Citoyen — connexion', () => {
 });
 
 test.describe('PC-04 — Prise de rendez-vous', () => {
-  test('affiche le formulaire avec des créneaux (centre CTDEC)', async ({ page }) => {
+  test('affiche le sélecteur de centre (région → centre)', async ({ page }) => {
     await page.goto('/fr/appointments/new');
     await expect(
       page.getByRole('heading', { level: 1, name: 'Prendre un rendez-vous' }),
     ).toBeVisible();
-    // Les créneaux (mock) arrivent côté client via React Query.
-    await expect(page.getByText('CTDEC Bamako').first()).toBeVisible();
+    // La colonne gauche propose le choix du centre par région (Select Radix).
+    await expect(page.getByRole('combobox', { name: 'Région' })).toBeVisible();
   });
 
   test('réserve un créneau et affiche la confirmation (mode mock)', async ({ page }) => {
     await page.goto('/fr/appointments/new');
 
-    // 1) Sélectionner le premier créneau disponible.
-    const firstSlot = page.getByRole('radio').first();
+    // 1) Région → Bamako (un seul centre seedé : CTDEC Bamako → auto-sélectionné).
+    await page.getByRole('combobox', { name: 'Région' }).click();
+    await page.getByRole('option', { name: 'Bamako' }).click();
+
+    // 2) Premier jour disponible du calendrier (jours grisés = non cliquables).
+    const firstDay = page.locator('button[data-day]:not([disabled])').first();
+    await firstDay.waitFor();
+    await firstDay.click();
+
+    // 3) Premier créneau proposé (PrioritySlot ; aria-label = « heure — centre »).
+    const firstSlot = page.getByRole('button', { name: /CTDEC Bamako/ }).first();
     await firstSlot.waitFor();
-    await firstSlot.check();
+    await firstSlot.click();
 
-    // 2) Motif (≥ 5 caractères).
+    // 4) Motif (≥ 5 caractères) + engagement pièce d'identité (conditionne l'envoi).
     await page.locator('#reason').fill('Récupération de ma fiche signée');
+    await page.getByRole('checkbox').check();
 
-    // 3) Confirmer.
+    // 5) Confirmer → modale de confirmation.
     await page.locator('button[type="submit"]').click();
-
-    // 4) Modale de confirmation.
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByText('Rendez-vous confirmé')).toBeVisible();
   });

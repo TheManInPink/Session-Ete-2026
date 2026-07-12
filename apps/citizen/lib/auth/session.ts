@@ -37,11 +37,21 @@ const MOCK_CITIZEN: UserProfile = {
   locale: 'fr',
 };
 
+/**
+ * URL interne de l'échange SSO auth-service (server-to-server, HORS edge public
+ * — cf. ADR-036). Le token Keycloak du citoyen y est échangé contre une session
+ * applicative que le backend accepte. Réservé au portail citoyen.
+ */
+const BACKEND_EXCHANGE_URL = `${(
+  process.env.AUTH_SERVICE_INTERNAL_URL ?? 'http://localhost:3002'
+).replace(/\/$/, '')}/api/v1/auth/sso/exchange`;
+
 const AUTH_CONFIG: AuthConfig = {
   clientId: process.env.KEYCLOAK_CLIENT_ID ?? 'nina-citizen',
   appPublicUrl: process.env.APP_PUBLIC_URL ?? 'http://localhost:4001',
   defaultNext: '/dashboard',
   mockProfile: MOCK_CITIZEN,
+  backendExchangeUrl: BACKEND_EXCHANGE_URL,
 };
 
 export type { Session, UserProfile, Role };

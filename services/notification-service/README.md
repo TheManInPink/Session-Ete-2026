@@ -53,12 +53,16 @@ curl -X POST http://localhost:3005/api/v1/notifications/send \
 
 ## 4. Templates (8 langues)
 
-7 templates transactionnels (`correction-submitted`, `correction-approved`, `appointment-confirmed`,
-`appointment-reminder-24h`, `mfa-code`, `whistleblower-token`, `ussd-confirmation`). Contenu dans
-`src/notifications/templates/locales/<lang>.json`. **FR est la référence complète** ; les 7 autres
-langues retombent sur FR tant qu'un locuteur natif n'a pas validé la traduction (cf.
-`locales/README.md`). Les variables obligatoires sont déclarées dans `template.catalog.ts` et
-validées avant envoi (aucun `{id}` brut ne peut partir).
+10 templates transactionnels (`correction-submitted`, `correction-approved`,
+`appointment-confirmed`, `appointment-reminder-24h`, `appointment-reminder-2h`,
+`appointment-cancelled`, `mfa-code`, `whistleblower-token`, `ussd-confirmation`,
+`priority-queue-turn`). Contenu dans `src/notifications/templates/locales/<lang>.json`. **FR est la
+référence complète** ; les 7 autres langues retombent sur FR tant qu'un locuteur natif n'a pas
+validé la traduction (cf. `locales/README.md`). Les variables obligatoires sont déclarées dans
+`template.catalog.ts` et validées avant envoi (aucun `{id}` brut ne peut partir).
+`priority-queue-turn` (appel « c'est votre tour » de la file prioritaire d'enrôlement) est publié
+par le `vulnerability-service` (cf.
+[ADR-035](../../docs/adr/ADR-035-livraison-domicile-et-validation-categorie.md)).
 
 ## 5. Idempotence
 

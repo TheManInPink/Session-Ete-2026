@@ -202,10 +202,11 @@ describe('api-gateway — routage (e2e)', () => {
       .get('/api/v1/api-gateway/routes')
       .set('Authorization', 'Bearer valid');
     expect(res.status).toBe(200);
-    // 18 préfixes publics (identity est atteint via /citizens, /corrections,
-    // /locations ; governance via /sgogt, /directives, /elections) pour
+    // 19 préfixes publics (identity est atteint via /citizens, /corrections,
+    // /locations ; governance via /sgogt, /directives, /elections ; /centers
+    // partage le downstream appointment avec /appointments — PC-04) pour
     // 14 services aval distincts.
-    expect(res.body.total).toBe(18);
+    expect(res.body.total).toBe(19);
   });
 
   // ── Rate limiting ────────────────────────────────────────────────────────

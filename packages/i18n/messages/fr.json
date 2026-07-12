@@ -10,6 +10,8 @@
     "loading": "Chargement…",
     "signIn": "Se connecter",
     "signOut": "Se déconnecter",
+    "dashboard": "Tableau de bord",
+    "myAccount": "Mon compte",
     "language": "Langue",
     "search": "Rechercher",
     "appName": "NINA-AES"
@@ -19,12 +21,88 @@
       "title": "Mon identité, mon NINA, mon AES",
       "subtitle": "Le portail numérique souverain de l'Alliance des États du Sahel",
       "searchCta": "Rechercher mon NINA",
+      "trustBadge": "Données chiffrées · Souveraineté numérique AES",
       "actions": {
         "viewCard": "Voir ma fiche",
         "requestCorrection": "Demander une correction",
         "bookAppointment": "Prendre un rendez-vous",
         "reportCorruption": "Signaler une corruption"
+      },
+      "actionsDesc": {
+        "viewCard": "Consultez votre fiche d'identité numérique.",
+        "requestCorrection": "Signalez une erreur sur votre fiche.",
+        "bookAppointment": "Réservez un créneau dans un centre CTDEC.",
+        "reportCorruption": "Signalement strictement anonyme et sécurisé."
+      },
+      "howItWorks": {
+        "title": "Comment ça marche",
+        "step1Title": "Recherchez votre NINA",
+        "step1Body": "Saisissez votre numéro d'identification nationale : 14 chiffres + 1 lettre de contrôle.",
+        "step2Title": "Vérifiez vos informations",
+        "step2Body": "Consultez votre fiche complète et repérez les erreurs éventuelles.",
+        "step3Title": "Demandez une correction",
+        "step3Body": "Le module IA vérifie votre demande, puis un agent CTDEC la traite sous 24–48 h."
+      },
+      "faq": {
+        "title": "Questions fréquentes",
+        "q1": "Qu'est-ce que le numéro NINA ?",
+        "a1": "Le NINA (Numéro d'Identification Nationale) est votre identifiant unique d'état civil dans l'espace AES : 14 chiffres encodant votre état civil, suivis d'une lettre de contrôle.",
+        "q2": "Comment obtenir mon NINA pour la première fois ?",
+        "a2": "Présentez-vous dans un centre CTDEC ou une antenne mobile RAVEC muni d'un acte de naissance ; l'enrôlement biométrique y est réalisé.",
+        "q3": "Combien de temps prend une correction ?",
+        "a3": "Une demande est analysée par le module IA puis validée par un agent assermenté, généralement sous 24 à 48 heures.",
+        "q4": "Le service est-il gratuit ?",
+        "a4": "La consultation de votre fiche et les demandes de correction en ligne sont gratuites. Certains actes délivrés en centre peuvent être payants selon la tarification en vigueur.",
+        "q5": "Puis-je utiliser ce portail depuis l'étranger ?",
+        "a5": "Oui, le portail est accessible depuis n'importe quelle connexion. Les démarches nécessitant une présence physique se font au consulat ou lors d'un retour au pays."
       }
+    },
+    "chrome": {
+      "nav": {
+        "label": "Navigation principale",
+        "home": "Accueil",
+        "centres": "Centres CTDEC",
+        "aide": "Aide"
+      },
+      "footer": {
+        "tagline": "Le portail numérique souverain de l'état civil — Alliance des États du Sahel.",
+        "infoTitle": "Informations",
+        "infoCtdec": "CTDEC — Centre de Traitement des Données de l'État Civil",
+        "infoDnec": "DNEC — Direction Nationale de l'État Civil",
+        "linksTitle": "Liens rapides",
+        "contactTitle": "Contact",
+        "contactHours": "Lun.–Ven. 7h30–16h00",
+        "contactEmail": "contact@ctdec.ml",
+        "legal": "Mentions légales",
+        "privacy": "Confidentialité",
+        "copyright": "© 2026 CTDEC — Direction Nationale de l'État Civil du Mali",
+        "sovereignty": "Souveraineté numérique · AES",
+        "links": {
+          "home": "Accueil",
+          "tracking": "Suivi de demande",
+          "report": "Signalement",
+          "centres": "Centres CTDEC",
+          "aide": "Aide"
+        }
+      }
+    },
+    "centres": {
+      "title": "Centres CTDEC",
+      "subtitle": "Centres de Traitement des Données de l'État Civil et antennes mobiles RAVEC.",
+      "demoTitle": "Données illustratives",
+      "demoBody": "Cette liste est fournie à titre indicatif en mode démonstration. La cartographie officielle sera publiée par la DNEC.",
+      "hoursLabel": "Horaires",
+      "hours": "Lun.–Ven. 7h30–16h00",
+      "typeCtdec": "Centre CTDEC",
+      "typeRavec": "Antenne mobile RAVEC"
+    },
+    "aide": {
+      "title": "Aide & assistance",
+      "subtitle": "Questions fréquentes et moyens de contact.",
+      "contactTitle": "Besoin d'aide supplémentaire ?",
+      "contactBody": "Contactez le CTDEC par courriel, ou présentez-vous dans un centre CTDEC.",
+      "contactEmail": "contact@ctdec.ml",
+      "contactHours": "Lun.–Ven. 7h30–16h00"
     },
     "search": {
       "title": "Rechercher mon NINA",
@@ -64,6 +142,9 @@
       "maritalDIVORCED": "Divorcé(e)",
       "maritalWIDOWED": "Veuf / Veuve",
       "sectionFamily": "Filiation",
+      "tabsLabel": "Sections de la fiche",
+      "infoTitle": "Source des données",
+      "infoBody": "Les informations affichées proviennent de la base NINA du CTDEC. Si vous constatez une erreur, demandez une correction : elle sera vérifiée par le module IA puis validée par un agent assermenté.",
       "syntheticBadge": "Données synthétiques",
       "region": "Région",
       "regionCode": "Code région",
@@ -112,16 +193,19 @@
     },
     "steps": {
       "ariaLabel": "Étapes du formulaire",
-      "1": { "title": "Choisissez le champ à corriger" },
+      "1": { "title": "Choisissez le champ à corriger", "short": "Champ" },
       "2": {
         "title": "Indiquez la nouvelle valeur",
+        "short": "Valeur",
         "subtitle": "Champ sélectionné : {field}",
+        "currentLabel": "Valeur actuelle",
         "proposedValue": "Nouvelle valeur",
         "reason": "Motif de la correction",
         "reasonHelp": "Décrivez précisément l'erreur observée (minimum 10 caractères)."
       },
       "3": {
         "title": "Justificatif (facultatif)",
+        "short": "Justificatif",
         "subtitle": "Téléversez une pièce justificative pour accélérer le traitement.",
         "dropPrompt": "Glissez votre justificatif ici, ou cliquez pour parcourir",
         "formats": "PDF, JPG ou PNG — 5 Mo maximum",
@@ -133,7 +217,25 @@
         "errorSize": "Fichier trop volumineux (5 Mo maximum).",
         "optional": "Vous pouvez passer cette étape."
       },
-      "4": { "title": "Confirmez votre demande" }
+      "4": { "title": "Confirmez votre demande", "short": "Confirmation" }
+    },
+    "citizenCard": {
+      "title": "Fiche concernée",
+      "birthLabel": "Naissance",
+      "demoBadge": "Démo"
+    },
+    "ai": {
+      "title": "Pré-analyse de similarité",
+      "caption": "Indicateur calculé sur votre appareil (distance Jaro-Winkler entre l'ancienne et la nouvelle valeur). Ce n'est pas le score IA définitif : l'analyse officielle est réalisée par le service au moment de la soumission.",
+      "bandHigh": "Forte similarité",
+      "bandMedium": "Similarité moyenne",
+      "bandLow": "Faible similarité",
+      "typePrompt": "Saisissez une nouvelle valeur pour lancer la comparaison.",
+      "unavailable": "La valeur actuelle de ce champ n'est pas renseignée : comparaison indisponible.",
+      "hintHigh": "Changement mineur — probable correction de saisie.",
+      "hintLow": "Changement important — un justificatif est vivement recommandé.",
+      "summaryLabel": "Similarité estimée",
+      "summaryHint": "indicatif"
     },
     "fields": {
       "firstName": { "label": "Prénom", "help": "Tel qu'inscrit sur votre acte de naissance" },
@@ -187,7 +289,47 @@
       "submit": "Confirmer le rendez-vous",
       "error": "La création du rendez-vous a échoué",
       "loadingSlots": "Chargement des créneaux disponibles…",
-      "noSlots": "Aucun créneau disponible pour le moment. Réessayez plus tard."
+      "noSlots": "Aucun créneau disponible pour le moment. Réessayez plus tard.",
+      "slotHint": "Choisissez un créneau : l'heure et la nature (prioritaire ou standard) sont indiquées.",
+      "pledge": "Je m'engage à présenter une pièce d'identité originale le jour du rendez-vous.",
+      "liveUnavailableTitle": "Réservation en ligne bientôt disponible",
+      "liveUnavailableBody": "La prise de rendez-vous en ligne n'est pas encore ouverte aux citoyens. Notez ce créneau, puis présentez-vous au centre choisi ou contactez-le pour réserver."
+    },
+    "aside": {
+      "priorityTitle": "File prioritaire",
+      "priorityBody": "Vous êtes identifié comme prioritaire. Un créneau vous est réservé et votre passage est appelé avant la file standard.",
+      "standardTitle": "Comment ça se passe",
+      "standardBody": "Choisissez un créneau, indiquez le motif, puis présentez-vous à l'accueil avec votre QR code : un numéro de file vous est attribué.",
+      "bringTitle": "À apporter le jour J",
+      "bring1": "Une pièce d'identité originale (ancienne CNI, passeport ou acte de naissance).",
+      "bring2": "Votre NINA ou ce récapitulatif (QR code de rendez-vous).",
+      "bring3": "Le cas échéant, les justificatifs liés à votre demande.",
+      "selectedTitle": "Créneau choisi",
+      "selectedNone": "Aucun créneau sélectionné pour l'instant."
+    },
+    "select": {
+      "title": "Choisissez votre centre",
+      "region": "Région",
+      "regionPlaceholder": "Choisissez une région",
+      "center": "Centre",
+      "centerPlaceholder": "Choisissez un centre",
+      "chooseCenterFirst": "Choisissez d'abord une région et un centre pour afficher les disponibilités."
+    },
+    "calendar": {
+      "title": "Date et créneau",
+      "legend": "Les week-ends, les jours passés et les jours sans créneau sont grisés."
+    },
+    "slots": {
+      "priorityTitle": "Créneaux prioritaires",
+      "standardTitle": "Créneaux standard",
+      "priorityBadge": "Prioritaire",
+      "standardBadge": "Standard",
+      "remaining": "{count, plural, one {# place restante} other {# places restantes}}",
+      "pickDayFirst": "Sélectionnez un jour disponible dans le calendrier.",
+      "noneToday": "Aucun créneau disponible ce jour."
+    },
+    "recap": {
+      "title": "Récapitulatif du rendez-vous"
     },
     "confirm": {
       "title": "Rendez-vous confirmé",
@@ -196,10 +338,15 @@
       "date": "Date",
       "slot": "Créneau",
       "queue": "Numéro de file",
+      "queuePending": "Attribué à votre arrivée au centre",
       "nina": "NINA",
       "reference": "Référence",
       "qrCaption": "QR de rendez-vous",
       "qrNote": "Aperçu démo — le code signé sera émis par document-service.",
+      "addToCalendar": "Ajouter à mon agenda",
+      "icsSummary": "Rendez-vous NINA-AES — {center}",
+      "icsDescription": "Référence {reference}. Présentez votre QR code et une pièce d'identité originale à l'accueil.",
+      "icsReminder": "Rappel : rendez-vous NINA-AES demain.",
       "done": "Terminer"
     }
   },
@@ -337,22 +484,108 @@
     "appointments": {
       "title": "Rendez-vous",
       "subtitle": "Planification et suivi des rendez-vous CTDEC / RAVEC.",
-      "soonTitle": "Module en préparation",
-      "soonBody": "La gestion des rendez-vous côté agent se connectera à appointment-service (port 3008, doc 09). En attendant, les citoyens prennent leurs rendez-vous depuis le portail citoyen."
+      "today": "Aujourd'hui",
+      "centerLabel": "Centre",
+      "kpis": {
+        "total": "RDV du jour",
+        "confirmed": "Confirmés",
+        "waiting": "En attente",
+        "priority": "Prioritaires (P1)",
+        "completed": "Terminés",
+        "noShow": "Absents"
+      },
+      "nextUp": {
+        "title": "Prochain appel",
+        "queue": "File n°{n}",
+        "call": "Appeler le citoyen",
+        "empty": "Aucun rendez-vous à appeler pour le moment.",
+        "pendingBackend": "L'appel de file sera activé avec appointment-service (doc 09)."
+      },
+      "table": {
+        "title": "Planning du jour",
+        "subtitle": "Rendez-vous du centre, triés par heure d'appel",
+        "time": "Heure",
+        "queue": "File",
+        "priority": "Priorité",
+        "citizen": "Citoyen",
+        "reason": "Motif",
+        "status": "Statut"
+      },
+      "priority": {
+        "P1": "Prioritaire",
+        "P2": "Semi-prioritaire",
+        "P3": "Standard"
+      },
+      "status": {
+        "REQUESTED": "Demandé",
+        "SCHEDULED": "Planifié",
+        "CONFIRMED": "Confirmé",
+        "COMPLETED": "Terminé",
+        "CANCELLED": "Annulé",
+        "NO_SHOW": "Absent"
+      },
+      "privacyNote": "Identités partiellement masquées (prénom + initiale) — minimisation des données à l'affichage.",
+      "demo": {
+        "title": "Données de démonstration",
+        "body": "Le planning ci-dessous est un jeu déterministe. La vue agent temps réel se connectera à appointment-service (port 3008, doc 09) ; les citoyens prennent déjà rendez-vous depuis le portail citoyen."
+      },
+      "unavailable": {
+        "title": "Vue agent indisponible",
+        "body": "L'agrégation des rendez-vous par centre côté agent n'est pas encore exposée par appointment-service (doc 09). Les prises de rendez-vous citoyens restent disponibles sur le portail citoyen."
+      }
     },
     "settings": {
       "title": "Paramètres",
-      "subtitle": "Profil de l'agent et préférences de la console.",
+      "subtitle": "Profil de l'agent, préférences et sécurité de la session.",
+      "readOnly": "Lecture seule",
       "profile": "Profil agent",
       "name": "Nom",
+      "email": "E-mail",
       "matricule": "Matricule",
       "center": "Centre",
+      "rolesLabel": "Habilitations",
       "preferences": "Préférences",
       "language": "Langue de l'interface",
+      "theme": "Thème",
+      "themeSystem": "Système",
       "notifEmail": "Alertes par e-mail",
       "notifSms": "Alertes par SMS",
       "on": "Activé",
       "off": "Désactivé",
+      "roleLabels": {
+        "AGENT": "Agent",
+        "SUPERVISOR": "Superviseur",
+        "AUDITOR": "Auditeur",
+        "ADMIN": "Administrateur",
+        "ANTICORRUPTION_INSPECTOR": "Inspecteur anti-corruption (OCLEI)",
+        "MINISTER": "Ministre",
+        "CABINET": "Cabinet",
+        "CITIZEN": "Citoyen",
+        "VULNERABLE": "Citoyen vulnérable"
+      },
+      "security": {
+        "title": "Sécurité & session",
+        "subtitle": "État de votre authentification et bonnes pratiques.",
+        "authMode": "Mode d'authentification",
+        "authModeMock": "Démonstration (mock)",
+        "authModeKeycloak": "SSO Keycloak",
+        "authModeMockNote": "Session de démonstration : aucune vérification de jeton. Ce mode est interdit en production (kill-switch fail-closed).",
+        "authModeKeycloakNote": "Identité vérifiée via Keycloak (OIDC) — jeton d'accès signé et contrôlé à chaque requête.",
+        "sessionToken": "Jeton de session",
+        "sessionTokenNote": "Jeton d'accès à durée courte (~15 min), stocké en cookie httpOnly et renouvelé silencieusement côté serveur.",
+        "compartment": "Cloisonnement",
+        "compartmentNote": "Le rôle Inspecteur anti-corruption (OCLEI) est isolé : lui seul accède à la file des signalements scellés (compartimentation vis-à-vis Superviseur / Auditeur / Administrateur).",
+        "tracing": "Traçabilité",
+        "tracingNote": "Toutes vos actions sont journalisées (audit-service, doc 12) : horodatage, agent, ressource consultée.",
+        "actionsTitle": "Actions de session",
+        "revokeOthers": "Déconnecter les autres sessions",
+        "rotateTokens": "Régénérer les jetons",
+        "actionsPending": "Disponible avec auth-service (doc 08).",
+        "recommendationsTitle": "Bonnes pratiques",
+        "rec1": "Verrouillez votre poste dès que vous vous en éloignez.",
+        "rec2": "Ne partagez jamais votre session ni vos identifiants.",
+        "rec3": "Signalez toute anomalie ou tentative de pression via la file SIGAC."
+      },
       "comingSoonTitle": "Édition à venir",
       "comingSoonBody": "La modification des paramètres sera activée avec auth-service (doc 08). Cette console est en lecture seule pour l'instant."
     },
@@ -438,6 +671,61 @@
         "newAlert": "Nouvelle alerte",
         "investigate": "Investiguer",
         "empty": "Aucune alerte ne correspond à vos filtres."
+      },
+      "agentDetail": {
+        "back": "Retour au dashboard SIGAC",
+        "breadcrumb": "Dossier agent",
+        "matriculeLabel": "Matricule",
+        "centerLabel": "Centre",
+        "band": {
+          "good": "Conforme",
+          "watch": "À surveiller",
+          "critical": "Critique"
+        },
+        "overview": {
+          "title": "Score d'intégrité",
+          "subtitle": "Agrégat IA — 30 derniers jours (ADR-023)",
+          "processed": "Opérations 30 j",
+          "flaggedRate": "Taux signalé",
+          "openSignals": "Signaux ouverts",
+          "lastReview": "Dernière revue"
+        },
+        "history": {
+          "title": "Évolution du score",
+          "subtitle": "30 derniers jours"
+        },
+        "criteria": {
+          "title": "Décomposition du score",
+          "subtitle": "Pondération des 5 critères d'intégrité (ADR-023)",
+          "weight": "poids"
+        },
+        "operations": {
+          "title": "Opérations récentes",
+          "subtitle": "30 derniers jours — les lignes signalées pèsent sur le score",
+          "when": "Quand",
+          "type": "Type",
+          "detail": "Détail",
+          "status": "Statut",
+          "flagged": "Signalée",
+          "ok": "Conforme"
+        },
+        "actions": {
+          "title": "Actions d'investigation",
+          "subtitle": "Cloisonnées — réservées à l'inspection anti-corruption (OCLEI)",
+          "openCase": "Ouvrir un dossier d'enquête",
+          "requestAudit": "Demander un audit ciblé",
+          "freeze": "Suspendre les habilitations",
+          "pendingBackend": "Disponible une fois le module d'investigation (Bloc D) branché.",
+          "restricted": "Compartimenté : seul un inspecteur anti-corruption (OCLEI) habilité peut ouvrir une action d'investigation nominative. Votre rôle donne accès à la lecture du dossier, pas aux actions."
+        },
+        "demo": {
+          "title": "Projection démonstration",
+          "body": "En mode démonstration, la décomposition du score, l'historique et les opérations sont dérivés de façon déterministe du score agrégé : ils illustrent la maquette d'investigation. Les données nominatives réelles proviendront du module de scoring (Bloc D / ADR-023)."
+        },
+        "unavailable": {
+          "title": "Dossier d'intégrité indisponible",
+          "body": "Le scoring d'intégrité des agents (ADR-023) n'est pas encore branché — module Bloc D à venir. Aucun dossier nominatif ne peut être affiché en l'absence de source backend."
+        }
       }
     },
     "login": {
@@ -681,14 +969,78 @@
     "performance": {
       "title": "Performance institutionnelle",
       "subtitle": "Traçabilité et réactivité par institution.",
-      "soonTitle": "Module en préparation",
-      "soonBody": "Les métriques de performance se connecteront à governance-service (port 3010, doc 22)."
+      "demoBanner": "Données de démonstration — les métriques par institution sont un jeu déterministe. En production, elles proviendront de governance-service (port 3010, doc 22).",
+      "kpis": {
+        "institutions": "Institutions suivies",
+        "avgCompletion": "Taux d'exécution moyen",
+        "avgResponse": "Délai moyen de réponse",
+        "overdue": "Directives en retard"
+      },
+      "days": "{n} j",
+      "highlight": {
+        "least": "Institution la moins traçable",
+        "most": "Institution la mieux traçable",
+        "overdueLabel": "En retard",
+        "escalationsLabel": "Escalades",
+        "responseLabel": "Délai moyen"
+      },
+      "table": {
+        "title": "Classement par traçabilité",
+        "subtitle": "Institutions triées de la plus à la moins traçable",
+        "institution": "Institution",
+        "directives": "Directives",
+        "completion": "Exécution",
+        "response": "Délai moy.",
+        "overdue": "Retard",
+        "escalations": "Escalades",
+        "traceability": "Traçabilité",
+        "trend": "Tendance"
+      },
+      "band": {
+        "good": "Bonne",
+        "watch": "À surveiller",
+        "critical": "Faible"
+      },
+      "unavailable": {
+        "title": "Métriques indisponibles",
+        "body": "Les métriques de performance institutionnelle seront fournies par governance-service (port 3010, doc 22). Aucune donnée agrégée n'est disponible en l'absence de cette source."
+      }
     },
     "rapports": {
       "title": "Rapports",
       "subtitle": "Synthèses mensuelles de gouvernance et d'exécution.",
-      "soonTitle": "Module en préparation",
-      "soonBody": "La génération de rapports mensuels (institutions les moins traçables) sera activée avec governance-service (port 3010)."
+      "demoBanner": "Données de démonstration — les synthèses mensuelles sont un jeu déterministe. En production, la génération PDF signée sera produite par governance-service (port 3010, doc 22).",
+      "status": {
+        "PUBLISHED": "Publié",
+        "DRAFT": "En cours"
+      },
+      "download": "Télécharger le PDF",
+      "downloadPending": "La génération PDF signée sera activée avec governance-service (doc 22).",
+      "featured": {
+        "label": "Dernier rapport publié",
+        "directives": "Directives traitées",
+        "completion": "Taux d'exécution",
+        "alerts": "Institutions en alerte",
+        "response": "Délai moyen"
+      },
+      "leastTraceable": {
+        "title": "Institutions les moins traçables",
+        "subtitle": "Classement du mois — à prioriser pour un audit de traçabilité"
+      },
+      "list": {
+        "title": "Rapports mensuels",
+        "period": "Période",
+        "status": "Statut",
+        "directives": "Directives",
+        "completion": "Exécution",
+        "alerts": "En alerte",
+        "pages": "Pages",
+        "action": "Action"
+      },
+      "unavailable": {
+        "title": "Rapports indisponibles",
+        "body": "La génération des synthèses mensuelles sera fournie par governance-service (port 3010, doc 22). Aucun rapport n'est disponible en l'absence de cette source."
+      }
     }
   }
 }

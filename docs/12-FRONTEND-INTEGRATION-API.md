@@ -749,7 +749,7 @@ export default {
 > 0quaterdecies).
 >
 > - Les **hooks React Query** sont exportés par le **sous-chemin `@nina-aes/api-client/react`**
->   (`ApiClientProvider`, `useCitizenByNina`, `useSubmitCorrection`, `useAvailableSlots`,
+>   (`ApiClientProvider`, `useCitizenByNina`, `useSubmitCorrection`, `useCenterAvailability`,
 >   `useSubmitAlert`, …), pas redéfinis par app. `react`/`@tanstack/react-query` = peerDeps
 >   optionnelles.
 > - **Bascule mock↔live** : `resolveApiMode()` + `createMockApiClient()` (fixtures validées Zod) ;

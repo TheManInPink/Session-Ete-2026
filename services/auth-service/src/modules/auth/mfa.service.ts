@@ -44,6 +44,7 @@ import { authenticator } from 'otplib';
 import * as qrcode from 'qrcode';
 
 import { AUTH_ERRORS, REDIS_KEYS, TTL } from '../../common/constants.js';
+import { normalizeUserRole } from '../../common/types.js';
 import { JwtCryptoService } from '../../crypto/jwt.service.js';
 import type { AppEnv } from '../../config/env.config.js';
 import { ArgonService } from '../../crypto/argon.service.js';
@@ -147,7 +148,7 @@ export class MfaService {
     const ok = authenticator.verify({ token: code, secret });
     if (!ok) throw new UnauthorizedException(AUTH_ERRORS.OTP_INVALID);
 
-    return { userId: user.id, kcSub: user.keycloakId, role: user.role };
+    return { userId: user.id, kcSub: user.keycloakId, role: normalizeUserRole(user.role) };
   }
 
   // ─── SMS challenge ───────────────────────────────────────────────
@@ -191,7 +192,11 @@ export class MfaService {
     if (!ok) throw new UnauthorizedException(AUTH_ERRORS.OTP_INVALID);
     await this.redis.del(key);
 
-    return { userId: challenge.sub, kcSub: challenge.kcSub, role: challenge.role };
+    return {
+      userId: challenge.sub,
+      kcSub: challenge.kcSub,
+      role: normalizeUserRole(challenge.role),
+    };
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────

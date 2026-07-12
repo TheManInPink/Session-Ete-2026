@@ -39,7 +39,7 @@ export default async function NewAppointmentPage({ params }: PageProps) {
   const isVulnerable = session.user.roles.includes('VULNERABLE');
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
+    <main className="mx-auto max-w-5xl px-4 py-12">
       <header className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">{t('new.title')}</h1>
         <p className="mt-2 text-fg-muted">{t('new.subtitle')}</p>
@@ -68,7 +68,11 @@ export default async function NewAppointmentPage({ params }: PageProps) {
               </div>
             }
           >
-            <AppointmentForm locale={locale} nina={session.user.nina ?? ''} />
+            <AppointmentForm
+              locale={locale}
+              nina={session.user.nina ?? ''}
+              isVulnerable={isVulnerable}
+            />
           </Suspense>
         </CardContent>
       </Card>

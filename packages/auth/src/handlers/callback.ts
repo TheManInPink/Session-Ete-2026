@@ -10,6 +10,7 @@ import { cookies } from 'next/headers';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { z } from 'zod';
 import { resolveNextPath } from '../next-path';
+import { exchangeBackendToken } from './backend-exchange';
 import type { AuthConfig } from '../types';
 
 const TokenResponseSchema = z.object({
@@ -107,6 +108,31 @@ export function buildCallbackHandler(config: AuthConfig) {
       path: '/api/auth/logout',
       maxAge: tokens.refresh_expires_in,
     });
+
+    // Échange SSO citoyen (ADR-036) : token Keycloak → session applicative
+    // auth-service, posée en cookie `backend_access_token` (scope `/`, lu par le
+    // BFF + les RSC). Non-fatal : si non configuré (admin/gov) ou en échec, la
+    // session Keycloak reste valide (appels backend authentifiés → 401 → re-login).
+    // Sur échec avec échange configuré, on purge tout token backend périmé.
+    const backend = await exchangeBackendToken(config, tokens.access_token);
+    if (backend) {
+      res.cookies.set('backend_access_token', backend.access, {
+        httpOnly: true,
+        secure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: backend.expiresIn,
+      });
+    } else if (config.backendExchangeUrl) {
+      res.cookies.set('backend_access_token', '', {
+        httpOnly: true,
+        secure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 0,
+      });
+    }
+
     res.cookies.delete('oidc_state');
     return res;
   };

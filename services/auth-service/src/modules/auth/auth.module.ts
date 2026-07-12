@@ -23,11 +23,19 @@ import { MfaController } from './mfa.controller.js';
 import { MfaService } from './mfa.service.js';
 import { OtpService } from './otp.service.js';
 import { RefreshService } from './refresh.service.js';
+import { SsoExchangeThrottleGuard } from './sso-exchange-throttle.guard.js';
 
 @Module({
   imports: [UserModule],
   controllers: [AuthController, MfaController],
-  providers: [AuthService, OtpService, RefreshService, MfaService, LoginThrottleGuard],
+  providers: [
+    AuthService,
+    OtpService,
+    RefreshService,
+    MfaService,
+    LoginThrottleGuard,
+    SsoExchangeThrottleGuard,
+  ],
   exports: [AuthService, RefreshService, MfaService],
 })
 export class AuthModule {}

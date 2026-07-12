@@ -25,10 +25,11 @@ import {
 import { Prisma } from '@nina-aes/database';
 
 import { AUTH_ERRORS } from '../../common/constants.js';
-import { MFA_REQUIRED_ROLES, UserRole } from '../../common/types.js';
+import { MFA_REQUIRED_ROLES, normalizeUserRole, UserRole } from '../../common/types.js';
 import { JwtCryptoService } from '../../crypto/jwt.service.js';
 import { KeycloakAdminService } from '../../keycloak/keycloak-admin.service.js';
 import { KeycloakAuthService } from '../../keycloak/keycloak-auth.service.js';
+import { KeycloakTokenVerifier } from '../../keycloak/keycloak-token.verifier.js';
 import { REDIS_KEYS } from '../../common/constants.js';
 import { RedisService } from '../../redis/redis.service.js';
 import { SMS_PROVIDER, type SmsProvider } from '../../sms/sms.types.js';
@@ -42,6 +43,7 @@ import type { RefreshDto } from './dto/refresh.dto.js';
 import type { RegisterRequestOtpDto } from './dto/register-request-otp.dto.js';
 import type { RegisterVerifyDto } from './dto/register-verify.dto.js';
 import type { ResetPasswordDto } from './dto/reset-password.dto.js';
+import type { SsoExchangeDto } from './dto/sso-exchange.dto.js';
 import { OtpService } from './otp.service.js';
 import { RefreshService } from './refresh.service.js';
 
@@ -75,6 +77,7 @@ export class AuthService {
     private readonly users: UserRepository,
     private readonly keycloakAdmin: KeycloakAdminService,
     private readonly keycloakAuth: KeycloakAuthService,
+    private readonly keycloakVerifier: KeycloakTokenVerifier,
     private readonly jwt: JwtCryptoService,
     private readonly redis: RedisService,
     private readonly refreshSvc: RefreshService,
@@ -173,7 +176,10 @@ export class AuthService {
       throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
     }
 
-    const role = user.role as unknown as UserRole;
+    // Rôle DB (Prisma, casse HAUTE) → enum applicatif (casse basse). SANS cette
+    // normalisation, `MFA_REQUIRED_ROLES.has('AGENT')` serait faux (MFA contournée)
+    // et un token citoyen sortirait sans `nina`. Cf. normalizeUserRole.
+    const role = normalizeUserRole(user.role);
     if (MFA_REQUIRED_ROLES.has(role)) {
       const challenge = this.jwt.signMfaChallenge({
         userId: user.id,
@@ -360,7 +366,7 @@ export class AuthService {
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role as unknown as UserRole,
+      role: normalizeUserRole(user.role),
       phoneNumber: user.phoneNumber,
       preferredLanguage: user.preferredLanguage,
       mfaEnabled: user.mfaEnabled,
@@ -376,6 +382,66 @@ export class AuthService {
    * Émet une paire access+refresh + persiste le refresh dans Redis.
    * Réutilisé par register/verify et login (chemin happy path sans MFA).
    */
+  // ─── SSO exchange (token Keycloak → session applicative) ─────────
+
+  /**
+   * Échange SSO citoyen (ADR-036) : vérifie un access token **Keycloak** puis
+   * émet une session applicative (JWT auth-service) pour le CITOYEN correspondant.
+   *
+   * Sécurité :
+   *   - le token Keycloak est vérifié cryptographiquement (signature / iss / azp /
+   *     exp) par {@link KeycloakTokenVerifier} — aucun claim d'identité applicatif
+   *     n'est cru ;
+   *   - le user est résolu en base par `keycloakId` (`sub`) : un token valide sans
+   *     compte provisionné est refusé (message uniforme anti-énumération) ;
+   *   - le **rôle vient de la DB**, jamais du token ;
+   *   - l'échange est **strictement citoyen** : tout rôle interne (agent/admin/…),
+   *     qui appartient à {@link MFA_REQUIRED_ROLES}, est refusé — l'émettre ici
+   *     court-circuiterait le challenge MFA du login classique.
+   */
+  async exchangeSsoToken(dto: SsoExchangeDto): Promise<AuthSession> {
+    const { sub: keycloakId } = await this.keycloakVerifier.verify(dto.keycloakToken);
+
+    const user = await this.users.findByKeycloakId(keycloakId);
+    if (!user) {
+      this.logger.warn(
+        `SSO exchange refusé : aucun user DB pour kcSub ${keycloakId} ` +
+          '(drift Keycloak/DB ou compte non provisionné).',
+      );
+      throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
+    }
+
+    // Rôle DB (Prisma, casse HAUTE) → enum applicatif (casse basse) : requis pour
+    // (1) le gate de résolution NINA de `issueSession` et (2) l'acceptation par le
+    // `RolesGuard` aval. Cf. normalizeUserRole.
+    const role = normalizeUserRole(user.role);
+    // Citoyen UNIQUEMENT. `role !== CITIZEN` ⇔ `MFA_REQUIRED_ROLES.has(role)`
+    // (seul CITIZEN est hors MFA) : refuser tout rôle interne garantit qu'aucune
+    // session à MFA obligatoire n'est émise sans que la MFA ait été présentée.
+    if (role !== UserRole.CITIZEN) {
+      this.logger.warn(
+        `SSO exchange refusé : rôle non-citoyen « ${role} » (user ${user.id}). ` +
+          'Les rôles internes doivent passer par /auth/login + MFA.',
+      );
+      throw new UnauthorizedException(AUTH_ERRORS.INVALID_CREDENTIALS);
+    }
+
+    await this.users.updateLastLogin(user.id).catch((err: unknown) => {
+      this.logger.warn(
+        `updateLastLogin échoué (non bloquant) pour ${user.id} : ${(err as Error).message}`,
+      );
+    });
+
+    this.logger.log(`SSO exchange OK : session citoyenne émise pour user ${user.id}.`);
+    return this.issueSession({
+      userId: user.id,
+      email: user.email,
+      role,
+      keycloakId,
+      mfa: false,
+    });
+  }
+
   private async issueSession(params: {
     userId: string;
     email: string;

@@ -6,15 +6,48 @@
  * @module      @nina-aes/citizen
  */
 
-import { CorrectionWizard } from './_components/correction-wizard';
+import { CorrectionWizard, type CorrectionCitizen } from './_components/correction-wizard';
 import { getSession } from '../../../../../lib/auth/session';
+import { fetchCitizenFiche } from '../../../../../lib/api/server';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
+import { validateNina } from '@nina-aes/utils';
+import type { CorrectionField, CitizenFiche } from '@nina-aes/api-client';
 import { Card } from '@nina-aes/ui/components/card';
 import { ShieldAlert } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{ locale: string; nina: string }>;
+}
+
+/**
+ * Extrait les valeurs actuelles corrigibles d'une fiche (comparaison PC-03).
+ * Les valeurs absentes ou marquées « — » sont omises (comparaison impossible).
+ */
+function currentValuesOf(fiche: CitizenFiche): Partial<Record<CorrectionField, string>> {
+  const clean = (s: string): string | undefined => {
+    const v = s.trim();
+    return v && v !== '—' ? v : undefined;
+  };
+  const join = (a: string, b: string): string | undefined =>
+    [clean(a), clean(b)].filter(Boolean).join(' ') || undefined;
+
+  const values: Partial<Record<CorrectionField, string>> = {};
+  const set = (k: CorrectionField, v: string | undefined) => {
+    if (v) values[k] = v;
+  };
+
+  set('firstName', clean(fiche.firstName));
+  set('lastName', clean(fiche.lastName));
+  set('birthDate', clean(fiche.birthLabel));
+  set('birthPlace', clean(fiche.regionName));
+  set('residence_cercle', clean(fiche.cercleName ?? ''));
+  set('residence_commune', clean(fiche.communeName ?? ''));
+  set('fatherName', join(fiche.father.firstName, fiche.father.lastName));
+  set('motherName', join(fiche.mother.firstName, fiche.mother.lastName));
+  set('profession', clean(fiche.profession));
+
+  return values;
 }
 
 export default async function CorrectionPage({ params }: PageProps) {
@@ -44,6 +77,26 @@ export default async function CorrectionPage({ params }: PageProps) {
     );
   }
 
+  // Valeurs actuelles (avant/après + pré-analyse) — best-effort : en cas d'échec
+  // (live indisponible, 401/403), le wizard fonctionne sans comparaison.
+  let citizen: CorrectionCitizen | undefined;
+  if (validateNina(nina)) {
+    try {
+      const fiche = await fetchCitizenFiche(nina);
+      if (fiche) {
+        citizen = {
+          fullName: fiche.fullName,
+          initials: fiche.initials,
+          birthLabel: fiche.birthLabel,
+          synthetic: fiche.synthetic,
+          currentValues: currentValuesOf(fiche),
+        };
+      }
+    } catch {
+      citizen = undefined;
+    }
+  }
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
       <header className="mb-8">
@@ -56,7 +109,7 @@ export default async function CorrectionPage({ params }: PageProps) {
         </p>
       </header>
 
-      <CorrectionWizard nina={nina} locale={locale} />
+      <CorrectionWizard nina={nina} locale={locale} citizen={citizen} />
     </main>
   );
 }

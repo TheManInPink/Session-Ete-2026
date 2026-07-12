@@ -26,7 +26,7 @@ import { JwtAuthGuard, MfaGuard, RolesGuard } from './auth/guards/index.js';
 import { validateEnv } from './config/env.config.js';
 import { CryptoModule } from './crypto/crypto.module.js';
 import { JwtCryptoService } from './crypto/jwt.service.js';
-import { JwksService } from './jwks/jwks.service';
+import { JwksModule } from './jwks/jwks.module.js';
 import { KeycloakModule } from './keycloak/keycloak.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { RedisModule } from './redis/redis.module.js';
@@ -72,12 +72,12 @@ const jwtVerifierProvider: Provider = {
     RedisModule,
     CryptoModule,
     SmsModule,
+    JwksModule,
     KeycloakModule,
     AuthModule,
   ],
   controllers: [AppController, WellKnownController],
   providers: [
-    JwksService,
     jwtVerifierProvider,
     // Ordre de déclaration = ordre d'exécution des guards globaux.
     { provide: APP_GUARD, useClass: JwtAuthGuard },

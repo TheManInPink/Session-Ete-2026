@@ -261,6 +261,77 @@ export class AppointmentsService implements OnModuleInit {
     return this.toView(row);
   }
 
+  // ── Self-service citoyen (identité dérivée du NINA du token) ───────────
+
+  /**
+   * Résout l'`id` du citoyen à partir du NINA porté par son token. Centralise la
+   * garde anti-IDOR : l'identité vient TOUJOURS du token, jamais d'un `citizenId`
+   * fourni par le client. 403 si le token ne porte pas de NINA (rôle non-citoyen
+   * ou token incomplet) ; 404 si aucun citoyen ne correspond.
+   */
+  private async resolveCitizenId(nina: string | undefined): Promise<string> {
+    if (!nina) {
+      throw new ForbiddenException('Self-service indisponible : NINA absent du token.');
+    }
+    const citizenId = await this.repo.findCitizenIdByNina(nina);
+    if (!citizenId) {
+      throw new NotFoundException('Aucun citoyen ne correspond à ce NINA.');
+    }
+    return citizenId;
+  }
+
+  /**
+   * PC-04 self-service : le citoyen authentifié prend RDV pour LUI-MÊME. Le
+   * `citizenId` est dérivé du NINA du token (jamais fourni par le client), puis la
+   * création réutilise le cœur `create()` (blacklist, vulnérabilité, quotas).
+   */
+  async createForCitizen(
+    nina: string | undefined,
+    input: {
+      centerId: string;
+      slot: string;
+      reason: string;
+      vulnerabilityCategory?: VulnerabilityCategory;
+    },
+    now: Date = new Date(),
+  ): Promise<AppointmentView> {
+    const citizenId = await this.resolveCitizenId(nina);
+    const view = await this.create({ ...input, citizenId }, now);
+    // Trace d'imputabilité (l'acteur EST le citoyen). L'événement d'audit SIGNÉ
+    // vers audit-service (`nina.audit`, origine authentifiée) est un chantier de
+    // suivi — cf. CHANGELOG 0untricies.
+    this.logger.log(
+      `RDV self-service créé (citizen=${citizenId}, center=${input.centerId}, appt=${view.id})`,
+    );
+    return view;
+  }
+
+  /** PC-05 self-service : liste paginée des RDV du citoyen authentifié. */
+  async listForCitizen(
+    nina: string | undefined,
+    opts: { status?: AppointmentStatus; page?: number; pageSize?: number } = {},
+  ): Promise<{ page: number; pageSize: number; items: AppointmentView[] }> {
+    const citizenId = await this.resolveCitizenId(nina);
+    return this.list({ citizenId, status: opts.status, page: opts.page, pageSize: opts.pageSize });
+  }
+
+  /**
+   * Annulation self-service : le citoyen ne peut annuler QUE ses propres RDV.
+   * Contrôle de propriété AVANT toute action ; en cas de RDV inexistant OU
+   * n'appartenant pas au citoyen, on renvoie un 404 uniforme (pas d'oracle
+   * d'énumération révélant l'existence du RDV d'autrui).
+   */
+  async cancelForCitizen(id: string, nina: string | undefined): Promise<AppointmentView> {
+    const citizenId = await this.resolveCitizenId(nina);
+    const row = await this.repo.findById(id);
+    if (!row || row.citizenId !== citizenId) {
+      throw new NotFoundException('Rendez-vous introuvable');
+    }
+    const view = await this.cancel(id);
+    this.logger.log(`RDV self-service annulé (citizen=${citizenId}, appt=${id})`);
+    return view;
+  }
+
   // ── Lecture ───────────────────────────────────────────────────────────
 
   /** Détail d'un RDV (404 si absent). */

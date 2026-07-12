@@ -36,11 +36,15 @@ import {
 import {
   AppointmentListSchema,
   AppointmentSchema,
-  SlotsListSchema,
+  CenterAvailabilitySchema,
+  CentersListSchema,
   type Appointment,
   type AppointmentList,
+  type AvailabilitySlot,
+  type CenterAvailability,
+  type CenterSummary,
   type CreateAppointmentDto,
-  type SlotsList,
+  type DayAvailability,
 } from '../appointment/appointment.schema';
 import {
   SigacPublicKeySchema,
@@ -76,11 +80,12 @@ import {
 import { type AdminDashboardStats } from '../admin-dashboard/admin-dashboard.schema';
 import type {
   ApiClient,
+  AvailabilityQuery,
+  CentersQuery,
   CorrectionListParams,
   DirectiveListParams,
   IdentitySearchParams,
   SgogtInboxParams,
-  SlotsQuery,
 } from '../core/client.types';
 import { ApiError } from '../core/errors';
 import { FIXED_NOW, hexFrom, isoHoursFrom, seedOf, uuidFrom } from './deterministic';
@@ -160,7 +165,6 @@ function buildAppointment(
   scheduledAt: string,
   overrides: Partial<Appointment> = {},
 ): Appointment {
-  const seed = seedOf(`${centerId}-${scheduledAt}`);
   const candidate: Appointment = {
     id: overrides.id ?? uuidFrom(`appt-${centerId}-${scheduledAt}`),
     citizenId: overrides.citizenId ?? uuidFrom('citizen-self'),
@@ -168,13 +172,194 @@ function buildAppointment(
     centerName: overrides.centerName ?? 'CTDEC Bamako',
     status: overrides.status ?? 'SCHEDULED',
     priority: overrides.priority ?? 'P3',
-    queueNumber: overrides.queueNumber ?? (seed % 40) + 1,
+    // Fidèle au backend : pas de numéro de passage à la réservation (assigné au
+    // check-in). Reste surchargeable pour les fixtures d'un RDV déjà en file.
+    queueNumber: overrides.queueNumber ?? null,
     scheduledAt,
     completedAt: overrides.completedAt ?? null,
-    notes: overrides.notes ?? null,
     createdAt: overrides.createdAt ?? FIXED_NOW,
   };
   return AppointmentSchema.parse(candidate);
+}
+
+/**
+ * Centres réels seedés — MIROIR de `packages/database/prisma/seed.ts` (les 6
+ * `EnrollmentCenter` : CTDEC Bamako + 5 antennes RAVEC). Données de démo mais
+ * NON fabriquées : ce sont les centres effectivement présents en base, rattachés
+ * à leurs régions/cercles réels. `id` déterministe (aligné sur créneaux/RDV).
+ */
+const MOCK_CENTERS: CenterSummary[] = CentersListSchema.parse([
+  {
+    id: uuidFrom('center-ctdec-bamako'),
+    code: 'CTDEC-BAMAKO',
+    name: 'CTDEC Bamako',
+    type: 'CTDEC',
+    address: null,
+    regionCode: 'ML-09',
+    regionName: 'Bamako',
+    cercleName: 'District de Bamako',
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'DOCUMENT_PICKUP', 'RENEWAL', 'INFO'],
+    isActive: true,
+  },
+  {
+    id: uuidFrom('center-antenne-kati'),
+    code: 'ANTENNE-KATI',
+    name: 'Antenne RAVEC de Kati',
+    type: 'ANTENNE_RAVEC',
+    address: null,
+    regionCode: 'ML-02',
+    regionName: 'Koulikoro',
+    cercleName: 'Kati',
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'INFO'],
+    isActive: true,
+  },
+  {
+    id: uuidFrom('center-antenne-kayes'),
+    code: 'ANTENNE-KAYES',
+    name: 'Antenne RAVEC de Kayes',
+    type: 'ANTENNE_RAVEC',
+    address: null,
+    regionCode: 'ML-01',
+    regionName: 'Kayes',
+    cercleName: 'Kayes',
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'INFO'],
+    isActive: true,
+  },
+  {
+    id: uuidFrom('center-antenne-sikasso'),
+    code: 'ANTENNE-SIKASSO',
+    name: 'Antenne RAVEC de Sikasso',
+    type: 'ANTENNE_RAVEC',
+    address: null,
+    regionCode: 'ML-03',
+    regionName: 'Sikasso',
+    cercleName: 'Sikasso',
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'INFO'],
+    isActive: true,
+  },
+  {
+    id: uuidFrom('center-antenne-segou'),
+    code: 'ANTENNE-SEGOU',
+    name: 'Antenne RAVEC de Ségou',
+    type: 'ANTENNE_RAVEC',
+    address: null,
+    regionCode: 'ML-04',
+    regionName: 'Ségou',
+    cercleName: 'Ségou',
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'INFO'],
+    isActive: true,
+  },
+  {
+    id: uuidFrom('center-antenne-mopti'),
+    code: 'ANTENNE-MOPTI',
+    name: 'Antenne RAVEC de Mopti',
+    type: 'ANTENNE_RAVEC',
+    address: null,
+    regionCode: 'ML-05',
+    regionName: 'Mopti',
+    cercleName: 'Mopti',
+    servicesOffered: ['ENROLLMENT', 'CORRECTION', 'INFO'],
+    isActive: true,
+  },
+]);
+
+/** Fenêtre prioritaire (07:30–09:00) et créneaux standard (démo déterministe). */
+const MOCK_PRIORITY_TIMES = ['07:30', '07:45', '08:00', '08:15'] as const;
+const MOCK_STANDARD_TIMES = [
+  '09:00',
+  '09:30',
+  '10:00',
+  '10:30',
+  '11:00',
+  '11:30',
+  '14:00',
+  '14:30',
+  '15:00',
+  '15:30',
+] as const;
+/** Guichets parallèles simulés (= capacité offerte par créneau). */
+const MOCK_SLOT_CAPACITY = 2;
+
+/** Ajoute `n` jours à une date `YYYY-MM-DD` (UTC, déterministe). */
+function addDaysIso(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** Jour de semaine UTC (0 = dimanche … 6 = samedi) d'une date `YYYY-MM-DD`. */
+function isoWeekday(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/**
+ * Disponibilité de démo DÉTERMINISTE d'un centre sur `[fromDate, toDate]`, à la
+ * forme EXACTE du backend (`DayAvailability` d'appointment-service) : jours de
+ * semaine ouverts, week-ends fermés, ~1 jour sur 6 « complet » (tout réservé),
+ * avec un `booked`/`remaining` déterministe par créneau — de quoi exercer le
+ * calendrier (jours grisés) et la grille horaire, SANS donnée fabriquée (ni
+ * numéro de file ni niveau P1/P2/P3 à ce stade). Les créneaux 07:30–09:00 sont
+ * de nature PRIORITAIRE, les autres STANDARD.
+ */
+function buildMockAvailability(
+  center: CenterSummary,
+  fromDate: string,
+  toDate: string,
+): DayAvailability[] {
+  const days: DayAvailability[] = [];
+  let day = fromDate;
+  let guard = 0;
+  while (day <= toDate && guard < 120) {
+    guard += 1;
+    const dow = isoWeekday(day);
+    if (dow === 0 || dow === 6) {
+      days.push({
+        date: day,
+        open: false,
+        slots: [],
+        summary: { standardRemaining: 0, priorityRemaining: 0, capacityRemaining: 0 },
+      });
+      day = addDaysIso(day, 1);
+      continue;
+    }
+    const full = seedOf(`${center.code}-${day}`) % 6 === 0;
+    const slots: AvailabilitySlot[] = [...MOCK_PRIORITY_TIMES, ...MOCK_STANDARD_TIMES].map(
+      (time) => {
+        const kind = (MOCK_PRIORITY_TIMES as readonly string[]).includes(time)
+          ? ('PRIORITY' as const)
+          : ('STANDARD' as const);
+        const booked = full
+          ? MOCK_SLOT_CAPACITY
+          : seedOf(`${center.code}-${day}-${time}`) % (MOCK_SLOT_CAPACITY + 1);
+        const remaining = Math.max(0, MOCK_SLOT_CAPACITY - booked);
+        return {
+          start: `${day}T${time}:00.000Z`,
+          kind,
+          capacity: MOCK_SLOT_CAPACITY,
+          booked,
+          remaining,
+        };
+      },
+    );
+    const priorityRemaining = slots
+      .filter((s) => s.kind === 'PRIORITY')
+      .reduce((n, s) => n + s.remaining, 0);
+    const standardRemaining = slots
+      .filter((s) => s.kind === 'STANDARD')
+      .reduce((n, s) => n + s.remaining, 0);
+    days.push({
+      date: day,
+      open: true,
+      slots,
+      summary: {
+        standardRemaining,
+        priorityRemaining,
+        capacityRemaining: priorityRemaining + standardRemaining,
+      },
+    });
+    day = addDaysIso(day, 1);
+  }
+  return days;
 }
 
 /**
@@ -443,32 +628,38 @@ export function createMockApiClient(): ApiClient {
     },
 
     appointment: {
-      async getAvailableSlots(params: SlotsQuery): Promise<SlotsList> {
-        const centerId = params.centerId ?? uuidFrom('center-ctdec-bamako');
-        // 3 créneaux à partir de `fromDate` (déterministe, sans `new Date()`).
-        const candidate: SlotsList = {
-          slots: ['09:00', '10:00', '11:00'].map((time, i) => ({
-            startsAt: `${params.fromDate}T${time}:00.000Z`,
-            centerId,
-            centerName: 'CTDEC Bamako',
-            priority: 'P3' as const,
-            queueNumber: i + 1,
-          })),
-        };
-        return SlotsListSchema.parse(candidate);
+      async listCenters(params: CentersQuery = {}): Promise<CenterSummary[]> {
+        const list = params.region
+          ? MOCK_CENTERS.filter((c) => c.regionCode === params.region)
+          : MOCK_CENTERS;
+        return CentersListSchema.parse(list);
+      },
+      async getAvailability(params: AvailabilityQuery): Promise<CenterAvailability> {
+        const center = MOCK_CENTERS.find((c) => c.id === params.centerId) ?? MOCK_CENTERS[0];
+        if (!center) {
+          return CenterAvailabilitySchema.parse({ centerId: params.centerId, days: [] });
+        }
+        return CenterAvailabilitySchema.parse({
+          centerId: center.id,
+          days: buildMockAvailability(center, params.fromDate, params.toDate),
+        });
       },
       async create(dto: CreateAppointmentDto): Promise<Appointment> {
-        return buildAppointment(dto.centerId, dto.scheduledAt, { notes: dto.reason });
+        const center = MOCK_CENTERS.find((c) => c.id === dto.centerId);
+        return buildAppointment(dto.centerId, dto.slot, {
+          centerName: center?.name ?? 'CTDEC Bamako',
+        });
       },
       async listMine(): Promise<AppointmentList> {
         const candidate: AppointmentList = {
+          page: 1,
+          pageSize: 50,
           items: [
             buildAppointment(uuidFrom('center-ctdec-bamako'), '2026-05-20T09:00:00.000Z', {
               centerName: 'CTDEC Bamako',
               status: 'SCHEDULED',
             }),
           ],
-          total: 1,
         };
         return AppointmentListSchema.parse(candidate);
       },

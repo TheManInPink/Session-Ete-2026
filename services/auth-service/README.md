@@ -19,14 +19,15 @@ entre Keycloak et le frontend.
 
 ## 2. Endpoints
 
-| Méthode | Chemin             | Description                        | Auth   |
-| ------- | ------------------ | ---------------------------------- | ------ |
-| `POST`  | `/auth/login`      | Login utilisateur (proxy Keycloak) | Public |
-| `POST`  | `/auth/refresh`    | Renouvelle le JWT                  | Public |
-| `POST`  | `/auth/logout`     | Invalide la session Keycloak       | Bearer |
-| `POST`  | `/auth/mfa/init`   | Initie MFA TOTP/SMS                | Bearer |
-| `POST`  | `/auth/mfa/verify` | Vérifie le code MFA                | Bearer |
-| `GET`   | `/health`          | Liveness                           | —      |
+| Méthode | Chemin               | Description                                                          | Auth   |
+| ------- | -------------------- | -------------------------------------------------------------------- | ------ |
+| `POST`  | `/auth/login`        | Login utilisateur (proxy Keycloak)                                   | Public |
+| `POST`  | `/auth/refresh`      | Renouvelle le JWT                                                    | Public |
+| `POST`  | `/auth/logout`       | Invalide la session Keycloak                                         | Bearer |
+| `POST`  | `/auth/sso/exchange` | Échange SSO citoyen : token Keycloak → session applicative (ADR-036) | Public |
+| `POST`  | `/auth/mfa/init`     | Initie MFA TOTP/SMS                                                  | Bearer |
+| `POST`  | `/auth/mfa/verify`   | Vérifie le code MFA                                                  | Bearer |
+| `GET`   | `/health`            | Liveness                                                             | —      |
 
 (À confirmer après implémentation Bloc 8.)
 

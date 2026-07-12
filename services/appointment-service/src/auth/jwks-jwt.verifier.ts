@@ -39,6 +39,8 @@ interface AccessPayload {
   role?: string;
   mfa?: boolean;
   email?: string;
+  /** NINA (présent pour les tokens citoyen) — active les routes self-service. */
+  nina?: string;
 }
 
 @Injectable()
@@ -120,6 +122,7 @@ export class JwksJwtVerifier implements JwtVerifier, OnModuleInit {
       role: payload.role ?? 'citizen',
       mfa: payload.mfa ?? false,
       ...(typeof payload.email === 'string' ? { email: payload.email } : {}),
+      ...(typeof payload.nina === 'string' ? { nina: payload.nina } : {}),
     };
   }
 }

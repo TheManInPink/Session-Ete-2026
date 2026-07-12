@@ -50,7 +50,7 @@
   --radius: var(--radius-base);
   --font-sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
-  --font-display: 'Bricolage Grotesque', 'Inter Variable', sans-serif;
+  --font-display: 'Geist', 'Geist Variable', 'Inter Variable', system-ui, sans-serif;
 }
 
 @layer base {

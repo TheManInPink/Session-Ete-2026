@@ -24,6 +24,8 @@ export const REDIS_KEYS = {
   resetJti: (jti: string) => `reset:${jti}`,
   /** Compteur de rate-limit login : `auth:throttle:login:<ip>` */
   throttleLogin: (ip: string) => `throttle:login:${ip}`,
+  /** Compteur de rate-limit SSO exchange : `auth:throttle:sso-exchange:<ip>` */
+  throttleSsoExchange: (ip: string) => `throttle:sso-exchange:${ip}`,
 } as const;
 
 /** TTL Redis par défaut (en secondes) — overridable via env si besoin. */

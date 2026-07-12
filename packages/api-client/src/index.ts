@@ -59,7 +59,8 @@ export type {
   AdminDashboardApi,
   IdentitySearchParams,
   CorrectionListParams,
-  SlotsQuery,
+  AvailabilityQuery,
+  CentersQuery,
   SgogtInboxParams,
   DirectiveListParams,
 } from './core/client.types';
@@ -98,15 +99,24 @@ export type {
 export {
   AppointmentStatusSchema,
   PriorityLevelSchema,
+  CenterSummarySchema,
+  CentersListSchema,
+  SlotKindSchema,
+  AvailabilitySlotSchema,
+  DayAvailabilitySchema,
+  CenterAvailabilitySchema,
   CreateAppointmentDtoSchema,
 } from './appointment/appointment.schema';
 export type {
   AppointmentStatus,
   PriorityLevel,
-  Slot,
+  CenterSummary,
+  SlotKind,
+  AvailabilitySlot,
+  DayAvailability,
+  CenterAvailability,
   Appointment,
   CreateAppointmentDto,
-  SlotsList,
   AppointmentList,
 } from './appointment/appointment.schema';
 

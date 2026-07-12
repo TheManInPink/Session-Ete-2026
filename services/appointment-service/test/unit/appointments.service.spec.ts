@@ -5,7 +5,12 @@
  *              no-show + blacklist. Tous les collaborateurs sont mockés.
  * @module      appointment-service/test
  */
-import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 // `@nina-aes/database` est un package ESM : on le mocke pour le runtime CommonJS
 // de Jest. Le service n'appelle jamais Prisma (repo mocké) ; seul le garde
@@ -97,6 +102,7 @@ function build(
     findInternalUserId: jest.fn().mockResolvedValue('user-uuid'),
     countNoShowsSince: jest.fn().mockResolvedValue(0),
     findByIds: jest.fn().mockResolvedValue([]),
+    findCitizenIdByNina: jest.fn().mockResolvedValue('cit-1'),
     ...overrides.repo,
   };
   const centers = {
@@ -438,5 +444,90 @@ describe('AppointmentsService.markNoShow', () => {
     const flagged = await service.markNoShow(makeRow() as never, NOW);
     expect(flagged).toBe(false);
     expect(redis.setBlacklist).not.toHaveBeenCalled();
+  });
+});
+
+describe('AppointmentsService self-service citoyen', () => {
+  const NINA = '18903102015042V';
+
+  it('createForCitizen : dérive le citizenId du NINA puis crée le RDV', async () => {
+    const { service, repo } = build({
+      repo: { findCitizenIdByNina: jest.fn().mockResolvedValue('cit-1') },
+    });
+    const view = await service.createForCitizen(
+      NINA,
+      { centerId: 'ctr-1', slot: SLOT_ISO, reason: 'Première inscription' },
+      NOW,
+    );
+    expect(repo.findCitizenIdByNina).toHaveBeenCalledWith(NINA);
+    expect(repo.createBookingAtomic.mock.calls[0][0].citizenId).toBe('cit-1');
+    expect(view.status).toBe('SCHEDULED');
+  });
+
+  it('createForCitizen : 403 si le token ne porte pas de NINA (aucun accès base)', async () => {
+    const { service, repo } = build({ repo: { findCitizenIdByNina: jest.fn() } });
+    await expect(
+      service.createForCitizen(
+        undefined,
+        { centerId: 'ctr-1', slot: SLOT_ISO, reason: 'réservation' },
+        NOW,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(repo.findCitizenIdByNina).not.toHaveBeenCalled();
+  });
+
+  it('createForCitizen : 404 si aucun citoyen ne correspond au NINA', async () => {
+    const { service } = build({
+      repo: { findCitizenIdByNina: jest.fn().mockResolvedValue(null) },
+    });
+    await expect(
+      service.createForCitizen(
+        NINA,
+        { centerId: 'ctr-1', slot: SLOT_ISO, reason: 'réservation' },
+        NOW,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('listForCitizen : borne la portée au citoyen dérivé du NINA', async () => {
+    const { service, repo } = build({
+      repo: {
+        findCitizenIdByNina: jest.fn().mockResolvedValue('cit-1'),
+        list: jest.fn().mockResolvedValue([makeRow()]),
+      },
+    });
+    const res = await service.listForCitizen(NINA, { page: 1, pageSize: 20 });
+    expect(repo.list).toHaveBeenCalledWith(expect.objectContaining({ citizenId: 'cit-1' }));
+    expect(res.items).toHaveLength(1);
+  });
+
+  it('cancelForCitizen : annule un RDV appartenant au citoyen', async () => {
+    const { service, repo, queue } = build({
+      repo: {
+        findCitizenIdByNina: jest.fn().mockResolvedValue('cit-1'),
+        findById: jest.fn().mockResolvedValue(makeRow({ citizenId: 'cit-1' })),
+        transition: jest.fn().mockResolvedValue(true),
+      },
+    });
+    await service.cancelForCitizen('appt-1', NINA);
+    expect(repo.transition).toHaveBeenCalledWith(
+      'appt-1',
+      ['REQUESTED', 'SCHEDULED', 'CONFIRMED'],
+      'CANCELLED',
+    );
+    expect(queue.remove).toHaveBeenCalled();
+  });
+
+  it('cancelForCitizen : 404 anti-IDOR si le RDV appartient à un AUTRE citoyen', async () => {
+    const { service, repo } = build({
+      repo: {
+        findCitizenIdByNina: jest.fn().mockResolvedValue('cit-1'),
+        findById: jest.fn().mockResolvedValue(makeRow({ citizenId: 'cit-OTHER' })),
+      },
+    });
+    await expect(service.cancelForCitizen('appt-1', NINA)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(repo.transition).not.toHaveBeenCalled();
   });
 });

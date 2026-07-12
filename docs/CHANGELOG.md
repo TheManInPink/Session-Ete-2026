@@ -3,13 +3,319 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-06 (**Fix hydratation CSP + drawer AD-02** — 2 bugs attrapés
-> par les tests e2e mock : CSP statique sans nonce cassait l'hydratation des 3 apps ; Tailwind v4 ne
-> scannait pas `packages/ui` → drawer mal positionné. Voir 0quinvicies. Précédent : 0quattuorvicies
-> — Autorisation objet + RBAC SIGAC)
+> **Dernière mise à jour** : 2026-07-11 (**PC-04 — réconciliation d'émetteur de token (ADR-036)** :
+> échange SSO citoyen (token Keycloak → session applicative auth-service) levant la réserve
+> d'ADR-028. Trois volets : (1) endpoint `POST /auth/sso/exchange` — vérif Keycloak fail-closed
+> (RS256, `iss`, `azp`, `typ`, `exp`), rôle **DB jamais du token**, citoyen-only (pas de bypass
+> MFA), `nina` gravé DB ; (2) correctif de **casse de rôle** (`normalizeUserRole`) — MFA jadis
+> contournable au login password et tokens citoyens sans `nina` ; (3) **dual-token** portail citoyen
+> (cookie `backend_access_token`, `getSession` Keycloak inchangé → admin/gouvernance intacts). Gate
+> live PC-04 **non basculé** (revue et e2e requis). Voir 0tretricies. Précédent : 0duotricies —
+> vulnerability-service PROMPT 6.1.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0tretricies. Patch 2026-07-11 — PC-04 : réconciliation d'émetteur de token (SSO exchange, ADR-036) et casse de rôle
+
+Suite de 0untricies (self-service `/appointments/me`, gardé faute de chemin autorisé). La **réserve
+d'émetteur** d'ADR-028 est levée : le login **web** citoyen est émis par Keycloak alors que gateway
+et services aval ne vérifient que la **JWKS d'auth-service**. **ADR-036** tranche via un **échange
+SSO** citoyen (token Keycloak → session applicative), livré en deux tranches et un correctif. **Le
+gate live PC-04 n'est PAS encore basculé** (revue et e2e requis).
+
+- **auth-service — endpoint d'échange** (`81ad914`) : `POST /api/v1/auth/sso/exchange` (`@Public`,
+  throttlé par IP, dédié). `KeycloakTokenVerifier` vérifie le token Keycloak **fail-closed** :
+  signature RS256 (JWKS Keycloak par `kid` ; `algorithms:['RS256']` anti-confusion), `iss` (celui vu
+  par le **navigateur** — `KEYCLOAK_ISSUER`, à défaut dérivé ; JWKS récupéré via `KEYCLOAK_URL`
+  interne → **split-horizon**), `azp = nina-citizen`, `typ ≠ ID/Refresh`, `exp`. `exchangeSsoToken`
+  résout le user par `keycloakId`, prend le **rôle en base (jamais du token)**, **refuse tout rôle
+  interne** (MFA non contournable), grave le `nina` DB (anti-IDOR) et réutilise `issueSession`.
+  Nouveau `JwksModule` global. Tests unitaires (vérificateur, service). **ADR-036.**
+- **auth-service — correctif de casse de rôle** (`e2f1c0c`) : `User.role` Prisma (CASSE HAUTE) était
+  projeté brut vers `UserRole` (casse basse) via `as unknown as UserRole` ⇒ au login **password** :
+  `MFA_REQUIRED_ROLES.has('AGENT')` faux (**MFA contournée**) et token citoyen **sans `nina`**. Fix
+  racine : helper `normalizeUserRole` (throw sur rôle inconnu) appliqué à TOUTE projection d'un rôle
+  lu en base (`login`, `getMe`, `verifyTotp`/`verifySmsChallenge`, `exchangeSsoToken`). Latent (le
+  web passe par Keycloak) mais réel ; tests ajoutés.
+- **portail citoyen — dual-token** (`1766a4b`) : `@nina-aes/auth` gagne
+  `AuthConfig.backendExchangeUrl` (**opt-in citoyen** ; **no-op** admin/gouvernance — `getSession`
+  Keycloak inchangé). `callback` et `refresh` échangent le token Keycloak (helper
+  `exchangeBackendToken`, **server-to-server**, hors edge public, **non-fatal**) et posent le cookie
+  httpOnly **`backend_access_token`** (scope `/`) ; `logout` et l'échec de refresh le purgent. Les
+  deux chemins de forwarding citoyen (RSC `server.ts`, BFF `api/v1/[...path]`) relaient ce token (et
+  non celui de Keycloak, rejeté aval). `AUTH_SERVICE_INTERNAL_URL` déclarée dans `turbo.json`.
+
+Sécurité : aucun secret ni token en clair ; le **rôle DB fait foi** ; anti-IDOR (`nina`) et
+intégrité MFA préservés ; endpoint de mint **hors edge public**. **Reste** : bascule du gate live
+PC-04 (`appointment-form.tsx`) et e2e sur stack réelle (revue) ; audit signé de `create()`. Gates :
+`check-types`, ESLint `--max-warnings=0` et `test` (auth-service **36**) verts. Docs : header, cette
+entrée, **ADR-036** et `DOCUMENTATION-MAP` (36 ADRs). Précédent : 0duotricies —
+vulnerability-service.
+
+### 0duotricies. Patch 2026-07-11 — vulnerability-service : réconciliation PROMPT 6.1 (livraison à domicile, validation par catégorie, appel SMS de file)
+
+Réconciliation **complète** du `vulnerability-service` (Bloc C1) avec la spec PROMPT 6.1 : 4 écarts
+fonctionnels comblés **sans casser** les décisions actées (ADR-022 : 2 services Bloc C ; ADR-027 :
+guards locaux ; queue Postgres ; préfixe `/vulnerability/*`). **ADR-035** consigne les décisions.
+
+- **Livraison à domicile** — nouveau sous-domaine `services/vulnerability-service/src/deliveries/` +
+  modèle Prisma **additif** `DeliveryMission` (+ enums `DeliveryStatus`/`DeliverySignatureType`,
+  migration `20260711120000_vulnerability_delivery_missions`). Cycle
+  `REQUESTED → ASSIGNED → (IN_TRANSIT) → DELIVERED | FAILED`, **SLA 15 j**
+  (`dueAt = demande + DELIVERY_SLA_DAYS`). Dispatch ADMIN/SUP vers un agent **actif** ;
+  **confirmation réservée à l'agent affecté** (ownership : sub JWT → `User.id` → `MobileAgent`,
+  **403** sinon) avec preuve de réception **hashée** (biométrie/empreinte — jamais le gabarit brut),
+  photo d'attestation **chiffrée** (URL MinIO) + GPS. **Pas** de nouveau `UserRole` plateforme
+  (ADR-035 D1).
+- **Politique de validation par catégorie** — `GET /vulnerability/categories` (référentiel
+  d'éligibilité) + application à `declare` : ELDERLY **auto-vérifié** dès 60 ans (âge dérivé de
+  `Citizen.birthDate`, **422** sinon — pas d'auto-déclaration) ; DISABLED/CHRONIC_ILL **preuve
+  obligatoire** + revue agent CTDEC (**422** sans preuve) ; PREGNANT/ILLITERATE/DIASPORA
+  **auto-déclarés** (acceptés sans preuve).
+- **Appel SMS « c'est votre tour »** — `POST /vulnerability/priority-queue/notify-next` publie un
+  job SMS vers notification-service (exchange `nina.notifications`, même contrat qu'appointment-
+  service), idempotent (colonne `priority_queue_entries.notified_at`), **best-effort** (bus
+  indisponible ⇒ appel rejouable, opération non bloquée). La **fenêtre 7h-9h dédiée** aux P1 reste
+  portée par `EnrollmentCenter.priorityFrom/To/Quota` et consommée par l'appointment-service — **non
+  dupliquée** ici.
+- **Schéma additif / réversible** — colonne `notified_at` nullable + table `delivery_missions`
+  (aucune colonne existante modifiée, aucune donnée touchée). Client Prisma régénéré +
+  `@nina-aes/database` rebuild. `NODE_ENV` gates inchangés ; aucun secret en clair ; NINA jamais en
+  clair (UUID `citizenId` uniquement).
+- **Durcissements post-revue adversariale** (multi-agents sur le diff — défauts invisibles aux
+  gates) :
+  - **Anti-BOLA** sur `GET /vulnerability/deliveries` : un AGENT est **forcé à ses propres
+    missions** (adresses domicile de citoyens vulnérables) — `agentId` fourni ignoré ; supervision
+    (SUP/ADMIN/AUDITOR) inchangée. Query de liste **validée** (Zod) : `status`/`page` invalides →
+    **400** au lieu de 500 SQL. Cf. **ADR-035 D6**.
+  - **Chaîne de migrations réparée** : les tables Bloc C1 (créées jadis par `db push` sans
+    migration) sont matérialisées par une **baseline** `20260709120000_vulnerability_bloc_c1_base`
+    **avant** `20260711120000_vulnerability_delivery_missions` (qui les référence) — sinon
+    `migrate deploy` échouait sur une base fraîche. Les deux migrations régénérées depuis le SQL
+    canonique Prisma (id `UUID` **sans** `DEFAULT`, génération applicative Prisma 7).
+    `migrate diff --from-migrations` (base fantôme) ne laisse que la dérive orthogonale
+    **préexistante** (Bloc B `aes_partners`, `aes_verification_logs`/`biometric_consents`,
+    `id DROP DEFAULT`) — **hors périmètre**. **Base fraîche** (CI/prod) : `migrate deploy` suffit.
+    **DEV** (tables + `notified_at` déjà là via `db push`) : `prisma migrate resolve --applied` sur
+    les **deux** migrations (pas `migrate deploy` seul, qui rejouerait `ADD COLUMN notified_at`), ou
+    `migrate reset`. `prisma.config.ts` accepte un `shadowDatabaseUrl` optionnel
+    (`SHADOW_DATABASE_URL`, inerte sinon).
+  - **Template SMS `priority-queue-turn`** enregistré au catalogue notification-service (+
+    `locales/fr.json`) et clé alignée côté publisher : `notify-next` référençait un template
+    inexistant (`priority_queue_turn` → `TEMPLATE_NOT_FOUND`).
+  - **`fail()`** exige désormais l'agent **ACTIVE** (comme `confirm()`) : un agent suspendu ne peut
+    plus saboter sa mission. **Audit** : `entityType`/`entityId`/`actorType`/`ipAddress` hissés à la
+    **racine** de l'enveloppe (le normalizer audit-service les y lit — `entity_id` n'est plus NULL).
+
+Gates : `check-types` + ESLint `--max-warnings=0` + `test` **verts** — `vulnerability-service` **80
+tests** (dont : livraison SLA/priorité dérivée/ownership de confirmation & d'échec/tournée RBAC +
+auditeur/**liste anti-BOLA**, auto-ELDERLY + 422 preuve/âge, idempotence & motifs de `notify-next`,
+bornes du calcul d'âge, référentiel catégories) + `notification-service` **25 tests** (catalogue à
+10 templates). Docs : header + cette entrée + **ADR-035** (D6 + durcissements) + `DOCUMENTATION-MAP`
+(35 ADRs) + README service + doc 22.
+
+### 0untricies. Patch 2026-07-11 — PC-04 : réservation self-service citoyen (backend `/appointments/me` + client honnête)
+
+Suite de 0tricies (disponibilité live). La **réservation** de PC-04, jusqu'ici gardée en démo faute
+de chemin autorisé, s'ouvre au citoyen **pour lui-même** — sans affaiblir ADR-028 : l'identité est
+**dérivée du token**, jamais fournie par le client (anti-IDOR/BOLA), exactement comme
+`POST /corrections`.
+
+- **`appointment-service` — endpoints self-service** : `POST /appointments/me`,
+  `GET /appointments/me`, `PUT /appointments/me/:id/cancel`, réservés au rôle **CITIZEN**. Le
+  `citizenId` est **résolu côté serveur** depuis le NINA porté par le token (`findCitizenIdByNina`)
+  : **403** si le token ne porte pas de NINA, **404** si aucun citoyen ne correspond. La création
+  réutilise le cœur `create()` (blacklist no-show, vulnérabilité, quotas) ; l'annulation vérifie la
+  **propriété AVANT toute action** et renvoie un **404 uniforme** si le RDV n'existe pas OU
+  n'appartient pas au citoyen (pas d'oracle d'énumération). `POST /appointments` (médié, `citizenId`
+  explicite) reste **AGENT/SUPERVISOR/ADMIN** : **ADR-028 inchangé**.
+- **Propagation du NINA** — `AuthSubject` (`@nina-aes/auth-guards`) porte désormais un `nina?`
+  optionnel (rétro-compatible) ; le vérificateur JWKS d'`appointment-service` le projette depuis la
+  charge du token. **Aucun credential de service** introduit.
+- **Client `@nina-aes/api-client` aligné (données honnêtes)** — le schéma RDV cesse d'inventer :
+  `queueNumber` devient **nullable** (numéro de passage assigné au **check-in**, `null` à la
+  réservation) ; le champ `notes` (**inexistant** côté backend, qui renvoie `purpose`) est
+  **supprimé** ; `AppointmentList` passe de `{ items, total }` à `{ page, pageSize, items }` (miroir
+  exact de `list()`) ; `CreateAppointmentDto` devient `{ centerId, slot, reason ≤ 100 }` et
+  `create()` cible **`POST /appointments/me`** (plus de `citizenId`). Le **mock** reflète fidèlement
+  (numéro de file `null` à la création, liste paginée). La **confirmation** de PC-04 n'affiche donc
+  plus de numéro de file fabriqué mais « Attribué à votre arrivée au centre ».
+- **Bouton de réservation live encore désactivé** — la **couture d'émetteur de token** n'est pas
+  réconciliée (login web émis par **Keycloak**, mais gateway + `appointment-service` vérifient le
+  JWKS d'**auth-service**) : aucun appel citoyen authentifié n'atteint donc encore le backend. Le
+  portail reste en **démo (mock)** pour la réservation ; l'endpoint est prêt côté serveur. La
+  réconciliation d'émetteur est le **prérequis** (chantier de suivi).
+- **Audit signé (chantier de suivi)** — l'événement d'audit **signé** vers `audit-service`
+  (`nina.audit`, origine authentifiée exigée par `AUDIT_REQUIRE_SIGNED_ORIGIN`) sur la création
+  self-service reste à câbler ; en attendant, l'acte est tracé par **log structuré** (acteur = le
+  citoyen). Aucune garantie d'auditabilité / intégrité existante affaiblie.
+
+Gates : `check-types` + ESLint `--max-warnings=0` + `test` **verts** — `appointment-service`
+**71/71** (dont **6 nouveaux** tests self-service : dérivation d'identité, 403/404, portée de la
+liste, ownership anti-IDOR sur l'annulation) et `auth-guards` ; `check-types` + ESLint des apps
+**citizen / admin / governance** verts. Docs : header + cette entrée.
+
+### 0tricies. Patch 2026-07-11 — PC-04 : disponibilité (créneaux) réconciliée live + réservation gardée honnête
+
+Suite de 0novemvicies (liste des centres live). La **disponibilité** de PC-04 est désormais
+réconciliée sur le contrat réel d'`appointment-service` ; la **réservation** citoyen reste
+volontairement en démo (mock), faute de chemin autorisé côté backend.
+
+- **Contrat `CenterAvailability` fidèle** (`@nina-aes/api-client`) — l'ancien `Slot` / `SlotsList`
+  (forme inventée par le mock : `queueNumber`, `centerName`, niveaux `P1/P2/P3`) est remplacé par
+  `AvailabilitySlot` / `DayAvailability` / `CenterAvailability`, **miroir exact** des types
+  d'`appointment-service` : `{ start, kind: STANDARD|PRIORITY, capacity, booked, remaining }`
+  groupés par jour (`{ date, open, slots, summary }`). **Aucune donnée fabriquée** : ni numéro de
+  file (attribué au check-in) ni niveau P1/P2/P3 (décidé à la réservation selon la vulnérabilité) au
+  stade de la disponibilité.
+- **Client live rewiré** — `getAvailableSlots` (`/appointments/slots`, route **inexistante** → 404)
+  devient `getAvailability` → `GET /api/v1/centers/:id/availability?from&to` (public, déjà routé par
+  le gateway `/api/v1/centers`). Hook `useAvailableSlots` → `useCenterAvailability`. Le **mock**
+  produit la **même forme** (déterministe, `booked` / `remaining` réels, week-ends fermés). Fenêtre
+  ramenée de J+60 à **J+30** pour rester dans l'horizon backend (`APPOINTMENT_BOOKING_HORIZON_DAYS`,
+  30 j par défaut ; au-delà `GET /availability` renvoie 400).
+- **`PrioritySlot`** (`packages/ui`) — prop **`badge`** optionnelle (rétro-compatible) : la nature
+  du créneau s'affiche honnêtement « Prioritaire » / « Standard » (au lieu du code `P1/P2/P3`,
+  désormais hors-sujet en disponibilité). Le formulaire mappe `kind` → accent visuel + sous-libellé
+  « N places restantes » (réel).
+- **Réservation gardée honnête** — `POST /appointments` est **réservé AGENT/SUPERVISOR/ADMIN**
+  (CITIZEN exclu par conception, ADR-028 : pas de liaison forte `JWT.sub ↔ Citizen.id`). En mode
+  **live**, le formulaire n'affiche donc **pas** de bouton de réservation (qui renverrait 403) mais
+  un encart « réservation en ligne bientôt disponible » ; en mode **démo (mock)**, le parcours
+  complet + confirmation `.ics` reste joué. **Aucune autorisation affaiblie** côté serveur.
+- **Chantier de suivi (Phase 2, hors périmètre)** — l'ouverture de la réservation citoyen fait
+  l'objet d'un scope dédié (investigation menée) : soit la voie « BFF de confiance » (réconciliation
+  d'émetteur de token web Keycloak ↔ backend auth-service, résolution NINA→`Citizen.id` côté BFF,
+  mécanisme d'auth de service **à construire**, + événement d'audit sur `create`), soit
+  l'alternative **plus légère** « self-service dérivé du token » (grant CITIZEN sur
+  `POST /appointments/me` liant à la `nina` du token — à l'image de `POST /corrections` déjà en
+  place — sans credential de service). Décision + sign-off requis.
+
+Gates : `check-types` (api-client, ui, citizen, admin) + ESLint `--max-warnings=0` (fichiers
+api-client) **verts** ; parse Zod runtime d'une charge `CenterAvailability` **live** (clés en trop
+ignorées, `kind` fabriqué / `start` non-ISO **rejetés**, fail-closed). Docs : `screens.md` PC-04 +
+ADR-031 + doc 12.
+
+### 0novemvicies. Patch 2026-07-07 — api-gateway : route `/api/v1/centers` (liste centres live PC-04)
+
+Câblage **live** de la liste des centres (suite de 0octovicies) : le sélecteur région→centre de
+PC-04 peut désormais consommer les vrais centres via le gateway, pas seulement le mock.
+
+- **api-gateway** — nouvelle entrée de routage `/api/v1/centers` → `appointment-service` (même aval
+  que `/api/v1/appointments`, dédupliqué par `distinctDownstreams` → pas de nouveau downstream
+  santé). Marquée **publique** : le `centers.controller.ts` aval est `@Public()` (répertoire en
+  lecture seule, aucune donnée sensible ; le `ThrottlerGuard` aval limite le débit). BFF citoyen
+  inchangé (catch-all pass-through) → `listCenters` (déjà pointé sur `/api/v1/centers`) atteint le
+  service en live.
+- **api-client** — le schéma `CenterSummary` aligne sa nullabilité sur le contrat backend
+  (`regionCode` / `regionName` `nullable`) → parse robuste des réponses live (les clés surnuméraires
+  `openNow` / `latitude` / `distanceKm`… sont ignorées). Le formulaire PC-04 écarte du sélecteur les
+  centres sans région dérivable.
+- **Reste en suivi** — **disponibilité** (`/centers/:id/availability`) et **réservation** (`create`,
+  réservé AGENT) live pas encore réconciliées : le parcours complet reste cohérent en mock ; seule
+  la **liste des centres** est désormais live-capable.
+
+Gates : `check-types` + ESLint `--max-warnings=0` (api-client, citizen, api-gateway) **verts** ;
+tests gateway `proxy.routes` **26/26** (2 nouveaux cas `/centers`) ; parse Zod d'une charge
+`CenterSummary` live (nullable + clés en trop) validé. Docs : `screens.md` PC-04 (mention live) + ce
+CHANGELOG.
+
+### 0octovicies. Patch 2026-07-07 — PC-04 (prise de rendez-vous) : sélecteur centre + calendrier + `PrioritySlot`
+
+Refonte du contenu et de la disposition de l'écran de prise de rendez-vous
+(`/[locale]/appointments/new`) en un parcours **centre → date → créneau** à 2 colonnes, en
+préservant le principe **données honnêtes** (aucun chiffre fabriqué).
+
+- **Sélecteur région → centre (données réelles)** — nouvelle capacité `listCenters` dans
+  `@nina-aes/api-client` : schéma `CenterSummary`, client live `GET /api/v1/centers`, **mock miroir
+  des 6 centres réellement seedés** (`packages/database/prisma/seed.ts` : CTDEC Bamako + 5 antennes
+  RAVEC Kati / Kayes / Sikasso / Ségou / Mopti), hook `useCenters`. Les régions proposées =
+  **seulement celles qui ont un centre** (pas la liste de 11 régions périmée d'avant-2023). `Select`
+  région → `Select` centre dépendant (auto-sélection si la région n'a qu'un centre).
+- **Calendrier mensuel** — `Calendar` (`packages/ui`) étendu d'une prop **`disabled(date)`
+  rétro-compatible** : jours passés / week-ends / **sans créneau** grisés et non cliquables. La
+  disponibilité vient des créneaux (`useAvailableSlots` par centre, fenêtre J → J+60) ; en mode mock
+  elle est **déterministe par centre/jour** (démo, non fabriquée).
+- **Grille horaire + `PrioritySlot`** — après sélection d'un jour : section **file prioritaire
+  (07:30–09:00)** + **créneaux standard**, rendus par **`PrioritySlot`** (composant conçu pour
+  PC-04, jusqu'ici jamais câblé). La file P1/P2 est décidée **côté serveur** selon la vulnérabilité.
+- **Récap + engagement + confirmation** — à la sélection d'un créneau : récap (centre / date /
+  heure), motif (≥ 5 car.) et **`Checkbox` d'engagement à présenter une pièce d'identité**
+  (conditionne l'envoi). La confirmation ouvre une modale : **QR décoratif** (aperçu ; le QR signé
+  JWT ressort de `document-service`, doc 10) + **export `.ics`** réel (iCalendar RFC 5545, rappel
+  `VALARM` -P1D, généré côté client sans requête).
+- **Écarts assumés (données honnêtes)** — pas de carte `MaliMap` D3 (composant existant mais non
+  câblé ici) ; **flux cohérent en mode mock** : l'api-gateway ne route pas encore `/api/v1/centers`
+  et les chemins `slots`/`create` du client citoyen divergent du backend (`create` réservé AGENT) →
+  liste centres live + réservation live = **suivi** (réconciliation gateway/DTO). Pas de bouton SMS
+  (notification-service non relié à l'écran).
+
+Gates : `check-types` (api-client, ui, citizen) + ESLint `--max-warnings=0` (api-client, ui,
+citizen)
+
+- `next build` citizen **verts** (107/107 pages) ; 53 messages ICU `appointments.*` validés. e2e
+  PC-04 réécrit (région → centre → jour → créneau → engagement) — **non exécuté** (nécessite l'app
+  lancée + navigateurs). Docs synchronisés : `screens.md` (note PC-04 + wireframe) + i18n `fr.json`
+  (`appointments.select` / `calendar` / `slots` / `recap` / `aside`, `form.pledge`,
+  `confirm.addToCalendar` / `ics*`).
+
+### 0septvicies. Patch 2026-07-06 — PC-03 (wizard de correction) enrichi + `AiScorePanel.bands`
+
+Amélioration du contenu et de la disposition du wizard de correction (`/nina/[nina]/correction`), en
+préservant le principe **données honnêtes** (aucun chiffre fabriqué).
+
+- **Composants du design system** — le wizard adopte enfin `Stepper` (libellés courts Champ / Valeur
+  / Justificatif / Confirmation) et `UploadZone` (zone de dépôt partagée, a11y clavier). Nouvelle
+  **carte « Fiche concernée »** (initiales + nom + NINA + naissance). Étape 2 réagencée en **2
+  colonnes** (`lg:`) : formulaire + panneau de pré-analyse.
+- **Comparaison avant/après** — l'étape 2 affiche la **valeur actuelle réelle** du champ (récupérée
+  via `fetchCitizenFiche`, best-effort — si live 401/403/indispo, le wizard tourne sans comparaison)
+  ; le récap final montre l'ancienne valeur barrée → la nouvelle.
+- **« Score IA » rendu honnête** — nouveau module `similarity.ts` = **Jaro-Winkler** calculé
+  **localement** (déterministe, sans réseau ni modèle ; casse/accents ignorés), l'algorithme cité
+  par la spec elle-même. Affiché via `AiScorePanel` avec **disclaimer** « pas le score définitif ;
+  l'analyse officielle est faite par le service à la soumission ». Pas de breakdown (la similarité
+  est un scalaire, pas une décomposition). Champs sans valeur actuelle (résidence en démo) → «
+  comparaison indisponible ».
+- **`AiScorePanel.bands`** (packages/ui) — nouvelle prop **optionnelle rétro-compatible** : libellés
+  de paliers surchargeables. PC-03 passe « Forte / Moyenne / Faible similarité » au lieu du « …
+  confiance » codé en dur (qui aurait été un faux verdict). Défaut inchangé → AD-02 non impacté.
+- **Honnêteté préservée** — justificatif validé localement mais **non envoyé** (document-service non
+  câblé) ; soumission → `/dashboard` (pas de PC-05).
+
+Gates : `check-types` + ESLint `--max-warnings=0` + `next build` citizen **verts**. Docs
+synchronisés : `screens.md` (note PC-03) + `design-system.md` (§4.4 `bands`).
+
+### 0sexvicies. Patch 2026-07-06 — Alignement charte §1.1/§1.2/§3 + chrome + PC-01/PC-02
+
+Alignement du frontend sur la charte graphique fournie (couleurs, typographie, layout citoyen),
+décidé **écran par écran** avec l'utilisateur ; principe **données honnêtes** préservé (aucun
+chiffre fabriqué ; NINA de démo avec lettre de contrôle **V** = `18903102015042V`).
+
+- **Palette (§1.1)** — `tokens.json` régénéré (`pnpm --filter @nina-aes/ui tokens:build`) : accent
+  turquoise `180°` → **bleu `#2E75B6`** (accent-500) ; neutres chauds `30°` → **slate froid**
+  (`#F8FAFC`/`#64748B`/`#E2E8F0`) ; primary → **bleu marine `#1B3A5C`** (`--primary` = primary-700 ;
+  hover 600 `#274D73`, dark 800 `#122841`) ; `--ring` → accent ; drapeaux AES ravivés (Mali
+  `#14B53A`, Burkina `#EF3340`, Niger `#FF7F00`). `tokens.css` régénéré (idempotent).
+- **Typographie (§1.2)** — stack `--font-display` Bricolage Grotesque → **Geist**. ⚠️ Constat :
+  aucune police n'est réellement chargée (`@fontsource`/`next/font` absents des 3 apps) → tout tombe
+  en fallback système ; le passage à Geist est une déclaration de stack (câblage des polices =
+  suivi).
+- **Chrome (§3)** — `AppSidebar` (design system) responsive : desktop fixe + **burger mobile** →
+  drawer `Sheet` (referme au clic d'un item). `AppFooter` partagé. Citoyen : `SiteHeader` sombre
+  (nav centrale + menu user + **logout** via form POST) + `SiteFooter` 3 colonnes + bande tricolore
+  AES. Consoles admin/gov : app-shell (sidebar + contenu scrollable + footer).
+- **PC-01** — nav hybride (Accueil / **Centres CTDEC** / **Aide** ; `/centres` + `/aide` créées en
+  stubs honnêtes, bannière démo) ; hero clair tricolore (drapeaux + accroche qualitative **sans
+  chiffre**) ; cartes décrites ; section « Comment ça marche » ; **FAQ** (`Accordion`, partagée
+  home + /aide). Route de recherche `/nina/[nina]` conservée (pas de migration `/recherche?nina=`).
+- **PC-02** — chrome ajouté ; données en `Tabs` (Identité / Lieu de naissance / Filiation) + `Alert`
+  info « source des données ». Onglet « Résidence » et **score de confiance IA omis** (non encodés
+  dans le NINA / fabriqués) ; PDF FDI reste **désactivé** (document-service non câblé).
+
+Gates : typecheck + ESLint `--max-warnings=0` + `next build` citizen **verts**. Docs synchronisés :
+`design-system.md` (§1, §2.2, §8, §11) + `screens.md` (PC-01/PC-02).
 
 ### 0quinvicies. Patch 2026-07-06 — Fix hydratation CSP à nonce + drawer AD-02 (2 bugs e2e)
 

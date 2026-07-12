@@ -10,13 +10,14 @@
 import * as React from 'react';
 
 import { cn } from '../../lib/utils';
+import { CountryFlag } from '../brand/country-flag';
 
 export type AESCountry = 'MLI' | 'BFA' | 'NER';
 
-const COUNTRIES: { code: AESCountry; flag: string; label: string }[] = [
-  { code: 'MLI', flag: '🇲🇱', label: 'Mali' },
-  { code: 'BFA', flag: '🇧🇫', label: 'Burkina Faso' },
-  { code: 'NER', flag: '🇳🇪', label: 'Niger' },
+const COUNTRIES: { code: AESCountry; label: string }[] = [
+  { code: 'MLI', label: 'Mali' },
+  { code: 'BFA', label: 'Burkina Faso' },
+  { code: 'NER', label: 'Niger' },
 ];
 
 export interface AESCountrySwitcherProps {
@@ -49,7 +50,7 @@ export function AESCountrySwitcher({ value, onValueChange, className }: AESCount
               active ? 'bg-bg-card text-fg shadow-sm' : 'text-fg-muted hover:text-fg',
             )}
           >
-            <span aria-hidden="true">{c.flag}</span>
+            <CountryFlag country={c.code} size={18} />
             {c.code}
           </button>
         );

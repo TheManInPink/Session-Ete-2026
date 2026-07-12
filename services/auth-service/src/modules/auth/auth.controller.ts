@@ -44,7 +44,9 @@ import {
 } from './dto/register-request-otp.dto.js';
 import { type RegisterVerifyDto, RegisterVerifySchema } from './dto/register-verify.dto.js';
 import { type ResetPasswordDto, ResetPasswordSchema } from './dto/reset-password.dto.js';
+import { type SsoExchangeDto, SsoExchangeSchema } from './dto/sso-exchange.dto.js';
 import { LoginThrottleGuard } from './login-throttle.guard.js';
+import { SsoExchangeThrottleGuard } from './sso-exchange-throttle.guard.js';
 
 @Controller('auth')
 export class AuthController {
@@ -107,6 +109,24 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(LogoutSchema))
   async logout(@Body() dto: LogoutDto): Promise<void> {
     await this.auth.logout(dto);
+  }
+
+  // ─── SSO exchange (portail citoyen) ──────────────────────────────
+
+  /**
+   * Échange un access token **Keycloak** (session web du portail citoyen)
+   * contre une **session applicative** auth-service (JWT RS256 vérifiable par
+   * la gateway + les services aval). Réservé aux CITOYENS (cf. ADR-036).
+   * Public — le porteur prouve son identité par le token Keycloak signé — mais
+   * rate-limité par IP via {@link SsoExchangeThrottleGuard}.
+   */
+  @Public()
+  @UseGuards(SsoExchangeThrottleGuard)
+  @Post('sso/exchange')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ZodValidationPipe(SsoExchangeSchema))
+  ssoExchange(@Body() dto: SsoExchangeDto): Promise<AuthSession> {
+    return this.auth.exchangeSsoToken(dto);
   }
 
   // ─── Reset password ──────────────────────────────────────────────

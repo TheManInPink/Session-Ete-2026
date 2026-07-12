@@ -24,8 +24,10 @@ import {
   type TimelineNode,
   type TimelineNodeState,
 } from '@nina-aes/ui/components/business/correction-timeline';
+import { SiteFooter } from '../_components/site-footer';
 import { FileText, Calendar, ArrowRight, CheckCircle2, Check } from 'lucide-react';
 import { AutoRefresh } from './_components/auto-refresh';
+import { SiteHeader } from '../_components/site-header';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -114,117 +116,124 @@ export default async function DashboardPage({ params, searchParams }: PageProps)
   ]);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
-      {/* Suivi PC-05 : rafraîchit le statut des demandes toutes les 30 s
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader
+        locale={locale}
+        user={{ name: session.user.name, nina: session.user.nina, email: session.user.email }}
+      />
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-12">
+        {/* Suivi PC-05 : rafraîchit le statut des demandes toutes les 30 s
           (suspendu quand l'onglet est masqué). */}
-      <AutoRefresh intervalMs={30_000} />
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {t('greeting', { name: session.user.name })}
-        </h1>
-        <p className="mt-2 text-fg-muted">{t('subtitle')}</p>
-      </header>
+        <AutoRefresh intervalMs={30_000} />
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t('greeting', { name: session.user.name })}
+          </h1>
+          <p className="mt-2 text-fg-muted">{t('subtitle')}</p>
+        </header>
 
-      {(submitted || appointment) && (
-        <Alert className="mb-6 border-success bg-success-50">
-          <CheckCircle2 className="size-4 text-success-700" aria-hidden="true" />
-          <AlertTitle>
-            {submitted ? t('toast.correctionTitle') : t('toast.appointmentTitle')}
-          </AlertTitle>
-          <AlertDescription>
-            {submitted ? t('toast.correctionBody') : t('toast.appointmentBody')}
-          </AlertDescription>
-        </Alert>
-      )}
+        {(submitted || appointment) && (
+          <Alert className="mb-6 border-success bg-success-50">
+            <CheckCircle2 className="size-4 text-success-700" aria-hidden="true" />
+            <AlertTitle>
+              {submitted ? t('toast.correctionTitle') : t('toast.appointmentTitle')}
+            </AlertTitle>
+            <AlertDescription>
+              {submitted ? t('toast.correctionBody') : t('toast.appointmentBody')}
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Actions rapides — sans NINA en session, on retombe sur la recherche
+        {/* Actions rapides — sans NINA en session, on retombe sur la recherche
           NINA (/nina) plutôt que de générer des URLs invalides (/nina/…). */}
-      <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <ActionCard
-          href={session.user.nina ? `/${locale}/nina/${session.user.nina}` : `/${locale}/nina`}
-          icon={FileText}
-          label={t('actions.viewFile')}
-        />
-        <ActionCard
-          href={
-            session.user.nina
-              ? `/${locale}/nina/${session.user.nina}/correction`
-              : `/${locale}/nina`
-          }
-          icon={FileText}
-          label={t('actions.requestCorrection')}
-        />
-        <ActionCard
-          href={`/${locale}/appointments/new`}
-          icon={Calendar}
-          label={t('actions.bookAppointment')}
-        />
-      </section>
+        <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <ActionCard
+            href={session.user.nina ? `/${locale}/nina/${session.user.nina}` : `/${locale}/nina`}
+            icon={FileText}
+            label={t('actions.viewFile')}
+          />
+          <ActionCard
+            href={
+              session.user.nina
+                ? `/${locale}/nina/${session.user.nina}/correction`
+                : `/${locale}/nina`
+            }
+            icon={FileText}
+            label={t('actions.requestCorrection')}
+          />
+          <ActionCard
+            href={`/${locale}/appointments/new`}
+            icon={Calendar}
+            label={t('actions.bookAppointment')}
+          />
+        </section>
 
-      {/* Corrections en cours */}
-      <section className="mb-10">
-        <h2 className="mb-4 text-xl font-semibold">{t('corrections.title')}</h2>
-        {corrections.length === 0 ? (
-          <EmptyState label={t('corrections.empty')} />
-        ) : (
-          <ul className="space-y-3">
-            {corrections.map((c) => (
-              <li key={c.id}>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
+        {/* Corrections en cours */}
+        <section className="mb-10">
+          <h2 className="mb-4 text-xl font-semibold">{t('corrections.title')}</h2>
+          {corrections.length === 0 ? (
+            <EmptyState label={t('corrections.empty')} />
+          ) : (
+            <ul className="space-y-3">
+              {corrections.map((c) => (
+                <li key={c.id}>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm text-fg-muted">{t(`fields.${c.field}` as never)}</p>
+                          <p className="font-medium">
+                            → <span className="font-mono">{c.proposedValue}</span>
+                          </p>
+                          <p className="mt-1 text-xs text-fg-muted">
+                            {t('corrections.submittedAt', { date: c.createdAt.slice(0, 10) })}
+                          </p>
+                        </div>
+                        <StatusBadge status={c.status} label={statusLabel(c.status)} />
+                      </div>
+                      <CorrectionTimeline
+                        nodes={buildCorrectionNodes(c.status, c.aiScore, timelineLabels)}
+                        className="mt-4 border-t pt-4"
+                      />
+                    </CardContent>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Rendez-vous */}
+        <section>
+          <h2 className="mb-4 text-xl font-semibold">{t('appointments.title')}</h2>
+          {appointments.length === 0 ? (
+            <EmptyState label={t('appointments.empty')} />
+          ) : (
+            <ul className="space-y-3">
+              {appointments.map((a) => (
+                <li key={a.id}>
+                  <Card>
+                    <CardContent className="flex items-center justify-between gap-4 p-4">
                       <div>
-                        <p className="text-sm text-fg-muted">{t(`fields.${c.field}` as never)}</p>
-                        <p className="font-medium">
-                          → <span className="font-mono">{c.proposedValue}</span>
-                        </p>
-                        <p className="mt-1 text-xs text-fg-muted">
-                          {t('corrections.submittedAt', { date: c.createdAt.slice(0, 10) })}
+                        <p className="font-medium">{a.centerName}</p>
+                        <p className="text-sm text-fg-muted">
+                          {new Date(a.scheduledAt).toLocaleString(locale, {
+                            dateStyle: 'full',
+                            timeStyle: 'short',
+                          })}
                         </p>
                       </div>
-                      <StatusBadge status={c.status} label={statusLabel(c.status)} />
-                    </div>
-                    <CorrectionTimeline
-                      nodes={buildCorrectionNodes(c.status, c.aiScore, timelineLabels)}
-                      className="mt-4 border-t pt-4"
-                    />
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Rendez-vous */}
-      <section>
-        <h2 className="mb-4 text-xl font-semibold">{t('appointments.title')}</h2>
-        {appointments.length === 0 ? (
-          <EmptyState label={t('appointments.empty')} />
-        ) : (
-          <ul className="space-y-3">
-            {appointments.map((a) => (
-              <li key={a.id}>
-                <Card>
-                  <CardContent className="flex items-center justify-between gap-4 p-4">
-                    <div>
-                      <p className="font-medium">{a.centerName}</p>
-                      <p className="text-sm text-fg-muted">
-                        {new Date(a.scheduledAt).toLocaleString(locale, {
-                          dateStyle: 'full',
-                          timeStyle: 'short',
-                        })}
-                      </p>
-                    </div>
-                    <StatusBadge status={a.status} label={statusLabel(a.status)} />
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </main>
+                      <StatusBadge status={a.status} label={statusLabel(a.status)} />
+                    </CardContent>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </main>
+      <SiteFooter locale={locale} />
+    </div>
   );
 }
 
