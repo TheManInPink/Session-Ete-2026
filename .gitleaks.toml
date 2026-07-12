@@ -16,3 +16,11 @@ paths = [
   # l'environnement / Vault Agent, jamais en dur dans le code).
   '''services/notification-service/src/notifications/templates/template\.catalog\.ts$''',
 ]
+regexes = [
+  # Les `keycloakId` du seed (packages/database/prisma/seed.ts) et du realm
+  # import sont des UUID d'utilisateurs Keycloak — des IDENTIFIANTS PUBLICS,
+  # jamais des secrets. La règle `generic-api-key` confond leur entropie avec
+  # une clé d'API (ex. le citoyen de démo `8bff2324-…`). Un vrai secret n'a
+  # jamais la forme canonique d'un UUID ; on exempte donc ce format.
+  '''[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}''',
+]
