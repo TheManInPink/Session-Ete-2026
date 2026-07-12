@@ -3,14 +3,38 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-12 (**PC-04 — e2e « stack réelle » automatisé** : nouveau
-> script `test:e2e:pc04-live` (`scripts/e2e-pc04-live.mjs`) qui rejoue le parcours de bout en bout
-> (ROPC Keycloak → `/sso/exchange` → réservation → annulation) contre les services **réellement
-> démarrés**, sans mock ni token forgé (7/7 assertions vertes). Voir 0sextricies. Précédent :
-> 0quinquetricies — bascule du gate live ; 0quattuortricies — audit capté de la réservation.)
+> **Dernière mise à jour** : 2026-07-12 (**Fiche citoyen mock — identité alignée sur la session** :
+> en mode démo (mock), la « Fiche citoyen » PC-02 affichait « Yacouba Sissoko » (identité
+> **synthétisée par hash du NINA**) au lieu du persona de session « Fatoumata Diallo ». Corrigé par
+> une surcharge d'identité par NINA (`c958f3b`). Voir 0septentricies. Précédent : 0sextricies — e2e
+> stack réelle PC-04.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0septentricies. Patch 2026-07-12 — Fiche citoyen mock : identité alignée sur la session (bug persona)
+
+En mode données **mock**, la « Fiche citoyen » (PC-02, `/[locale]/nina/[nina]`) affichait « Yacouba
+Sissoko » pour la session « Fatoumata Diallo ». Cause : la fiche n'est pas lue depuis un persona
+indexé par NINA mais **synthétisée par hash du NINA** (`generateDemoCitizen`, FNV-1a → pools de
+noms), qui pour `18903102015042V` produit déterministiquement « Yacouba Sissoko ». Deux sources de
+vérité divergentes pour le même NINA — **pas** un bug de routing/IDOR (le lien « Voir ma fiche NINA
+» = `/{locale}/nina/${session.user.nina}` utilise bien le NINA de la session).
+
+- **Fix** (`c958f3b`) : persona canonique `DEFAULT_MOCK_CITIZEN_IDENTITY`
+  (`packages/api-client/src/mock/personas.ts`) — source de vérité côté données mock, alignée sur
+  `MOCK_CITIZEN` (`apps/citizen/lib/auth/session.ts`) et l'utilisateur `citoyen.demo` du realm —
+  appliqué en **surcharge par NINA** dans `generateDemoCitizen`
+  (`packages/api-client/src/identity/demo-citizen.ts`). Les autres NINA restent dérivés du hash.
+- **Cohérence RAVEC** : le 1er chiffre du NINA encode le sexe (`2` = féminin, sinon masculin) ; le
+  NINA de démo commence par `1` (lu MALE) alors que Fatoumata est une femme → `sex` forcé `FEMALE` +
+  profession au féminin, pour une fiche interne cohérente.
+- **Portée** : mode démo (mock) uniquement. Le chemin live (identity-service / seed) était déjà
+  correct depuis `98c725c`.
+
+Gates : ESLint `--max-warnings=0` + `tsc --noEmit` (api-client) verts. Trois sources d'identité du
+citoyen de démo à garder alignées : auth `MOCK_CITIZEN`, données mock `personas.ts`, seed DB.
+Précédent : 0sextricies — e2e « stack réelle » PC-04.
 
 ### 0sextricies. Patch 2026-07-12 — PC-04 : e2e « stack réelle » automatisé (script rejouable)
 
