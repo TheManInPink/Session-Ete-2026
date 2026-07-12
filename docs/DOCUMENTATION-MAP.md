@@ -7,14 +7,15 @@
 > **Audience** : étudiant UQAR + futurs mainteneurs CTDEC/AES + assistants IA opérant sur le repo.
 >
 > **Dernière mise à jour** : 25 juin 2026 · **Status** : ✅ initialisé (27 docs + 12 docs
-> thématiques + **35 ADRs** — ADR-031 (data layer frontend mock/live/BFF), ADR-032 (design system),
+> thématiques + **36 ADRs** — ADR-031 (data layer frontend mock/live/BFF), ADR-032 (design system),
 > ADR-033 (pipeline de tokens Style Dictionary), **ADR-034 (sécurité hardening — Vault, mTLS,
-> OWASP)** et **ADR-035 (livraison à domicile + validation par catégorie — vulnerability-service)**
-> ajoutés depuis ; ADR-030 couvre le module IA : pipeline d'entraînement `ai-models/training`,
-> bundle joblib auto-suffisant anti-fuite, générateur de dataset restauré et intégration
-> `ai-service` — PROMPT 4.3. **Consolidation PHASE 1 (audit contenu + sécurité des 27 docs) livrée
-> le 2026-06-25** : 12 docs thématiques créés, correctifs crypto SIGAC/biométrie, docs/security/
-> rempli, 2 orphelins archivés — cf. §11).
+> OWASP)**, **ADR-035 (livraison à domicile + validation par catégorie — vulnerability-service)** et
+> **ADR-036 (échange SSO Keycloak → session applicative auth-service)** ajoutés depuis ; ADR-030
+> couvre le module IA : pipeline d'entraînement `ai-models/training`, bundle joblib auto-suffisant
+> anti-fuite, générateur de dataset restauré et intégration `ai-service` — PROMPT 4.3.
+> **Consolidation PHASE 1 (audit contenu + sécurité des 27 docs) livrée le 2026-06-25** : 12 docs
+> thématiques créés, correctifs crypto SIGAC/biométrie, docs/security/ rempli, 2 orphelins archivés
+> — cf. §11).
 
 ---
 
@@ -47,9 +48,9 @@
                               │
                               ▼ Justifie
 ┌──────────────────────────────────────────────────────────────────┐
-│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…034)   │
+│  TIER 3 — Architecture Decision Records (docs/adr/ADR-001…036)   │
 │  ─────────────────────────────────────────────────────────────   │
-│  35 ADRs (001 à 035) — décisions stratégiques avec :             │
+│  36 ADRs (001 à 036) — décisions stratégiques avec :             │
 │   • Contexte document (lien vers doc Tier 2 associée)            │
 │   • Décision + Conséquences positives / négatives                │
 │   • Note souveraineté + Alternatives rejetées                    │
@@ -215,7 +216,7 @@ clôturé.
 
 ## 4. Tier 3 — ADRs (graphe de dépendances)
 
-### 4.1 Couverture 35 ADRs (001–035)
+### 4.1 Couverture 36 ADRs (001–036)
 
 | ADR | Sujet                                               | Doc parent | "Complète" refs                                              |
 | --: | --------------------------------------------------- | ---------- | ------------------------------------------------------------ |
@@ -254,6 +255,7 @@ clôturé.
 | 033 | Pipeline de tokens Style Dictionary                 | doc 12     | ADR-032                                                      |
 | 034 | Sécurité hardening — Vault, mTLS, OWASP             | doc 15     | ADR-013, ADR-014, ADR-026 (comble l'ADR-015 fautif)          |
 | 035 | Livraison à domicile + validation par catégorie     | doc 22     | ADR-022, ADR-027, ADR-028                                    |
+| 036 | Échange SSO Keycloak → session applicative auth-svc | doc 08     | ADR-028, ADR-029, ADR-034                                    |
 
 ### 4.2 ⚠️ Refs ADR cassées (sévérité P0)
 
@@ -559,7 +561,7 @@ Cadence recommandée : revue trimestrielle + à chaque release majeure (tag Git 
                                   deployment/{DRP-RUNBOOK,OPS-RUNBOOK}, governance/{SGOGT-PROTOCOL,ELECTIONS-EXPORT-CONTRACT})
 ```
 
-État final : **27/27 docs canoniques + 12 docs thématiques + 35 ADRs + 6 gouvernance + 7 catalogues
+État final : **27/27 docs canoniques + 12 docs thématiques + 36 ADRs + 6 gouvernance + 7 catalogues
 transversaux + 1 carte (ce doc) = ~30 000 lignes de documentation cohérente.** Contrôles non
 implémentés dans le code marqués ⏳ « conçu, Phase 2 » ; gate pré-commit `verify:repo` vert à chaque
 commit de la PHASE 1.

@@ -3,23 +3,55 @@
 > Journal des écarts entre la documentation initiale (rédigée à l'ouverture du projet) et l'état
 > réel du code après les sessions PROMPT 1.2 → 1.5 et les incidents d'exécution résolus en chemin.
 >
-> **Dernière mise à jour** : 2026-07-11 (**vulnerability-service — réconciliation PROMPT 6.1 (Bloc
-> C1)** : (1) **livraison à domicile** `DeliveryMission` — SLA **15 j**, dispatch ADMIN/SUP vers
-> agent actif, **confirmation réservée à l'agent affecté** (ownership sub JWT → `User.id` →
-> `MobileAgent`) avec preuve de réception **hashée** + attestation **chiffrée** + GPS (jamais le
-> gabarit brut) ; (2) **politique de validation par catégorie** — `GET /categories` + auto-ELDERLY
-> 60+ (âge dérivé de `birthDate`), self-déclaré (PREGNANT/ILLITERATE/DIASPORA) vs certificat
-> (DISABLED/CHRONIC_ILL) ; (3) appel **SMS « c'est votre tour »** de la file (`notify-next`,
-> idempotent, best-effort). Schéma **additif** (table `delivery_missions` + colonne `notified_at`)
->
-> - **ADR-035**. **Pas** de nouveau `UserRole` plateforme. **Durci après revue adversariale** :
->   anti-BOLA sur la liste des missions, **baseline de migrations** Bloc C1 (`migrate deploy`
->   réparé), template SMS `priority-queue-turn` enregistré, garde « agent suspendu » sur `fail()`,
->   attribution d'audit (`entity_id`) corrigée. Voir 0duotricies. Précédent : 0untricies —
->   self-service `/appointments/me`.)
+> **Dernière mise à jour** : 2026-07-11 (**PC-04 — réconciliation d'émetteur de token (ADR-036)** :
+> échange SSO citoyen (token Keycloak → session applicative auth-service) levant la réserve
+> d'ADR-028. Trois volets : (1) endpoint `POST /auth/sso/exchange` — vérif Keycloak fail-closed
+> (RS256, `iss`, `azp`, `typ`, `exp`), rôle **DB jamais du token**, citoyen-only (pas de bypass
+> MFA), `nina` gravé DB ; (2) correctif de **casse de rôle** (`normalizeUserRole`) — MFA jadis
+> contournable au login password et tokens citoyens sans `nina` ; (3) **dual-token** portail citoyen
+> (cookie `backend_access_token`, `getSession` Keycloak inchangé → admin/gouvernance intacts). Gate
+> live PC-04 **non basculé** (revue et e2e requis). Voir 0tretricies. Précédent : 0duotricies —
+> vulnerability-service PROMPT 6.1.)
 
 Quand un document `.md` numéroté contredit le code, **le code fait foi** et ce CHANGELOG renvoie à
 la commande / au fichier qui matérialise la décision.
+
+### 0tretricies. Patch 2026-07-11 — PC-04 : réconciliation d'émetteur de token (SSO exchange, ADR-036) et casse de rôle
+
+Suite de 0untricies (self-service `/appointments/me`, gardé faute de chemin autorisé). La **réserve
+d'émetteur** d'ADR-028 est levée : le login **web** citoyen est émis par Keycloak alors que gateway
+et services aval ne vérifient que la **JWKS d'auth-service**. **ADR-036** tranche via un **échange
+SSO** citoyen (token Keycloak → session applicative), livré en deux tranches et un correctif. **Le
+gate live PC-04 n'est PAS encore basculé** (revue et e2e requis).
+
+- **auth-service — endpoint d'échange** (`81ad914`) : `POST /api/v1/auth/sso/exchange` (`@Public`,
+  throttlé par IP, dédié). `KeycloakTokenVerifier` vérifie le token Keycloak **fail-closed** :
+  signature RS256 (JWKS Keycloak par `kid` ; `algorithms:['RS256']` anti-confusion), `iss` (celui vu
+  par le **navigateur** — `KEYCLOAK_ISSUER`, à défaut dérivé ; JWKS récupéré via `KEYCLOAK_URL`
+  interne → **split-horizon**), `azp = nina-citizen`, `typ ≠ ID/Refresh`, `exp`. `exchangeSsoToken`
+  résout le user par `keycloakId`, prend le **rôle en base (jamais du token)**, **refuse tout rôle
+  interne** (MFA non contournable), grave le `nina` DB (anti-IDOR) et réutilise `issueSession`.
+  Nouveau `JwksModule` global. Tests unitaires (vérificateur, service). **ADR-036.**
+- **auth-service — correctif de casse de rôle** (`e2f1c0c`) : `User.role` Prisma (CASSE HAUTE) était
+  projeté brut vers `UserRole` (casse basse) via `as unknown as UserRole` ⇒ au login **password** :
+  `MFA_REQUIRED_ROLES.has('AGENT')` faux (**MFA contournée**) et token citoyen **sans `nina`**. Fix
+  racine : helper `normalizeUserRole` (throw sur rôle inconnu) appliqué à TOUTE projection d'un rôle
+  lu en base (`login`, `getMe`, `verifyTotp`/`verifySmsChallenge`, `exchangeSsoToken`). Latent (le
+  web passe par Keycloak) mais réel ; tests ajoutés.
+- **portail citoyen — dual-token** (`1766a4b`) : `@nina-aes/auth` gagne
+  `AuthConfig.backendExchangeUrl` (**opt-in citoyen** ; **no-op** admin/gouvernance — `getSession`
+  Keycloak inchangé). `callback` et `refresh` échangent le token Keycloak (helper
+  `exchangeBackendToken`, **server-to-server**, hors edge public, **non-fatal**) et posent le cookie
+  httpOnly **`backend_access_token`** (scope `/`) ; `logout` et l'échec de refresh le purgent. Les
+  deux chemins de forwarding citoyen (RSC `server.ts`, BFF `api/v1/[...path]`) relaient ce token (et
+  non celui de Keycloak, rejeté aval). `AUTH_SERVICE_INTERNAL_URL` déclarée dans `turbo.json`.
+
+Sécurité : aucun secret ni token en clair ; le **rôle DB fait foi** ; anti-IDOR (`nina`) et
+intégrité MFA préservés ; endpoint de mint **hors edge public**. **Reste** : bascule du gate live
+PC-04 (`appointment-form.tsx`) et e2e sur stack réelle (revue) ; audit signé de `create()`. Gates :
+`check-types`, ESLint `--max-warnings=0` et `test` (auth-service **36**) verts. Docs : header, cette
+entrée, **ADR-036** et `DOCUMENTATION-MAP` (36 ADRs). Précédent : 0duotricies —
+vulnerability-service.
 
 ### 0duotricies. Patch 2026-07-11 — vulnerability-service : réconciliation PROMPT 6.1 (livraison à domicile, validation par catégorie, appel SMS de file)
 
