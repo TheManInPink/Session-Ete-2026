@@ -41,8 +41,9 @@ playwright/.cache/
 # `.turbo/.turbo/` était invalide (matche un dossier `.turbo` imbriqué
 # dans `.turbo`, ce qui n'existe pas) et laissait passer 169 fichiers de
 # cache binaire dans l'historique.
-# `.turbo/preferences/` (notamment `tui.json`) reste explicitement tracké
-# car partagé en équipe.
+# `.turbo/preferences/tui.json` n'est QUE de l'état d'UI local du TUI
+# (`active_task`, `is_task_list_visible`) régénéré à chaque `turbo run` : il
+# est donc ignoré (négation retirée en aval) pour ne plus salir le worktree.
 .turbo/cache/
 .turbo/daemon/
 .turbo/runs/
@@ -565,13 +566,9 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Turborepo — .turbo des workspaces (logs de `turbo run`) : jamais versionnés.
-# NB : PAS de règle `.turbo` nue ici — elle ignorerait aussi .turbo/preferences/
-# à la racine, qui est volontairement tracké (cf. bloc « Turbo » en tête) et
-# bloquerait `git add` dessus.
 apps/*/.turbo/
 services/*/.turbo/
 packages/*/.turbo/
-# Racine : tout le contenu de .turbo est ignoré SAUF preferences/ (négation —
-# fonctionne car `.turbo/*` n'exclut que les entrées, pas le dossier .turbo lui-même).
+# Racine : tout le contenu de .turbo est ignoré, preferences/ compris
+# (état d'UI local du TUI — cf. bloc « Turbo » en tête).
 .turbo/*
-!.turbo/preferences/
