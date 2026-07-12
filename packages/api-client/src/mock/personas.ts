@@ -19,6 +19,35 @@ import { uuidFrom } from './deterministic';
 export const DEFAULT_MOCK_NINA = '18903102015042V';
 
 /**
+ * Identité canonique du citoyen de démo par défaut (NINA {@link DEFAULT_MOCK_NINA}).
+ *
+ * Source de vérité de la couche **données mock** : le générateur de fiche par hash
+ * (`generateDemoCitizen`) l'applique en surcharge, pour que la **fiche** affiche la
+ * MÊME personne que la **session**. Sans cette surcharge, la session « Fatoumata
+ * Diallo » (auth) et la fiche synthétisée depuis le hash du NINA « Yacouba Sissoko »
+ * divergent — c'est le bug qu'on corrige ici.
+ *
+ * DOIT rester alignée sur `MOCK_CITIZEN` (apps/citizen/lib/auth/session.ts) et sur
+ * l'utilisateur `citoyen.demo` du realm Keycloak : c'est la même personne.
+ *
+ * Note RAVEC : la 1re position du NINA encode le sexe (« 2 » = féminin, sinon
+ * masculin). Ce NINA de démo commence par « 1 » (lu MALE par défaut) alors que
+ * Fatoumata est une femme ; on force donc `sex: 'FEMALE'` et une profession
+ * accordée au féminin pour une fiche interne cohérente.
+ */
+export const DEFAULT_MOCK_CITIZEN_IDENTITY: {
+  firstName: string;
+  lastName: string;
+  sex: 'MALE' | 'FEMALE';
+  profession: string;
+} = {
+  firstName: 'Fatoumata',
+  lastName: 'Diallo',
+  sex: 'FEMALE',
+  profession: 'Enseignante',
+};
+
+/**
  * Identifiant utilisateur de la session mock **governance** — MÊME valeur que
  * `MOCK_OFFICIAL.id` dans `apps/governance/lib/auth/session.ts` (persona
  * « Général Issa Ousmane Coulibaly »). L'inbox SGOGT mock lui est adressée.
