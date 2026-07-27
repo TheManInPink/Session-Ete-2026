@@ -14,6 +14,6 @@
 # Version pinnee strictement (FROM tag) pour garantir que le plugin matche
 # bien la version d'ES, sinon ES refuse de demarrer (erreur de checksum).
 # ============================================================================
-FROM docker.elastic.co/elasticsearch/elasticsearch:9.4.1
+FROM docker.elastic.co/elasticsearch/elasticsearch:9.4.4
 
 RUN bin/elasticsearch-plugin install --batch analysis-phonetic
